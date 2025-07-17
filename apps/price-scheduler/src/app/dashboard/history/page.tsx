@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
+import {
   Calendar,
   Clock,
   Download,
@@ -78,6 +78,7 @@ export default function HistoryPage() {
       const response = await fetch(`/api/history/snapshots?timeRange=${timeFilter}`)
       if (response.ok) {
         const data = await response.json()
+        console.log('SNAPSHOT LIST RESPONSE:', data.snapshots)
         setSnapshots(data.snapshots || [])
       }
     } catch (error) {
@@ -105,22 +106,22 @@ export default function HistoryPage() {
   const exportData = async (format: 'json' | 'csv' | 'xlsx', snapshotId?: string) => {
     setExporting(format)
     try {
-      const url = snapshotId 
+      const url = snapshotId
         ? `/api/history/export/${snapshotId}?format=${format}`
         : `/api/history/export?format=${format}&timeRange=${timeFilter}`
-      
+
       const response = await fetch(url)
       if (response.ok) {
         const blob = await response.blob()
         const downloadUrl = window.URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.href = downloadUrl
-        
+
         const timestamp = new Date().toISOString().split('T')[0]
-        const filename = snapshotId 
+        const filename = snapshotId
           ? `price-snapshot-${snapshotId}-${timestamp}.${format}`
           : `price-history-${timeFilter}-${timestamp}.${format}`
-        
+
         link.download = filename
         document.body.appendChild(link)
         link.click()
@@ -134,10 +135,10 @@ export default function HistoryPage() {
   }
 
   const filteredSnapshots = snapshots.filter(snapshot => {
-    const matchesSearch = searchTerm === "" || 
+    const matchesSearch = searchTerm === "" ||
       snapshot.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       new Date(snapshot.timestamp).toLocaleString().toLowerCase().includes(searchTerm.toLowerCase())
-    
+
     return matchesSearch
   })
 
@@ -145,9 +146,9 @@ export default function HistoryPage() {
     const matchesSearch = searchTerm === "" ||
       price.symbol.toLowerCase().includes(searchTerm.toLowerCase()) ||
       price.tokenId.toLowerCase().includes(searchTerm.toLowerCase())
-    
+
     const matchesSource = sourceFilter === "all" || price.source === sourceFilter
-    
+
     return matchesSearch && matchesSource
   }) || []
 
@@ -251,7 +252,7 @@ export default function HistoryPage() {
             Snapshot Detail
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="snapshots" className="space-y-6">
           {/* Summary Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -267,7 +268,7 @@ export default function HistoryPage() {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Avg Tokens Priced</CardTitle>
@@ -282,7 +283,7 @@ export default function HistoryPage() {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
@@ -290,9 +291,9 @@ export default function HistoryPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {filteredSnapshots.length > 0 
-                    ? Math.round((filteredSnapshots.reduce((sum, s) => sum + s.successfulPrices, 0) / 
-                        filteredSnapshots.reduce((sum, s) => sum + s.totalTokens, 0)) * 100)
+                  {filteredSnapshots.length > 0
+                    ? Math.round((filteredSnapshots.reduce((sum, s) => sum + s.successfulPrices, 0) /
+                      filteredSnapshots.reduce((sum, s) => sum + s.totalTokens, 0)) * 100)
                     : 0}%
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -300,7 +301,7 @@ export default function HistoryPage() {
                 </p>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Avg Calc Time</CardTitle>
@@ -371,13 +372,12 @@ export default function HistoryPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              <div className={`text-sm font-medium ${
-                                (snapshot.successfulPrices / snapshot.totalTokens) > 0.9 
-                                  ? 'text-green-600' 
-                                  : (snapshot.successfulPrices / snapshot.totalTokens) > 0.7
+                              <div className={`text-sm font-medium ${(snapshot.successfulPrices / snapshot.totalTokens) > 0.9
+                                ? 'text-green-600'
+                                : (snapshot.successfulPrices / snapshot.totalTokens) > 0.7
                                   ? 'text-yellow-600'
                                   : 'text-red-600'
-                              }`}>
+                                }`}>
                                 {Math.round((snapshot.successfulPrices / snapshot.totalTokens) * 100)}%
                               </div>
                               {snapshot.failedPrices > 0 && (
@@ -468,7 +468,7 @@ export default function HistoryPage() {
                     </div>
                   </CardTitle>
                   <CardDescription>
-                    {new Date(selectedSnapshot.snapshot.timestamp).toLocaleString()} • 
+                    {new Date(selectedSnapshot.snapshot.timestamp).toLocaleString()} •
                     {selectedSnapshot.prices.length} tokens priced
                   </CardDescription>
                 </CardHeader>
@@ -522,7 +522,7 @@ export default function HistoryPage() {
                               <div>
                                 <div className="font-medium">{price.symbol}</div>
                                 <div className="text-sm text-muted-foreground font-mono">
-                                  {price.tokenId.length > 50 
+                                  {price.tokenId.length > 50
                                     ? `${price.tokenId.slice(0, 25)}...${price.tokenId.slice(-20)}`
                                     : price.tokenId
                                   }
@@ -540,11 +540,11 @@ export default function HistoryPage() {
                               </div>
                             </TableCell>
                             <TableCell>
-                              <Badge 
+                              <Badge
                                 variant={
                                   price.source === 'oracle' ? 'default' :
-                                  price.source === 'market' ? 'secondary' :
-                                  price.source === 'intrinsic' ? 'outline' : 'destructive'
+                                    price.source === 'market' ? 'secondary' :
+                                      price.source === 'intrinsic' ? 'outline' : 'destructive'
                                 }
                               >
                                 {price.source}
@@ -552,10 +552,9 @@ export default function HistoryPage() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
-                                <div className={`text-sm font-medium ${
-                                  price.reliability > 0.8 ? 'text-green-600' :
+                                <div className={`text-sm font-medium ${price.reliability > 0.8 ? 'text-green-600' :
                                   price.reliability > 0.6 ? 'text-yellow-600' : 'text-red-600'
-                                }`}>
+                                  }`}>
                                   {Math.round(price.reliability * 100)}%
                                 </div>
                               </div>
@@ -584,15 +583,15 @@ export default function HistoryPage() {
 function generateMockSnapshots(): PriceSnapshot[] {
   const snapshots: PriceSnapshot[] = []
   const now = Date.now()
-  
+
   for (let i = 0; i < 50; i++) {
     const timestamp = now - (i * 5 * 60 * 1000) // Every 5 minutes
     const totalTokens = Math.floor(Math.random() * 20) + 80
     const successfulPrices = Math.floor(totalTokens * (0.85 + Math.random() * 0.15))
     const failedPrices = totalTokens - successfulPrices
-    
+
     snapshots.push({
-      id: `snapshot_${timestamp}`,
+      id: String(timestamp),
       timestamp,
       totalTokens,
       successfulPrices,
@@ -609,23 +608,23 @@ function generateMockSnapshots(): PriceSnapshot[] {
       storageSize: Math.floor(Math.random() * 1000000) + 500000
     })
   }
-  
+
   return snapshots
 }
 
 function generateMockSnapshotDetail(snapshotId: string): SnapshotDetail {
   const snapshot = generateMockSnapshots().find(s => s.id === snapshotId) || generateMockSnapshots()[0]
-  
+
   const tokens = [
     'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token',
     'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',
     'SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.token-alex',
     'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.arkadiko-token'
   ]
-  
+
   const sources: Array<'oracle' | 'market' | 'intrinsic' | 'hybrid'> = ['oracle', 'market', 'intrinsic', 'hybrid']
   const symbols = ['CHA', 'sBTC', 'ALEX', 'DIKO']
-  
+
   const prices: TokenPrice[] = tokens.map((tokenId, i) => ({
     tokenId,
     symbol: symbols[i] || `TOKEN${i}`,
@@ -635,6 +634,6 @@ function generateMockSnapshotDetail(snapshotId: string): SnapshotDetail {
     reliability: Math.random() * 0.3 + 0.7,
     lastUpdated: snapshot.timestamp
   }))
-  
+
   return { snapshot, prices }
 }

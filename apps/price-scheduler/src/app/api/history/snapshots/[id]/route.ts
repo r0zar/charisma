@@ -19,11 +19,14 @@ function extractTimestampFromPath(path: string): number | null {
     return date.getTime();
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(
+    request: NextRequest,
+    context: { params: { id: string } }
+) {
     if (!BLOB_READ_WRITE_TOKEN) {
         return NextResponse.json({ error: 'BLOB_READ_WRITE_TOKEN not configured' }, { status: 500 });
     }
-    const { id } = params;
+    const { id } = await context.params;
     const targetTimestamp = Number(id);
     if (!targetTimestamp) {
         return NextResponse.json({ error: 'Invalid snapshot id' }, { status: 400 });
@@ -35,6 +38,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             token: BLOB_READ_WRITE_TOKEN,
             limit: 1000
         });
+        // Debug logging
+        const availableTimestamps = blobs.blobs.map(blob => extractTimestampFromPath(blob.pathname));
+        console.log('Available snapshot timestamps:', availableTimestamps);
+        console.log('Requested snapshot id:', targetTimestamp);
         // Find the blob with matching timestamp
         const match = blobs.blobs.find(blob => extractTimestampFromPath(blob.pathname) === targetTimestamp);
         if (!match) {

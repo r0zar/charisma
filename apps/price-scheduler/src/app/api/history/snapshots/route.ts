@@ -47,9 +47,10 @@ export async function GET(request: NextRequest) {
                 const response = await fetch(blob.url);
                 if (!response.ok) continue;
                 const data = await response.json();
+                const roundedTimestamp = blob.timestamp;
                 snapshots.push({
-                    id: String(data.timestamp),
-                    timestamp: data.timestamp,
+                    id: String(roundedTimestamp), // Use rounded timestamp as id
+                    timestamp: roundedTimestamp,  // Use rounded timestamp for display
                     totalTokens: data.metadata?.totalTokens ?? 0,
                     successfulPrices: data.prices?.length ?? 0,
                     failedPrices: (data.metadata?.totalTokens ?? 0) - (data.prices?.length ?? 0),
