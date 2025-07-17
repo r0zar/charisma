@@ -1,0 +1,5 @@
+{
+  "buildCommand": "pnpm build --filter=dex-cache",
+  "installCommand": "npm install -g pnpm@8.15.6 && pnpm install",
+  "framework": null
+}
