@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import ReactMarkdown from 'react-markdown';
+import type { Components } from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import remarkGfm from 'remark-gfm';
@@ -70,7 +71,7 @@ export function MarkdownRenderer({ filePath, className = '' }: MarkdownRendererP
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-              code({ node, inline, className, children, ...props }: any) {
+              code: ({ inline, className, children, ...props }) => {
                 const match = /language-(\w+)/.exec(className || '');
                 const language = match ? match[1] : '';
                 
