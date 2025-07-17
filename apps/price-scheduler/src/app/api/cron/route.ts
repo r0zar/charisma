@@ -47,7 +47,7 @@ async function initializeOrchestrator(): Promise<PriceServiceOrchestrator> {
         getAllVaultData: async () => {
             console.log('[PriceScheduler] Fetching vault data from invest service...');
             const investUrl = getHostUrl('invest');
-            const response = await fetch(`${investUrl}/api/vaults`);
+            const response = await fetch(`${investUrl}/api/v1/vaults`);
             if (!response.ok) {
                 throw new Error(`Failed to fetch vaults: ${response.statusText}`);
             }
