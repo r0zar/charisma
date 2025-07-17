@@ -3,7 +3,7 @@ import {
     PriceServiceOrchestrator,
     OracleEngine,
     CpmmEngine,
-    IntrinsicValueEngine
+    VirtualEngine
 } from '@services/prices';
 
 const headers = {
@@ -106,31 +106,31 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // Test Intrinsic Engine
+        // Test Virtual Engine
         try {
-            const intrinsicEngine = new IntrinsicValueEngine();
+            const virtualEngine = new VirtualEngine();
             const startTime = Date.now();
             
             // Test with a known sBTC token
             const testToken = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token';
-            const hasIntrinsic = await intrinsicEngine.hasIntrinsicValue(testToken);
+            const hasVirtual = await virtualEngine.hasVirtualValue(testToken);
             const responseTime = Date.now() - startTime;
             
             engineHealth.push({
-                engine: 'Intrinsic',
-                status: hasIntrinsic ? 'healthy' : 'degraded',
-                lastSuccess: Date.now() - (hasIntrinsic ? 60000 : 180000),
-                errorRate: hasIntrinsic ? 0.1 : 0.25,
+                engine: 'Virtual',
+                status: hasVirtual ? 'healthy' : 'degraded',
+                lastSuccess: Date.now() - (hasVirtual ? 60000 : 180000),
+                errorRate: hasVirtual ? 0.1 : 0.25,
                 averageResponseTime: responseTime,
                 details: {
                     testToken,
-                    hasIntrinsicValue: hasIntrinsic,
+                    hasVirtualValue: hasVirtual,
                     responseTimeMs: responseTime
                 }
             });
         } catch (error) {
             engineHealth.push({
-                engine: 'Intrinsic',
+                engine: 'Virtual',
                 status: 'failed',
                 lastSuccess: Date.now() - 600000,
                 errorRate: 1.0,

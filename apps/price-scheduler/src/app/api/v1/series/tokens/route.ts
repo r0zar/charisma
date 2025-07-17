@@ -8,10 +8,7 @@ if (!BLOB_READ_WRITE_TOKEN) {
 }
 
 // Initialize price series components
-const storage = new PriceSeriesStorage({
-  blobToken: BLOB_READ_WRITE_TOKEN,
-  baseUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
-});
+const storage = new PriceSeriesStorage(BLOB_READ_WRITE_TOKEN);
 const priceAPI = new PriceSeriesAPI(storage);
 
 const headers = {

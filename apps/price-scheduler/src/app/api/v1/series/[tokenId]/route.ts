@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { PriceSeriesAPI, PriceSeriesStorage } from '@services/prices';
+import { NextRequest, NextResponse } from 'next/server';
+import { PriceSeriesAPI, PriceSeriesStorage, TokenPriceData } from '@services/prices';
 
 const BLOB_READ_WRITE_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 
@@ -8,10 +8,7 @@ if (!BLOB_READ_WRITE_TOKEN) {
 }
 
 // Initialize price series components
-const storage = new PriceSeriesStorage({
-  blobToken: BLOB_READ_WRITE_TOKEN,
-  baseUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
-});
+const storage = new PriceSeriesStorage(BLOB_READ_WRITE_TOKEN);
 const priceAPI = new PriceSeriesAPI(storage);
 
 const headers = {
@@ -27,13 +24,13 @@ export async function OPTIONS() {
 }
 
 export async function GET(
-  request: Request,
-  { params }: { params: { tokenId: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ tokenId: string }> }
 ) {
   const startTime = Date.now();
-  
+
   try {
-    const { tokenId } = params;
+    const { tokenId } = await params;
     const url = new URL(request.url);
     const timeframe = url.searchParams.get('timeframe') || '1h';
     const limit = url.searchParams.get('limit') || '100';
@@ -53,7 +50,7 @@ export async function GET(
 
     // Get current price from internal price service
     const currentPriceResult = await priceAPI.getCurrentPrice(tokenId);
-    
+
     if (!currentPriceResult.success) {
       return NextResponse.json({
         status: 'error',
@@ -65,17 +62,17 @@ export async function GET(
       });
     }
 
-    const tokenData = currentPriceResult.data;
-    
+    const tokenData = currentPriceResult.data as TokenPriceData;
+
     // Get historical data from price service
-    let historicalData = [];
+    let historicalData: any[] = [];
     try {
       const historyResult = await priceAPI.getPriceHistory({
         tokenId,
         timeframe: timeframe as any,
         limit: parseInt(limit)
       });
-      
+
       if (historyResult.success && historyResult.data && historyResult.data.length > 0) {
         historicalData = historyResult.data.map((point: any) => ({
           timestamp: point.timestamp,
@@ -97,8 +94,8 @@ export async function GET(
     }
 
     const processingTime = Date.now() - startTime;
-    
-    console.log(`[Series API] Generated ${historicalData.length} data points for ${tokenData.symbol} in ${processingTime}ms`);
+
+    console.log(`[Series API] Generated ${historicalData.length} data points for ${tokenData!.symbol} in ${processingTime}ms`);
 
     return NextResponse.json({
       status: 'success',
@@ -119,7 +116,7 @@ export async function GET(
         // Include detailed path information if available
         primaryPath: tokenData.marketData?.primaryPath || null,
         alternativePaths: tokenData.marketData?.alternativePaths || [],
-        calculationDetails: tokenData.marketData || tokenData.oracleData || tokenData.intrinsicData || null
+        calculationDetails: tokenData.marketData || tokenData.oracleData || tokenData.virtualData || null
       },
       metadata: {
         timeframe,
@@ -134,10 +131,10 @@ export async function GET(
     });
 
   } catch (error: any) {
-    console.error(`[Series API] Error fetching series data for ${params.tokenId}:`, error);
-    
+    console.error(`[Series API] Error fetching series data:`, error);
+
     const processingTime = Date.now() - startTime;
-    
+
     return NextResponse.json({
       status: 'error',
       error: 'Internal Server Error',
@@ -156,7 +153,7 @@ export async function GET(
 function generateSampleTimeSeries(tokenData: any, timeframe: string, limit: number) {
   const now = Date.now();
   const series = [];
-  
+
   // Define timeframe intervals in milliseconds
   const intervals = {
     '1m': 60 * 1000,
@@ -164,20 +161,20 @@ function generateSampleTimeSeries(tokenData: any, timeframe: string, limit: numb
     '1h': 60 * 60 * 1000,
     '1d': 24 * 60 * 60 * 1000
   };
-  
+
   const interval = intervals[timeframe as keyof typeof intervals] || intervals['1h'];
   const basePrice = tokenData.usdPrice || 0;
-  
+
   // Generate realistic time series data points
   for (let i = limit - 1; i >= 0; i--) {
     const timestamp = now - (i * interval);
-    
+
     // Add realistic price variation (smaller for more stable tokens)
     const confidence = tokenData.reliability || 0.9;
     const maxVariation = (1 - confidence) * 0.05; // Max 5% variation for low confidence
     const priceMultiplier = 1 + (Math.random() - 0.5) * maxVariation;
     const price = basePrice * priceMultiplier;
-    
+
     // Add slight trend based on token type
     let trend = 1;
     if (tokenData.source === 'oracle') {
@@ -185,9 +182,9 @@ function generateSampleTimeSeries(tokenData: any, timeframe: string, limit: numb
     } else if (tokenData.arbitrageOpportunity) {
       trend = Math.random() > 0.5 ? 1.005 : 0.995; // Slight trend for arbitrage opportunities
     }
-    
+
     const finalPrice = price * Math.pow(trend, i / limit);
-    
+
     series.push({
       timestamp,
       time: timestamp,
@@ -198,7 +195,7 @@ function generateSampleTimeSeries(tokenData: any, timeframe: string, limit: numb
       liquidity: (tokenData.marketData?.totalLiquidity || 0) * (0.9 + Math.random() * 0.2)
     });
   }
-  
+
   return series;
 }
 

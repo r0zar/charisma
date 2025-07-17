@@ -10,7 +10,7 @@ import {
     PriceServiceOrchestrator,
     OracleEngine,
     CpmmEngine,
-    IntrinsicValueEngine,
+    VirtualEngine,
     PriceSeriesStorage
 } from '@services/prices';
 import { getHostUrl } from '@modules/discovery';
@@ -40,7 +40,7 @@ async function initializeOrchestrator(): Promise<PriceServiceOrchestrator> {
     // Create engines
     const oracleEngine = new OracleEngine();
     const cpmmEngine = new CpmmEngine();
-    const intrinsicEngine = new IntrinsicValueEngine();
+    const virtualEngine = new VirtualEngine();
 
     // Set up CPMM engine with pool data provider
     const poolDataProvider = {
@@ -63,11 +63,11 @@ async function initializeOrchestrator(): Promise<PriceServiceOrchestrator> {
     cpmmEngine.setPoolDataProvider(poolDataProvider);
     await cpmmEngine.buildGraph();
 
-    // Set up intrinsic engine providers
-    intrinsicEngine.setOracleEngine(oracleEngine);
+    // Set up virtual engine providers
+    virtualEngine.setOracleEngine(oracleEngine);
 
     // Token metadata provider (for subnet tokens)
-    intrinsicEngine.setTokenMetadataProvider({
+    virtualEngine.setTokenMetadataProvider({
         getTokenMetadata: async (contractId: string) => {
             try {
                 // Get token metadata from vault data (pools contain token metadata)
@@ -101,8 +101,8 @@ async function initializeOrchestrator(): Promise<PriceServiceOrchestrator> {
         }
     });
 
-    // LP provider (for intrinsic LP token calculation)
-    intrinsicEngine.setLpProvider({
+    // LP provider (for virtual LP token calculation)
+    virtualEngine.setLpProvider({
         getAllVaultData: poolDataProvider.getAllVaultData,
         getRemoveLiquidityQuote: async (contractId: string, amount: number) => {
             try {
@@ -134,13 +134,13 @@ async function initializeOrchestrator(): Promise<PriceServiceOrchestrator> {
         }
     });
 
-    // Price provider (for recursive pricing in intrinsic engine)
-    intrinsicEngine.setPriceProvider({
+    // Price provider (for recursive pricing in virtual engine)
+    virtualEngine.setPriceProvider({
         getPrice: async (contractId: string) => {
             try {
                 // Use our own orchestrator for recursive pricing (avoid infinite loops)
                 const result = await orchestrator?.calculateTokenPrice(contractId, {
-                    preferredSources: ['oracle', 'market'], // Avoid intrinsic recursion
+                    preferredSources: ['oracle', 'market'], // Avoid virtual recursion
                     useCache: true
                 });
 
@@ -159,7 +159,7 @@ async function initializeOrchestrator(): Promise<PriceServiceOrchestrator> {
     orchestrator = new PriceServiceOrchestrator();
     orchestrator.setOracleEngine(oracleEngine);
     orchestrator.setCpmmEngine(cpmmEngine);
-    orchestrator.setIntrinsicEngine(intrinsicEngine);
+    orchestrator.setVirtualEngine(virtualEngine);
 
     console.log('[PriceScheduler] ✅ Orchestrator initialized');
     return orchestrator;
@@ -263,7 +263,7 @@ export async function GET(request: NextRequest) {
             timestamp: Date.now(),
             prices: result.prices,
             metadata: {
-                engineStats: result.debugInfo?.engineStats || { oracle: 0, market: 0, intrinsic: 0, hybrid: 0 },
+                engineStats: result.debugInfo?.engineStats || { oracle: 0, market: 0, virtual: 0, hybrid: 0 },
                 calculationTime: result.debugInfo?.calculationTimeMs,
                 arbitrageOpportunities: arbitrageCount,
                 totalTokens: tokens.length
