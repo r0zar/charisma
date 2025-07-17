@@ -26,7 +26,7 @@ export async function GET(
     if (!BLOB_READ_WRITE_TOKEN) {
         return NextResponse.json({ error: 'BLOB_READ_WRITE_TOKEN not configured' }, { status: 500 });
     }
-    const { id } = await context.params;
+    const { id } = context.params;
     const targetTimestamp = Number(id);
     if (!targetTimestamp) {
         return NextResponse.json({ error: 'Invalid snapshot id' }, { status: 400 });
