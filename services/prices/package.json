@@ -1,0 +1,52 @@
+{
+  "name": "@services/prices",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/es/index.js",
+  "module": "./dist/es/index.js",
+  "types": "./dist/es/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/es/index.d.ts",
+        "default": "./dist/es/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.cts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "bunchee",
+    "dev": "bunchee --watch",
+    "x": "node --import tsx",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@repo/polyglot": "workspace:*",
+    "@swc/helpers": "^0.5.17",
+    "@vercel/blob": "^1.1.1"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^24.0.14",
+    "bunchee": "^6.5.4",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.31.0",
+    "happy-dom": "^18.0.1",
+    "tsx": "^4.19.3",
+    "typescript": "5.8.3",
+    "vitest": "^3.1.3"
+  }
+}

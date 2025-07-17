@@ -28,7 +28,8 @@ interface AdminStats {
 }
 
 async function fetchAdminStats(): Promise<AdminStats> {
-    const TX_MONITOR_URL = process.env.NEXT_PUBLIC_TX_MONITOR_URL || 'http://localhost:3012';
+    const { getHostUrl } = await import('@modules/discovery');
+    const TX_MONITOR_URL = process.env.NEXT_PUBLIC_TX_MONITOR_URL || getHostUrl('tx-monitor');
     const response = await fetch(`${TX_MONITOR_URL}/api/v1/queue/stats`);
     const data = await response.json();
 
@@ -170,7 +171,8 @@ export default function OrderManagement() {
                         </Button>
                         <Button variant="outline" size="sm" onClick={async () => {
                             try {
-                                const TX_MONITOR_URL = process.env.NEXT_PUBLIC_TX_MONITOR_URL || 'http://localhost:3012';
+                                const { getHostUrl } = await import('@modules/discovery');
+                                const TX_MONITOR_URL = process.env.NEXT_PUBLIC_TX_MONITOR_URL || getHostUrl('tx-monitor');
                                 const response = await fetch(`${TX_MONITOR_URL}/api/v1/admin/trigger`, { method: 'POST' });
                                 if (response.ok) {
                                     alert('Transaction monitoring triggered successfully');

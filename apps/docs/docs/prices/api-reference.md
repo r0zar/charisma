@@ -407,28 +407,6 @@ Responses include appropriate cache headers:
 3. Implement exponential backoff on errors
 4. Monitor rate limit headers
 
-## WebSocket API (Coming Soon)
-
-Real-time price updates via WebSockets are being developed as part of the **blaze-sdk** and **useBlaze** hook. This will enable live price streaming for Charisma applications and is currently being tested internally.
-
-```javascript
-// Coming soon: Real-time prices via blaze-sdk
-import { useBlaze } from 'blaze-sdk';
-
-function PriceComponent() {
-  const { prices, isConnected } = useBlaze({
-    tokens: ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token'],
-    realtime: true
-  });
-  
-  return (
-    <div>
-      {isConnected && <span>Live: {prices.CHA?.usdPrice}</span>}
-    </div>
-  );
-}
-```
-
 **Status**: Internal testing phase for Charisma applications
 
 ## SDK and Libraries

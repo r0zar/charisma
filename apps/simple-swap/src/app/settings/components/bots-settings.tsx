@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useWallet } from '@/contexts/wallet-context';
-import { useBlaze } from 'blaze-sdk/realtime';
+import { usePrices } from '@/contexts/token-price-context';
+import { useBalances } from '@/contexts/wallet-balance-context';
+import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import CreateBotModal from './CreateBotModal';
 import { signedFetch } from 'blaze-sdk';
 import { request } from '@stacks/connect';
@@ -140,48 +142,50 @@ export default function BotsSettings() {
     return userBots.map(bot => bot.walletAddress).filter(Boolean);
   }, [userBots]);
 
-  // Use Blaze to get real-time balances for all bot wallets
-  const { getUserBalances, prices, refreshBalances } = useBlaze({
-    userIds: botWalletAddresses.length > 0 ? botWalletAddresses : [],
-  });
+  // Use new contexts to get real-time balances and prices for all bot wallets
+  const { prices, getPrice } = usePrices();
+  const { balances, getBalance, getTokenBalance, getStxBalance, refreshBalances } = useBalances(botWalletAddresses);
+  const { getTokenSymbol, getTokenName, getTokenImage, getTokenDecimals, getToken } = useTokenMetadata();
 
   // Helper function to calculate USD value
   const calculateUsdValue = useCallback((contractId: string, formattedBalance: number): string => {
-    if (!prices || !prices[contractId]?.price) return '~';
-    const usdValue = formattedBalance * prices[contractId].price;
+    const price = getPrice(contractId);
+    if (!price) return '~';
+    const usdValue = formattedBalance * price;
     return `$${usdValue.toFixed(2)}`;
-  }, [prices]);
+  }, [getPrice]);
 
   // Helper functions that need to be defined before useEffects
   const getBotStxBalance = useCallback((walletAddress: string): number => {
-    if (!walletAddress || !getUserBalances) return 0;
+    if (!walletAddress) return 0;
 
     try {
-      const balances = getUserBalances(walletAddress);
-      const stxBalance = balances['.stx'] || balances['stx'] || balances['STX'];
-      return stxBalance?.formattedBalance || 0;
+      return getStxBalance(walletAddress);
     } catch (error) {
       console.error('Error getting STX balance for bot wallet:', error);
       return 0;
     }
-  }, [getUserBalances]);
+  }, [getStxBalance]);
 
   const getUserLpTokens = useCallback((userAddress: string) => {
-    if (!userAddress || !getUserBalances) return [];
+    if (!userAddress) return [];
 
     try {
-      const balances = getUserBalances(userAddress);
+      const walletBalance = getBalance(userAddress);
+      if (!walletBalance?.fungible_tokens) return [];
+      
       const lpTokens = [];
 
       for (const contractId of YIELD_FARMING_LP_TOKENS) {
-        const tokenBalance = balances[contractId];
-        if (tokenBalance && tokenBalance.formattedBalance > 0) {
+        const tokenBalance = walletBalance.fungible_tokens[contractId];
+        if (tokenBalance && parseFloat(tokenBalance.balance || '0') > 0) {
+          const formattedBalance = parseFloat(tokenBalance.balance) / Math.pow(10, 6); // Assuming 6 decimals
           lpTokens.push({
             contractId,
             balance: tokenBalance.balance,
-            formattedBalance: tokenBalance.formattedBalance,
-            symbol: tokenBalance.symbol || 'Unknown',
-            name: tokenBalance.name || 'Unknown Token',
+            formattedBalance,
+            symbol: 'LP',
+            name: 'LP Token',
             metadata: tokenBalance
           });
         }
@@ -192,24 +196,27 @@ export default function BotsSettings() {
       console.error('Error getting user LP token balances:', error);
       return [];
     }
-  }, [getUserBalances]);
+  }, [getBalance]);
 
   const getBotLpTokens = useCallback((walletAddress: string) => {
-    if (!walletAddress || !getUserBalances) return [];
+    if (!walletAddress) return [];
 
     try {
-      const balances = getUserBalances(walletAddress);
+      const walletBalance = getBalance(walletAddress);
+      if (!walletBalance?.fungible_tokens) return [];
+      
       const lpTokens = [];
 
       for (const contractId of YIELD_FARMING_LP_TOKENS) {
-        const tokenBalance = balances[contractId];
-        if (tokenBalance && tokenBalance.formattedBalance > 0) {
+        const tokenBalance = walletBalance.fungible_tokens[contractId];
+        if (tokenBalance && parseFloat(tokenBalance.balance || '0') > 0) {
+          const formattedBalance = parseFloat(tokenBalance.balance) / Math.pow(10, 6); // Assuming 6 decimals
           lpTokens.push({
             contractId,
             balance: tokenBalance.balance,
-            formattedBalance: tokenBalance.formattedBalance,
-            symbol: tokenBalance.symbol || 'Unknown',
-            name: tokenBalance.name || 'Unknown Token',
+            formattedBalance,
+            symbol: 'LP',
+            name: 'LP Token',
             metadata: tokenBalance
           });
         }
@@ -220,26 +227,29 @@ export default function BotsSettings() {
       console.error('Error getting bot LP token balances:', error);
       return [];
     }
-  }, [getUserBalances]);
+  }, [getBalance]);
 
   // Get all withdrawable tokens from bot (LP tokens + reward tokens)
   const getBotWithdrawableTokens = useCallback((walletAddress: string) => {
-    if (!walletAddress || !getUserBalances) return [];
+    if (!walletAddress) return [];
 
     try {
-      const balances = getUserBalances(walletAddress);
+      const walletBalance = getBalance(walletAddress);
+      if (!walletBalance?.fungible_tokens) return [];
+      
       const withdrawableTokens = [];
 
       for (const contractId of WITHDRAWABLE_TOKENS) {
-        const tokenBalance = balances[contractId];
-        if (tokenBalance && tokenBalance.formattedBalance > 0) {
+        const tokenBalance = walletBalance.fungible_tokens[contractId];
+        if (tokenBalance && parseFloat(tokenBalance.balance || '0') > 0) {
           const isRewardToken = contractId === REWARD_TOKEN;
+          const formattedBalance = parseFloat(tokenBalance.balance) / Math.pow(10, 6); // Assuming 6 decimals
           withdrawableTokens.push({
             contractId,
             balance: tokenBalance.balance,
-            formattedBalance: tokenBalance.formattedBalance,
-            symbol: tokenBalance.symbol || (isRewardToken ? 'HOOTER' : 'Unknown'),
-            name: tokenBalance.name || (isRewardToken ? 'Hooter the Owl' : 'Unknown Token'),
+            formattedBalance,
+            symbol: isRewardToken ? 'HOOTER' : 'LP',
+            name: isRewardToken ? 'Hooter the Owl' : 'LP Token',
             metadata: tokenBalance,
             type: isRewardToken ? 'reward' : 'lp'
           });
@@ -251,7 +261,7 @@ export default function BotsSettings() {
       console.error('Error getting bot withdrawable token balances:', error);
       return [];
     }
-  }, [getUserBalances]);
+  }, [getBalance]);
 
   // Check if a bot has ALL required LP tokens for yield farming
   const botHasLpTokens = useCallback((bot: BotConfig) => {
@@ -547,48 +557,50 @@ export default function BotsSettings() {
 
   // Calculate maximum LP token amount for $10 cap
   const getMaxLpTokenAmount = useCallback((contractId: string, userBalance: number) => {
-    if (!prices) return userBalance * 0.1; // Fallback to 10% if no prices
-
-    const tokenPrice = prices[contractId];
-    if (!tokenPrice || !tokenPrice.price) return userBalance * 0.1;
+    const tokenPrice = getPrice(contractId);
+    if (!tokenPrice) return userBalance * 0.1; // Fallback to 10% if no prices
 
     // Calculate max tokens worth $10
-    const maxTokensFor10USD = 10 / tokenPrice.price;
+    const maxTokensFor10USD = 10 / tokenPrice;
 
     // Return the smaller of: user's 10% balance or $10 worth
     return Math.min(userBalance * 0.1, maxTokensFor10USD);
-  }, [prices]);
+  }, [getPrice]);
 
   // Calculate total USD value of all tokens in a bot wallet
   const getBotTotalValue = useCallback((walletAddress: string): number => {
-    if (!walletAddress || !getUserBalances || !prices) return 0;
+    if (!walletAddress) return 0;
 
     try {
-      const balances = getUserBalances(walletAddress);
+      const walletBalance = getBalance(walletAddress);
+      if (!walletBalance) return 0;
+      
       let totalValue = 0;
 
-      // Add STX value - try different possible keys
-      const stxBalance = balances['.stx'] || balances['stx'] || balances['STX'];
-      if (stxBalance && prices['.stx']?.price) {
-        totalValue += stxBalance.formattedBalance * prices['.stx'].price;
+      // Add STX value
+      const stxBalance = getStxBalance(walletAddress);
+      const stxPrice = getPrice('STX') || getPrice('.stx');
+      if (stxBalance && stxPrice) {
+        totalValue += stxBalance * stxPrice;
       }
 
       // Add all token values (including LP tokens)
-      Object.entries(balances).forEach(([contractId, tokenData]) => {
-        if (contractId === '.stx' || contractId === 'stx' || contractId === 'STX') return; // Already handled above
-
-        const tokenPrice = prices[contractId];
-        if (tokenData && tokenPrice?.price && tokenData.formattedBalance > 0) {
-          totalValue += tokenData.formattedBalance * tokenPrice.price;
-        }
-      });
+      if (walletBalance.fungible_tokens) {
+        Object.entries(walletBalance.fungible_tokens).forEach(([contractId, tokenData]) => {
+          const tokenPrice = getPrice(contractId);
+          const formattedBalance = parseFloat(tokenData.balance || '0') / Math.pow(10, 6); // Assuming 6 decimals
+          if (tokenPrice && formattedBalance > 0) {
+            totalValue += formattedBalance * tokenPrice;
+          }
+        });
+      }
 
       return totalValue;
     } catch (error) {
       console.error('Error calculating bot total value:', error);
       return 0;
     }
-  }, [getUserBalances, prices]);
+  }, [getBalance, getStxBalance, getPrice]);
 
   // Calculate funding amount for display
   const calculateFundingAmount = useCallback((): number => {
@@ -673,15 +685,16 @@ export default function BotsSettings() {
         throw new Error('Invalid contract format');
       }
 
-      // Get token metadata to determine decimals
-      const userLpTokens = getUserLpTokens(address);
-      const token = userLpTokens.find(t => t.contractId === contractId);
-      const decimals = token?.metadata?.decimals || 6;
+      // Get token metadata to determine decimals and identifier
+      const decimals = getTokenDecimals(contractId);
+      const tokenSymbol = getTokenSymbol(contractId);
+      const tokenName = getTokenName(contractId);
+      const tokenMetadata = getToken(contractId);
 
       // Convert amount to microunits
       const microAmount = Math.floor(amount * Math.pow(10, decimals));
 
-      toast.loading(`Sending ${token?.symbol || 'LP tokens'}...`, { id: 'lp-transfer' });
+      toast.loading(`Sending ${tokenSymbol || 'LP tokens'}...`, { id: 'lp-transfer' });
 
       const result = await request('stx_callContract', {
         contract: `${contractAddress}.${contractName}` as `${string}.${string}`,
@@ -693,14 +706,14 @@ export default function BotsSettings() {
           noneCV()
         ],
         network: 'mainnet',
-        postConditions: [Pc.principal(address).willSendEq(microAmount).ft(token?.contractId as `${string}.${string}`, token?.metadata.identifier!)]
+        postConditions: [Pc.principal(address).willSendEq(microAmount).ft(contractId as `${string}.${string}`, tokenMetadata?.identifier || 'token')]
       });
 
       if (result) {
         console.log('LP token transfer initiated:', result);
         toast.success('LP tokens sent successfully!', {
           id: 'lp-transfer',
-          description: `${token?.symbol} sent to ${bot.name}`
+          description: `${tokenSymbol} sent to ${bot.name}`
         });
 
         // Add to recently sent tokens for immediate UI feedback
@@ -789,9 +802,10 @@ export default function BotsSettings() {
         } catch (tokenError) {
           console.error(`Failed to withdraw ${token.symbol}:`, tokenError);
           errorCount++;
-          results.push({ token: token.symbol, error: tokenError.message, success: false });
+          const errorMessage = tokenError instanceof Error ? tokenError.message : 'Unknown error';
+          results.push({ token: token.symbol, error: errorMessage, success: false });
 
-          toast.error(`Failed to withdraw ${token.symbol}: ${tokenError instanceof Error ? tokenError.message : 'Unknown error'}`, {
+          toast.error(`Failed to withdraw ${token.symbol}: ${errorMessage}`, {
             id: `withdraw-${token.contractId}`
           });
         }
@@ -1446,8 +1460,9 @@ export default function BotsSettings() {
                               if (!userToken) return null;
 
                               const maxAmount = getMaxLpTokenAmount(contractId, userToken.formattedBalance);
-                              const usdValue = prices?.[contractId]?.price ?
-                                (maxAmount * prices[contractId].price).toFixed(2) : '?';
+                              const tokenPrice = getPrice(contractId);
+                              const usdValue = tokenPrice ?
+                                (maxAmount * tokenPrice).toFixed(2) : '?';
 
                               // Determine status: confirmed > recently sent > missing
                               let statusColor = 'bg-gray-400';
@@ -1600,18 +1615,19 @@ export default function BotsSettings() {
                             <div key={token.contractId} className="flex justify-between items-center py-2 border-b border-white/[0.05] last:border-b-0">
                               <div className="flex items-center gap-3">
                                 <div className="relative">
-                                  {token.metadata?.image ? (
+                                  {getTokenImage(token.contractId) ? (
                                     <img
-                                      src={token.metadata.image}
+                                      src={getTokenImage(token.contractId)!}
                                       alt={token.symbol}
                                       className="w-8 h-8 rounded-full bg-white/10"
                                       onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                        e.currentTarget.nextElementSibling.style.display = 'flex';
+                                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                        const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                                        if (nextElement) nextElement.style.display = 'flex';
                                       }}
                                     />
                                   ) : null}
-                                  <div className={`w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center ${token.metadata?.image ? 'hidden' : 'flex'}`}>
+                                  <div className={`w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center ${getTokenImage(token.contractId) ? 'hidden' : 'flex'}`}>
                                     <div className="w-2 h-2 rounded-full bg-blue-400" />
                                   </div>
                                 </div>
@@ -1621,7 +1637,7 @@ export default function BotsSettings() {
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="text-white/90 text-sm">{(token.balance / 1000000).toFixed(6)}</div>
+                                <div className="text-white/90 text-sm">{(parseFloat(token.balance) / 1000000).toFixed(6)}</div>
                                 <div className="text-white/60 text-xs">{calculateUsdValue(token.contractId, token.formattedBalance)}</div>
                               </div>
                             </div>
@@ -1637,18 +1653,19 @@ export default function BotsSettings() {
                             <div key={token.contractId} className="flex justify-between items-center py-2 border-b border-white/[0.05] last:border-b-0">
                               <div className="flex items-center gap-3">
                                 <div className="relative">
-                                  {token.metadata?.image ? (
+                                  {getTokenImage(token.contractId) ? (
                                     <img
-                                      src={token.metadata.image}
+                                      src={getTokenImage(token.contractId)!}
                                       alt={token.symbol}
                                       className="w-8 h-8 rounded-full bg-white/10"
                                       onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                        e.currentTarget.nextElementSibling.style.display = 'flex';
+                                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                        const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                                        if (nextElement) nextElement.style.display = 'flex';
                                       }}
                                     />
                                   ) : null}
-                                  <div className={`w-8 h-8 rounded-full bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center ${token.metadata?.image ? 'hidden' : 'flex'}`}>
+                                  <div className={`w-8 h-8 rounded-full bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center ${getTokenImage(token.contractId) ? 'hidden' : 'flex'}`}>
                                     <div className="w-2 h-2 rounded-full bg-yellow-400" />
                                   </div>
                                 </div>
@@ -1658,7 +1675,7 @@ export default function BotsSettings() {
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="text-white/90 text-sm">{(token.balance / 1000000).toFixed(6)}</div>
+                                <div className="text-white/90 text-sm">{(parseFloat(token.balance) / 1000000).toFixed(6)}</div>
                                 <div className="text-white/60 text-xs">{calculateUsdValue(token.contractId, token.formattedBalance)}</div>
                               </div>
                             </div>
@@ -1672,7 +1689,7 @@ export default function BotsSettings() {
                           <span className="text-white/90 text-sm font-medium">
                             {(() => {
                               const totalValue = withdrawableTokens.reduce((sum, token) => {
-                                const tokenPrice = prices?.[token.contractId]?.price || 0;
+                                const tokenPrice = getPrice(token.contractId) || 0;
                                 return sum + (token.formattedBalance * tokenPrice);
                               }, 0);
                               return totalValue > 0 ? `$${totalValue.toFixed(2)}` : '~';

@@ -15,7 +15,7 @@ if (!ENCRYPTION_KEY) {
 function encryptText(text: string): { encrypted: string; iv: string } {
   const iv = crypto.randomBytes(16);
   // Create a 32-byte key from the provided string using SHA-256
-  const key = crypto.createHash('sha256').update(ENCRYPTION_KEY).digest();
+  const key = crypto.createHash('sha256').update(ENCRYPTION_KEY!).digest();
   const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
   let encrypted = cipher.update(text, 'utf8', 'hex');
   encrypted += cipher.final('hex');

@@ -167,7 +167,7 @@ export function RouteIntelligenceSidebar() {
                     
                     <div className="space-y-3">
                         {postConditionsData.operations.map((operation, index) => {
-                            if (operation.category === 'send') {
+                            if (operation.category === 'send' && operation.token) {
                                 return (
                                     <div key={index} className="flex items-start space-x-3 p-3 rounded-lg bg-orange-500/[0.05] border border-orange-500/[0.15]">
                                         <div className="h-6 w-6 rounded-full bg-orange-500/20 text-orange-400 flex items-center justify-center flex-shrink-0">
@@ -175,7 +175,7 @@ export function RouteIntelligenceSidebar() {
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center space-x-2 mb-1">
-                                                <TokenLogo token={operation.token!} size="sm" />
+                                                <TokenLogo token={operation.token} size="sm" />
                                                 <span className="text-xs font-medium text-white/90">
                                                     {formatTokenAmount(Number(operation.amount), operation.token?.decimals || 0)} {operation.token?.symbol}
                                                 </span>
@@ -187,7 +187,7 @@ export function RouteIntelligenceSidebar() {
                                 );
                             }
                             
-                            if (operation.category === 'receive') {
+                            if (operation.category === 'receive' && operation.token) {
                                 return (
                                     <div key={index} className="flex items-start space-x-3 p-3 rounded-lg bg-green-500/[0.05] border border-green-500/[0.15]">
                                         <div className="h-6 w-6 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center flex-shrink-0">
@@ -195,7 +195,7 @@ export function RouteIntelligenceSidebar() {
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex items-center space-x-2 mb-1">
-                                                <TokenLogo token={operation.token!} size="sm" />
+                                                <TokenLogo token={operation.token} size="sm" />
                                                 <span className="text-xs font-medium text-white/90">
                                                     {formatTokenAmount(Number(operation.amount), operation.token?.decimals || 0)} {operation.token?.symbol}
                                                 </span>

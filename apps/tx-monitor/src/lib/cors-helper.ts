@@ -4,6 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getHostUrl } from '@modules/discovery';
 
 /**
  * Allowed origins for CORS requests
@@ -12,13 +13,18 @@ const ALLOWED_ORIGINS = [
   // Production charisma.rocks domains
   'https://charisma.rocks',
   'https://www.charisma.rocks',
-  'https://swap.charisma.rocks',
-  'https://tx.charisma.rocks',
-  'https://invest.charisma.rocks',
-  'https://metadata.charisma.rocks',
+  getHostUrl('swap', 'production'),
+  getHostUrl('tx-monitor', 'production'),
+  getHostUrl('invest', 'production'),
+  getHostUrl('tokens', 'production'),
   'https://bots.charisma.rocks',
 
   // Development localhost
+  getHostUrl('tokens', 'development'),
+  getHostUrl('swap', 'development'),
+  getHostUrl('invest', 'development'),
+  getHostUrl('tx-monitor', 'development'),
+  getHostUrl('party', 'development'),
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',

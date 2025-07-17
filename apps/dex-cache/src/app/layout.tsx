@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { Analytics } from "@vercel/analytics/next"
+import { getHostUrl } from "@modules/discovery";
 
 export const metadata: Metadata = {
   title: "Charisma Invest | Maximize Your Stacks Yield",
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Charisma Invest | Maximize Your Stacks Yield",
     description: "Explore liquidity pools, automated strategies, and maximize your yield opportunities on Stacks with Charisma Invest.",
-    url: 'https://invest.charisma.rocks',
+    url: getHostUrl('invest'),
     siteName: 'Charisma Invest',
     images: [
       {

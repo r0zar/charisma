@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
+export const dynamic = 'force-dynamic';
 import { Badge } from "@/components/ui/badge";
 import { getAllIntents } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -9,6 +11,7 @@ import { Header } from "@/components/layout/header";
 import TokenPurchaseForm from "@/components/payments/token-purchase-form";
 import { IntentGrid } from "@/components/payments/IntentGrid";
 import { isDevelopment } from "@/lib/utils";
+import { SwapTokensProvider } from "@/contexts/swap-tokens-context";
 import {
     FlameIcon,
     ExternalLinkIcon,
@@ -75,8 +78,9 @@ export default function TokenPurchaseDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-background to-muted/10">
-            <Header />
+        <SwapTokensProvider>
+            <div className="min-h-screen bg-gradient-to-b from-background to-muted/10">
+                <Header />
 
             {/* Hero section */}
             <div className="w-full py-12 border-b border-primary/10"
@@ -191,6 +195,7 @@ export default function TokenPurchaseDashboard() {
                     </div>
                 </div>
             </footer>
-        </div>
+            </div>
+        </SwapTokensProvider>
     );
 }

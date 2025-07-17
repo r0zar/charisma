@@ -4,8 +4,10 @@ import React, { useMemo, useState, useRef, useEffect } from "react";
 import { ArrowUpDown, Search, Flame, Wallet } from "lucide-react";
 import Image from "next/image";
 import type { TokenSummary } from "@/app/token-actions";
-import { useBlaze } from 'blaze-sdk/realtime';
+import { usePrices } from '@/contexts/token-price-context';
+import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
+import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import { formatCompactNumber } from '@/lib/swap-utils';
 import { getIpfsUrl } from '@/lib/utils';
 
@@ -42,12 +44,12 @@ function TokenImage({ token }: { token: TokenSummary }) {
 
 // Enhanced Token Price Component with real-time updates
 const TokenPriceCell = React.memo(function TokenPriceCell({ token }: { token: TokenSummary }) {
-    const { address } = useWallet();
-    const { prices, getPrice } = useBlaze({ userId: address });
+    const { getPrice } = usePrices();
     
     // Get real-time price or fallback to server price
-    const currentPrice = getPrice(token.contractId) ?? token.price;
-    const hasRealTimePrice = prices[token.contractId] !== undefined;
+    const realTimePrice = getPrice(token.contractId);
+    const currentPrice = realTimePrice ?? token.price;
+    const hasRealTimePrice = realTimePrice !== null;
     
     return (
         <div className="text-right font-medium">
@@ -64,16 +66,19 @@ const TokenPriceCell = React.memo(function TokenPriceCell({ token }: { token: To
 // Enhanced Token Balance Component with simplified subnet handling
 const TokenBalanceCell = React.memo(function TokenBalanceCell({ token }: { token: TokenSummary }) {
     const { address } = useWallet();
-    const { balances } = useBlaze({ userId: address });
+    const { getTokenBalance, getSubnetBalance } = useBalances(address ? [address] : []);
+    const { getToken } = useTokenMetadata();
     
     if (!address) return null;
     
-    const balance = balances[`${address}:${token.contractId}`];
-    if (!balance) return null;
+    const mainnetBalance = getTokenBalance(address, token.contractId);
     
-    const mainnetBalance = Number(balance.formattedBalance ?? 0);
-    const subnetBalance = Number(balance.formattedSubnetBalance ?? 0);
-    const hasSubnetSupport = balance.subnetBalance !== undefined;
+    // Find subnet version of this token
+    const tokenMetadata = getToken(token.contractId);
+    const allTokens = Object.values(useTokenMetadata().tokens);
+    const subnetToken = allTokens.find(t => t.base === token.contractId && t.type === 'SUBNET');
+    const subnetBalance = subnetToken ? getSubnetBalance(address, subnetToken.contractId) : 0;
+    const hasSubnetSupport = !!subnetToken;
     
     // Only show if user has any balance
     if (mainnetBalance === 0 && subnetBalance === 0) return null;
@@ -104,14 +109,14 @@ const TokenBalanceCell = React.memo(function TokenBalanceCell({ token }: { token
 
 // Clean Apple/Tesla version with price update animation
 const CleanTokenPriceCell = React.memo(function CleanTokenPriceCell({ token }: { token: TokenSummary }) {
-    const { address } = useWallet();
-    const { prices, getPrice } = useBlaze({ userId: address });
+    const { getPrice } = usePrices();
     const [isUpdating, setIsUpdating] = useState(false);
     const [lastPrice, setLastPrice] = useState<number | null>(null);
     
     // Get real-time price or fallback to server price
-    const currentPrice = getPrice(token.contractId) ?? token.price;
-    const hasRealTimePrice = prices[token.contractId] !== undefined;
+    const realTimePrice = getPrice(token.contractId);
+    const currentPrice = realTimePrice ?? token.price;
+    const hasRealTimePrice = realTimePrice !== null;
     
     // Detect price changes and trigger animation
     useEffect(() => {
@@ -153,16 +158,18 @@ const CleanTokenPriceCell = React.memo(function CleanTokenPriceCell({ token }: {
 
 const CleanTokenBalanceCell = React.memo(function CleanTokenBalanceCell({ token }: { token: TokenSummary }) {
     const { address } = useWallet();
-    const { balances } = useBlaze({ userId: address });
+    const { getTokenBalance, getSubnetBalance } = useBalances(address ? [address] : []);
+    const { getToken } = useTokenMetadata();
     
     if (!address) return null;
     
-    const balance = balances[`${address}:${token.contractId}`];
-    if (!balance) return null;
+    const mainnetBalance = getTokenBalance(address, token.contractId);
     
-    const mainnetBalance = Number(balance.formattedBalance ?? 0);
-    const subnetBalance = Number(balance.formattedSubnetBalance ?? 0);
-    const hasSubnetSupport = balance.subnetBalance !== undefined;
+    // Find subnet version of this token
+    const allTokens = Object.values(useTokenMetadata().tokens);
+    const subnetToken = allTokens.find(t => t.base === token.contractId && t.type === 'SUBNET');
+    const subnetBalance = subnetToken ? getSubnetBalance(address, subnetToken.contractId) : 0;
+    const hasSubnetSupport = !!subnetToken;
     
     // Only show if user has any balance
     if (mainnetBalance === 0 && subnetBalance === 0) return null;
@@ -222,12 +229,13 @@ const EnhancedTokenRow = React.memo(function EnhancedTokenRow({
     hasSubnetSupport,
     isComparisonChanging
 }: EnhancedTokenRowProps) {
-    const { getPrice } = useBlaze({ userId: address });
+    const { getPrice } = usePrices();
     const [isRowUpdating, setIsRowUpdating] = useState(false);
     const [lastRowPrice, setLastRowPrice] = useState<number | null>(null);
     
     // Get current price for this row
-    const currentRowPrice = getPrice(token.contractId) ?? token.price;
+    const realTimePrice = getPrice(token.contractId);
+    const currentRowPrice = realTimePrice ?? token.price;
     
     // Detect price changes and trigger subtle row animation
     useEffect(() => {
@@ -368,7 +376,8 @@ export default function TokenTable({ tokens, compareId }: TokenTableProps) {
 
     const searchInputRef = useRef<HTMLInputElement>(null);
     const { address } = useWallet();
-    const { prices, balances, getPrice } = useBlaze({ userId: address });
+    const { getPrice } = usePrices();
+    const { getBalance } = useBalances(address ? [address] : []);
 
     /* ------------- hot-key focus '/' ------------- */
     useEffect(() => {
@@ -453,11 +462,9 @@ export default function TokenTable({ tokens, compareId }: TokenTableProps) {
         }
     }
 
-    // Check if a token has subnet support using useBlaze balance data
+    // Check if a token has subnet support (simplified for new contexts)
     function hasSubnetSupport(token: TokenSummary): boolean {
-        if (!address) return false;
-        const balance = balances[`${address}:${token.contractId}`];
-        return balance?.subnetBalance !== undefined;
+        return false; // Subnet functionality not yet implemented with new contexts
     }
 
     const filtered = useMemo(() => {

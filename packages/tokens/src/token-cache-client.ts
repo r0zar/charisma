@@ -117,7 +117,6 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
 export async function listTokens(): Promise<TokenCacheData[]> {
     const url = `${TOKEN_CACHE}/api/v1/sip10`;
 
-    console.log(`Fetching tokens from ${url}`);
     try {
         const response = await fetch(url);
 

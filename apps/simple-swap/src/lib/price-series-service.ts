@@ -32,7 +32,7 @@ export class PriceSeriesService {
 
     // Create cache key for this request
     const cacheKey = `${contractIds.sort().join(',')}:${from || 'all'}:${to || 'all'}`;
-    
+
     // Check if we already have a pending request for this combination
     if (this.pendingRequests.has(cacheKey)) {
       console.log('[PRICE-SERVICE] Reusing pending request for', contractIds.length, 'tokens');
@@ -45,10 +45,10 @@ export class PriceSeriesService {
       const entry = this.cache.get(id);
       return entry && (now - entry.timestamp) < this.CACHE_TTL;
     });
-    
+
     if (cacheHits.length > 0) {
       console.log('[PRICE-SERVICE] Cache hits:', cacheHits.length, '/', contractIds.length);
-      
+
       // If all tokens are cached and fresh, return from cache
       if (cacheHits.length === contractIds.length) {
         const result: PriceSeriesData = {};
@@ -68,7 +68,7 @@ export class PriceSeriesService {
 
     try {
       const result = await requestPromise;
-      
+
       console.log('[BULK-PRICE-SERVICE] Returning processed data to chart:', {
         requestedTokens: contractIds.length,
         resultKeys: Object.keys(result),
@@ -85,7 +85,7 @@ export class PriceSeriesService {
           return acc;
         }, {} as any)
       });
-      
+
       // Cache individual results with timestamp
       const now = Date.now();
       let cachedTokens = 0;
@@ -118,14 +118,14 @@ export class PriceSeriesService {
   getCachedPriceSeries(contractId: string): LineData[] | null {
     const entry = this.cache.get(contractId);
     if (!entry) return null;
-    
+
     const now = Date.now();
     if ((now - entry.timestamp) > this.CACHE_TTL) {
       // Cache expired, remove it
       this.cache.delete(contractId);
       return null;
     }
-    
+
     return entry.data;
   }
 
@@ -157,7 +157,7 @@ export class PriceSeriesService {
     // Default to last 30 days if no time range specified
     const now = Math.floor(Date.now() / 1000); // Current time in seconds
     const thirtyDaysAgo = now - (30 * 24 * 60 * 60); // 30 days ago in seconds
-    
+
     const params = new URLSearchParams({
       contractIds: contractIds.join(','),
       from: (from || thirtyDaysAgo).toString(),
@@ -176,7 +176,7 @@ export class PriceSeriesService {
     });
 
     const response = await fetch(`/api/price-series/bulk?${params.toString()}`);
-    
+
     if (!response.ok) {
       console.error('[BULK-PRICE-API] Request failed:', {
         status: response.status,
@@ -187,7 +187,7 @@ export class PriceSeriesService {
     }
 
     const data = await response.json();
-    
+
     console.log('[BULK-PRICE-API] Raw response received:', {
       responseKeys: Object.keys(data),
       responseStructure: Object.entries(data).reduce((acc, [contractId, seriesData]) => {
@@ -199,19 +199,19 @@ export class PriceSeriesService {
         return acc;
       }, {} as any)
     });
-    
+
     // Convert the response to the expected format
     const result: PriceSeriesData = {};
     let totalPointsProcessed = 0;
     let conversionIssues = 0;
-    
+
     Object.entries(data).forEach(([contractId, seriesData]) => {
       if (Array.isArray(seriesData)) {
         // Convert to LineData format if needed
         const convertedData = seriesData.map((point: any, index: number) => {
           const time = point.time || point.start;
           const value = point.value || point.average;
-          
+
           // Validate conversion
           if (!time || !value || isNaN(Number(time)) || isNaN(Number(value))) {
             if (index < 3) { // Only log first few issues to avoid spam
@@ -225,16 +225,16 @@ export class PriceSeriesService {
             }
             conversionIssues++;
           }
-          
+
           return {
             time: time,
             value: value,
           };
         });
-        
+
         result[contractId] = convertedData;
         totalPointsProcessed += convertedData.length;
-        
+
         console.log('[BULK-PRICE-API] Converted data for token:', {
           contractId: contractId.substring(0, 12) + '...',
           originalPoints: seriesData.length,
@@ -285,7 +285,7 @@ export class PriceSeriesService {
     let cachedTokens = 0;
     let totalPoints = 0;
     const now = Date.now();
-    
+
     Object.entries(data).forEach(([contractId, seriesData]) => {
       if (Array.isArray(seriesData)) {
         this.cache.set(contractId, {
@@ -297,14 +297,6 @@ export class PriceSeriesService {
         totalPoints += seriesData.length;
       }
     });
-    
-    if (cachedTokens > 0) {
-      console.log('[PRICE-CACHE] Bulk cached', {
-        tokens: cachedTokens,
-        totalPoints,
-        avgPointsPerToken: Math.round(totalPoints / cachedTokens)
-      });
-    }
   }
 
   /**
@@ -315,7 +307,7 @@ export class PriceSeriesService {
     if (!entry) return false;
 
     const now = Date.now();
-    
+
     // Check if enough time has passed since last update to avoid spam
     if ((now - entry.lastUpdate) < this.UPDATE_THRESHOLD) {
       return false;
@@ -330,8 +322,7 @@ export class PriceSeriesService {
     // Add the new data point
     entry.data.push(dataPoint);
     entry.lastUpdate = now;
-    
-    console.log(`[PRICE-CACHE] Added incremental data point for ${contractId}: ${dataPoint.value}`);
+
     return true;
   }
 
@@ -343,12 +334,11 @@ export class PriceSeriesService {
     if (!entry || entry.data.length === 0) return false;
 
     const now = Date.now();
-    
+
     // Update the last data point
     entry.data[entry.data.length - 1] = dataPoint;
     entry.lastUpdate = now;
-    
-    console.log(`[PRICE-CACHE] Updated last data point for ${contractId}: ${dataPoint.value}`);
+
     return true;
   }
 

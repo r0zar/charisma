@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getHostUrl } from '@modules/discovery';
 
 // Types for charisma-party API responses (normalized format)
 interface BalanceResponse {
@@ -28,7 +29,7 @@ interface PriceResponse {
  */
 async function debugGetCurrentPortfolioValue(userAddress: string) {
   try {
-    const charismaPartyUrl = process.env.CHARISMA_PARTY_URL || 'http://localhost:1999';
+    const charismaPartyUrl = getHostUrl('party');
 
     console.log(`[DEBUG] Fetching current portfolio value from ${charismaPartyUrl}`);
 

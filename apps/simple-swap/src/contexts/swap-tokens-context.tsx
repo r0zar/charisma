@@ -409,7 +409,7 @@ export function SwapTokensProvider({
   }, []);
 
   // ---------------------- Simplified Token Logic ----------------------
-  // Simple token filtering - no complex mapping needed since BlazeProvider handles balance data
+  // Simple token filtering - balance data handled by wallet balance context
   const { displayTokens, subnetDisplayTokens } = useMemo(() => {
     if (!selectedTokens || selectedTokens.length === 0) {
       return {

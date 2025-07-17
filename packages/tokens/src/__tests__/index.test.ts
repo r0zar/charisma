@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   fetchMetadata,
   listPrices,
-  listPricesKraxel,
   listPricesSTXTools,
   listPricesInternal,
   listTokens,
@@ -16,11 +15,6 @@ describe("@repo/tokens", () => {
     expect(typeof prices).toBe('object');
   });
 
-  it('gets token prices from Kraxel only', async () => {
-    const prices = await listPricesKraxel();
-    expect(prices).toBeDefined();
-    expect(typeof prices).toBe('object');
-  });
 
   it('gets token prices from STXTools only', async () => {
     const prices = await listPricesSTXTools();
@@ -37,13 +31,11 @@ describe("@repo/tokens", () => {
   it('tests different aggregation strategies', async () => {
     const fallbackPrices = await listPrices({ strategy: 'fallback' });
     const averagePrices = await listPrices({ strategy: 'average' });
-    const kraxelPrimaryPrices = await listPrices({ strategy: 'kraxel-primary' });
     const stxtoolsPrimaryPrices = await listPrices({ strategy: 'stxtools-primary' });
     const internalPrimaryPrices = await listPrices({ strategy: 'internal-primary' });
 
     expect(fallbackPrices).toBeDefined();
     expect(averagePrices).toBeDefined();
-    expect(kraxelPrimaryPrices).toBeDefined();
     expect(stxtoolsPrimaryPrices).toBeDefined();
     expect(internalPrimaryPrices).toBeDefined();
   });
@@ -91,21 +83,12 @@ describe('Token Cache', () => {
   });
 
   it('should compare prices from different sources', async () => {
-    const [kraxelPrices, stxtoolsPrices, internalPrices, combinedPrices] = await Promise.allSettled([
-      listPricesKraxel(),
+    const [stxtoolsPrices, internalPrices, combinedPrices] = await Promise.allSettled([
       listPricesSTXTools(),
       listPricesInternal(),
       listPrices({ strategy: 'average' })
     ]);
 
-    if (kraxelPrices.status === 'fulfilled') {
-      console.log(`Kraxel returned ${Object.keys(kraxelPrices.value).length} prices`);
-      // Log a few sample prices for debugging
-      const sampleKeys = Object.keys(kraxelPrices.value).slice(0, 3);
-      sampleKeys.forEach(key => {
-        console.log(`Kraxel - ${key}: ${kraxelPrices.value[key]}`);
-      });
-    }
 
     if (stxtoolsPrices.status === 'fulfilled') {
       console.log(`STXTools returned ${Object.keys(stxtoolsPrices.value).length} prices`);
@@ -131,7 +114,6 @@ describe('Token Cache', () => {
 
     // At least one should succeed
     expect(
-      kraxelPrices.status === 'fulfilled' ||
       stxtoolsPrices.status === 'fulfilled' ||
       internalPrices.status === 'fulfilled' ||
       combinedPrices.status === 'fulfilled'
@@ -184,7 +166,7 @@ describe('Token Cache', () => {
     try {
       const internalOnlyPrices = await listPrices({
         strategy: 'internal-primary',
-        sources: { kraxel: false, stxtools: false, internal: true }
+        sources: { stxtools: false, internal: true }
       });
 
       expect(internalOnlyPrices).toBeDefined();
@@ -222,9 +204,9 @@ describe('Token Cache', () => {
 
   it('should test mixed source configurations', async () => {
     const configs = [
-      { sources: { kraxel: true, stxtools: false, internal: true } },
-      { sources: { kraxel: false, stxtools: true, internal: true } },
-      { sources: { kraxel: true, stxtools: true, internal: false } },
+      { sources: { stxtools: true, internal: true } },
+      { sources: { stxtools: true, internal: false } },
+      { sources: { stxtools: false, internal: true } },
     ];
 
     for (const config of configs) {

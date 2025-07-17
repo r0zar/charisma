@@ -2,7 +2,9 @@
 
 import React, { useState, useMemo } from 'react';
 import { useWallet } from '@/contexts/wallet-context';
-import { useBlaze } from 'blaze-sdk/realtime';
+import { usePrices } from '@/contexts/token-price-context';
+import { useBalances } from '@/contexts/wallet-balance-context';
+import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -66,9 +68,10 @@ const createTokenCacheData = (token: TokenBalanceData): TokenCacheData => ({
 export default function PortfolioSettings() {
   const { address, connected, watchedAddresses, addWatchedAddresses, privacyMode, togglePrivacyMode } = useWallet();
   
-  // Get BlazeProvider data for all wallets (connected + watched)
-  const allWalletIds = [address, ...watchedAddresses].filter(Boolean);
-  const { balances, prices, isConnected, lastUpdate, getUserBalances } = useBlaze({ userIds: allWalletIds });
+  // Get data from new contexts
+  const { prices, getPrice, isLoading: pricesLoading, lastUpdate: pricesLastUpdate } = usePrices();
+  const { balances, isLoading: balancesLoading, getBalance, lastUpdate: balancesLastUpdate } = useBalances([address, ...watchedAddresses].filter(Boolean));
+  const { getTokenSymbol, getTokenName, getTokenImage, getTokenDecimals, isLoading: metadataLoading, lastUpdate: metadataLastUpdate } = useTokenMetadata();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedToken, setSelectedToken] = useState<TokenBalanceData | null>(null);
@@ -93,6 +96,7 @@ export default function PortfolioSettings() {
     const tokens: TokenBalanceData[] = [];
     let totalValue = 0;
     const walletBreakdown: Record<string, { tokens: TokenBalanceData[], totalValue: number }> = {};
+    const allWallets = [address, ...watchedAddresses].filter(Boolean);
 
     // Initialize wallet breakdown
     allWallets.forEach(walletAddr => {
@@ -105,59 +109,58 @@ export default function PortfolioSettings() {
     allWallets.forEach(walletAddr => {
       if (!walletAddr) return;
       
-      const walletBalances = getUserBalances(walletAddr);
+      const walletBalances = getBalance(walletAddr);
+      if (!walletBalances) return;
       
-      Object.entries(walletBalances).forEach(([contractId, balanceData]) => {
-        const price = prices[contractId]?.price || 0;
+      Object.entries(walletBalances.fungible_tokens || {}).forEach(([contractId, balanceData]) => {
+        const price = getPrice(contractId) || 0;
+        const rawBalance = parseFloat(balanceData.balance || '0');
         
-        // Calculate values for both mainnet and subnet
-        const mainnetValue = balanceData.formattedBalance * price;
-        const subnetValue = (balanceData.formattedSubnetBalance || 0) * price;
-        const totalTokenValue = mainnetValue + subnetValue;
+        // Skip zero balances
+        if (rawBalance === 0) return;
         
-        // Only create token entry if there's any balance (mainnet or subnet)
-        if (balanceData.formattedBalance > 0 || (balanceData.formattedSubnetBalance && balanceData.formattedSubnetBalance > 0)) {
-          const tokenData: TokenBalanceData = {
-            contractId,
-            name: balanceData.name || balanceData.metadata?.name || 'Unknown Token',
-            symbol: balanceData.symbol || balanceData.metadata?.symbol || 'TKN',
-            decimals: balanceData.decimals || balanceData.metadata?.decimals || 6,
-            balance: balanceData.balance,
-            formattedBalance: balanceData.formattedBalance,
-            subnetBalance: balanceData.subnetBalance,
-            formattedSubnetBalance: balanceData.formattedSubnetBalance,
-            subnetContractId: balanceData.subnetContractId || undefined,
-            mainnetUsdValue: mainnetValue,
-            subnetUsdValue: subnetValue,
-            totalUsdValue: totalTokenValue,
-            price,
-            hasMainnet: balanceData.formattedBalance > 0,
-            hasSubnet: (balanceData.formattedSubnetBalance || 0) > 0,
-            metadata: balanceData.metadata,
-            image: balanceData.metadata?.image || balanceData.image || undefined
-          };
+        // Calculate formatted balance using token decimals
+        const decimals = getTokenDecimals(contractId);
+        const formattedBalance = rawBalance / Math.pow(10, decimals);
+        const totalTokenValue = formattedBalance * price;
+        
+        const tokenData: TokenBalanceData = {
+          contractId,
+          name: getTokenName(contractId),
+          symbol: getTokenSymbol(contractId),
+          decimals,
+          balance: balanceData.balance,
+          formattedBalance,
+          subnetBalance: undefined, // No subnet support in new structure
+          formattedSubnetBalance: undefined,
+          subnetContractId: undefined,
+          mainnetUsdValue: totalTokenValue,
+          subnetUsdValue: 0,
+          totalUsdValue: totalTokenValue,
+          price,
+          hasMainnet: formattedBalance > 0,
+          hasSubnet: false,
+          metadata: balanceData,
+          image: getTokenImage(contractId) || undefined
+        };
 
-          // Add to wallet-specific breakdown
-          walletBreakdown[walletAddr].tokens.push(tokenData);
-          walletBreakdown[walletAddr].totalValue += totalTokenValue;
+        // Add to wallet-specific breakdown
+        walletBreakdown[walletAddr].tokens.push(tokenData);
+        walletBreakdown[walletAddr].totalValue += totalTokenValue;
 
-          // Add to combined view (only if not already added from another wallet)
-          const existingToken = tokens.find(t => t.contractId === contractId);
-          if (existingToken) {
-            // Aggregate balances for combined view
-            existingToken.formattedBalance += balanceData.formattedBalance;
-            existingToken.formattedSubnetBalance = (existingToken.formattedSubnetBalance || 0) + (balanceData.formattedSubnetBalance || 0);
-            existingToken.mainnetUsdValue += mainnetValue;
-            existingToken.subnetUsdValue += subnetValue;
-            existingToken.totalUsdValue += totalTokenValue;
-            existingToken.hasMainnet = existingToken.hasMainnet || balanceData.formattedBalance > 0;
-            existingToken.hasSubnet = existingToken.hasSubnet || (balanceData.formattedSubnetBalance || 0) > 0;
-          } else {
-            tokens.push({ ...tokenData });
-          }
-          
-          totalValue += totalTokenValue;
+        // Add to combined view (only if not already added from another wallet)
+        const existingToken = tokens.find(t => t.contractId === contractId);
+        if (existingToken) {
+          // Aggregate balances for combined view
+          existingToken.formattedBalance += formattedBalance;
+          existingToken.mainnetUsdValue += totalTokenValue;
+          existingToken.totalUsdValue += totalTokenValue;
+          existingToken.hasMainnet = existingToken.hasMainnet || formattedBalance > 0;
+        } else {
+          tokens.push({ ...tokenData });
         }
+        
+        totalValue += totalTokenValue;
       });
     });
 
@@ -199,7 +202,7 @@ export default function PortfolioSettings() {
     });
 
     return { tokens, totalValue, walletBreakdown };
-  }, [allWallets, getUserBalances, prices, sortBy, sortOrder]);
+  }, [address, watchedAddresses, balances, getBalance, getPrice, getTokenName, getTokenSymbol, getTokenImage, getTokenDecimals, sortBy, sortOrder]);
 
   // Get current wallet data and filter tokens
   const currentWalletData = useMemo(() => {
@@ -241,24 +244,27 @@ export default function PortfolioSettings() {
 
   // Filter debug balance data based on search
   const filteredDebugBalances = useMemo(() => {
-    if (!debugSearchTerm) return getUserBalances(address);
+    const userBalance = address ? getBalance(address) : null;
+    if (!debugSearchTerm || !userBalance) return userBalance?.fungible_tokens || {};
     
     const term = debugSearchTerm.toLowerCase();
     const filtered: Record<string, any> = {};
     
-    Object.entries(getUserBalances(address)).forEach(([contractId, balanceData]) => {
+    Object.entries(userBalance.fungible_tokens || {}).forEach(([contractId, balanceData]) => {
+      const tokenName = getTokenName(contractId);
+      const tokenSymbol = getTokenSymbol(contractId);
+      
       if (
         contractId.toLowerCase().includes(term) ||
-        balanceData.name?.toLowerCase().includes(term) ||
-        balanceData.symbol?.toLowerCase().includes(term) ||
-        balanceData.metadata?.name?.toLowerCase().includes(term)
+        tokenName.toLowerCase().includes(term) ||
+        tokenSymbol.toLowerCase().includes(term)
       ) {
         filtered[contractId] = balanceData;
       }
     });
     
     return filtered;
-  }, [getUserBalances, address, debugSearchTerm]);
+  }, [getBalance, address, debugSearchTerm, getTokenName, getTokenSymbol]);
 
   const formatCurrency = (value: number) => {
     if (privacyMode) {
@@ -327,7 +333,7 @@ export default function PortfolioSettings() {
                 Portfolio Overview
               </CardTitle>
               <CardDescription className="text-white/70">
-                Real-time portfolio analytics powered by BlazeProvider
+                Real-time portfolio analytics with live price updates
               </CardDescription>
             </div>
             
@@ -358,16 +364,16 @@ export default function PortfolioSettings() {
           </div>
         </CardHeader>
         <CardContent>
-          {!isConnected && (
-            <div className="mb-4 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl">
+          {balancesLoading && (
+            <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
               <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-full bg-yellow-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
                 </div>
                 <div>
-                  <h4 className="text-yellow-200 font-medium mb-1">BlazeProvider Services Offline</h4>
-                  <p className="text-yellow-200/70 text-sm">
-                    The real-time data services are not currently running. Portfolio data will be unavailable until the BlazeProvider WebSocket servers are started.
+                  <h4 className="text-blue-200 font-medium mb-1">Loading Portfolio Data</h4>
+                  <p className="text-blue-200/70 text-sm">
+                    Fetching token balances and price data from blockchain...
                   </p>
                 </div>
               </div>
@@ -402,11 +408,11 @@ export default function PortfolioSettings() {
             <div className="bg-white/[0.03] rounded-xl p-3 sm:p-4 border border-white/[0.08] sm:col-span-2 lg:col-span-1">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-white/60 text-xs sm:text-sm">Connection Status</p>
+                  <p className="text-white/60 text-xs sm:text-sm">Data Status</p>
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`} />
+                    <div className={`w-2 h-2 rounded-full ${!balancesLoading && !pricesLoading && !metadataLoading ? 'bg-green-400' : 'bg-yellow-400'}`} />
                     <p className="text-white/95 font-medium text-sm sm:text-base">
-                      {isConnected ? 'Connected' : 'Disconnected'}
+                      {!balancesLoading && !pricesLoading && !metadataLoading ? 'Updated' : 'Loading'}
                     </p>
                   </div>
                 </div>
@@ -417,7 +423,7 @@ export default function PortfolioSettings() {
 
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="text-xs sm:text-sm text-white/60">
-              Last updated: {formatDate(lastUpdate)}
+              Last updated: {formatDate(Math.max(pricesLastUpdate, balancesLastUpdate, metadataLastUpdate))}
             </div>
             <div className="flex flex-wrap gap-2">
               <BatchWalletImportDialog
@@ -831,7 +837,7 @@ export default function PortfolioSettings() {
               Debug Information
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Technical details about the BlazeProvider connection and data
+              Technical details about the portfolio data and context connections
             </DialogDescription>
           </DialogHeader>
 
@@ -854,8 +860,16 @@ export default function PortfolioSettings() {
               <h4 className="font-semibold text-foreground mb-2">Connection Status</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-muted-foreground">BlazeProvider Connected</p>
-                  <p className="font-mono text-foreground">{isConnected ? 'Yes' : 'No'}</p>
+                  <p className="text-muted-foreground">Balances Loading</p>
+                  <p className="font-mono text-foreground">{balancesLoading ? 'Yes' : 'No'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Prices Loading</p>
+                  <p className="font-mono text-foreground">{pricesLoading ? 'Yes' : 'No'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Metadata Loading</p>
+                  <p className="font-mono text-foreground">{metadataLoading ? 'Yes' : 'No'}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Wallet Connected</p>
@@ -866,8 +880,16 @@ export default function PortfolioSettings() {
                   <p className="font-mono text-foreground text-xs">{address || 'Not available'}</p>
                 </div>
                 <div>
-                  <p className="text-muted-foreground">Last Update</p>
-                  <p className="font-mono text-foreground">{formatDate(lastUpdate)}</p>
+                  <p className="text-muted-foreground">Last Balances Update</p>
+                  <p className="font-mono text-foreground">{formatDate(balancesLastUpdate)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Last Prices Update</p>
+                  <p className="font-mono text-foreground">{formatDate(pricesLastUpdate)}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Last Metadata Update</p>
+                  <p className="font-mono text-foreground">{formatDate(metadataLastUpdate)}</p>
                 </div>
               </div>
             </div>

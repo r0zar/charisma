@@ -2,54 +2,87 @@
 
 A comprehensive monorepo for decentralized finance applications built on Stacks, featuring advanced trading tools, token infrastructure, and real-time data services.
 
+---
+
 ## Monorepo Structure
 
-This repository contains multiple interconnected applications and shared packages for the Charisma ecosystem.
+Charisma uses a modern monorepo architecture powered by Turborepo and pnpm workspaces. The codebase is organized for clarity, scalability, and developer velocity.
 
-### Applications
+### Directory Layout
 
-#### Core Trading Platform
-- **`simple-swap`**: Main DEX interface with limit orders, DCA strategies, and advanced trading features
-- **`pro-interface`**: Professional trading tools with charts and analytics
-- **`dex-cache`**: Price discovery, liquidity analysis, and market data caching
+```
+/apps/         # Application entrypoints (Next.js, CLI, etc.)
+/modules/      # Internal shared logic, adapters, business logic, types (not published)
+/services/     # Deployable backend services (APIs, workers, daemons, etc.)
+/packages/     # Public packages (SDKs, libraries, config, for external npm publishing)
+/docs/         # Technical documentation and API references
+/scripts/      # Utility scripts for development and automation
+```
 
-#### Infrastructure Services  
-- **`token-cache`**: Token metadata caching and validation service
-- **`metadata`**: Token and contract metadata management
-- **`charisma-party`**: Real-time data feeds powered by PartyKit
+### Directory Purpose
 
-#### Experimental/Labs
-- **`blaze-signer`**: Experimental playground for transaction signing, verification, and intent management concepts
+| Directory   | Purpose                       | Publishes to npm? | Example Contents        |
+|-------------|-------------------------------|-------------------|-------------------------|
+| apps/       | User-facing applications      | No                | simple-swap, dex-cache  |
+| modules/    | Internal shared logic/modules | No                | db-adapter, types, core |
+| services/   | Deployable backend services   | No                | user-api, party-service |
+| packages/   | Public packages/libraries     | Yes               | blaze-sdk, dexterity    |
 
-#### Developer Tools
-- **`contract-search`**: Smart contract discovery and analysis
-- **`launchpad`**: Token creation and contract deployment tools
-- **`docs`**: Technical documentation and API references
+---
 
-#### Applications
-- **`meme-roulette`**: Gaming application with token mechanics
+## Applications
 
-### Shared Packages
+- **simple-swap**: Main DEX interface with limit orders, DCA strategies, and advanced trading features
+- **pro-interface**: Professional trading tools with charts and analytics
+- **dex-cache**: Price discovery, liquidity analysis, and market data caching
+- **token-cache**: Token metadata caching and validation service
+- **metadata**: Token and contract metadata management
+- **charisma-party**: Real-time data feeds powered by PartyKit
+- **blaze-signer**: Experimental playground for transaction signing, verification, and intent management concepts
+- **contract-search**: Smart contract discovery and analysis
+- **launchpad**: Token creation and contract deployment tools
+- **meme-roulette**: Gaming application with token mechanics
 
-- **`@repo/tokens`**: Token metadata library and caching utilities
-- **`@repo/ui`**: Shared UI component library
-- **`@repo/eslint-config`**: ESLint configurations across packages
-- **`@repo/typescript-config`**: TypeScript configurations
+---
+
+## Internal Modules
+
+- **discovery**: Environment/hostname discovery and validation
+- *(Add more as your codebase evolves)*
+
+---
+
+## Services
+
+- *(Add more as your backend grows)*
+
+---
+
+## Public Packages
+
+- **@repo/blaze-sdk**: Stacks blockchain SDK for external developers
+- **@repo/tx-monitor-client**: Transaction monitoring client
+- **@repo/tokens**: Token metadata library and caching utilities
+- **@repo/ui**: Shared UI component library
+- **@repo/eslint-config**: ESLint configurations for external use
+- **@repo/typescript-config**: TypeScript configurations for external use
+
+---
 
 ## Technology Stack
 
 ### Frontend
 - **Framework**: Next.js 15 with App Router
-- **Language**: TypeScript with strict typing
+- **Language**: TypeScript (strict mode)
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/ui with custom extensions
 - **Charts**: Lightweight Charts for trading interfaces
-- **State Management**: React Context with optimized patterns
+- **State Management**: React Context
 
 ### Backend & Data
 - **Database**: Vercel KV (Redis-compatible key-value store)
-- **File Storage**: Vercel Blob for large assets and logs
-- **Real-time**: PartyKit for WebSocket connections and live updates
+- **File Storage**: Vercel Blob
+- **Real-time**: PartyKit for WebSocket connections
 - **Blockchain**: Stacks integration via Blaze SDK
 - **APIs**: RESTful endpoints with Next.js API routes
 
@@ -59,198 +92,137 @@ This repository contains multiple interconnected applications and shared package
 - **Deployment**: Vercel for all applications
 - **CI/CD**: Automated builds and testing pipelines
 
+---
+
 ## Getting Started
 
 ### Prerequisites
 - Node.js 18+
-- pnpm (recommended package manager)
+- pnpm (recommended)
 - Git
 
 ### Installation
 
-1. **Clone and setup**
-   ```bash
-   git clone <repository-url>
-   cd charisma
-   pnpm install
-   ```
+```bash
+git clone <repository-url>
+cd charisma
+pnpm install
+```
 
-2. **Environment configuration**
-   ```bash
-   # Copy environment templates for required apps
-   cp apps/simple-swap/.env.example apps/simple-swap/.env.local
-   cp apps/dex-cache/.env.example apps/dex-cache/.env.local
-   # Configure environment variables for each app
-   ```
+### Environment Configuration
 
-3. **Development**
-   ```bash
-   # Start all development servers
-   pnpm dev
-   
-   # Or start specific applications
-   pnpm dev --filter=simple-swap
-   pnpm dev --filter=dex-cache
-   ```
+Copy and configure environment variables for each app/service as needed:
+
+```bash
+cp apps/simple-swap/.env.example apps/simple-swap/.env.local
+cp apps/dex-cache/.env.example apps/dex-cache/.env.local
+# ...repeat for other apps/services
+```
+
+### Development
+
+```bash
+# Start all development servers
+pnpm dev
+
+# Or start specific applications/services
+pnpm dev --filter=apps/simple-swap
+pnpm dev --filter=services/party-service
+```
 
 ### Monorepo Commands
 
 ```bash
-# Development
-pnpm dev                    # Start all applications
-pnpm dev --filter=<app>     # Start specific application
-pnpm build                  # Build all packages and applications
+pnpm dev                    # Start all applications/services
+pnpm build                  # Build all packages, modules, services, and apps
 pnpm test                   # Run all tests
 pnpm lint                   # Lint all packages
 pnpm clean                  # Clean all build artifacts
 
-# Package management
-pnpm install                # Install all dependencies
-pnpm install <pkg>          # Add dependency to root
-pnpm add <pkg> --filter=<app>  # Add dependency to specific app
-
-# Code generation
-turbo gen                   # Interactive generator selection
-turbo gen nextjs-app        # Create new Next.js app with full setup
+# Add dependency to a specific workspace
+pnpm add <pkg> --filter=modules/business-logic
 ```
+
+---
 
 ## Architecture
 
-### Inter-App Communication
+### Directory Roles
 
-- **simple-swap** ↔ **dex-cache**: Price data and liquidity information
-- **token-cache** → **All Apps**: Centralized token metadata
-- **charisma-party** → **All Apps**: Real-time updates via WebSocket
-- **blaze-signer**: Standalone experimental environment (not integrated with production apps)
+- **apps/**: User-facing applications (web, CLI, etc.)
+- **modules/**: Internal, reusable logic (business logic, adapters, types)
+- **services/**: Deployable backend services (APIs, workers)
+- **packages/**: Public, versioned packages for external use
 
-### Shared Services
+### Inter-App/Service Communication
 
-#### Token Infrastructure
-- Centralized token metadata in `@repo/tokens`
-- Caching layer via `token-cache` application
-- Validation and enrichment in `metadata` service
+- Prefer direct imports from `modules/` for internal logic sharing (type-safe, no HTTP overhead)
+- Use HTTP/WebSocket APIs only for cross-service boundaries or external integrations
+- Shared types/interfaces live in `modules/shared-types`
 
-#### Real-time Data
-- PartyKit servers for live price feeds
-- WebSocket connections for order updates
-- Shared state management across applications
+### Example Data Flow
 
-#### Development Tools
-- Shared TypeScript configurations
-- Common ESLint rules and Prettier setup
-- UI component library for consistent interfaces
+#### Price Data Pipeline
+1. **services/dex-cache**: Fetches and processes market data
+2. **Vercel KV**: Caches processed price information
+3. **services/party-service**: Broadcasts real-time updates
+4. **apps/simple-swap**: Consumes data for trading interface
 
-## Environment Configuration
+#### Token Information
+1. **services/token-cache**: Maintains metadata cache
+2. **services/metadata**: Enriches token information
+3. **modules/shared-types**: Provides typed interfaces
+4. **All Apps/Services**: Consume consistent token data
 
-### Core Variables (All Apps)
-```bash
-# Vercel KV
-KV_REST_API_URL=           # Vercel KV REST API URL
-KV_REST_API_TOKEN=         # Vercel KV authentication token
-
-# Vercel Blob  
-BLOB_READ_WRITE_TOKEN=     # Blob storage access token
-
-# PartyKit
-PARTYKIT_HOST=             # PartyKit host for real-time features
-
-# Stacks Network
-NEXT_PUBLIC_STACKS_API_URL=# Stacks API endpoint
-NEXT_PUBLIC_NETWORK=       # mainnet/testnet
-```
-
-### App-Specific Variables
-Each application has additional environment requirements documented in their respective README files.
+---
 
 ## Development Workflow
 
-### Working with Multiple Apps
+### Working with Multiple Apps/Services
 
-1. **Local Development**
-   ```bash
-   # Terminal 1: Start shared services
-   pnpm dev --filter=token-cache --filter=charisma-party
-   
-   # Terminal 2: Start main applications  
-   pnpm dev --filter=simple-swap --filter=dex-cache
-   ```
+```bash
+# Terminal 1: Start shared services
+pnpm dev --filter=services/token-cache --filter=services/party-service
 
-2. **Testing Changes**
-   ```bash
-   # Test specific app
-   pnpm test --filter=simple-swap
-   
-   # Test affected packages
-   pnpm test --filter=...@repo/tokens
-   ```
+# Terminal 2: Start main applications  
+pnpm dev --filter=apps/simple-swap --filter=apps/dex-cache
+```
 
-3. **Building for Production**
-   ```bash
-   # Build all packages first, then applications
-   pnpm build --filter=@repo/*
-   pnpm build --filter=simple-swap
-   ```
+### Testing Changes
+
+```bash
+pnpm test --filter=apps/simple-swap
+pnpm test --filter=modules/business-logic
+```
+
+### Building for Production
+
+```bash
+pnpm build --filter=packages/*
+pnpm build --filter=apps/simple-swap
+```
 
 ### Code Organization
 
-- **Shared logic**: Place in `packages/` directory
-- **App-specific code**: Keep within respective `apps/` directory
-- **Cross-app utilities**: Use `@repo/` scoped packages
-- **API integrations**: Centralize in shared packages when possible
+- **Shared logic**: Place in `modules/`
+- **App-specific code**: Keep within `apps/`
+- **Deployable services**: In `services/`
+- **Public packages**: In `packages/`
+- **API integrations**: Centralize in `modules/` or `packages/` as appropriate
 
-### Creating New Applications
-
-Use the custom script to quickly create new apps:
-
-```bash
-# Using npm script (recommended)
-pnpm create-app <app-name>
-
-# Using script directly
-./scripts/create-app.sh <app-name>
-```
-
-The script creates a fully configured Next.js app with:
-- **Next.js 15** with App Router and TypeScript
-- **Tailwind CSS** integrated with shadcn/ui components
-- **Vitest** for testing with coverage support
-- **ESLint** configured with workspace standards
-- **Turborepo** integration with proper caching
-- **shadcn/ui** components (Button, Card) pre-installed
-- **Wallet integration** with Stacks ecosystem components
-
-Examples:
-```bash
-pnpm create-app lotto
-pnpm create-app casino
-pnpm create-app poker
-```
-
-Alternatively, you can use the built-in Turborepo generator for more customization:
+### Creating New Modules/Services
 
 ```bash
-# Interactive mode - prompts for app name and configuration
-turbo gen workspace --copy template --type app
+# Create a new module
+pnpm create-module <module-name>
+
+# Create a new service
+pnpm create-service <service-name>
 ```
 
-## Data Flow
+*(Add scripts or templates as needed for consistency)*
 
-### Price Data Pipeline
-1. **dex-cache**: Fetches and processes market data
-2. **Vercel KV**: Caches processed price information
-3. **charisma-party**: Broadcasts real-time updates
-4. **simple-swap**: Consumes data for trading interface
-
-### Order Management
-1. **simple-swap**: User creates orders with built-in signing
-2. **Vercel KV**: Stores order state and history
-3. **charisma-party**: Real-time order status updates
-
-### Token Information
-1. **token-cache**: Maintains metadata cache
-2. **metadata**: Enriches token information
-3. **@repo/tokens**: Provides typed interfaces
-4. **All Apps**: Consume consistent token data
+---
 
 ## API Documentation
 
@@ -264,56 +236,60 @@ turbo gen workspace --copy template --type app
 - **PartyKit**: Real-time WebSocket connections
 - **Vercel Storage**: KV and Blob storage operations
 
+---
+
 ## Deployment
 
-### Application Deployment
-Each application deploys independently to Vercel:
+### Application/Service Deployment
+
+Each application and service deploys independently to Vercel or your chosen platform:
 
 ```bash
-# Deploy specific application
 cd apps/simple-swap
 vercel deploy
 
-# Deploy with environment variables
-vercel deploy --env ENVIRONMENT=production
+cd services/party-service
+vercel deploy
 ```
 
 ### Shared Dependencies
-- Packages are built automatically during application deployment
+
+- Packages, modules, and services are built automatically during deployment
 - Turborepo handles build optimization and caching
 - Dependencies are resolved across the entire monorepo
 
 ### Environment Management
+
 - Production variables configured in Vercel dashboard
 - Staging environments use separate KV and Blob instances
 - PartyKit environments isolated per deployment
 
+---
+
 ## Testing
 
 ### Test Strategy
+
 - **Unit Tests**: Individual component and utility testing
-- **Integration Tests**: Cross-package functionality
+- **Integration Tests**: Cross-module/service functionality
 - **E2E Tests**: Full application workflows
 - **API Tests**: Backend service validation
 
 ### Running Tests
+
 ```bash
-# All tests
 pnpm test
-
-# Specific application tests
-pnpm test --filter=simple-swap
-
-# Shared package tests
-pnpm test --filter=@repo/tokens
-
-# Watch mode for development
-pnpm test:watch --filter=simple-swap
+pnpm test --filter=apps/simple-swap
+pnpm test --filter=modules/business-logic
+pnpm test:watch --filter=apps/simple-swap
 ```
+
+---
 
 ## Contributing
 
 ### Development Guidelines
+
 1. Follow TypeScript strict typing
 2. Use shared UI components from `@repo/ui`
 3. Maintain test coverage for new features
@@ -321,6 +297,7 @@ pnpm test:watch --filter=simple-swap
 5. Follow conventional commit messages
 
 ### Pull Request Process
+
 1. Create feature branch from `main`
 2. Implement changes with tests
 3. Run `pnpm lint` and `pnpm test`
@@ -328,28 +305,35 @@ pnpm test:watch --filter=simple-swap
 5. Submit PR with clear description
 
 ### Code Quality
+
 - ESLint and Prettier enforce consistent formatting
 - TypeScript ensures type safety across packages
 - Automated testing validates functionality
 - Performance monitoring tracks application health
 
+---
+
 ## Documentation
 
-- **Application READMEs**: Each app has specific setup instructions
+- **Application READMEs**: Each app/service/module has specific setup instructions
 - **API Documentation**: Available in `/docs` application
 - **Component Library**: Documented in `packages/ui`
 - **Technical Guides**: Located in `/docs` for complex integrations
 
+---
+
 ## Troubleshooting
 
 ### Common Issues
+
 - **Build Errors**: Run `pnpm clean` then `pnpm install`
-- **Type Errors**: Ensure shared packages are built first
+- **Type Errors**: Ensure shared modules/packages are built first
 - **Environment Variables**: Check all required variables are set
-- **Port Conflicts**: Applications use different ports by default
+- **Port Conflicts**: Applications/services use different ports by default
 
 ### Debug Mode
-Set `DEBUG=true` in environment variables for detailed logging across all applications.
+
+Set `DEBUG=true` in environment variables for detailed logging across all applications and services.
 
 ---
 

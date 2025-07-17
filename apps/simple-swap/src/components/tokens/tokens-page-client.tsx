@@ -24,7 +24,7 @@ export default function TokensPageClient({ tokens }: Props) {
     const searchParams = useSearchParams();
     const pathname = usePathname();
 
-    // Create token stats (subnet mapping no longer needed with useBlaze)
+    // Create token stats
     const tokenStats = useMemo(() => {
         const typeCount = new Map<string, number>();
         const subnetTokens: TokenSummary[] = [];

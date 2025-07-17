@@ -19,16 +19,6 @@
         "types": "./dist/cjs/index.d.cts",
         "default": "./dist/cjs/index.cjs"
       }
-    },
-    "./realtime": {
-      "import": {
-        "types": "./dist/es/realtime.d.ts",
-        "default": "./dist/es/realtime.js"
-      },
-      "require": {
-        "types": "./dist/cjs/realtime.d.cts",
-        "default": "./dist/cjs/realtime.cjs"
-      }
     }
   },
   "scripts": {

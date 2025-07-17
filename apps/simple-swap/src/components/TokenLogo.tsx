@@ -57,6 +57,11 @@ export default function TokenLogo({ token, size = "md", className = "", suppress
         return getIpfsUrl(imageUrl);
     };
 
+    // Safety check for undefined token
+    if (!token) {
+        return <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700" />;
+    }
+
     const isSubnetToken = token.type === 'SUBNET';
     const [imgError, setImgError] = React.useState(false);
 

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import TokenLogo from "./TokenLogo";
 import { TokenCacheData } from "@repo/tokens";
-import { useBlaze } from 'blaze-sdk/realtime';
+import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
 import { ChevronDown, Search, X, ArrowLeft } from 'lucide-react';
 
@@ -34,7 +34,7 @@ export default function TokenDropdown({
 
     // Get balance data for enhanced display
     const { address } = useWallet();
-    const { balances } = useBlaze({ userId: address });
+    const { getTokenBalance, getSubnetBalance } = useBalances(address ? [address] : []);
 
     /* ---------------- helpers ---------------- */
     const filtered = useMemo(() => {
@@ -218,17 +218,28 @@ export default function TokenDropdown({
                                                 {/* Balance Info */}
                                                 {showBalances && address && (
                                                     <div className="text-right flex-shrink-0 ml-2 sm:ml-4">
-                                                        <div className="text-sm sm:text-base font-semibold text-white/90">
-                                                            {balances[`${address}:${token.contractId}`]?.formattedBalance ?? '0'}
-                                                        </div>
-                                                        {balances[`${address}:${token.contractId}`]?.subnetBalance !== undefined && (
-                                                            <div className="text-xs sm:text-sm text-purple-400 font-medium">
-                                                                +{balances[`${address}:${token.contractId}`]?.formattedSubnetBalance ?? '0'} subnet
-                                                            </div>
-                                                        )}
-                                                        <div className="text-xs text-white/50 mt-1">
-                                                            {balances[`${address}:${token.contractId}`]?.subnetBalance !== undefined ? 'Mainnet' : 'Balance'}
-                                                        </div>
+                                                        {(() => {
+                                                            const mainnetBalance = getTokenBalance(address, token.contractId);
+                                                            const subnetBalance = getSubnetBalance(address, token.contractId);
+                                                            const formattedMainnet = mainnetBalance > 0 ? mainnetBalance.toFixed(4) : '0';
+                                                            const formattedSubnet = subnetBalance > 0 ? subnetBalance.toFixed(4) : '0';
+                                                            
+                                                            return (
+                                                                <>
+                                                                    <div className="text-sm sm:text-base font-semibold text-white/90">
+                                                                        {formattedMainnet}
+                                                                    </div>
+                                                                    {subnetBalance > 0 && (
+                                                                        <div className="text-xs sm:text-sm text-purple-400 font-medium">
+                                                                            +{formattedSubnet} subnet
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="text-xs text-white/50 mt-1">
+                                                                        {subnetBalance > 0 ? 'Mainnet' : 'Balance'}
+                                                                    </div>
+                                                                </>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 )}
                                             </div>

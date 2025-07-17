@@ -66,6 +66,9 @@ export async function generateMetadata(
 export default async function SwapPage({ searchParams }: { searchParams: { [key: string]: string | string[] | undefined } }) {
     // Prefetch tokens on the server
     const { success, tokens = [] } = await listTokens();
+    
+    // Await searchParams as required by Next.js 15
+    const params = await searchParams;
 
-    return <SwapPageClient tokens={tokens} searchParams={searchParams} />;
+    return <SwapPageClient tokens={tokens} searchParams={params} />;
 } 

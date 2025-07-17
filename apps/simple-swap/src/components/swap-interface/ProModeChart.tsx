@@ -22,8 +22,8 @@ import {
 } from "lightweight-charts";
 import SandwichPreviewOverlay from '../pro-mode/SandwichPreviewOverlay';
 import TargetPriceHoverOverlay from '../pro-mode/TargetPriceHoverOverlay';
-import { useBlaze } from 'blaze-sdk';
 import { usePriceSeriesService } from '@/lib/price-series-service';
+import { usePrices } from '@/contexts/token-price-context';
 
 // Enriched order type with token metadata
 interface DisplayOrder extends LimitOrder {
@@ -88,7 +88,7 @@ const ProModeChart = React.memo(function ProModeChart({
     candleInterval = '4h'
 }: ProModeChartProps) {
     // Access real-time price data from context
-    const { getPrice } = useBlaze();
+    const { getPrice } = usePrices();
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
     const seriesRef = useRef<any>(null);
@@ -163,17 +163,17 @@ const ProModeChart = React.memo(function ProModeChart({
 
     // Optimized price change calculation with debouncing and memoization
     const lastProcessedDataRef = useRef<{ latest: number; previous: number; timestamp: number } | null>(null);
-    
+
     const updatePriceChange = useCallback((currentData: LineData[]) => {
         if (!currentData || currentData.length < 2) return;
 
         const latest = getDataPointPrice(currentData[currentData.length - 1]);
         const previous = getDataPointPrice(currentData[currentData.length - 2]);
-        
+
         // Only update if values have actually changed (prevent unnecessary re-renders)
         const lastProcessed = lastProcessedDataRef.current;
-        if (lastProcessed && 
-            Math.abs(lastProcessed.latest - latest) < 0.00000001 && 
+        if (lastProcessed &&
+            Math.abs(lastProcessed.latest - latest) < 0.00000001 &&
             Math.abs(lastProcessed.previous - previous) < 0.00000001) {
             return; // Values haven't changed significantly
         }
@@ -317,7 +317,7 @@ const ProModeChart = React.memo(function ProModeChart({
             // For real-time updates with a single incremental point, use update() instead of setData()
             if (isRealTimeUpdate && incrementalPoint && newData.length > 0) {
                 const lastPoint = newData[newData.length - 1] as LineData;
-                
+
                 // Use efficient incremental update for single data points
                 if (chartType === 'line') {
                     seriesRef.current.update(lastPoint);
@@ -398,10 +398,10 @@ const ProModeChart = React.memo(function ProModeChart({
         }
 
         if (baseTokenToPrice?.contractId) {
-            currentBasePrice = getPrice(baseTokenToPrice.contractId);
+            currentBasePrice = getPrice(baseTokenToPrice.contractId) || undefined;
             // Handle subnet tokens for base
             if (!currentBasePrice && baseTokenToPrice.type === 'SUBNET' && baseTokenToPrice.base) {
-                currentBasePrice = getPrice(baseTokenToPrice.base);
+                currentBasePrice = getPrice(baseTokenToPrice.base) || undefined;
             }
         }
 
@@ -433,7 +433,7 @@ const ProModeChart = React.memo(function ProModeChart({
         if (!historicData || historicData.length === 0) return [];
 
         const realTimeData = getCurrentRealTimePrice(tokenToPrice, baseTokenToPrice);
-        
+
         if (!realTimeData.price || !realTimeData.point) {
             console.warn('No valid real-time price available, using historic data only');
             setIsShowingRealTimeData(false);
@@ -475,7 +475,7 @@ const ProModeChart = React.memo(function ProModeChart({
     const latestTokenRef = useRef(token);
     const latestBaseTokenRef = useRef(baseToken);
     const latestOnCurrentPriceChangeRef = useRef(onCurrentPriceChange);
-    
+
     latestTokenRef.current = token;
     latestBaseTokenRef.current = baseToken;
     latestOnCurrentPriceChangeRef.current = onCurrentPriceChange;
@@ -491,7 +491,7 @@ const ProModeChart = React.memo(function ProModeChart({
 
         try {
             // Use bulk fetching service for efficiency
-            const contractIds = baseToken?.contractId 
+            const contractIds = baseToken?.contractId
                 ? [token.contractId, baseToken.contractId]
                 : [token.contractId];
 
@@ -531,7 +531,7 @@ const ProModeChart = React.memo(function ProModeChart({
     // Memoized data reference to prevent unnecessary updates
     const memoizedData = useMemo(() => {
         if (!data || data.length === 0) return null;
-        
+
         // Create a stable reference based on data length and first/last values
         const key = `${data.length}-${data[0]?.time}-${data[data.length - 1]?.time}-${data[data.length - 1]?.value}`;
         return { data, key };
@@ -1915,43 +1915,43 @@ const ProModeChart = React.memo(function ProModeChart({
             if (historicDataRef.current && historicDataRef.current.length > 0) {
                 // Get only the current real-time price for incremental update
                 const realTimeData = getCurrentRealTimePrice(latestTokenRef.current, latestBaseTokenRef.current);
-                
+
                 if (realTimeData.price && realTimeData.point) {
                     // Check if we have existing noisy data to update incrementally
                     const currentData = noisyDataRef.current || historicDataRef.current;
                     const lastPoint = currentData[currentData.length - 1];
                     const lastTime = Number(lastPoint.time);
                     const newTime = Number(realTimeData.point.time);
-                    
+
                     // Only update if the price has changed significantly or enough time has passed
                     const timeDiff = newTime - lastTime;
                     const priceDiff = Math.abs(realTimeData.price - lastPoint.value) / lastPoint.value;
-                    
+
                     if (timeDiff > 60 || priceDiff > 0.001) { // 1 minute or 0.1% price change
                         // Efficient incremental update
                         let updatedData: LineData[];
-                        
+
                         if (timeDiff < 300) { // Less than 5 minutes - replace last point
                             updatedData = currentData.slice();
                             updatedData[updatedData.length - 1] = realTimeData.point;
                         } else { // More than 5 minutes - append new point
                             updatedData = [...currentData, realTimeData.point];
                         }
-                        
+
                         // Store updated data
                         noisyDataRef.current = updatedData;
-                        
+
                         // Efficient chart update with incremental API
                         if (chartRef.current && seriesRef.current && !isInitialLoadRef.current) {
                             updateChartData(updatedData, true, realTimeData.point);
                         }
-                        
+
                         // Update price state
                         setCurrentPrice(realTimeData.price);
                         if (latestOnCurrentPriceChangeRef.current) {
                             latestOnCurrentPriceChangeRef.current(realTimeData.price);
                         }
-                        
+
                         // Calculate price change efficiently
                         if (updatedData.length > 1) {
                             const previous = getDataPointPrice(updatedData[updatedData.length - 2]);
@@ -1959,14 +1959,14 @@ const ProModeChart = React.memo(function ProModeChart({
                             const percentage = (change / previous) * 100;
                             setPriceChange({ value: change, percentage });
                         }
-                        
+
                         console.log(`⚡ Incremental price update: ${realTimeData.price.toFixed(8)} (${priceDiff > 0.001 ? 'price change' : 'time elapsed'})`);
                     }
                 } else {
                     // Fallback to full enhancement if incremental fails
                     const enhancedData = enhanceWithRealTimePrice(historicDataRef.current, latestTokenRef.current, latestBaseTokenRef.current);
                     noisyDataRef.current = enhancedData;
-                    
+
                     if (chartRef.current && seriesRef.current && !isInitialLoadRef.current) {
                         updateChartData(enhancedData, true);
                     }
@@ -1981,7 +1981,7 @@ const ProModeChart = React.memo(function ProModeChart({
     // IMPORTANT: This must be before any conditional returns to avoid hook order issues
     const priceRange = useMemo(() => {
         if (!data || data.length === 0) return undefined;
-        
+
         const prices = data.map(d => getDataPointPrice(d));
         return {
             min: Math.min(...prices),

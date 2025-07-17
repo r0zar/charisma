@@ -13,13 +13,13 @@ import {
 } from "lightweight-charts";
 import { TokenCacheData } from "@repo/tokens";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
-import { 
-    calculateResilientRatioData, 
-    enhanceSparseTokenData, 
+import {
+    calculateResilientRatioData,
+    enhanceSparseTokenData,
     isValidDataPoint,
-    type ChartDataPoint 
+    type ChartDataPoint
 } from "@/lib/chart-data-utils";
-import { useBlaze } from 'blaze-sdk/realtime';
+import { usePrices } from '@/contexts/token-price-context';
 import { useWallet } from '@/contexts/wallet-context';
 import { usePriceSeriesService } from '@/lib/price-series-service';
 import { perfMonitor } from '@/lib/performance-monitor';
@@ -58,10 +58,10 @@ function convertToLineData(data: ChartDataPoint[]): LineData[] {
 function formatPrice(price: number): string {
     if (price === 0) return '0';
     if (isNaN(price)) return '0';
-    
+
     // Use 4-5 significant digits, but ensure we show meaningful precision
     const magnitude = Math.floor(Math.log10(Math.abs(price)));
-    
+
     if (price >= 1) {
         // For values >= 1, show 2-4 decimal places max
         return price.toFixed(Math.min(4, Math.max(2, 4 - magnitude)));
@@ -137,20 +137,19 @@ export default function ConditionTokenChart({
     const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
 
     // Real-time price data
-    const { address } = useWallet();
-    const { prices } = useBlaze({ userId: address });
+    const { getPrice } = usePrices();
     const priceSeriesService = usePriceSeriesService();
-    
+
     // For subnet tokens, use their base token's price for real-time updates
     const getTokenPriceFromFeed = useCallback((tokenData: TokenCacheData) => {
         // If it's a subnet token, use the base token's price
         if (tokenData.type === 'SUBNET' && tokenData.base) {
-            return prices[tokenData.base];
+            return getPrice(tokenData.base);
         }
         // Otherwise use the token's own price
-        return prices[tokenData.contractId];
-    }, [prices]);
-    
+        return getPrice(tokenData.contractId);
+    }, [getPrice]);
+
     const currentTokenPrice = getTokenPriceFromFeed(token);
     const currentBasePrice = baseToken ? getTokenPriceFromFeed(baseToken) : null;
 
@@ -168,7 +167,7 @@ export default function ConditionTokenChart({
 
         try {
             // Use bulk fetching for efficiency
-            const contractIds = baseToken?.contractId 
+            const contractIds = baseToken?.contractId
                 ? [token.contractId, baseToken.contractId]
                 : [token.contractId];
 
@@ -188,7 +187,7 @@ export default function ConditionTokenChart({
                     // Convert to ChartDataPoint format and use resilient ratio calculation
                     const tokenChartData = convertToChartDataPoint(tokenData);
                     const baseChartData = convertToChartDataPoint(baseData);
-                    
+
                     const ratioChartData = calculateResilientRatioData(tokenChartData, baseChartData, {
                         minPoints: 15, // Match token chart for better extrapolation
                         defaultTimeRangeMs: 30 * 24 * 60 * 60 * 1000 // 30 days
@@ -206,18 +205,18 @@ export default function ConditionTokenChart({
                 time: Number(point.time),
                 value: point.value
             }));
-            
+
             // Sort by time and remove duplicates (required by lightweight-charts)
             const sortedData = validData.sort((a, b) => Number(a.time) - Number(b.time));
             const deduplicatedData = sortedData.filter((point, index) => {
                 if (index === 0) return true;
                 return Number(point.time) !== Number(sortedData[index - 1].time);
             });
-            
+
             setData(deduplicatedData);
 
-            timer.end({ 
-                success: true, 
+            timer.end({
+                success: true,
                 dataPoints: deduplicatedData.length,
                 hasBaseToken: !!baseToken?.contractId,
                 tokenId: token.contractId.substring(0, 10)
@@ -243,7 +242,7 @@ export default function ConditionTokenChart({
         }
     }, [token.contractId, baseToken?.contractId, priceSeriesService]);
 
-    // Effect to handle real-time price updates from useBlaze - improved to match token chart
+    // Effect to handle price updates from token price context
     useEffect(() => {
         console.log('[REAL-TIME] Price update triggered:', {
             token: token.symbol,
@@ -261,13 +260,13 @@ export default function ConditionTokenChart({
         }
 
         // Extract price values from price objects
-        const tokenPriceValue = typeof currentTokenPrice === 'object' && currentTokenPrice?.price ? currentTokenPrice.price : currentTokenPrice;
-        const basePriceValue = typeof currentBasePrice === 'object' && currentBasePrice?.price ? currentBasePrice.price : currentBasePrice;
-        
+        const tokenPriceValue = currentTokenPrice;
+        const basePriceValue = currentBasePrice;
+
         // Check if prices have actually changed (similar to token chart pattern)
         const hasTokenPriceChanged = lastPricesRef.current.token !== tokenPriceValue;
         const hasBasePriceChanged = lastPricesRef.current.base !== basePriceValue;
-        
+
         console.log('[REAL-TIME] Price change analysis:', {
             hasTokenPriceChanged,
             hasBasePriceChanged,
@@ -276,12 +275,12 @@ export default function ConditionTokenChart({
             tokenPriceObject: currentTokenPrice,
             basePriceObject: currentBasePrice
         });
-        
+
         if (!hasTokenPriceChanged && !hasBasePriceChanged) {
             console.log('[REAL-TIME] No price changes detected, skipping update');
             return;
         }
-        
+
         if (!tokenPriceValue || typeof tokenPriceValue !== 'number' || tokenPriceValue <= 0) {
             console.log('[REAL-TIME] Invalid token price, skipping update:', {
                 tokenPriceValue,
@@ -334,12 +333,12 @@ export default function ConditionTokenChart({
             });
 
             // Update our refs
-            lastPricesRef.current = { 
-                token: tokenPriceValue as number, 
-                base: basePriceValue as number | null 
+            lastPricesRef.current = {
+                token: tokenPriceValue as number,
+                base: basePriceValue as number | null
             };
             setLastUpdateTime(now);
-            
+
             console.log('[REAL-TIME] Chart update successful:', {
                 newPrice: newPrice.toFixed(6),
                 timestamp: now,
@@ -365,7 +364,7 @@ export default function ConditionTokenChart({
         let handleResize: (() => void) | null = null;
 
         const chartTimer = perfMonitor.startTiming('condition-chart-initialization');
-        
+
         try {
             // Clean up existing chart
             if (chartRef.current) {

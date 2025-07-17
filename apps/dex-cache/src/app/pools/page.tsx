@@ -6,6 +6,7 @@ import { getAllVaultData } from '@/lib/pool-service';
 import AddNewPoolButton from '@/components/pool/AddNewPoolButton';
 import { AddLiquidityWizard } from '@/components/pool/add-liquidity-wizard-dialog';
 import { listPrices } from '@repo/tokens';
+import { getHostUrl } from '@modules/discovery';
 
 // export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Charisma Invest | Add Liquidity Easily",
     description: "Add liquidity to a pool with a single click. Charisma Invest makes it easy to add liquidity to a pool.",
-    url: 'https://invest.charisma.rocks/pools',
+    url: `${getHostUrl('invest')}/pools`,
     siteName: 'Charisma Invest',
     images: [
       {

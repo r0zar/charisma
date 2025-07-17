@@ -5,6 +5,7 @@ import TokensPageClient from "@/components/tokens/tokens-page-client";
 import { Suspense } from 'react';
 import { TokenTableSkeleton } from '@/components/tokens/token-table-skeleton';
 import { PriceSeriesProvider } from '@/contexts/price-series-provider';
+import { ComparisonTokenProvider } from '@/contexts/comparison-token-context';
 import { withMonitoring } from '@/lib/performance-monitor';
 
 export const dynamic = 'force-dynamic';
@@ -46,11 +47,13 @@ export default async function TokensPage() {
                 <Header />
 
                 <main className="flex-1 container max-w-7xl mx-auto px-4 py-8">
-                    <PriceSeriesProvider initialData={priceSeriesData}>
-                        <Suspense fallback={<TokenTableSkeleton />}>
-                            <TokensPageClient tokens={tokens} />
-                        </Suspense>
-                    </PriceSeriesProvider>
+                    <ComparisonTokenProvider>
+                        <PriceSeriesProvider initialData={priceSeriesData}>
+                            <Suspense fallback={<TokenTableSkeleton />}>
+                                <TokensPageClient tokens={tokens} />
+                            </Suspense>
+                        </PriceSeriesProvider>
+                    </ComparisonTokenProvider>
                 </main>
             </div>
         );

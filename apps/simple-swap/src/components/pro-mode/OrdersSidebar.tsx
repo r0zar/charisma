@@ -12,8 +12,8 @@ import { toast } from 'sonner';
 import { usePerpetualPositions, usePositionPnL, useCancelPerpetualPosition } from '../../hooks/usePerps';
 import { TokenCacheData } from '@repo/tokens';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
-import { useBlaze } from 'blaze-sdk';
 import { formatUsd } from '@/lib/swap-utils';
+import { usePrices } from '@/contexts/token-price-context';
 
 interface OrdersSidebarProps {
     collapsed: boolean;
@@ -46,7 +46,7 @@ export default function OrdersSidebar({ collapsed }: OrdersSidebarProps) {
         subnetDisplayTokens,
     } = useSwapTokens();
 
-    const { getPrice } = useBlaze();
+    const { getPrice } = usePrices();
 
     // Check if we're in perpetual mode
     const isPerpetualMode = selectedOrderType === 'perpetual';

@@ -4,6 +4,14 @@
   ],
   "tasks": {
     "build": {
+      "dependsOn": [
+        "@repo/tokens#build",
+        "@repo/polyglot#build",
+        "blaze-sdk#build",
+        "@repo/tx-monitor-client#build",
+        "@modules/discovery#build",
+        "@services/prices#build"
+      ],
       "outputs": [
         ".next/**",
         "!.next/cache/**"
@@ -38,7 +46,8 @@
         "TWITTER_API_SECRET",
         "TWITTER_ACCESS_TOKEN",
         "TWITTER_ACCESS_SECRET",
-        "TWITTER_REPLIES_ENABLED"
+        "TWITTER_REPLIES_ENABLED",
+        "BLOB_READ_WRITE_TOKEN"
       ]
     },
     "dev": {
@@ -46,7 +55,9 @@
         "@repo/tokens#build",
         "@repo/polyglot#build",
         "blaze-sdk#build",
-        "@repo/tx-monitor-client#build"
+        "@repo/tx-monitor-client#build",
+        "@modules/discovery#build",
+        "@services/prices#build"
       ]
     }
   }

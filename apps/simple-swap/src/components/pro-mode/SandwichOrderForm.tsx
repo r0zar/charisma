@@ -8,7 +8,9 @@ import SandwichCreationDialog from './SandwichCreationDialog';
 import { TokenCacheData } from '@repo/tokens';
 import { ArrowUpDown, Lock, Unlock } from 'lucide-react';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
-import { useBlaze } from 'blaze-sdk';
+import { usePrices } from '@/contexts/token-price-context';
+import { useWallet } from '@/contexts/wallet-context';
+import { useBalances } from '@/contexts/wallet-balance-context';
 import { formatPriceUSD } from '@/lib/utils';
 
 // Helper function to format token balance with dynamic precision
@@ -61,10 +63,9 @@ export default function SandwichOrderForm() {
         selectedToToken,
     } = useSwapTokens();
 
-    const {
-        balances,
-        getPrice,
-    } = useBlaze();
+    const { getPrice } = usePrices();
+    const { address } = useWallet();
+    const { getTokenBalance } = useBalances(address ? [address] : []);
 
     // Keep track of current spread value without causing re-renders
     useEffect(() => {
@@ -255,7 +256,7 @@ export default function SandwichOrderForm() {
                                 className="w-full"
                             />
                             {selectedFromToken && (() => {
-                                const balance = balances[selectedFromToken.contractId];
+                                const balance = address ? { balance: getTokenBalance(address, selectedFromToken.contractId) } : { balance: 0 };
                                 if (balance !== undefined) {
                                     const price = getPrice(selectedFromToken.contractId);
                                     return (
@@ -278,7 +279,7 @@ export default function SandwichOrderForm() {
                                 className="w-full"
                             />
                             {selectedToToken && (() => {
-                                const balance = balances[selectedToToken.contractId];
+                                const balance = address ? { balance: getTokenBalance(address, selectedToToken.contractId) } : { balance: 0 };
                                 if (balance !== undefined) {
                                     const price = getPrice(selectedToToken.contractId);
                                     return (

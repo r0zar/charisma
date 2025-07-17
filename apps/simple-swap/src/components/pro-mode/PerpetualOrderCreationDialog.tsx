@@ -11,7 +11,6 @@ import { useTradingState } from '../../hooks/useTradingState';
 import { useCreatePerpetualPosition } from '../../hooks/usePerps';
 import { toast } from 'sonner';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
-import { useBlaze } from 'blaze-sdk';
 import { formatPriceUSD } from '@/lib/utils';
 
 export default function PerpetualOrderCreationDialog() {
@@ -30,8 +29,6 @@ export default function PerpetualOrderCreationDialog() {
         selectedFromToken,
         selectedToToken,
     } = useSwapTokens();
-
-    const { getPrice } = useBlaze();
 
     const { address } = useWallet();
     const { createPosition, isLoading: isCreatingPosition } = useCreatePerpetualPosition();

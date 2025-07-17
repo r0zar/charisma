@@ -1,6 +1,5 @@
 import { listTokens } from "./token-cache-client";
 
-const KRAXEL_API_URL = 'https://www.kraxel.io/api/prices';
 const STXTOOLS_API_URL = 'https://api.stxtools.io/tokens?page=0&size=10000';
 const INTERNAL_API_URL = process.env.INTERNAL_PRICE_API_URL || 'https://invest.charisma.rocks/api/v1/prices';
 
@@ -21,7 +20,7 @@ type TokenContractId = string;
 type PriceUSD = number;
 
 /**
- * Represents the structure of the price data returned by the Kraxel API.
+ * Represents the structure of price data.
  * It's a record where keys are token identifiers (e.g., 'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex')
  * and values are their corresponding prices as numbers.
  */
@@ -84,7 +83,6 @@ export interface TokenWithSubnetInfo {
  * Configuration for price sources
  */
 export interface PriceSourceConfig {
-    kraxel: boolean;
     stxtools: boolean;
     internal: boolean;
 }
@@ -93,7 +91,7 @@ export interface PriceSourceConfig {
  * Configuration for price aggregation strategy
  */
 export interface PriceAggregationConfig {
-    strategy: 'fallback' | 'average' | 'kraxel-primary' | 'stxtools-primary' | 'internal-primary';
+    strategy: 'fallback' | 'average' | 'stxtools-primary' | 'internal-primary';
     timeout: number;
     sources: PriceSourceConfig;
 }
@@ -105,7 +103,6 @@ const DEFAULT_CONFIG: PriceAggregationConfig = {
     strategy: 'average',
     timeout: 5000,
     sources: {
-        kraxel: false,
         stxtools: true,
         internal: true
     }
@@ -154,16 +151,6 @@ export function processTokenPrices(
     return processedPrices;
 }
 
-/**
- * Fetches token prices from the Kraxel API
- */
-async function fetchKraxelPrices(): Promise<KraxelPriceData> {
-    const response = await fetch(KRAXEL_API_URL);
-    if (!response.ok) {
-        throw new Error(`Failed to fetch prices from Kraxel API: ${response.statusText}`);
-    }
-    return await response.json() as KraxelPriceData;
-}
 
 /**
  * Fetches token prices from the STXTools API and converts to our format
@@ -243,7 +230,6 @@ async function fetchInternalPrices(): Promise<KraxelPriceData> {
  * Merges price data from multiple sources using the specified strategy
  */
 function mergePriceData(
-    kraxelPrices: KraxelPriceData | null,
     stxToolsPrices: KraxelPriceData | null,
     internalPrices: KraxelPriceData | null,
     strategy: PriceAggregationConfig['strategy']
@@ -252,33 +238,26 @@ function mergePriceData(
 
     switch (strategy) {
         case 'internal-primary':
-            // Internal API takes precedence, STXTools and Kraxel fill gaps
-            Object.assign(merged, kraxelPrices || {}, stxToolsPrices || {}, internalPrices || {});
-            break;
-
-        case 'kraxel-primary':
-            // Kraxel takes precedence, Internal and STXTools fill gaps
-            Object.assign(merged, stxToolsPrices || {}, internalPrices || {}, kraxelPrices || {});
+            // Internal API takes precedence, STXTools fills gaps
+            Object.assign(merged, stxToolsPrices || {}, internalPrices || {});
             break;
 
         case 'stxtools-primary':
-            // STXTools takes precedence, Internal and Kraxel fill gaps
-            Object.assign(merged, kraxelPrices || {}, internalPrices || {}, stxToolsPrices || {});
+            // STXTools takes precedence, Internal fills gaps
+            Object.assign(merged, internalPrices || {}, stxToolsPrices || {});
             break;
 
         case 'average':
             // Average prices where sources have data
             const allKeys = new Set([
-                ...Object.keys(kraxelPrices || {}),
                 ...Object.keys(stxToolsPrices || {}),
                 ...Object.keys(internalPrices || {})
             ]);
 
             allKeys.forEach(key => {
-                const kraxelPrice = kraxelPrices?.[key];
                 const stxToolsPrice = stxToolsPrices?.[key];
                 const internalPrice = internalPrices?.[key];
-                const prices = [kraxelPrice, stxToolsPrice, internalPrice].filter(p => p !== undefined) as number[];
+                const prices = [stxToolsPrice, internalPrice].filter(p => p !== undefined) as number[];
 
                 if (prices.length > 0) {
                     merged[key] = prices.reduce((sum, price) => sum + price, 0) / prices.length;
@@ -288,8 +267,8 @@ function mergePriceData(
 
         case 'fallback':
         default:
-            // Use Internal API first, fallback to STXTools, then Kraxel
-            Object.assign(merged, kraxelPrices || {}, stxToolsPrices || {}, internalPrices || {});
+            // Use Internal API first, fallback to STXTools
+            Object.assign(merged, stxToolsPrices || {}, internalPrices || {});
             break;
     }
 
@@ -303,7 +282,7 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
     const finalConfig = { ...DEFAULT_CONFIG, ...config };
 
     // Validate that at least one source is enabled
-    if (!finalConfig.sources.kraxel && !finalConfig.sources.stxtools && !finalConfig.sources.internal) {
+    if (!finalConfig.sources.stxtools && !finalConfig.sources.internal) {
         throw new Error('At least one price source must be enabled');
     }
 
@@ -315,7 +294,6 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
         });
     };
 
-    let kraxelPrices: KraxelPriceData | null = null;
     let stxToolsPrices: KraxelPriceData | null = null;
     let internalPrices: KraxelPriceData | null = null;
 
@@ -323,12 +301,13 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
     const promises: Promise<KraxelPriceData>[] = [];
     const sourceNames: string[] = [];
 
-    if (finalConfig.sources.kraxel) {
-        promises.push(Promise.race([fetchKraxelPrices(), createTimeoutPromise<KraxelPriceData>(finalConfig.timeout)]));
-        sourceNames.push('kraxel');
-    }
-
     if (finalConfig.sources.stxtools) {
+        // skip if we're in a browser
+        // @ts-ignore
+        if (typeof window !== 'undefined') {
+            throw new Error('STXTools API is not available in the browser');
+        }
+
         promises.push(Promise.race([fetchSTXToolsPrices(), createTimeoutPromise<KraxelPriceData>(finalConfig.timeout)]));
         sourceNames.push('stxtools');
     }
@@ -343,19 +322,6 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
 
     // Process results based on which sources were enabled
     let resultIndex = 0;
-
-    if (finalConfig.sources.kraxel) {
-        if (results[resultIndex].status === 'fulfilled') {
-            kraxelPrices = (results[resultIndex] as PromiseFulfilledResult<KraxelPriceData>).value;
-            console.log(`Successfully fetched ${Object.keys(kraxelPrices).length} prices from Kraxel API`);
-        } else {
-            const reason = (results[resultIndex] as PromiseRejectedResult).reason;
-            console.warn('Failed to fetch from Kraxel API:', reason && reason.message ? reason.message : reason);
-        }
-        resultIndex++;
-    } else {
-        console.log('Kraxel API disabled');
-    }
 
     if (finalConfig.sources.stxtools) {
         if (results[resultIndex].status === 'fulfilled') {
@@ -383,18 +349,17 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
     }
 
     // If all enabled APIs failed, return empty object
-    const hasKraxelData = kraxelPrices && finalConfig.sources.kraxel;
     const hasStxToolsData = stxToolsPrices && finalConfig.sources.stxtools;
     const hasInternalData = internalPrices && finalConfig.sources.internal;
 
-    if (!hasKraxelData && !hasStxToolsData && !hasInternalData) {
+    if (!hasStxToolsData && !hasInternalData) {
         const enabledSources = sourceNames.join(', ');
         console.error(`All enabled price APIs (${enabledSources}) failed, returning empty price object.`);
         return {};
     }
 
     // Merge the price data according to strategy
-    const mergedPrices = mergePriceData(kraxelPrices, stxToolsPrices, internalPrices, finalConfig.strategy);
+    const mergedPrices = mergePriceData(stxToolsPrices, internalPrices, finalConfig.strategy);
 
     // Apply subnet token processing
     try {
@@ -408,15 +373,6 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
     }
 }
 
-/**
- * Fetches prices from Kraxel API only (for backward compatibility)
- */
-export async function listPricesKraxel(): Promise<KraxelPriceData> {
-    return listPrices({
-        strategy: 'kraxel-primary',
-        sources: { kraxel: true, stxtools: false, internal: false }
-    });
-}
 
 /**
  * Fetches prices from STXTools API only
@@ -424,7 +380,7 @@ export async function listPricesKraxel(): Promise<KraxelPriceData> {
 export async function listPricesSTXTools(): Promise<KraxelPriceData> {
     return listPrices({
         strategy: 'stxtools-primary',
-        sources: { kraxel: false, stxtools: true, internal: false }
+        sources: { stxtools: true, internal: false }
     });
 }
 
@@ -434,6 +390,6 @@ export async function listPricesSTXTools(): Promise<KraxelPriceData> {
 export async function listPricesInternal(): Promise<KraxelPriceData> {
     return listPrices({
         strategy: 'internal-primary',
-        sources: { kraxel: false, stxtools: false, internal: true }
+        sources: { stxtools: false, internal: true }
     });
 }

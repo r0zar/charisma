@@ -4,6 +4,8 @@ import { listTokens } from '../actions';
 import ProInterface from '@/components/pro-interface/pro-interface';
 import { Header } from '@/components/layout/header';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
     title: 'Pro Trading | Charisma Swap',
     description: 'Advanced trading interface with limit orders, DCA, and professional tools on Charisma Swap',

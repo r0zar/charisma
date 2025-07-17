@@ -11,8 +11,8 @@ import { request } from '@stacks/connect';
 import { tupleCV, stringAsciiCV, uintCV, principalCV, optionalCVOf, noneCV } from '@stacks/transactions';
 import { TokenCacheData } from '@repo/tokens';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
-import { useBlaze } from 'blaze-sdk';
 import { formatPriceUSD } from '@/lib/utils';
+import { usePrices } from '@/contexts/token-price-context';
 
 // Helper function to format token balance with dynamic precision
 const formatTokenBalance = (balance: number, token: TokenCacheData): string => {
@@ -53,7 +53,7 @@ export default function SingleOrderCreationDialog() {
         baseToken,
     } = useSwapTokens();
 
-    const { getPrice } = useBlaze();
+    const { getPrice } = usePrices();
 
     const { address } = useWallet();
 

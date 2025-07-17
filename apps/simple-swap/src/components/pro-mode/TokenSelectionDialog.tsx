@@ -6,10 +6,10 @@ import { Search, X, Wallet, Flame } from 'lucide-react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
 import TokenLogo from '../TokenLogo';
 import { TokenCacheData } from '@repo/tokens';
-import { getTokenBalance } from '../../app/actions';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useWallet } from '@/contexts/wallet-context';
-import { useBlaze } from 'blaze-sdk';
+import { usePrices } from '@/contexts/token-price-context';
+import { useBalances } from '@/contexts/wallet-balance-context';
 
 interface TokenSelectionDialogProps {
     isOpen: boolean;
@@ -25,8 +25,6 @@ export default function TokenSelectionDialog({
     title
 }: TokenSelectionDialogProps) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [tokenBalances, setTokenBalances] = useState<Map<string, number>>(new Map());
-    const [loadingBalances, setLoadingBalances] = useState<Set<string>>(new Set());
 
     const {
         selectedOrderType,
@@ -51,7 +49,8 @@ export default function TokenSelectionDialog({
 
     const { address: userAddress } = useWallet();
 
-    const { getPrice } = useBlaze();
+    const { getPrice } = usePrices();
+    const { getFormattedMainnetBalance, getFormattedSubnetBalance } = useBalances(userAddress ? [userAddress] : []);
 
     // Determine which tokens to show based on selection type
     const availableTokens = useMemo(() => {
@@ -121,75 +120,20 @@ export default function TokenSelectionDialog({
 
     const currentSelection = getCurrentSelection();
 
-    // Helper function to format token balance with dynamic precision
-    const formatTokenBalance = (balance: number, token: TokenCacheData): string => {
-        const decimals = token.decimals || 6;
 
-        if (balance === 0) return '0';
-        if (balance < 0.001) {
-            return balance.toLocaleString(undefined, {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: Math.min(decimals, 10)
-            });
-        } else if (balance < 1) {
-            return balance.toLocaleString(undefined, {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: Math.min(decimals, 6)
-            });
-        } else {
-            return balance.toLocaleString(undefined, {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: Math.min(decimals, 4)
-            });
-        }
-    };
 
-    // Function to fetch token balance
-    const fetchTokenBalance = async (token: TokenCacheData) => {
-        if (!userAddress || loadingBalances.has(token.contractId)) return;
 
-        setLoadingBalances(prev => new Set(prev).add(token.contractId));
-
-        try {
-            const balance = await getTokenBalance(token.contractId, userAddress);
-            const humanReadableBalance = balance / Math.pow(10, token.decimals || 6);
-
-            setTokenBalances(prev => new Map(prev).set(token.contractId, humanReadableBalance));
-        } catch (error) {
-            console.error(`Error fetching balance for ${token.contractId}:`, error);
-            setTokenBalances(prev => new Map(prev).set(token.contractId, 0));
-        } finally {
-            setLoadingBalances(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(token.contractId);
-                return newSet;
-            });
-        }
-    };
-
-    // Fetch balances for visible tokens
-    useEffect(() => {
-        if (!userAddress || !isOpen) return;
-
-        // Fetch balances for filtered tokens (limit to first 20 to avoid too many requests)
-        const tokensToFetch = filteredTokens.slice(0, 20);
-        tokensToFetch.forEach((token: any) => {
-            if (!tokenBalances.has(token.contractId) && !loadingBalances.has(token.contractId)) {
-                fetchTokenBalance(token);
-            }
-        });
-    }, [filteredTokens, userAddress, isOpen]);
-
-    // Get balance for a specific token
+    // Get balance for a specific token using standardized context functions
     const getTokenBalanceDisplay = (token: TokenCacheData) => {
-        const balance = tokenBalances.get(token.contractId);
-        const isLoading = loadingBalances.has(token.contractId);
-
         if (!userAddress) return null;
-        if (isLoading) return 'Loading...';
-        if (balance === undefined) return null;
-
-        return formatTokenBalance(balance, token);
+        
+        if (token.type === 'SUBNET') {
+            const balance = getFormattedSubnetBalance(userAddress, token.contractId);
+            return balance === '0' ? null : balance;
+        } else {
+            const balance = getFormattedMainnetBalance(userAddress, token.contractId);
+            return balance === '0' ? null : balance;
+        }
     };
 
     // Format token price with dynamic precision
@@ -228,7 +172,13 @@ export default function TokenSelectionDialog({
 
     // Calculate total value (price × balance)
     const getTotalValue = (token: TokenCacheData) => {
-        const balance = tokenBalances.get(token.contractId);
+        if (!userAddress) return null;
+        
+        const balanceStr = token.type === 'SUBNET' 
+            ? getFormattedSubnetBalance(userAddress, token.contractId)
+            : getFormattedMainnetBalance(userAddress, token.contractId);
+            
+        const balance = parseFloat(balanceStr.replace(/,/g, ''));
         const price = getPrice(token.contractId);
 
         if (!balance || !price || balance === 0) return null;
@@ -329,7 +279,7 @@ export default function TokenSelectionDialog({
                 formattedPrice: getPrice(token.contractId) ? formatTokenPrice(getPrice(token.contractId)!) : null,
                 balanceDisplay: getTokenBalanceDisplay(token),
                 totalValue: getTotalValue(token),
-                isLoadingBalance: loadingBalances.has(token.contractId)
+                isLoadingBalance: false
             };
         };
 
@@ -375,9 +325,7 @@ export default function TokenSelectionDialog({
                                 )}
                                 {userAddress && (
                                     <>
-                                        {mainnetData?.isLoadingBalance ? (
-                                            <div className="text-xs text-muted-foreground">Loading...</div>
-                                        ) : mainnetData?.balanceDisplay ? (
+                                        {mainnetData?.balanceDisplay ? (
                                             <>
                                                 <div className="flex items-center justify-end gap-1 text-xs text-muted-foreground">
                                                     <span className="truncate">{mainnetData.balanceDisplay}</span>
@@ -437,9 +385,7 @@ export default function TokenSelectionDialog({
                                 )}
                                 {userAddress && (
                                     <>
-                                        {subnetData?.isLoadingBalance ? (
-                                            <div className="text-xs text-muted-foreground">Loading...</div>
-                                        ) : subnetData?.balanceDisplay ? (
+                                        {subnetData?.balanceDisplay ? (
                                             <>
                                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                                     <Wallet className="h-2.5 w-2.5 flex-shrink-0" />

@@ -2,10 +2,11 @@
 
 import { kv } from "@vercel/kv";
 import { processSingleBlazeIntentByPid } from "@/lib/blaze-intent-server"; // Adjust path as needed
-import { callReadOnlyFunction } from "@repo/polyglot";
+import { callReadOnlyFunction, getAccountBalances, type AccountBalancesResponse } from "@repo/polyglot";
 import { principalCV } from "@stacks/transactions";
 import { loadVaults, Router, listTokens as listSwappableTokens } from 'dexterity-sdk'
-import { TokenCacheData } from "@repo/tokens";
+import { TokenCacheData, listTokens as listAllTokens, listPrices, type KraxelPriceData } from "@repo/tokens";
+import { getPriceService } from "@/lib/price-service-setup";
 
 // Configure Dexterity router
 const routerAddress = process.env.NEXT_PUBLIC_ROUTER_ADDRESS || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
@@ -254,6 +255,180 @@ export async function checkBidderBalance(
             requiredAmount,
             humanReadableBalance: 0,
             humanReadableRequired: parseFloat(requiredAmount) / Math.pow(10, 6)
+        };
+    }
+}
+
+/**
+ * Server action to fetch token prices
+ */
+export async function getPrices(): Promise<KraxelPriceData> {
+    try {
+        const prices = await listPrices();
+        return prices;
+    } catch (error) {
+        console.error('Error fetching token prices:', error);
+        return {};
+    }
+}
+
+/**
+ * Server action to fetch account balances including subnet token balances
+ * @param principal Stacks address or contract identifier
+ * @param params Optional parameters
+ */
+export async function getAccountBalancesWithSubnet(
+    principal: string,
+    params?: {
+        unanchored?: boolean;
+        until_block?: string;
+        trim?: boolean;
+    }
+): Promise<AccountBalancesResponse | null> {
+    try {
+        // First, get the regular balance data
+        const balances = await getAccountBalances(principal, {
+            unanchored: params?.unanchored ?? true,
+            until_block: params?.until_block,
+            trim: params?.trim,
+        });
+
+        if (!balances) {
+            return null;
+        }
+
+        // Get all subnet tokens
+        const allTokens = await listAllTokens();
+        const subnetTokens = allTokens.filter((token: TokenCacheData) => token.type === 'SUBNET');
+
+        // Fetch subnet balances in parallel
+        const subnetBalancePromises = subnetTokens.map(async (token: TokenCacheData) => {
+            try {
+                const [contractAddress, contractName] = token.contractId.split('.');
+                const result = await callReadOnlyFunction(
+                    contractAddress,
+                    contractName,
+                    'get-balance',
+                    [principalCV(principal)]
+                );
+
+                const balance = result?.value ? String(result.value) : '0';
+                return {
+                    contractId: token.contractId,
+                    balance: balance,
+                };
+            } catch (error) {
+                console.warn(`Failed to fetch subnet balance for ${token.contractId}:`, error);
+                return {
+                    contractId: token.contractId,
+                    balance: '0',
+                };
+            }
+        });
+
+        const subnetBalances = await Promise.all(subnetBalancePromises);
+
+        // Add subnet balances to the fungible_tokens object
+        if (!balances.fungible_tokens) {
+            balances.fungible_tokens = {};
+        }
+
+        subnetBalances.forEach(({ contractId, balance }: { contractId: string; balance: string }) => {
+            if (balance !== '0') {
+                balances.fungible_tokens[contractId] = {
+                    balance: balance,
+                    total_sent: '0',
+                    total_received: balance,
+                };
+            }
+        });
+
+        return balances;
+    } catch (error: any) {
+        if (error?.response?.status === 404) {
+            console.warn(`Address or contract not found: ${principal}`);
+            return null;
+        }
+        console.error(`Error fetching account balances for ${principal}:`, error);
+        throw new Error("Failed to fetch account balances.");
+    }
+}
+
+/**
+ * Server action to get token prices using the unified price service
+ * This runs server-side with access to environment variables like BLOB_READ_WRITE_TOKEN
+ */
+export async function getTokenPricesAction(tokenIds: string[]): Promise<{
+    success: boolean;
+    prices: Record<string, {
+        usdPrice: number;
+        change24h?: number;
+        isLpToken?: boolean;
+        intrinsicValue?: number;
+        marketPrice?: number;
+        confidence: number;
+        lastUpdated?: number;
+        priceDeviation?: number;
+        isArbitrageOpportunity?: boolean;
+        pathsUsed?: number;
+        totalLiquidity?: number;
+        priceSource?: 'market' | 'intrinsic' | 'hybrid';
+    }>;
+    error?: string;
+}> {
+    try {
+        console.log(`[getTokenPricesAction] Fetching prices for ${tokenIds.length} tokens:`, tokenIds.slice(0, 5).map(id => id.split('.')[1] || id.slice(0, 20)));
+        
+        // Add safety limit
+        if (tokenIds.length > 50) {
+            console.warn(`[getTokenPricesAction] Too many tokens requested (${tokenIds.length}), limiting to first 50`);
+            tokenIds = tokenIds.slice(0, 50);
+        }
+        
+        // Get the price service instance (server-side with proper env access)
+        const priceService = await getPriceService();
+        const result = await priceService.calculateBulkPrices(tokenIds);
+        
+        if (!result.success) {
+            console.error('[getTokenPricesAction] Bulk price calculation failed:', result.errors);
+            return {
+                success: false,
+                prices: {},
+                error: 'Failed to calculate prices'
+            };
+        }
+        
+        // Convert to the format expected by the context
+        const formattedPrices: Record<string, any> = {};
+        result.prices.forEach((priceData, contractId) => {
+            formattedPrices[contractId] = {
+                usdPrice: priceData.usdPrice,
+                change24h: undefined, // Would calculate from historical data
+                isLpToken: priceData.isLpToken,
+                intrinsicValue: priceData.intrinsicValue,
+                marketPrice: priceData.marketPrice,
+                confidence: priceData.confidence,
+                lastUpdated: priceData.lastUpdated,
+                priceDeviation: priceData.priceDeviation,
+                isArbitrageOpportunity: priceData.isArbitrageOpportunity,
+                pathsUsed: priceData.calculationDetails?.pathsUsed,
+                totalLiquidity: priceData.calculationDetails?.totalLiquidity,
+                priceSource: priceData.calculationDetails?.priceSource,
+            };
+        });
+        
+        console.log(`[getTokenPricesAction] Successfully fetched ${Object.keys(formattedPrices).length} prices`);
+        return {
+            success: true,
+            prices: formattedPrices
+        };
+        
+    } catch (error) {
+        console.error('[getTokenPricesAction] Error:', error);
+        return {
+            success: false,
+            prices: {},
+            error: error instanceof Error ? error.message : 'Unknown error'
         };
     }
 }

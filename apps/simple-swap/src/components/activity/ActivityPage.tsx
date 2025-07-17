@@ -8,7 +8,8 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { toast } from '../ui/sonner';
-import { useBlaze } from 'blaze-sdk/realtime';
+import { usePrices } from '@/contexts/token-price-context';
+import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import { enrichTokenWithMetadata } from '@/lib/activity/utils';
 import { useWallet } from '@/contexts/wallet-context';
 import { PortfolioPnLWidget } from './PortfolioPnLWidget';
@@ -54,8 +55,15 @@ export const ActivityPage: React.FC = () => {
   // Filter state
   const [filters, setFilters] = useState<ActivityFeedFilters>({});
 
-  // Blaze SDK for token metadata and prices
-  const { metadata, getPrice } = useBlaze();
+  // Get token metadata and prices from new contexts
+  const { getPrice: getPriceFromContext } = usePrices();
+  const { tokens: metadata } = useTokenMetadata();
+  
+  // Wrapper function to match the expected return type for enrichTokenWithMetadata
+  const getPrice = useCallback((contractId: string): number | undefined => {
+    const price = getPriceFromContext(contractId);
+    return price === null ? undefined : price;
+  }, [getPriceFromContext]);
 
   // Real-time refresh for pending activities
   const [pendingActivities, setPendingActivities] = useState<Set<string>>(new Set());

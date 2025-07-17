@@ -23,17 +23,17 @@ export function formatTokenAmount(amount: number, decimals: number): string {
     // Use consistent formatting logic with balance feed
     if (balance === 0) return '0';
     if (balance < 0.001) {
-        return balance.toLocaleString(undefined, {
+        return balance.toLocaleString('en-US', {
             minimumFractionDigits: 0,
             maximumFractionDigits: Math.min(decimals, 8)
         });
     } else if (balance < 1) {
-        return balance.toLocaleString(undefined, {
+        return balance.toLocaleString('en-US', {
             minimumFractionDigits: 0,
             maximumFractionDigits: Math.min(decimals, 6)
         });
     } else {
-        return balance.toLocaleString(undefined, {
+        return balance.toLocaleString('en-US', {
             minimumFractionDigits: 0,
             maximumFractionDigits: Math.min(decimals, 4)
         });
@@ -69,7 +69,7 @@ export function convertToMicroUnits(input: string, decimals: number): string {
 
 export function convertFromMicroUnits(microUnits: string, decimals: number): string {
     if (!microUnits || microUnits === '0') return '';
-    return (parseFloat(microUnits) / Math.pow(10, decimals)).toLocaleString(undefined, {
+    return (parseFloat(microUnits) / Math.pow(10, decimals)).toLocaleString('en-US', {
         maximumFractionDigits: decimals,
         minimumFractionDigits: decimals
     });

@@ -4,7 +4,7 @@ import React from 'react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
 import { TokenCacheData } from '@repo/tokens';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
-import { useBlaze } from 'blaze-sdk';
+import { usePrices } from '@/contexts/token-price-context';
 
 export default function SandwichOrderPreview() {
     const {
@@ -20,9 +20,7 @@ export default function SandwichOrderPreview() {
         selectedToToken,
     } = useSwapTokens();
 
-    const {
-        getPrice,
-    } = useBlaze();
+    const { getPrice } = usePrices();
 
     const hasValidData = sandwichUsdAmount && sandwichBuyPrice && sandwichSellPrice && selectedFromToken && selectedToToken && tradingPairBase && tradingPairQuote;
 

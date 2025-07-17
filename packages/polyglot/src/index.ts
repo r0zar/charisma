@@ -37,6 +37,7 @@ import type {
   BnsNameResolutionResponse,
   TransactionResults,
   Transaction,
+  FungibleTokenBalances,
 } from "./types";
 
 /**
@@ -216,6 +217,51 @@ export async function getContractInfoWithParsedAbi(
 }
 
 /**
+ * Helper function to trim tokenKey suffixes (::identifier) from contract IDs
+ * @param tokenKey The tokenKey that might have a suffix
+ * @returns The contract ID without the suffix
+ */
+function extractContractId(tokenKey: string): string {
+  const colonIndex = tokenKey.indexOf('::');
+  return colonIndex !== -1 ? tokenKey.substring(0, colonIndex) : tokenKey;
+}
+
+/**
+ * Helper function to trim tokenKey suffixes from balance objects
+ * @param balances The original fungible token balances
+ * @returns The balances with trimmed keys and merged duplicate balances
+ */
+function trimTokenKeySuffixes(balances: FungibleTokenBalances): FungibleTokenBalances {
+  const trimmedBalances: FungibleTokenBalances = {};
+
+  for (const [tokenKey, balance] of Object.entries(balances)) {
+    const contractId = extractContractId(tokenKey);
+
+    // If we already have a balance for this contract ID, merge the balances
+    if (trimmedBalances[contractId]) {
+      const existingBalance = parseFloat(trimmedBalances[contractId].balance || '0');
+      const existingTotalSent = parseFloat(trimmedBalances[contractId].total_sent || '0');
+      const existingTotalReceived = parseFloat(trimmedBalances[contractId].total_received || '0');
+
+      const newBalance = parseFloat(balance.balance || '0');
+      const newTotalSent = parseFloat(balance.total_sent || '0');
+      const newTotalReceived = parseFloat(balance.total_received || '0');
+
+      // Merge the balances by summing them
+      trimmedBalances[contractId] = {
+        balance: (existingBalance + newBalance).toString(),
+        total_sent: (existingTotalSent + newTotalSent).toString(),
+        total_received: (existingTotalReceived + newTotalReceived).toString()
+      };
+    } else {
+      trimmedBalances[contractId] = balance;
+    }
+  }
+
+  return trimmedBalances;
+}
+
+/**
  * Fetches account balance information for a Stacks address or a contract identifier.
  * Includes balances of STX tokens, fungible tokens, and non-fungible tokens.
  * 
@@ -223,6 +269,7 @@ export async function getContractInfoWithParsedAbi(
  * @param params Optional parameters
  * @param params.unanchored Whether to include transaction data from unanchored microblocks
  * @param params.until_block Return data representing the state up until that block height
+ * @param params.trim Whether to trim tokenKey suffixes (::identifier) from fungible token keys
  * @returns A promise that resolves to the account balances
  */
 export async function getAccountBalances(
@@ -230,6 +277,7 @@ export async function getAccountBalances(
   params?: {
     unanchored?: boolean;
     until_block?: string;
+    trim?: boolean;
   }
 ): Promise<AccountBalancesResponse | null> {
   try {
@@ -241,7 +289,15 @@ export async function getAccountBalances(
         },
       },
     });
-    return data as AccountBalancesResponse;
+
+    const balances = data as AccountBalancesResponse;
+
+    // If trim is enabled, trim the tokenKey suffixes
+    if (params?.trim) {
+      balances.fungible_tokens = trimTokenKeySuffixes(balances.fungible_tokens || {});
+    }
+
+    return balances;
   } catch (error: any) {
     if (error?.response?.status === 404) {
       console.warn(`Address or contract not found: ${principal}`);
@@ -489,22 +545,22 @@ export interface PolyglotAPI {
   parseContractAbi(abiString: string): ContractAbi | null;
   getContractInfo(contract_id: string, unanchored?: boolean): Promise<ContractInfo | null>;
   getContractInfoWithParsedAbi(contract_id: string, unanchored?: boolean): Promise<ContractInfoWithParsedAbi | null>;
-  
+
   // Account and balance functions
-  getAccountBalances(principal: string, params?: { unanchored?: boolean; until_block?: string; }): Promise<AccountBalancesResponse | null>;
+  getAccountBalances(principal: string, params?: { unanchored?: boolean; until_block?: string; trim?: boolean; }): Promise<AccountBalancesResponse | null>;
   fetchStxBalance(address: string): Promise<number>;
   getStxTotalSupply(): Promise<number>;
-  
+
   // Transaction functions
   getRecentTransactions(params?: { limit?: number; offset?: number; type?: Array<"coinbase" | "token_transfer" | "smart_contract" | "contract_call" | "poison_microblock">; unanchored?: boolean; }): Promise<TransactionResults>;
   getMempoolTransactions(params?: { sender_address?: string; recipient_address?: string; address?: string; limit?: number; offset?: number; unanchored?: boolean; }): Promise<TransactionResults>;
   getTransactionDetails(txId: string): Promise<Transaction>;
   getTransactionEvents(params?: { tx_id?: string; address?: string; limit?: number; offset?: number; type?: Array<'smart_contract_log' | 'stx_lock' | 'stx_asset' | 'fungible_token_asset' | 'non_fungible_token_asset'>; }): Promise<any>;
-  
+
   // Contract events
   fetchContractEvents(address: string, options?: { limit?: number; offset?: number; }): Promise<TransactionEventsResponse>;
   fetcHoldToEarnLogs(contractAddress: string): Promise<any>;
-  
+
   // BNS functions
   getBnsNamesByAddress(address: string, blockchain?: 'bitcoin' | 'stacks'): Promise<string[]>;
   getPrimaryBnsName(address: string, blockchain?: 'bitcoin' | 'stacks'): Promise<string | null>;

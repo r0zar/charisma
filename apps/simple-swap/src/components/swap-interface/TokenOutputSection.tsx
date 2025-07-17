@@ -6,7 +6,8 @@ import { ChevronDown } from 'lucide-react';
 import TokenLogo from '../TokenLogo';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@repo/tokens';
-import { useBlaze } from 'blaze-sdk/realtime';
+import { usePrices } from '@/contexts/token-price-context';
+import { useBalances } from '@/contexts/wallet-balance-context';
 import { formatPriceUSD, hasValidPrice } from '@/lib/utils';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
@@ -23,6 +24,7 @@ export default function TokenOutputSection() {
         mode,
         selectedToToken,
         displayTokens,
+        subnetDisplayTokens,
         displayedToToken,
         hasBothVersions,
         useSubnetTo,
@@ -33,13 +35,12 @@ export default function TokenOutputSection() {
 
     const { quote, isLoadingQuote, totalPriceImpact, toLabel } = useRouterTrading();
 
-    // Get balance data from BlazeProvider with user-specific balances
+    // Get balance data from new contexts
     const { address } = useWallet();
-    const { balances, prices } = useBlaze({ userId: address });
-
-    // Get enhanced balance data for the current token
-    const toTokenBalance = selectedToToken && address ? balances[`${address}:${selectedToToken.contractId}`] : null;
-    const price = prices[selectedToToken?.contractId ?? ''];
+    const { getPrice } = usePrices();
+    const { getTokenBalance, getSubnetBalance, getFormattedMainnetBalance, getFormattedSubnetBalance } = useBalances(address ? [address] : []);
+    const priceValue = getPrice(selectedToToken?.contractId ?? '');
+    const price = priceValue ? { price: priceValue } : undefined;
 
 
     // Determine props based on mode and state
@@ -55,31 +56,29 @@ export default function TokenOutputSection() {
 
     // Calculate compact balance display and tooltip content
     const { compactBalance, tooltipData } = React.useMemo(() => {
-        if (!toTokenBalance) return { compactBalance: '0', tooltipData: { mainnet: '0', activeLabel: 'Mainnet', subnet: undefined } };
+        if (!address || !selectedToToken) return { compactBalance: '0', tooltipData: { mainnet: '0', activeLabel: 'Mainnet', subnet: undefined } };
 
-        const mainnetBalance = Number(toTokenBalance.formattedBalance ?? 0);
-        const subnetBalance = Number(toTokenBalance.formattedSubnetBalance ?? 0);
-        const hasSubnet = toTokenBalance.subnetBalance !== undefined;
+        // Check if this token has a subnet version
+        const subnetToken = subnetDisplayTokens.find(t => t.base === selectedToToken.contractId);
+        const hasSubnet = !!subnetToken;
 
-        // Determine active balance based on subnet toggle
-        const activeBalance = isSubnetSelected && hasSubnet ? subnetBalance : mainnetBalance;
-
-        // Create compact display
-        const compact = formatCompactNumber(activeBalance);
+        // Get formatted balances using context functions
+        const formattedMainnetBalance = getFormattedMainnetBalance(address, selectedToToken.contractId);
+        const formattedSubnetBalance = hasSubnet ? getFormattedSubnetBalance(address, subnetToken.contractId) : undefined;
+        const compactBalance = useSubnetTo && hasSubnet ? formattedSubnetBalance! : formattedMainnetBalance;
 
         // Create tooltip data
-        const activeLabel = isSubnetSelected && hasSubnet ? 'Subnet' : 'Mainnet';
         const tooltipData = {
-            mainnet: mainnetBalance.toLocaleString(),
-            subnet: hasSubnet ? subnetBalance.toLocaleString() : undefined,
-            activeLabel: activeLabel
+            mainnet: formattedMainnetBalance,
+            subnet: formattedSubnetBalance,
+            activeLabel: useSubnetTo && hasSubnet ? 'Subnet' : 'Mainnet'
         };
 
         return {
-            compactBalance: compact,
+            compactBalance,
             tooltipData
         };
-    }, [toTokenBalance, isSubnetSelected]);
+    }, [address, selectedToToken, getFormattedMainnetBalance, getFormattedSubnetBalance, subnetDisplayTokens, useSubnetTo]);
 
     const outputAmount = quote && selectedToToken ? formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 0) : "0.00";
 
@@ -178,7 +177,7 @@ export default function TokenOutputSection() {
                         <div className="text-right flex-shrink-0">
                             <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} activeLabel={tooltipData.activeLabel} side="bottom">
                                 <div className="cursor-help">
-                                    <div className={`text-sm font-semibold ${isSubnetSelected && toTokenBalance?.subnetBalance !== undefined ? 'text-purple-400' : 'text-white/95'}`}>
+                                    <div className="text-sm font-semibold text-white/95">
                                         {compactBalance} {selectedToToken.symbol}
                                     </div>
                                     <div className="text-xs text-white/60">

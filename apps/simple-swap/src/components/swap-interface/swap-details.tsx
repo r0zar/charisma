@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useRouterTrading } from '@/hooks/useRouterTrading';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { formatTokenAmount, formatCompactNumber } from '@/lib/swap-utils';
-import { useBlaze } from 'blaze-sdk/realtime';
+import { usePrices } from '@/contexts/token-price-context';
 import { formatPriceUSD } from '@/lib/utils';
 
 // Pool image with fallback for LP vaults
@@ -59,11 +59,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
     } = useSwapTokens();
 
 
-    const {
-        getPrice,
-        balances,
-        prices
-    } = useBlaze();
+    const { getPrice } = usePrices();
 
 
     // Determine if this is a subnet shift operation by checking for SUBLINK vault type
@@ -431,11 +427,14 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                                                 </div>
                                                 <div className="text-xs text-muted-foreground flex items-center">
                                                     <span>Start</span>
-                                                    {prices && prices[quote.path[0].contractId] && (
-                                                        <span className="ml-1">
-                                                            ~{formatPriceUSD(Number(displayAmount) * prices[quote.path[0].contractId].price)}
-                                                        </span>
-                                                    )}
+                                                    {(() => {
+                                                        const price = getPrice(quote.path[0].contractId);
+                                                        return price && (
+                                                            <span className="ml-1">
+                                                                ~{formatPriceUSD(Number(displayAmount) * price)}
+                                                            </span>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
                                         </div>
@@ -535,11 +534,14 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                                                                 <div className="font-medium text-sm sm:text-base">{toToken.symbol}</div>
                                                                 <div className="text-xs text-muted-foreground flex items-center">
                                                                     <span>Intermediate</span>
-                                                                    {prices && prices[toToken.contractId] && (
-                                                                        <span className="ml-1">
-                                                                            ~{formatPriceUSD(Number(hop.quote?.amountOut) * prices[toToken.contractId].price / (10 ** (toToken.decimals || 6)))}
-                                                                        </span>
-                                                                    )}
+                                                                    {(() => {
+                                                                        const price = getPrice(toToken.contractId);
+                                                                        return price && (
+                                                                            <span className="ml-1">
+                                                                                ~{formatPriceUSD(Number(hop.quote?.amountOut) * price / (10 ** (toToken.decimals || 6)))}
+                                                                            </span>
+                                                                        );
+                                                                    })()}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -577,11 +579,15 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                                                                 : 'Destination'
                                                         }
                                                     </span>
-                                                    {prices && prices[quote.path[quote.path.length - 1].contractId] && (
-                                                        <span className="ml-1 text-xs text-muted-foreground">
-                                                            ~{formatPriceUSD(Number(quote.amountOut) * prices[quote.path[quote.path.length - 1].contractId].price / (10 ** (quote.path[quote.path.length - 1].decimals || 6)))}
-                                                        </span>
-                                                    )}
+                                                    {(() => {
+                                                        const finalToken = quote.path[quote.path.length - 1];
+                                                        const price = getPrice(finalToken.contractId);
+                                                        return price && (
+                                                            <span className="ml-1 text-xs text-muted-foreground">
+                                                                ~{formatPriceUSD(Number(quote.amountOut) * price / (10 ** (finalToken.decimals || 6)))}
+                                                            </span>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
                                         </div>

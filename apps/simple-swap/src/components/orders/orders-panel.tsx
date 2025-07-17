@@ -15,7 +15,7 @@ import { useTransactionStatus } from "@/hooks/useTransactionStatus";
 import PremiumPagination, { type PaginationInfo } from "./premium-pagination";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { groupOrdersByStrategy, StrategyDisplayData } from "@/lib/orders/strategy-formatter";
-import { useBlaze } from 'blaze-sdk/realtime';
+import { usePrices } from '@/contexts/token-price-context';
 import { StrategyCardFactory } from "./strategy-cards";
 import { truncateAddress } from "@/lib/address-utils";
 import { formatExecWindow, formatOrderStatusTime, getOrderTimestamps, getConditionIcon } from '@/lib/date-utils';
@@ -587,7 +587,7 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
 
 export default function OrdersPanel() {
     const { address, connected } = useWallet();
-    const { getPrice } = useBlaze({ userId: address });
+    const { getPrice } = usePrices();
     const [displayOrders, setDisplayOrders] = useState<DisplayOrder[]>([]);
     const tokenMetaCacheRef = useRef<Map<string, TokenCacheData>>(new Map());
     const [loading, setLoading] = useState(true);
@@ -850,7 +850,7 @@ export default function OrdersPanel() {
         const grouped = groupOrdersByStrategy(displayOrders, tokenMetaMap);
         setStrategyGroups(grouped);
 
-        // Fetch current prices for condition tokens using useBlaze
+        // Fetch current prices for condition tokens using new price context
         const priceMap = new Map<string, number>();
         const uniqueConditionTokens = new Set(
             displayOrders
@@ -861,7 +861,7 @@ export default function OrdersPanel() {
         uniqueConditionTokens.forEach(token => {
             const price = getPrice(token);
             if (price !== null) {
-                priceMap.set(token, price as number);
+                priceMap.set(token, price);
             }
         });
 

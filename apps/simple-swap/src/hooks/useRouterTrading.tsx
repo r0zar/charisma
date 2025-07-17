@@ -14,7 +14,8 @@ import { uintCV, noneCV, Pc } from '@stacks/transactions';
 import { formatTokenAmount, convertToMicroUnits } from '../lib/swap-utils';
 import { useSwapTokens } from '../contexts/swap-tokens-context';
 import { useOrderConditions } from '../contexts/order-conditions-context';
-import { useBlaze } from 'blaze-sdk/realtime';
+import { usePrices } from '@/contexts/token-price-context';
+import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
 import { TxMonitorClient } from '@repo/tx-monitor-client';
 import { registerTransactionForMonitoring } from '@/lib/activity/tx-monitor-client';
@@ -98,8 +99,9 @@ export function useRouterTrading() {
     validateTriggers,
   } = useOrderConditions();
 
-  // Get prices from BlazeProvider
-  const { prices, balances } = useBlaze({ userId: walletAddress });
+  // Get prices and balances from new contexts
+  const { prices } = usePrices();
+  const { getTokenBalance, getSubnetBalance } = useBalances(walletAddress ? [walletAddress] : []);
 
   // Router config for post conditions
   const routerConfig = useMemo(() => ({
@@ -829,23 +831,36 @@ export function useRouterTrading() {
       };
     }
 
-    // Step 1: Quick check using enhanced balance feed - both mainnet and subnet balances are in the same entry
-    // For subnet tokens, we need to look up the base token's balance data
-    const baseContractId = token.type === 'SUBNET' && token.base ? token.base : token.contractId;
-    const balanceData = balances[`${userAddress}:${baseContractId}`];
+    // Step 1: Get balance data using new context functions
+    // For mainnet tokens, get both mainnet balance and subnet balance (if subnet version exists)
+    // For subnet tokens, get the subnet balance directly
+    let mainnetBalance = 0;
+    let subnetBalance = 0;
+
+    if (token.type === 'SUBNET') {
+      // For subnet tokens, get subnet balance directly and mainnet balance from base token
+      subnetBalance = getSubnetBalance(userAddress, token.contractId);
+      if (token.base) {
+        mainnetBalance = getTokenBalance(userAddress, token.base);
+      }
+    } else {
+      // For mainnet tokens, get mainnet balance and check if subnet version exists
+      mainnetBalance = getTokenBalance(userAddress, token.contractId);
+      // Look for subnet version of this token
+      const subnetVersion = subnetDisplayTokens.find(t => t.base === token.contractId);
+      if (subnetVersion) {
+        subnetBalance = getSubnetBalance(userAddress, subnetVersion.contractId);
+      }
+    }
 
     console.log('🔍 Balance lookup in checkBalanceForOrder:', {
       tokenContract: token.contractId,
       tokenType: token.type,
       tokenBase: token.base,
-      baseContractId,
-      hasBalanceData: !!balanceData,
-      balanceData: balanceData
+      mainnetBalance,
+      subnetBalance,
+      userAddress
     });
-
-    // Get balances from the unified balance data
-    const subnetBalance = balanceData?.formattedSubnetBalance ?? 0;
-    const mainnetBalance = balanceData?.formattedBalance ?? 0;
 
     const hasEnoughSubnet = subnetBalance >= requiredAmount;
     const hasEnoughMainnet = mainnetBalance >= requiredAmount;
@@ -854,8 +869,9 @@ export function useRouterTrading() {
     const maxDepositAmount = Math.min(mainnetBalance, requiredAmount - subnetBalance);
     const shortfall = Math.max(0, requiredAmount - subnetBalance - maxDepositAmount);
 
-    // Can deposit if we have any mainnet tokens and there's a subnet shortfall, and we have subnet contract info
-    const canDeposit = (requiredAmount - subnetBalance) > 0 && mainnetBalance > 0 && !!balanceData?.subnetContractId;
+    // Can deposit if we have any mainnet tokens and there's a subnet shortfall
+    // TODO: Add subnet contract info check if needed for deposit functionality
+    const canDeposit = (requiredAmount - subnetBalance) > 0 && mainnetBalance > 0;
 
     // Return initial result immediately (without swap options)
     const initialResult: BalanceCheckResult = {
@@ -886,7 +902,7 @@ export function useRouterTrading() {
       setIsLoadingSwapOptions(false);
       return initialResult;
     }
-  }, [balances]);
+  }, [getTokenBalance, getSubnetBalance, subnetDisplayTokens]);
 
   // Generate swap options for balance checking
   const generateSwapOptions = useCallback(async (
@@ -899,81 +915,11 @@ export function useRouterTrading() {
     const seenTokens = new Set<string>();
     const swapPromises: Promise<SwapOption | null>[] = [];
 
-    // Get all user balances from enhanced balance feed
-    const allBalances = balances;
-
-    // For each token the user has a balance in, check if we can swap it for the target
-    for (const [balanceKey, userBalance] of Object.entries(allBalances)) {
-      // Extract contractId from the balance key format: "userId:contractId"
-      const [, contractId] = balanceKey.split(':');
-      if (!contractId) continue;
-
-      const numericBalance = userBalance.formattedBalance ?? 0;
-      if (numericBalance <= 0.001) continue; // Skip tiny balances
-
-      const sourceToken = [...displayTokens, ...subnetDisplayTokens].find(t => t.contractId === contractId);
-      if (!sourceToken || sourceToken.contractId === targetToken.contractId) continue;
-
-      // Use contractId directly since we don't need counterpart mapping
-      if (seenTokens.has(contractId)) continue;
-      seenTokens.add(contractId);
-
-      swapPromises.push(
-        (async (): Promise<SwapOption | null> => {
-          try {
-            // Use REVERSE quote: specify output amount, get required input amount
-            const reverseQuoteResult = await getQuoteForTokens(targetToken.contractId, sourceToken.contractId, targetOutputMicro);
-
-            if (reverseQuoteResult.success && reverseQuoteResult.data) {
-              // The quote gives us how much of the source token we need
-              const requiredInputAmount = parseFloat(formatTokenAmount(
-                Number(reverseQuoteResult.data.amountOut),
-                sourceToken.decimals || 6
-              ));
-
-              // Check if user has enough of the source token
-              if (numericBalance >= requiredInputAmount) {
-                // Now get the forward quote with the exact required input amount for the actual swap route
-                const requiredInputMicro = convertToMicroUnits(requiredInputAmount.toString(), sourceToken.decimals || 6);
-                const forwardQuoteResult = await getQuoteForTokens(sourceToken.contractId, targetToken.contractId, requiredInputMicro);
-
-                if (forwardQuoteResult.success && forwardQuoteResult.data) {
-                  const actualOutput = parseFloat(formatTokenAmount(
-                    Number(forwardQuoteResult.data.amountOut),
-                    targetToken.decimals || 6
-                  ));
-
-                  return {
-                    fromToken: sourceToken,
-                    fromBalance: numericBalance,
-                    swapAmount: requiredInputAmount, // Amount we suggest swapping
-                    estimatedOutput: actualOutput,
-                    route: forwardQuoteResult.data
-                  };
-                }
-              }
-            }
-            return null;
-          } catch (err) {
-            console.error(`Failed to get swap option for ${sourceToken.symbol}:`, err);
-            return null;
-          }
-        })()
-      );
-    }
-
-    const results = await Promise.all(swapPromises);
-    const swapOptions = results.filter((option): option is SwapOption => option !== null);
-
-    // Sort by efficiency (output amount per input amount)
-    swapOptions.sort((a, b) => {
-      const aEfficiency = a.estimatedOutput / a.swapAmount;
-      const bEfficiency = b.estimatedOutput / b.swapAmount;
-      return bEfficiency - aEfficiency;
-    });
-
-    return swapOptions.slice(0, 3);
-  }, [displayTokens, subnetDisplayTokens, balances, getQuoteForTokens, convertToMicroUnits, formatTokenAmount]);
+    // TODO: Reimplement balance enumeration with new context
+    // For now, return empty array since we need to rewrite this to work with the new balance context
+    console.log('⚠️  Swap options generation temporarily disabled - needs rewrite for new balance context');
+    return [];
+  }, [displayTokens, subnetDisplayTokens, getQuoteForTokens, convertToMicroUnits, formatTokenAmount, getTokenBalance]);
 
   // Enhanced order creation with fast balance checking
   const handleCreateLimitOrderWithBalanceCheck = useCallback(async () => {
@@ -1106,7 +1052,8 @@ export function useRouterTrading() {
 
     // Helper to get price, handling the ".stx" vs "stx" key difference
     const getPrice = (contractId: string): number | undefined => {
-      return contractId === '.stx' ? prices['stx']?.price : prices[contractId]?.price;
+      const price = contractId === '.stx' ? prices['stx'] : prices[contractId];
+      return price ? price : undefined;
     };
 
     // Calculate price impact for each hop

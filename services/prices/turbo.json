@@ -1,0 +1,15 @@
+{
+  "extends": [
+    "//"
+  ],
+  "tasks": {
+    "build": {
+      "outputs": [
+        "dist/**"
+      ],
+      "env": [
+        "BLOB_READ_WRITE_TOKEN"
+      ]
+    }
+  }
+}

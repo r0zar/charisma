@@ -262,7 +262,7 @@ export function enrichTokenWithMetadata(
   
   return {
     ...token,
-    // Use proper metadata structure from useBlaze
+    // Use proper metadata structure from token metadata context
     name: tokenMetadata?.name || token.symbol,
     symbol: tokenMetadata?.symbol || token.symbol,
     decimals: correctDecimals, // Use the correct decimals

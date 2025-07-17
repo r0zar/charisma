@@ -72,17 +72,12 @@ export async function getBulkPriceStats(contractIds: string[]): Promise<Record<s
     if (contractIds.length === 0) return {};
 
     const now = Date.now();
-    const startTime = Date.now();
-
-    console.log('[BULK-PRICE-STATS] Starting bulk processing for', contractIds.length, 'tokens');
 
     // Step 1: Get all latest prices in bulk
     const latestPrices = await getBulkLatestPrices(contractIds);
-    
+
     // Filter out tokens with no prices to avoid unnecessary historical queries
     const tokensWithPrices = contractIds.filter(id => latestPrices[id] !== undefined);
-    
-    console.log('[BULK-PRICE-STATS] Found prices for', tokensWithPrices.length, '/', contractIds.length, 'tokens');
 
     if (tokensWithPrices.length === 0) {
         // Return empty stats for all tokens
@@ -108,10 +103,10 @@ export async function getBulkPriceStats(contractIds: string[]): Promise<Record<s
 
     // Step 3: Process results and calculate percentage changes
     const result: Record<string, PriceStats> = {};
-    
+
     contractIds.forEach(contractId => {
         const latestPrice = latestPrices[contractId] ?? null;
-        
+
         if (latestPrice === null) {
             result[contractId] = {
                 contractId,
@@ -135,16 +130,6 @@ export async function getBulkPriceStats(contractIds: string[]): Promise<Record<s
             change24h: pctChange(past24h, latestPrice),
             change7d: pctChange(past7d, latestPrice),
         };
-    });
-
-    const duration = Date.now() - startTime;
-    const avgTime = duration / contractIds.length;
-    
-    console.log('[BULK-PRICE-STATS] Completed bulk processing', {
-        totalTokens: contractIds.length,
-        tokensWithPrices: tokensWithPrices.length,
-        duration: `${duration}ms`,
-        avgPerToken: `${avgTime.toFixed(2)}ms`
     });
 
     return result;

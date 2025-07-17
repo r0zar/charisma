@@ -8,6 +8,7 @@ import TokenDetailSkeleton from '@/components/tokens/token-detail-skeleton';
 import TokenBreadcrumbs from '@/components/tokens/token-breadcrumbs';
 import RelatedTokens from '@/components/tokens/related-tokens';
 import PremiumTokenInfo from '@/components/tokens/premium-token-info';
+import { ComparisonTokenProvider } from '@/contexts/comparison-token-context';
 import { Suspense } from 'react';
 import { priceSeriesService } from '@/lib/price-series-service';
 import { perfMonitor } from '@/lib/performance-monitor';
@@ -82,22 +83,24 @@ export default async function TokenDetailPage({ params }: PageProps) {
                 <Header />
 
                 <main className="flex-1 container max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-                    {/* Breadcrumbs */}
-                    <TokenBreadcrumbs token={detail} className="mb-6" />
+                    <ComparisonTokenProvider>
+                        {/* Breadcrumbs */}
+                        <TokenBreadcrumbs token={detail} className="mb-6" />
 
-                    {/* Main content */}
-                    <div className="space-y-6 sm:space-y-8">
-                        {/* Header + compare selector + chart handled in client component */}
-                        <Suspense fallback={<TokenDetailSkeleton />}>
-                            <TokenDetailClient detail={detail} tokens={summaries} />
-                        </Suspense>
+                        {/* Main content */}
+                        <div className="space-y-6 sm:space-y-8">
+                            {/* Header + compare selector + chart handled in client component */}
+                            <Suspense fallback={<TokenDetailSkeleton />}>
+                                <TokenDetailClient detail={detail} tokens={summaries} />
+                            </Suspense>
 
-                        {/* Premium Token Information Grid */}
-                        <PremiumTokenInfo detail={detail} />
+                            {/* Premium Token Information Grid */}
+                            <PremiumTokenInfo detail={detail} />
 
-                        {/* Related Tokens */}
-                        <RelatedTokens currentToken={detail} allTokens={summaries} />
-                    </div>
+                            {/* Related Tokens */}
+                            <RelatedTokens currentToken={detail} allTokens={summaries} />
+                        </div>
+                    </ComparisonTokenProvider>
                 </main>
             </div>
         );

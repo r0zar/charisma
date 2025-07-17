@@ -28,16 +28,10 @@ export async function GET(request: Request) {
             return errorRes;
         }
 
-        const startTime = Date.now();
-        console.log('[BULK-PRICE-STATS] Processing request for', contractIds.length, 'tokens');
-
         const bulkStats = await getBulkPriceStats(contractIds);
 
-        const duration = Date.now() - startTime;
-        console.log('[BULK-PRICE-STATS] Completed in', duration, 'ms');
-
         const response = NextResponse.json(bulkStats);
-        
+
         // Add CORS headers
         response.headers.set('Access-Control-Allow-Origin', '*');
         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -55,7 +49,7 @@ export async function GET(request: Request) {
         };
 
         const errorRes = NextResponse.json(errorResponse, { status: 500 });
-        
+
         // Add CORS headers to error response
         errorRes.headers.set('Access-Control-Allow-Origin', '*');
         errorRes.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -82,16 +76,12 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Too many contract IDs (max 1000)' }, { status: 400 });
         }
 
-        const startTime = Date.now();
-        console.log('[BULK-PRICE-STATS] POST request for', contractIds.length, 'tokens');
 
         const bulkStats = await getBulkPriceStats(contractIds);
 
-        const duration = Date.now() - startTime;
-        console.log('[BULK-PRICE-STATS] POST completed in', duration, 'ms');
 
         const response = NextResponse.json(bulkStats);
-        
+
         // Add CORS headers
         response.headers.set('Access-Control-Allow-Origin', '*');
         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -109,7 +99,7 @@ export async function POST(request: Request) {
         };
 
         const errorRes = NextResponse.json(errorResponse, { status: 500 });
-        
+
         // Add CORS headers to error response
         errorRes.headers.set('Access-Control-Allow-Origin', '*');
         errorRes.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');

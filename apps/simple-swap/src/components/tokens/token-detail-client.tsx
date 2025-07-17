@@ -8,7 +8,8 @@ import { useDominantColor } from '../utils/useDominantColor';
 import CompareTokenSelector from './compare-token-selector';
 import { perfMonitor } from '@/lib/performance-monitor';
 import LivePriceIndicator, { LivePriceStatus } from './live-price-indicator';
-import { useBlaze } from 'blaze-sdk/realtime';
+import { usePrices } from '@/contexts/token-price-context';
+import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
 import { useComparisonToken } from '@/contexts/comparison-token-context';
 
@@ -105,9 +106,11 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
     // Use shared comparison token context
     const { compareId, setCompareId, isInitialized } = useComparisonToken();
 
-    // Real-time data from useBlaze
+    // Real-time data from new contexts
     const { address } = useWallet();
-    const { prices, balances, getPrice, getBalance, isConnected } = useBlaze({ userId: address });
+    const { getPrice, isLoading: pricesLoading } = usePrices();
+    const { getTokenBalance, isLoading: balancesLoading } = useBalances(address ? [address] : []);
+    const isConnected = !pricesLoading && !balancesLoading;
 
     // Only fetch tokens if not provided from SSR and we don't have any tokens yet
     useEffect(() => {
@@ -151,29 +154,26 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
         [tokens, compareId]
     );
 
-    // Enhanced token details with real-time data from useBlaze
+    // Enhanced token details with real-time data from new contexts
     const enhancedDetail = useMemo(() => {
         const realtimePrice = getPrice(detail.contractId);
-        const userBalance = address ? getBalance(address, detail.contractId) : null;
+        const userBalance = address ? getTokenBalance(address, detail.contractId) : 0;
 
         return {
             ...detail,
             // Use real-time price if available, fallback to static
             currentPrice: realtimePrice ?? detail.price,
-            // Enhanced metadata from balance data (includes full token info)
-            enhancedMetadata: userBalance ? {
-                name: userBalance.name || detail.name,
-                symbol: userBalance.symbol || detail.symbol,
-                decimals: userBalance.decimals || detail.decimals,
-                description: userBalance.description || detail.description,
-                image: userBalance.image || detail.image,
-                formattedBalance: userBalance.formattedBalance,
-                subnetBalance: userBalance.subnetBalance,
-                formattedSubnetBalance: userBalance.formattedSubnetBalance,
-            } : null,
+            // Enhanced metadata (simplified without balance metadata)
+            enhancedMetadata: {
+                name: detail.name,
+                symbol: detail.symbol,
+                decimals: detail.decimals,
+                description: detail.description,
+                image: detail.image,
+            },
             userBalance,
         };
-    }, [detail, getPrice, getBalance, address]);
+    }, [detail, getPrice, getTokenBalance, address]);
 
     // Calculate relative percentage changes when comparison token is selected
     const relativeChanges = useMemo(() => {
@@ -283,10 +283,7 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
                             <div className="group relative text-xs text-muted-foreground mt-1 inline-block cursor-help">
                                 <span className="hidden sm:inline">Your balance: </span>
                                 <span className="sm:hidden">Balance: </span>
-                                {(
-                                    (enhancedDetail.userBalance.formattedBalance || 0) + 
-                                    (enhancedDetail.userBalance.formattedSubnetBalance || 0)
-                                ).toFixed(4)} {enhancedDetail.enhancedMetadata?.symbol}
+                                {enhancedDetail.userBalance.toFixed(4)} {enhancedDetail.enhancedMetadata?.symbol}
                                 
                                 {/* Tooltip */}
                                 <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-black/20 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-lg text-xs text-white/80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
@@ -294,21 +291,12 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
                                     <div className="space-y-1">
                                         <div className="flex justify-between">
                                             <span className="text-white/70">Mainnet:</span>
-                                            <span className="font-mono">{enhancedDetail.userBalance.formattedBalance?.toFixed(4) || '0.0000'}</span>
+                                            <span className="font-mono">{enhancedDetail.userBalance.toFixed(4)}</span>
                                         </div>
-                                        {enhancedDetail.userBalance.subnetBalance !== undefined && (
-                                            <div className="flex justify-between">
-                                                <span className="text-white/70">Subnet:</span>
-                                                <span className="font-mono">{enhancedDetail.userBalance.formattedSubnetBalance?.toFixed(4) || '0.0000'}</span>
-                                            </div>
-                                        )}
                                         <div className="border-t border-white/[0.1] pt-1 mt-2">
                                             <div className="flex justify-between font-medium">
                                                 <span className="text-white/90">Total:</span>
-                                                <span className="font-mono text-white/95">{(
-                                                    (enhancedDetail.userBalance.formattedBalance || 0) + 
-                                                    (enhancedDetail.userBalance.formattedSubnetBalance || 0)
-                                                ).toFixed(4)}</span>
+                                                <span className="font-mono text-white/95">{enhancedDetail.userBalance.toFixed(4)}</span>
                                             </div>
                                         </div>
                                     </div>

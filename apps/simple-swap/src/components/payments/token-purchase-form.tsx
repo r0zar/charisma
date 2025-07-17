@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { useSwapTokens } from "@/contexts/swap-tokens-context";
 import { PurchaseDialog } from "./checkout";
 import TokenDropdown from "@/components/TokenDropdown";
-import { fetchTokenBalance, useBlaze } from "blaze-sdk";
+import { fetchTokenBalance } from "blaze-sdk";
+import { usePrices } from '@/contexts/token-price-context';
 import { toast } from "sonner";
 import { fetchQuote } from "dexterity-sdk";
 import { useWallet } from "@/contexts/wallet-context";
@@ -53,7 +54,7 @@ export default function TokenPurchaseForm() {
     } = useSwapTokens();
     
     const { address: userAddress } = useWallet();
-    const { prices: tokenPrices } = useBlaze();
+    const { prices } = usePrices();
 
     // Set selected token to charisma token or first available subnet token
     useEffect(() => {
@@ -139,9 +140,13 @@ export default function TokenPurchaseForm() {
     const getTokenUsdPrice = (token: typeof selectedToToken) => {
         if (!token) return 0;
         // Try direct contractId
-        if (tokenPrices[token.contractId]) return Number(tokenPrices[token.contractId]);
+        const directPrice = prices[token.contractId];
+        if (directPrice !== null && directPrice !== undefined) return Number(directPrice);
         // Try base if subnet
-        if (token.type === 'SUBNET' && token.base && tokenPrices[token.base]) return Number(tokenPrices[token.base]);
+        if (token.type === 'SUBNET' && token.base) {
+            const basePrice = prices[token.base];
+            if (basePrice !== null && basePrice !== undefined) return Number(basePrice);
+        }
         return 0;
     };
 
@@ -159,8 +164,8 @@ export default function TokenPurchaseForm() {
 
     // Handler to refresh prices (not needed with real-time data)
     const handleRefreshPrices = async () => {
-        // BlazeProvider handles real-time price updates automatically
-        console.log('Prices are updated automatically via BlazeProvider');
+        // Price context handles automatic price updates with polling
+        console.log('Prices are updated automatically via price context');
     };
 
     const handleCheckout = async () => {

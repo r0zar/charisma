@@ -8,7 +8,9 @@ import DCACreationDialog from './DCACreationDialog';
 import { useProModeContext } from '../../contexts/pro-mode-context';
 import { TokenCacheData } from '@repo/tokens';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
-import { useBlaze } from 'blaze-sdk';
+import { usePrices } from '@/contexts/token-price-context';
+import { useWallet } from '@/contexts/wallet-context';
+import { useBalances } from '@/contexts/wallet-balance-context';
 
 // Helper function to format token balance with dynamic precision
 const formatTokenBalance = (balance: number, token: TokenCacheData): string => {
@@ -53,10 +55,9 @@ export default function DCAOrderForm() {
         selectedToToken,
     } = useSwapTokens();
 
-    const {
-        balances,
-        getPrice,
-    } = useBlaze();
+    const { getPrice } = usePrices();
+    const { address } = useWallet();
+    const { getTokenBalance } = useBalances(address ? [address] : []);
 
     return (
         <div data-order-form="dca" className="grid grid-cols-3 gap-3 max-w-4xl">
@@ -67,7 +68,7 @@ export default function DCAOrderForm() {
                     {selectedFromToken && (
                         <button
                             onClick={() => {
-                                const balance = balances[selectedFromToken.contractId];
+                                const balance = address ? { balance: getTokenBalance(address, selectedFromToken.contractId) } : { balance: 0 };
                                 if (balance && Number(balance.balance) > 0) {
                                     setDcaAmount(balance.balance);
                                 }
@@ -86,7 +87,7 @@ export default function DCAOrderForm() {
                     className="w-full p-2 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
                 />
                 {selectedFromToken && (() => {
-                    const balance = balances[selectedFromToken.contractId];
+                    const balance = address ? { balance: getTokenBalance(address, selectedFromToken.contractId) } : { balance: 0 };
                     if (balance !== undefined) {
                         const price = getPrice(selectedFromToken.contractId);
                         return (
@@ -156,7 +157,7 @@ export default function DCAOrderForm() {
                     className="w-full"
                 />
                 {selectedFromToken && (() => {
-                    const balance = balances[selectedFromToken.contractId];
+                    const balance = address ? { balance: getTokenBalance(address, selectedFromToken.contractId) } : { balance: 0 };
                     if (balance !== undefined) {
                         const price = getPrice(selectedFromToken.contractId);
                         return (
@@ -179,7 +180,7 @@ export default function DCAOrderForm() {
                     className="w-full"
                 />
                 {selectedToToken && (() => {
-                    const balance = balances[selectedToToken.contractId];
+                    const balance = address ? { balance: getTokenBalance(address, selectedToToken.contractId) } : { balance: 0 };
                     if (balance !== undefined) {
                         const price = getPrice(selectedToToken.contractId);
                         return (

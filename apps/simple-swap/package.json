@@ -19,6 +19,8 @@
   "dependencies": {
     "@charisma/notifier": "workspace:^",
     "@elizaos/plugin-twitter": "^1.0.14",
+    "@modules/discovery": "workspace:*",
+    "@services/prices": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-radio-group": "^1.3.7",
     "@radix-ui/react-scroll-area": "^1.2.9",

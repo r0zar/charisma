@@ -161,7 +161,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setLoading(true);
         setTokensError(null);
         const apiUrl = `/api/v1/metadata/list?principal=${walletState.address}`;
-        console.log("Fetching tokens from:", apiUrl);
         try {
             const response = await fetch(apiUrl, {
                 method: 'GET',

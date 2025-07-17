@@ -14,13 +14,11 @@ export type TokenSummary = TokenCacheData & PriceStats & {
  * Uses internal Redis price store instead of external APIs for better performance and reliability.
  */
 export async function listTokenSummaries(): Promise<TokenSummary[]> {
-    const startTime = Date.now();
 
     // Step 1: Get all tokens that have price data in Redis
     const trackedTokens = await getAllTrackedTokens();
 
     if (trackedTokens.length === 0) {
-        console.log('[TOKEN-SUMMARIES] No tokens with price data found in Redis');
         return [];
     }
 
@@ -29,7 +27,6 @@ export async function listTokenSummaries(): Promise<TokenSummary[]> {
     const contractIds = Object.keys(currentPrices);
 
     if (contractIds.length === 0) {
-        console.log('[TOKEN-SUMMARIES] No current prices available');
         return [];
     }
 
@@ -86,14 +83,6 @@ export async function listTokenSummaries(): Promise<TokenSummary[]> {
         summaries.push(summary);
     }
 
-    const duration = Date.now() - startTime;
-    console.log('[TOKEN-SUMMARIES] Completed processing', {
-        totalTokens: contractIds.length,
-        validSummaries: summaries.length,
-        duration: `${duration}ms`,
-        avgPerToken: `${(duration / contractIds.length).toFixed(2)}ms`
-    });
-
     return summaries;
 }
 
@@ -126,9 +115,6 @@ function calculateMarketCap(price: number, total_supply: string | null, decimals
  * Uses Redis-first approach to avoid token-cache API dependencies.
  */
 export async function getTokenDetail(contractId: string): Promise<TokenSummary> {
-    console.log('[GET-TOKEN-DETAIL] Fetching details for', contractId.substring(0, 10) + '...');
-
-    const startTime = Date.now();
 
     // Step 1: Get price stats from Redis (this includes current price)
     const stats = await getPriceStats(contractId);
@@ -139,7 +125,6 @@ export async function getTokenDetail(contractId: string): Promise<TokenSummary> 
 
     // Step 3: If no metadata available, create default metadata (avoid token-cache API calls)
     if (!meta) {
-        console.log('[GET-TOKEN-DETAIL] No cached metadata found, using defaults for', contractId.substring(0, 10) + '...');
         meta = {
             contractId,
             name: contractId.split('.').pop() || contractId,
@@ -164,14 +149,6 @@ export async function getTokenDetail(contractId: string): Promise<TokenSummary> 
     // Step 4: Calculate market cap
     const marketCap = calculateMarketCap(stats.price!, meta.total_supply || null, meta.decimals || null);
 
-    const duration = Date.now() - startTime;
-    console.log('[GET-TOKEN-DETAIL] Completed for', contractId.substring(0, 10) + '...', {
-        hasPrice: stats.price !== null,
-        hasMetadata: !!metaList.find(m => m.contractId === contractId),
-        marketCap: marketCap ? `$${marketCap.toLocaleString()}` : null,
-        duration: `${duration}ms`
-    });
-
     return { ...meta, ...stats, marketCap } as TokenSummary;
 }
 
@@ -192,7 +169,6 @@ export async function preloadPriceSeriesData(contractIds: string[]) {
 
         const result: Record<string, any[]> = {};
 
-        const startTime = Date.now();
         const stats = { processed: 0, totalPoints: 0, errors: 0 };
 
         // Process all contract IDs in parallel
@@ -219,12 +195,6 @@ export async function preloadPriceSeriesData(contractIds: string[]) {
             }
         }));
 
-        const duration = Date.now() - startTime;
-        console.log('[PRELOAD] Price series data loaded', {
-            ...stats,
-            duration: `${duration}ms`,
-            avgPointsPerToken: stats.processed > 0 ? Math.round(stats.totalPoints / stats.processed) : 0
-        });
         return result;
     } catch (error) {
         console.warn('Failed to preload price series data:', error);

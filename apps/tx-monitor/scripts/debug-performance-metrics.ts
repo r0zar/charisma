@@ -11,11 +11,11 @@ async function debugPerformanceMetrics() {
   try {
     // Test a specific activity showing the inconsistency
     const activityId = '6392b34b-b611-4dbc-b075-49cbf8470e27'; // This one showed +5.2% current vs lower best
-    
+
     // Get full profitability data
     const response = await fetch(`http://localhost:3012/api/v1/activities/${activityId}/profitability`);
     const data = await response.json();
-    
+
     if (!data.success) {
       logger.error('Failed to get profitability data', { error: data.error });
       return;
@@ -39,8 +39,8 @@ async function debugPerformanceMetrics() {
     logger.warn('Logic Check', {
       currentBetterThanBest: currentBetterThanBest ? '🚨 INCONSISTENT' : '✅ OK',
       currentWorseThanWorst: currentWorseThanWorst ? '🚨 INCONSISTENT' : '✅ OK',
-      problem: currentBetterThanBest ? 
-        'Current P&L cannot be better than historical best' : 
+      problem: currentBetterThanBest ?
+        'Current P&L cannot be better than historical best' :
         'Logic is consistent'
     });
 
@@ -67,8 +67,8 @@ async function debugPerformanceMetrics() {
       metricsReportedBest: `${metrics.bestPerformance.percentage.toFixed(2)}%`,
       metricsReportedWorst: `${metrics.worstPerformance.percentage.toFixed(2)}%`,
       metricsReportedCurrent: `${metrics.currentPnL.percentage.toFixed(2)}%`,
-      issue: actualBest !== metrics.bestPerformance.percentage ? 
-        'Metrics calculation is wrong' : 
+      issue: actualBest !== metrics.bestPerformance.percentage ?
+        'Metrics calculation is wrong' :
         'Metrics match chart data'
     });
 

@@ -5,8 +5,7 @@ import { TrendingUp, TrendingDown, Activity, Info } from "lucide-react";
 import Image from "next/image";
 import type { TokenSummary } from "@/app/token-actions";
 import { cn, getIpfsUrl } from "@/lib/utils";
-import { useBlaze } from 'blaze-sdk/realtime';
-import { useWallet } from '@/contexts/wallet-context';
+import { usePrices } from '@/contexts/token-price-context';
 
 interface MarketHighlightsProps {
     tokens: TokenSummary[];
@@ -38,8 +37,7 @@ function TokenImage({ token, size = 32 }: { token: TokenSummary; size?: number }
 }
 
 export default function MarketHighlights({ tokens, className }: MarketHighlightsProps) {
-    const { address } = useWallet();
-    const { prices, getPrice } = useBlaze({ userId: address });
+    const { getPrice } = usePrices();
 
     const highlights = useMemo(() => {
         // Use all passed tokens for total count, but filter for calculations that need valid data

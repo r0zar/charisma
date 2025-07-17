@@ -5,7 +5,7 @@ import { useProModeContext } from '../../contexts/pro-mode-context';
 import { TokenCacheData } from '@repo/tokens';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { formatPriceUSD } from '@/lib/utils';
-import { useBlaze } from 'blaze-sdk';
+import { usePrices } from '@/contexts/token-price-context';
 
 // Helper function to format token balance with dynamic precision
 const formatTokenBalance = (balance: number, token: TokenCacheData): string => {
@@ -42,7 +42,7 @@ export default function SingleOrderPreview() {
         selectedToToken,
     } = useSwapTokens();
 
-    const { getPrice } = useBlaze();
+    const { getPrice } = usePrices();
 
     const hasValidData = displayAmount && selectedFromToken && selectedToToken && targetPrice;
 

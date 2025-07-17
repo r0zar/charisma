@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useBlaze } from 'blaze-sdk/realtime';
+import { usePrices } from '@/contexts/token-price-context';
 import { useWallet } from '@/contexts/wallet-context';
 import { TrendingUp, TrendingDown, Wifi, WifiOff, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,31 +14,30 @@ interface LivePriceIndicatorProps {
     showStatus?: boolean;
 }
 
-export default function LivePriceIndicator({ 
-    contractId, 
-    fallbackPrice = null, 
+export default function LivePriceIndicator({
+    contractId,
+    fallbackPrice = null,
     className,
     showChange = true,
-    showStatus = true 
+    showStatus = true
 }: LivePriceIndicatorProps) {
-    const { address } = useWallet();
-    const { getPrice, isConnected } = useBlaze({ userId: address });
-    
+    const { getPrice, isLoading } = usePrices();
+
     const price = getPrice(contractId);
     const displayPrice = price ?? fallbackPrice;
     const hasRealtimeData = price !== null;
-    
-    // Simplified - useBlaze doesn't provide change calculation
+    const isConnected = !isLoading;
+
     const change = null;
-    const error = null; 
+    const error = null;
     const lastUpdate = hasRealtimeData ? Date.now() : null;
-    const refresh = () => {}; // useBlaze handles reconnection automatically
+    const refresh = () => { };
     const timeSinceUpdate = lastUpdate ? Date.now() - lastUpdate : null;
     const isStale = timeSinceUpdate ? timeSinceUpdate > 30000 : false; // 30 seconds
 
     const formatPrice = (value: number | null) => {
         if (value === null) return '-';
-        
+
         if (value >= 1000) {
             return `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         } else if (value >= 1) {
@@ -106,8 +105,8 @@ export default function LivePriceIndicator({
             {/* Price Display */}
             <div className={cn(
                 'font-medium transition-colors duration-300',
-                hasRealtimeData && change !== null && Math.abs(change) > 0.01 ? 
-                    change > 0 ? 'text-green-600' : 'text-red-600' 
+                hasRealtimeData && change !== null && Math.abs(change) > 0.01 ?
+                    change > 0 ? 'text-green-600' : 'text-red-600'
                     : 'text-foreground'
             )}>
                 {formatPrice(displayPrice)}
@@ -132,7 +131,7 @@ export default function LivePriceIndicator({
             {showStatus && (
                 <div className="flex items-center gap-1">
                     {getStatusIcon()}
-                    
+
                     {/* Refresh Button */}
                     <button
                         onClick={refresh}
@@ -178,9 +177,9 @@ export function CompactLivePriceIndicator({ contractId, fallbackPrice, className
  * Status-only indicator for monitoring connection health
  */
 export function LivePriceStatus({ contractIds }: { contractIds: string[] }) {
-    const { address } = useWallet();
-    const { isConnected } = useBlaze({ userId: address });
-    
+    const { isLoading } = usePrices();
+    const isConnected = !isLoading;
+
     return (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {isConnected ? (

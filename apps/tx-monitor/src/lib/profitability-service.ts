@@ -14,6 +14,7 @@ import {
   TimeRange
 } from './profitability-types';
 import { listTokens, listPrices, type TokenCacheData } from '@repo/tokens';
+import { getHostUrl } from '@modules/discovery';
 
 // Token mapping cache
 let tokenMappingCache: Record<string, string> | null = null;
@@ -672,7 +673,7 @@ async function getHistoricalPriceData(
 
     // Call existing /api/price-series/bulk endpoint
     const contractIds = [inputContractId, outputContractId].join(',');
-    const url = `${process.env.SIMPLE_SWAP_URL || 'http://localhost:3002'}/api/price-series/bulk?contractIds=${encodeURIComponent(contractIds)}&from=${fromSeconds}&to=${toSeconds}`;
+    const url = `${getHostUrl('swap')}/api/price-series/bulk?contractIds=${encodeURIComponent(contractIds)}&from=${fromSeconds}&to=${toSeconds}`;
 
     const response = await fetch(url, {
       method: 'GET',
@@ -734,7 +735,7 @@ async function getHistoricalDataFromPriceStore(
 
     // Call simple-swap API endpoint directly (same as main function but as fallback)
     const contractIds = [inputContractId, outputContractId].join(',');
-    const url = `${process.env.SIMPLE_SWAP_URL || 'http://localhost:3002'}/api/price-series/bulk?contractIds=${encodeURIComponent(contractIds)}&from=${fromSeconds}&to=${toSeconds}`;
+    const url = `${getHostUrl('swap')}/api/price-series/bulk?contractIds=${encodeURIComponent(contractIds)}&from=${fromSeconds}&to=${toSeconds}`;
 
     console.log(`[getHistoricalDataFromPriceStore] Calling simple-swap API as fallback: ${url}`);
 

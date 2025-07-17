@@ -8,8 +8,10 @@ import { useProModeContext } from '../../contexts/pro-mode-context';
 import { TokenCacheData } from '@repo/tokens';
 import { ArrowUpDown, Lock, Unlock } from 'lucide-react';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
-import { useBlaze } from 'blaze-sdk';
 import { formatPriceUSD } from '@/lib/utils';
+import { usePrices } from '@/contexts/token-price-context';
+import { useWallet } from '@/contexts/wallet-context';
+import { useBalances } from '@/contexts/wallet-balance-context';
 
 // Helper function to format token balance with dynamic precision
 const formatTokenBalance = (balance: number, token: TokenCacheData): string => {
@@ -61,7 +63,9 @@ export default function SingleOrderForm() {
         setSelectedToToken,
     } = useSwapTokens();
 
-    const { getPrice, balances } = useBlaze();
+    const { getPrice } = usePrices();
+    const { address } = useWallet();
+    const { getTokenBalance } = useBalances(address ? [address] : []);
 
     return (
         <div data-order-form="single" className="space-y-6 max-w-6xl">
@@ -183,9 +187,11 @@ export default function SingleOrderForm() {
                                 {selectedFromToken && (
                                     <button
                                         onClick={() => {
-                                            const balance = Number(balances[selectedFromToken.contractId]?.balance);
-                                            if (balance && balance > 0) {
-                                                setDisplayAmount(balance.toString());
+                                            if (address && selectedFromToken) {
+                                                const balance = getTokenBalance(address, selectedFromToken.contractId);
+                                                if (balance && balance > 0) {
+                                                    setDisplayAmount(balance.toString());
+                                                }
                                             }
                                         }}
                                         className="text-xs text-primary hover:text-primary/80 font-medium"
@@ -202,7 +208,7 @@ export default function SingleOrderForm() {
                                 className="w-full p-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 text-foreground placeholder:text-muted-foreground"
                             />
                             {selectedFromToken && (() => {
-                                const balance = Number(balances[selectedFromToken.contractId]?.balance);
+                                const balance = address ? getTokenBalance(address, selectedFromToken.contractId) : 0;
                                 if (balance !== undefined) {
                                     const price = getPrice(selectedFromToken.contractId);
                                     return (
@@ -225,7 +231,7 @@ export default function SingleOrderForm() {
                                 className="w-full"
                             />
                             {selectedFromToken && (() => {
-                                const balance = Number(balances[selectedFromToken.contractId]?.balance);
+                                const balance = address ? getTokenBalance(address, selectedFromToken.contractId) : 0;
                                 if (balance !== undefined) {
                                     const price = getPrice(selectedFromToken.contractId);
                                     return (
@@ -248,7 +254,7 @@ export default function SingleOrderForm() {
                                 className="w-full"
                             />
                             {selectedToToken && (() => {
-                                const balance = Number(balances[selectedToToken.contractId]?.balance);
+                                const balance = address ? getTokenBalance(address, selectedToToken.contractId) : 0;
                                 if (balance !== undefined) {
                                     const price = getPrice(selectedToToken.contractId);
                                     return (

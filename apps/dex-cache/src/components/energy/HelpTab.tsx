@@ -17,6 +17,7 @@ import {
     DollarSign
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { getHostUrl } from '@modules/discovery';
 
 export function HelpTab() {
     return (
@@ -58,7 +59,7 @@ export function HelpTab() {
                                 </a>
                             </Button>
                             <Button variant="outline" size="sm" className="w-full justify-between" asChild>
-                                <a href="https://swap.charisma.rocks/swap" target="_blank" rel="noopener noreferrer">
+                                <a href={`${getHostUrl('swap')}/swap`} target="_blank" rel="noopener noreferrer">
                                     Buy on DEX
                                     <ExternalLink className="h-3 w-3" />
                                 </a>

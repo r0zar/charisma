@@ -2,8 +2,9 @@
 
 import React, { Suspense } from 'react';
 import { WalletProvider } from '@/contexts/wallet-context';
-import { ComparisonTokenProvider } from '@/contexts/comparison-token-context';
-import { BlazeProvider } from 'blaze-sdk/realtime';
+import { TokenPriceProvider } from '@/contexts/token-price-context';
+import { WalletBalanceProvider } from '@/contexts/wallet-balance-context';
+import { TokenMetadataProvider } from '@/contexts/token-metadata-context';
 
 interface ClientProvidersProps {
     children: React.ReactNode;
@@ -78,25 +79,26 @@ function GlobalLoadingSpinner() {
     );
 }
 
-// Simple wrapper component - OrderConditionsProvider is now handled locally in SwapInterfaceContent
 function TokenAwareProviders({ children }: { children: React.ReactNode }) {
     return (
-        <ComparisonTokenProvider>
-            {children}
-        </ComparisonTokenProvider>
+        <TokenPriceProvider>
+            <TokenMetadataProvider>
+                <WalletBalanceProvider>
+                    {children}
+                </WalletBalanceProvider>
+            </TokenMetadataProvider>
+        </TokenPriceProvider>
     );
 }
 
 export function ClientProviders({ children }: ClientProvidersProps) {
     return (
         <Suspense fallback={<GlobalLoadingSpinner />}>
-            <BlazeProvider>
-                <WalletProvider>
-                    <TokenAwareProviders>
-                        {children}
-                    </TokenAwareProviders>
-                </WalletProvider>
-            </BlazeProvider>
+            <WalletProvider>
+                <TokenAwareProviders>
+                    {children}
+                </TokenAwareProviders>
+            </WalletProvider>
         </Suspense>
     );
 }

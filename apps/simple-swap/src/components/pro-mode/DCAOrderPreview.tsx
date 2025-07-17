@@ -4,7 +4,7 @@ import React from 'react';
 import { useProModeContext } from '../../contexts/pro-mode-context';
 import { TokenCacheData } from '@repo/tokens';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
-import { useBlaze } from 'blaze-sdk';
+import { usePrices } from '@/contexts/token-price-context';
 
 // Helper function to format token balance with dynamic precision
 const formatTokenBalance = (balance: number, token: TokenCacheData): string => {
@@ -41,9 +41,7 @@ export default function DCAOrderPreview() {
         selectedToToken,
     } = useSwapTokens();
 
-    const {
-        getPrice,
-    } = useBlaze();
+    const { getPrice } = usePrices();
 
     const hasValidData = dcaAmount && selectedFromToken && selectedToToken && dcaFrequency && dcaDuration;
 

@@ -6,7 +6,8 @@ import { useWallet } from './wallet-context';
 import type { LimitOrder } from '../lib/orders/types';
 import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
 import { signedFetch } from 'blaze-sdk';
-import { useBlaze } from 'blaze-sdk/realtime';
+import { usePrices } from './token-price-context';
+import { useBalances } from './wallet-balance-context';
 import { toast } from 'sonner';
 import { formatUsd } from '@/lib/swap-utils';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
@@ -351,14 +352,19 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
 
     const { address, connected } = useWallet();
 
-    // Real-time price and balance data from Blaze
+    // Real-time price and balance data from new contexts
     const {
-        prices: blazePrices,
-        balances: blazeBalances,
-        isConnected: isPricesConnected,
+        prices,
         getPrice,
-        getBalance
-    } = useBlaze(address ? { userId: address } : undefined);
+        isLoading: pricesLoading,
+    } = usePrices();
+    
+    const {
+        getTokenBalance,
+        isLoading: balancesLoading,
+    } = useBalances(address ? [address] : []);
+    
+    const isPricesConnected = !pricesLoading && !balancesLoading;
 
     // UI State
     const [selectedOrderType, setSelectedOrderType] = useState<OrderType>('single');
@@ -432,7 +438,7 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         }, 100);
 
         return () => clearTimeout(timeoutId);
-    }, [tradingPairBase, blazePrices, isPricesConnected, getPrice, updateCurrentPriceDebounced]);
+    }, [tradingPairBase, prices, isPricesConnected, getPrice, updateCurrentPriceDebounced]);
 
     // DCA-specific state
     const [dcaFrequency, setDcaFrequency] = useState('daily');
@@ -997,12 +1003,12 @@ export function ProModeProvider({ children }: ProModeProviderProps) {
         return getPrice(contractId) || null;
     }, [isPricesConnected, getPrice]);
 
-    // Get real-time balance for any token from Blaze feed
+    // Get real-time balance for any token from new balance context
     const getRealTimeBalance = useCallback((contractId: string): string | null => {
         if (!address || !isPricesConnected) return null;
-        const balance = getBalance(address, contractId);
-        return balance ? balance.balance : null;
-    }, [address, isPricesConnected, getBalance]);
+        const balance = getTokenBalance(address, contractId);
+        return balance ? balance.toString() : null;
+    }, [address, isPricesConnected, getTokenBalance]);
 
     const validatePerpetualOrder = useCallback((order: Partial<PerpetualOrderState>): string[] => {
         const errors: string[] = [];

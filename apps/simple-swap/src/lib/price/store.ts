@@ -160,7 +160,6 @@ export async function getAllTrackedTokens(): Promise<string[]> {
     } while (cursor !== '0');
 
     const tokens = allKeys.map(key => key.replace(`${PREFIX}:`, ''));
-    console.log(`[getAllTrackedTokens] total=${tokens.length}`);
     return tokens;
 }
 
@@ -226,7 +225,6 @@ export async function addPriceSnapshotsBulk(
 export async function getBulkLatestPrices(contractIds: string[]): Promise<Record<string, number>> {
     if (contractIds.length === 0) return {};
 
-    const startTime = Date.now();
     const result: Record<string, number> = {};
 
     // Use pipeline for bulk operations
@@ -237,15 +235,14 @@ export async function getBulkLatestPrices(contractIds: string[]): Promise<Record
             const price = await getLatestPrice(contractId);
             return { contractId, price };
         });
-        
+
         const results = await Promise.all(promises);
         results.forEach(({ contractId, price }) => {
             if (price !== undefined) {
                 result[contractId] = price;
             }
         });
-        
-        console.log('[BULK-LATEST] Fallback method completed in', Date.now() - startTime, 'ms');
+
         return result;
     }
 
@@ -256,7 +253,7 @@ export async function getBulkLatestPrices(contractIds: string[]): Promise<Record
     });
 
     const results = await pipeline.exec();
-    
+
     // Process pipeline results
     contractIds.forEach((contractId, index) => {
         const res = results?.[index];
@@ -270,9 +267,6 @@ export async function getBulkLatestPrices(contractIds: string[]): Promise<Record
         }
     });
 
-    const duration = Date.now() - startTime;
-    console.log('[BULK-LATEST] Retrieved prices for', Object.keys(result).length, '/', contractIds.length, 'tokens in', duration, 'ms');
-
     return result;
 }
 
@@ -280,13 +274,12 @@ export async function getBulkLatestPrices(contractIds: string[]): Promise<Record
  * Get price ranges for multiple tokens in bulk using Redis pipelining
  */
 export async function getBulkPricesInRange(
-    contractIds: string[], 
-    fromTimestamp: number, 
+    contractIds: string[],
+    fromTimestamp: number,
     toTimestamp: number
 ): Promise<Record<string, [number, number][]>> {
     if (contractIds.length === 0) return {};
 
-    const startTime = Date.now();
     const result: Record<string, [number, number][]> = {};
 
     // Use pipeline for bulk operations
@@ -297,13 +290,12 @@ export async function getBulkPricesInRange(
             const data = await getPricesInRange(contractId, fromTimestamp, toTimestamp);
             return { contractId, data };
         });
-        
+
         const results = await Promise.all(promises);
         results.forEach(({ contractId, data }) => {
             result[contractId] = data;
         });
-        
-        console.log('[BULK-RANGE] Fallback method completed in', Date.now() - startTime, 'ms');
+
         return result;
     }
 
@@ -317,7 +309,7 @@ export async function getBulkPricesInRange(
     });
 
     const results = await pipeline.exec();
-    
+
     // Process pipeline results
     contractIds.forEach((contractId, index) => {
         const res = results?.[index];
@@ -337,11 +329,6 @@ export async function getBulkPricesInRange(
         }
     });
 
-    const duration = Date.now() - startTime;
-    const totalPoints = Object.values(result).reduce((sum, data) => sum + data.length, 0);
-    
-    console.log('[BULK-RANGE] Retrieved', totalPoints, 'price points for', contractIds.length, 'tokens in', duration, 'ms');
-
     return result;
 }
 
@@ -357,12 +344,12 @@ export async function snapshotPricesFromOracle(): Promise<{
     tokens: string[];
 }> {
     const now = Date.now();
-    
+
     try {
         // Import functions dynamically to avoid circular dependencies
         const { listPrices } = await import('@repo/tokens');
         const { listTokens } = await import('dexterity-sdk');
-        
+
         // Fetch all token prices (USD values) from the source
         const oraclePrices = await listPrices();
         const dexTokens = await listTokens();
@@ -382,7 +369,7 @@ export async function snapshotPricesFromOracle(): Promise<{
 
         const snapshots: { contractId: string, price: number, timestamp: number }[] = [];
         const tokenList: string[] = [];
-        
+
         for (const [contractId, price] of Object.entries(oraclePricesFiltered)) {
             if (typeof price === 'number' && !isNaN(price)) {
                 // Add tiny random noise to price (0.0000001% of value)
@@ -394,10 +381,10 @@ export async function snapshotPricesFromOracle(): Promise<{
         }
 
         await addPriceSnapshotsBulk(snapshots);
-        
+
         // Check if .charisma-token is included
         const charismaTokenIncluded = tokenList.includes('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token');
-        
+
         console.log(`[snapshotPricesFromOracle] Successfully stored ${snapshots.length} price snapshots`);
         console.log(`[snapshotPricesFromOracle] Charisma token included: ${charismaTokenIncluded}`);
 
