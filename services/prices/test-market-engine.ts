@@ -7,7 +7,7 @@
 import { PriceServiceOrchestrator } from '../src/orchestrator/price-service-orchestrator';
 import { OracleEngine } from '../src/engines/oracle-engine';
 import { CpmmEngine } from '../src/engines/cpmm-engine';
-import { IntrinsicValueEngine } from '../src/engines/intrinsic-value-engine';
+import { VirtualEngine } from '../src/engines/virtual-engine';
 import { logger } from './logger';
 
 async function testMarketEngine() {
@@ -20,11 +20,11 @@ async function testMarketEngine() {
     // Set up engines
     const oracleEngine = new OracleEngine();
     const cpmmEngine = new CpmmEngine();
-    const intrinsicEngine = new IntrinsicValueEngine();
+    const virtualEngine = new VirtualEngine();
     
     orchestrator.setOracleEngine(oracleEngine);
     orchestrator.setCpmmEngine(cpmmEngine);
-    orchestrator.setIntrinsicEngine(intrinsicEngine);
+    orchestrator.setVirtualEngine(virtualEngine);
 
     logger.success('Engines initialized');
 

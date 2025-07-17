@@ -1,20 +1,19 @@
 /**
- * Intrinsic Value Engine - Redeemable Asset Pricing
+ * Virtual Engine - Virtual Asset Pricing
  * 
- * Handles pricing of assets that have intrinsic value based on what they can be
- * redeemed for, rather than market discovery:
- * - Stablecoins: $1.00 redeemable value
- * - sBTC: Redeemable at BTC oracle price
- * - Subnet tokens: Redeemable at mainnet equivalent price
- * - LP tokens: Redeemable for underlying asset values
+ * Handles pricing of assets calculated from existing oracle/market data:
+ * - Subnet tokens: Calculated from mainnet equivalent price
+ * - LP tokens: Calculated from underlying asset values
+ * 
+ * Note: Oracle assets (BTC, sBTC, stablecoins) are handled by Oracle Engine
  */
 
 import type { OracleEngine } from './oracle-engine';
 
-export interface IntrinsicAsset {
+export interface VirtualAsset {
     contractId: string;
     symbol: string;
-    type: 'STABLECOIN' | 'SBTC' | 'SUBNET' | 'LP_TOKEN';
+    type: 'SUBNET' | 'LP_TOKEN';
     decimals?: number;
     // For subnet tokens
     baseToken?: string;
@@ -25,12 +24,12 @@ export interface IntrinsicAsset {
     };
 }
 
-export interface IntrinsicValueResult {
+export interface VirtualValueResult {
     contractId: string;
     symbol: string;
     usdValue: number;
     btcRatio: number;
-    type: 'STABLECOIN' | 'SBTC' | 'SUBNET' | 'LP_TOKEN';
+    type: 'SUBNET' | 'LP_TOKEN';
     calculationMethod: string;
     sourceData?: {
         btcPrice?: number;
@@ -46,7 +45,7 @@ export interface IntrinsicValueResult {
 /**
  * Token metadata provider for detecting asset types
  */
-export interface IntrinsicTokenMetadataProvider {
+export interface VirtualTokenMetadataProvider {
     getTokenMetadata(contractId: string): Promise<{
         contractId: string;
         type: string;
@@ -59,7 +58,7 @@ export interface IntrinsicTokenMetadataProvider {
 /**
  * LP token provider for getting underlying asset composition
  */
-export interface IntrinsicLpProvider {
+export interface VirtualLpProvider {
     getAllVaultData(): Promise<Array<{
         contractId: string;
         type: string;
@@ -76,36 +75,26 @@ export interface IntrinsicLpProvider {
 /**
  * Price provider for getting prices of underlying assets
  */
-export interface IntrinsicPriceProvider {
+export interface VirtualPriceProvider {
     getPrice(contractId: string): Promise<{ usdPrice: number } | null>;
 }
 
-/**
- * Known stablecoins (expandable list)
- */
-const KNOWN_STABLECOINS = new Set([
-    'USDC', 'USDT', 'DAI', 'BUSD', 'sUSDT', 'sUSDC'
-]);
+
 
 /**
- * sBTC contract ID
+ * Virtual Value Engine - Calculates redeemable asset values
  */
-const SBTC_CONTRACT_ID = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token';
-
-/**
- * Intrinsic Value Engine - Calculates redeemable asset values
- */
-export class IntrinsicValueEngine {
+export class VirtualEngine {
     private oracleEngine: OracleEngine | null = null;
-    private tokenMetadataProvider: IntrinsicTokenMetadataProvider | null = null;
-    private lpProvider: IntrinsicLpProvider | null = null;
-    private priceProvider: IntrinsicPriceProvider | null = null;
+    private tokenMetadataProvider: VirtualTokenMetadataProvider | null = null;
+    private lpProvider: VirtualLpProvider | null = null;
+    private priceProvider: VirtualPriceProvider | null = null;
 
     constructor(
         oracleEngine?: OracleEngine,
-        tokenMetadataProvider?: IntrinsicTokenMetadataProvider,
-        lpProvider?: IntrinsicLpProvider,
-        priceProvider?: IntrinsicPriceProvider
+        tokenMetadataProvider?: VirtualTokenMetadataProvider,
+        lpProvider?: VirtualLpProvider,
+        priceProvider?: VirtualPriceProvider
     ) {
         this.oracleEngine = oracleEngine || null;
         this.tokenMetadataProvider = tokenMetadataProvider || null;
@@ -123,68 +112,55 @@ export class IntrinsicValueEngine {
     /**
      * Set the token metadata provider
      */
-    setTokenMetadataProvider(provider: IntrinsicTokenMetadataProvider): void {
+    setTokenMetadataProvider(provider: VirtualTokenMetadataProvider): void {
         this.tokenMetadataProvider = provider;
     }
 
     /**
      * Set the LP provider for liquidity pool data
      */
-    setLpProvider(provider: IntrinsicLpProvider): void {
+    setLpProvider(provider: VirtualLpProvider): void {
         this.lpProvider = provider;
     }
 
     /**
      * Set the price provider for underlying asset prices
      */
-    setPriceProvider(provider: IntrinsicPriceProvider): void {
+    setPriceProvider(provider: VirtualPriceProvider): void {
         this.priceProvider = provider;
     }
 
     /**
-     * Calculate intrinsic value for an asset
+     * Calculate virtual value for an asset
      */
-    async calculateIntrinsicValue(contractId: string): Promise<IntrinsicValueResult | null> {
-        console.log(`[IntrinsicEngine] Calculating intrinsic value for ${contractId}`);
+    async calculateVirtualValue(contractId: string): Promise<VirtualValueResult | null> {
+        console.log(`[VirtualEngine] Calculating virtual value for ${contractId}`);
 
         // Detect asset type
         const assetType = await this.detectAssetType(contractId);
         if (!assetType) {
-            console.log(`[IntrinsicEngine] ${contractId} is not a recognized intrinsic asset`);
+            console.log(`[VirtualEngine] ${contractId} is not a recognized virtual asset`);
             return null;
         }
 
-        console.log(`[IntrinsicEngine] Detected ${contractId} as ${assetType.type}`);
+        console.log(`[VirtualEngine] Detected ${contractId} as ${assetType.type}`);
 
         // Calculate value based on type
         switch (assetType.type) {
-            case 'STABLECOIN':
-                return await this.calculateStablecoinValue(assetType);
-            case 'SBTC':
-                return await this.calculateSbtcValue(assetType);
             case 'SUBNET':
                 return await this.calculateSubnetTokenValue(assetType);
             case 'LP_TOKEN':
                 return await this.calculateLpTokenValue(assetType);
             default:
-                console.warn(`[IntrinsicEngine] Unknown asset type: ${assetType.type}`);
+                console.warn(`[VirtualEngine] Unknown asset type: ${assetType.type}`);
                 return null;
         }
     }
 
     /**
-     * Detect the type of intrinsic asset
+     * Detect the type of virtual asset
      */
-    private async detectAssetType(contractId: string): Promise<IntrinsicAsset | null> {
-        // Check if it's sBTC
-        if (contractId === SBTC_CONTRACT_ID) {
-            return {
-                contractId,
-                symbol: 'sBTC',
-                type: 'SBTC',
-                decimals: 8
-            };
-        }
+    private async detectAssetType(contractId: string): Promise<VirtualAsset | null> {
 
         // Check token metadata if available
         if (this.tokenMetadataProvider) {
@@ -202,18 +178,9 @@ export class IntrinsicValueEngine {
                         };
                     }
 
-                    // Check for stablecoin by symbol
-                    if (KNOWN_STABLECOINS.has(metadata.symbol)) {
-                        return {
-                            contractId,
-                            symbol: metadata.symbol,
-                            type: 'STABLECOIN',
-                            decimals: metadata.decimals
-                        };
-                    }
                 }
             } catch (error) {
-                console.warn(`[IntrinsicEngine] Error getting metadata for ${contractId}:`, error);
+                console.warn(`[VirtualEngine] Error getting metadata for ${contractId}:`, error);
             }
         }
 
@@ -234,93 +201,35 @@ export class IntrinsicValueEngine {
                     };
                 }
             } catch (error) {
-                console.warn(`[IntrinsicEngine] Error checking LP status for ${contractId}:`, error);
+                console.warn(`[VirtualEngine] Error checking LP status for ${contractId}:`, error);
             }
         }
 
         return null;
     }
 
-    /**
-     * Calculate stablecoin intrinsic value ($1.00)
-     */
-    private async calculateStablecoinValue(asset: IntrinsicAsset): Promise<IntrinsicValueResult> {
-        console.log(`[IntrinsicEngine] Calculating stablecoin value for ${asset.symbol}`);
 
-        // Get BTC price for ratio calculation
-        let btcPrice = 100000; // Default fallback
-        if (this.oracleEngine) {
-            const btcData = await this.oracleEngine.getBtcPrice();
-            if (btcData) {
-                btcPrice = btcData.price;
-            }
-        }
-
-        return {
-            contractId: asset.contractId,
-            symbol: asset.symbol,
-            usdValue: 1.0,
-            btcRatio: 1.0 / btcPrice,
-            type: 'STABLECOIN',
-            calculationMethod: 'Fixed $1.00 redeemable value',
-            sourceData: {
-                btcPrice
-            },
-            lastUpdated: Date.now()
-        };
-    }
 
     /**
-     * Calculate sBTC intrinsic value (BTC oracle price)
+     * Calculate subnet token virtual value (inherits from base token)
      */
-    private async calculateSbtcValue(asset: IntrinsicAsset): Promise<IntrinsicValueResult | null> {
-        console.log(`[IntrinsicEngine] Calculating sBTC intrinsic value`);
-
-        if (!this.oracleEngine) {
-            console.error('[IntrinsicEngine] Oracle engine required for sBTC valuation');
-            return null;
-        }
-
-        const btcData = await this.oracleEngine.getBtcPrice();
-        if (!btcData) {
-            console.error('[IntrinsicEngine] Failed to get BTC price from oracle');
-            return null;
-        }
-
-        return {
-            contractId: asset.contractId,
-            symbol: asset.symbol,
-            usdValue: btcData.price,
-            btcRatio: 1.0,
-            type: 'SBTC',
-            calculationMethod: 'BTC oracle feed (redeemable for BTC)',
-            sourceData: {
-                btcPrice: btcData.price
-            },
-            lastUpdated: Date.now()
-        };
-    }
-
-    /**
-     * Calculate subnet token intrinsic value (inherits from base token)
-     */
-    private async calculateSubnetTokenValue(asset: IntrinsicAsset): Promise<IntrinsicValueResult | null> {
-        console.log(`[IntrinsicEngine] Calculating subnet token value for ${asset.symbol}`);
+    private async calculateSubnetTokenValue(asset: VirtualAsset): Promise<VirtualValueResult | null> {
+        console.log(`[VirtualEngine] Calculating subnet token value for ${asset.symbol}`);
 
         if (!asset.baseToken) {
-            console.error('[IntrinsicEngine] No base token specified for subnet token');
+            console.error('[VirtualEngine] No base token specified for subnet token');
             return null;
         }
 
         if (!this.priceProvider) {
-            console.error('[IntrinsicEngine] Price provider required for subnet token valuation');
+            console.error('[VirtualEngine] Price provider required for subnet token valuation');
             return null;
         }
 
         // Get base token price
         const basePrice = await this.priceProvider.getPrice(asset.baseToken);
         if (!basePrice) {
-            console.error(`[IntrinsicEngine] Failed to get price for base token: ${asset.baseToken}`);
+            console.error(`[VirtualEngine] Failed to get price for base token: ${asset.baseToken}`);
             return null;
         }
 
@@ -349,13 +258,13 @@ export class IntrinsicValueEngine {
     }
 
     /**
-     * Calculate LP token intrinsic value (underlying asset values)
+     * Calculate LP token virtual value (underlying asset values)
      */
-    private async calculateLpTokenValue(asset: IntrinsicAsset): Promise<IntrinsicValueResult | null> {
-        console.log(`[IntrinsicEngine] Calculating LP token intrinsic value for ${asset.contractId}`);
+    private async calculateLpTokenValue(asset: VirtualAsset): Promise<VirtualValueResult | null> {
+        console.log(`[VirtualEngine] Calculating LP token virtual value for ${asset.contractId}`);
 
         if (!asset.underlyingTokens || !this.lpProvider || !this.priceProvider) {
-            console.error('[IntrinsicEngine] LP provider and price provider required for LP token valuation');
+            console.error('[VirtualEngine] LP provider and price provider required for LP token valuation');
             return null;
         }
 
@@ -366,7 +275,7 @@ export class IntrinsicValueEngine {
 
             const quoteResult = await this.lpProvider.getRemoveLiquidityQuote(asset.contractId, lpAmountMicroUnits);
             if (!quoteResult.success || !quoteResult.quote) {
-                console.error(`[IntrinsicEngine] Failed to get remove liquidity quote: ${quoteResult.error}`);
+                console.error(`[VirtualEngine] Failed to get remove liquidity quote: ${quoteResult.error}`);
                 return null;
             }
 
@@ -377,7 +286,7 @@ export class IntrinsicValueEngine {
             const priceB = await this.priceProvider.getPrice(asset.underlyingTokens.tokenB.contractId);
 
             if (!priceA || !priceB) {
-                console.error('[IntrinsicEngine] Failed to get prices for underlying LP tokens');
+                console.error('[VirtualEngine] Failed to get prices for underlying LP tokens');
                 return null;
             }
 
@@ -402,7 +311,7 @@ export class IntrinsicValueEngine {
                 }
             }
 
-            console.log(`[IntrinsicEngine] LP intrinsic value: ${tokenAAmount.toFixed(6)} ${asset.underlyingTokens.tokenA.symbol} + ${tokenBAmount.toFixed(6)} ${asset.underlyingTokens.tokenB.symbol} = $${totalUsdValue.toFixed(6)}`);
+            console.log(`[VirtualEngine] LP virtual value: ${tokenAAmount.toFixed(6)} ${asset.underlyingTokens.tokenA.symbol} + ${tokenBAmount.toFixed(6)} ${asset.underlyingTokens.tokenB.symbol} = $${totalUsdValue.toFixed(6)}`);
 
             return {
                 contractId: asset.contractId,
@@ -422,18 +331,18 @@ export class IntrinsicValueEngine {
             };
 
         } catch (error) {
-            console.error(`[IntrinsicEngine] Error calculating LP token value:`, error);
+            console.error(`[VirtualEngine] Error calculating LP token value:`, error);
             return null;
         }
     }
 
     /**
-     * Calculate intrinsic values for multiple assets
+     * Calculate virtual values for multiple assets
      */
-    async calculateMultipleIntrinsicValues(contractIds: string[]): Promise<Map<string, IntrinsicValueResult>> {
-        console.log(`[IntrinsicEngine] Calculating intrinsic values for ${contractIds.length} assets`);
+    async calculateMultipleVirtualValues(contractIds: string[]): Promise<Map<string, VirtualValueResult>> {
+        console.log(`[VirtualEngine] Calculating virtual values for ${contractIds.length} assets`);
 
-        const results = new Map<string, IntrinsicValueResult>();
+        const results = new Map<string, VirtualValueResult>();
 
         // Process in batches to avoid overwhelming dependencies
         const batchSize = 5;
@@ -441,7 +350,7 @@ export class IntrinsicValueEngine {
             const batch = contractIds.slice(i, i + batchSize);
 
             const promises = batch.map(async (contractId) => {
-                const result = await this.calculateIntrinsicValue(contractId);
+                const result = await this.calculateVirtualValue(contractId);
                 if (result) {
                     results.set(contractId, result);
                 }
@@ -450,29 +359,16 @@ export class IntrinsicValueEngine {
             await Promise.all(promises);
         }
 
-        console.log(`[IntrinsicEngine] Calculated intrinsic values for ${results.size}/${contractIds.length} assets`);
+        console.log(`[VirtualEngine] Calculated virtual values for ${results.size}/${contractIds.length} assets`);
         return results;
     }
 
     /**
-     * Check if a token has intrinsic value
+     * Check if a token has virtual value
      */
-    async hasIntrinsicValue(contractId: string): Promise<boolean> {
+    async hasVirtualValue(contractId: string): Promise<boolean> {
         const assetType = await this.detectAssetType(contractId);
         return assetType !== null;
     }
 
-    /**
-     * Get all known stablecoins
-     */
-    getKnownStablecoins(): string[] {
-        return Array.from(KNOWN_STABLECOINS);
-    }
-
-    /**
-     * Check if a symbol is a known stablecoin
-     */
-    isKnownStablecoin(symbol: string): boolean {
-        return KNOWN_STABLECOINS.has(symbol);
-    }
 }

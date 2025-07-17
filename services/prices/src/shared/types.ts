@@ -1,6 +1,6 @@
 // Core pricing types and interfaces for three-engine architecture
 
-export type PriceSource = 'oracle' | 'market' | 'intrinsic' | 'hybrid';
+export type PriceSource = 'oracle' | 'market' | 'virtual' | 'hybrid';
 
 export interface TokenPriceData {
     tokenId: string;
@@ -14,12 +14,12 @@ export interface TokenPriceData {
     // Engine-specific data
     oracleData?: OraclePriceData;
     marketData?: MarketPriceData;
-    intrinsicData?: IntrinsicPriceData;
+    virtualData?: VirtualPriceData;
     
     // Arbitrage analysis (when multiple sources available)
     arbitrageOpportunity?: {
         marketPrice?: number;
-        intrinsicValue?: number;
+        virtualValue?: number;
         deviation: number;
         profitable: boolean;
     };
@@ -41,8 +41,8 @@ export interface MarketPriceData {
     priceVariation: number;
 }
 
-export interface IntrinsicPriceData {
-    assetType: 'STABLECOIN' | 'SBTC' | 'SUBNET' | 'LP_TOKEN';
+export interface VirtualPriceData {
+    assetType: 'SUBNET' | 'LP_TOKEN';
     calculationMethod: string;
     sourceData?: {
         btcPrice?: number;
@@ -83,7 +83,7 @@ export interface BulkPriceResult {
         engineStats: {
             oracle: number;
             market: number;
-            intrinsic: number;
+            virtual: number;
             hybrid: number;
         };
     };
@@ -162,7 +162,7 @@ export interface PriceServiceResponse {
     result: PriceCalculationResult;
     arbitrageAnalysis?: {
         marketPrice?: number;
-        intrinsicValue?: number;
+        virtualValue?: number;
         oraclePrice?: number;
         deviation: number;
         opportunity: boolean;
@@ -221,10 +221,9 @@ export interface PriceServiceConfig {
         pathfindingTimeout: number;
         cacheDuration: number;
     };
-    intrinsic: {
+    virtual: {
         lpQuoteTimeout: number;
         cacheDuration: number;
-        knownStablecoins: string[];
     };
     arbitrage: {
         enabled: boolean;

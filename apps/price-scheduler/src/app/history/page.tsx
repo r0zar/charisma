@@ -82,7 +82,7 @@ export default function HistoryPage() {
   const [selectedSnapshot, setSelectedSnapshot] = useState<SnapshotDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [timeFilter, setTimeFilter] = useState("24h")
+  const [timeFilter, setTimeFilter] = useState("1h")
   const [sourceFilter, setSourceFilter] = useState("all")
   const [exporting, setExporting] = useState<string | null>(null)
 
@@ -93,23 +93,24 @@ export default function HistoryPage() {
   const fetchSnapshots = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/history/snapshots?timeRange=${timeFilter}`)
+      console.log(`Fetching snapshots for time range: ${timeFilter}`)
+      const response = await fetch(`/api/v1/history/snapshots?timeRange=${timeFilter}`)
       if (response.ok) {
         const data = await response.json()
-        console.log('SNAPSHOT LIST RESPONSE:', data.snapshots)
+        console.log('SNAPSHOT LIST RESPONSE:', data)
+        console.log(`Found ${data.snapshots?.length || 0} snapshots for ${timeFilter}`)
         setSnapshots(data.snapshots || [])
       }
     } catch (error) {
       console.error('Failed to fetch snapshots:', error)
-      // Mock data for demonstration
-      setSnapshots(generateMockSnapshots())
+      setSnapshots([])
     }
     setLoading(false)
   }
 
   const fetchSnapshotDetail = async (snapshotId: string) => {
     try {
-      const response = await fetch(`/api/history/snapshots/${snapshotId}`)
+      const response = await fetch(`/api/v1/history/snapshots/${snapshotId}`)
       if (response.ok) {
         const data = await response.json()
 
@@ -120,8 +121,7 @@ export default function HistoryPage() {
       }
     } catch (error) {
       console.error('Failed to fetch snapshot detail:', error)
-      // Mock data
-      setSelectedSnapshot(generateMockSnapshotDetail(snapshotId))
+      setSelectedSnapshot(null)
     }
   }
 
@@ -276,7 +276,28 @@ export default function HistoryPage() {
           <CardContent className="flex-1 overflow-hidden">
             {loading ? (
               <div className="flex items-center justify-center py-8">
-                <div className="skeleton-loading w-full h-8 rounded-md" />
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="h-6 w-6 animate-spin" />
+                  <span>Loading snapshots...</span>
+                </div>
+              </div>
+            ) : filteredSnapshots.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <div className="text-center py-8">
+                  <div className="p-4 rounded-full bg-accent/20 mb-4 w-fit mx-auto">
+                    <Database className="h-8 w-8 opacity-50" />
+                  </div>
+                  <div className="text-sm font-medium mb-2">No snapshots found</div>
+                  <div className="text-xs text-muted-foreground">
+                    {timeFilter === 'all' ? 
+                      'No price history data available' : 
+                      `No snapshots found for the selected time range (${timeFilter})`
+                    }
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-2">
+                    Try selecting a different time range or check back later
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="space-y-1 h-full overflow-y-auto">
@@ -502,10 +523,15 @@ export default function HistoryPage() {
               <div className="flex items-center justify-center h-full text-muted-foreground">
                 <div className="text-center">
                   <div className="p-4 rounded-full bg-accent/20 mb-4 w-fit mx-auto">
-                    <Database className="h-8 w-8 opacity-50" />
+                    <Eye className="h-8 w-8 opacity-50" />
                   </div>
-                  <div className="text-sm font-medium">Select a snapshot from the left panel to preview it</div>
-                  <div className="text-xs text-muted-foreground mt-1">Click on any snapshot to view detailed price information</div>
+                  <div className="text-sm font-medium mb-2">No snapshot selected</div>
+                  <div className="text-xs text-muted-foreground">
+                    {filteredSnapshots.length === 0 ? 
+                      'No snapshots available to preview' : 
+                      'Select a snapshot from the left panel to view detailed price information'
+                    }
+                  </div>
                 </div>
               </div>
             )}
@@ -562,91 +588,6 @@ function formatRatio(ratio: number): string {
   return ratio.toExponential(6)
 }
 
-// Mock data generators for demonstration
-function generateMockSnapshots(): PriceSnapshot[] {
-  const snapshots: PriceSnapshot[] = []
-  const now = Date.now()
-
-  for (let i = 0; i < 50; i++) {
-    const timestamp = now - (i * 5 * 60 * 1000) // Every 5 minutes
-    const totalTokens = Math.floor(Math.random() * 20) + 80
-    const successfulPrices = Math.floor(totalTokens * (0.85 + Math.random() * 0.15))
-    const failedPrices = totalTokens - successfulPrices
-
-    snapshots.push({
-      id: String(timestamp),
-      timestamp,
-      totalTokens,
-      successfulPrices,
-      failedPrices,
-      engineStats: {
-        oracle: Math.floor(Math.random() * 5) + 1,
-        market: Math.floor(Math.random() * 30) + 20,
-        intrinsic: Math.floor(Math.random() * 20) + 10,
-        hybrid: Math.floor(Math.random() * 10)
-      },
-      calculationTimeMs: Math.floor(Math.random() * 3000) + 500,
-      arbitrageOpportunities: Math.floor(Math.random() * 5),
-      btcPrice: 45000 + Math.random() * 10000,
-      storageSize: Math.floor(Math.random() * 1000000) + 500000
-    })
-  }
-
-  return snapshots
-}
-
-function generateMockSnapshotDetail(snapshotId: string): SnapshotDetail {
-  const snapshot = generateMockSnapshots().find(s => s.id === snapshotId) || generateMockSnapshots()[0]
-
-  const tokens = [
-    'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.beri',
-    'SP32AEEF6WW5Y0NMJ1S8SBSZDAY8R5J32NBZFPKKZ.nope',
-    'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.nope-subnet',
-    'SP3WPNAEBYMX06RQNNYTH5PTJ5EYF6KBQ.dogwifhat-token',
-    'SP4M2C88EE8RQZPYTC4PZ88CE15EYF6KBQ.stacks-rock',
-    'SP22KATK6MJF40987KB2KSZQ6E027HQ0CPP73C9Y.b-fakfun-v1',
-    'SP25DP4A9QDM42KC40EXTYQPM243GWEGS.wif-rock-v1',
-    'SP22KATK6MJF40987KB2KSZQ6E027HQ0CPP73C9Y.rock-fakfun-v1',
-    'SP3HNEXSXJK2RYNG5P6YSEE53JJ5FBFA.meme-stxcity',
-    'SP3BRXZ9Y7P5YP28PSR8YJT39GR.skullcoin-stxcity',
-    'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',
-    'SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.token-alex'
-  ]
-
-  const sources: Array<'oracle' | 'market' | 'intrinsic' | 'hybrid'> = ['oracle', 'market', 'intrinsic', 'hybrid']
-  const symbols = ['BERI', 'NOT', 'NOT', 'WIF', 'ROCK', 'LP', 'LP', 'LP', 'MEME', 'SKULL', 'sBTC', 'ALEX']
-
-  const prices: TokenPrice[] = tokens.map((tokenId, i) => {
-    let usdPrice: number
-
-    // Generate realistic micro-cap token prices
-    if (i < 6) {
-      // Very small tokens (like NOT, BERI, etc.)
-      usdPrice = Math.random() * 0.00001 + 0.0000001 // Between 0.0000001 and 0.00001
-    } else if (i < 9) {
-      // Small tokens  
-      usdPrice = Math.random() * 0.001 + 0.0001 // Between 0.0001 and 0.001
-    } else if (i < 11) {
-      // Medium tokens
-      usdPrice = Math.random() * 1 + 0.01 // Between 0.01 and 1
-    } else {
-      // Larger tokens (sBTC, ALEX)
-      usdPrice = Math.random() * 1000 + 1 // Between 1 and 1000
-    }
-
-    return {
-      tokenId,
-      symbol: symbols[i] || `TOKEN${i}`,
-      usdPrice,
-      sbtcRatio: usdPrice / 50000, // Assuming sBTC is around $50k
-      source: sources[Math.floor(Math.random() * sources.length)],
-      reliability: Math.random() * 0.3 + 0.7,
-      lastUpdated: snapshot.timestamp
-    }
-  })
-
-  return { snapshot, prices }
-}
 
 // Data generation functions for visualizations
 function generatePriceDistributionData(prices: TokenPrice[]) {

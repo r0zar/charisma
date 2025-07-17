@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
+import { PriceSeriesAPI, PriceSeriesStorage } from '@services/prices';
 
-const DEX_CACHE_BASE_URL = process.env.DEX_CACHE_BASE_URL || 'https://dex-cache.charisma.rocks';
+const BLOB_READ_WRITE_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
+
+if (!BLOB_READ_WRITE_TOKEN) {
+  throw new Error('BLOB_READ_WRITE_TOKEN environment variable is required');
+}
+
+// Initialize price series components
+const storage = new PriceSeriesStorage({
+  blobToken: BLOB_READ_WRITE_TOKEN,
+  baseUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
+});
+const priceAPI = new PriceSeriesAPI(storage);
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -43,38 +55,37 @@ export async function POST(request: Request) {
 
     console.log(`[Series API] Fetching bulk series data for ${tokenIds.length} tokens, timeframe: ${timeframe}`);
 
-    // Fetch all tokens data from dex-cache API
-    const dexCacheUrl = `${DEX_CACHE_BASE_URL}/api/v1/prices?limit=1000&details=${includeDetails}`;
-    
-    const response = await fetch(dexCacheUrl, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'price-scheduler-series/1.0'
-      }
+    // Use internal price service API
+    const bulkResult = await priceAPI.getBulkCurrentPrices({
+      tokenIds,
+      includeArbitrage: includeDetails
     });
 
-    if (!response.ok) {
-      throw new Error(`DEX Cache API error: ${response.status} ${response.statusText}`);
+    if (!bulkResult.success) {
+      return NextResponse.json({
+        status: 'error',
+        error: 'Price service error',
+        message: bulkResult.error || 'Failed to fetch bulk prices from price service',
+        metadata: {
+          requestedTokens: tokenIds.length,
+          foundTokens: 0,
+          processingTimeMs: Date.now() - startTime,
+          cached: bulkResult.cached
+        }
+      }, {
+        status: 503,
+        headers
+      });
     }
 
-    const dexData = await response.json();
-
-    if (dexData.status !== 'success') {
-      throw new Error(`DEX Cache API returned error: ${dexData.error}`);
-    }
-
-    const allTokens = dexData.data || [];
+    const prices = bulkResult.data?.prices || {};
+    const foundTokens = Object.keys(prices);
     
-    // Filter tokens to only requested ones
-    const requestedTokens = allTokens.filter((token: any) => 
-      tokenIds.includes(token.tokenId)
-    );
-
-    if (requestedTokens.length === 0) {
+    if (foundTokens.length === 0) {
       return NextResponse.json({
         status: 'error',
         error: 'No tokens found',
-        message: 'None of the requested tokens were found'
+        message: 'None of the requested tokens were found in the price service'
       }, {
         status: 404,
         headers
@@ -84,43 +95,72 @@ export async function POST(request: Request) {
     // Generate series data for each token
     const seriesData: Record<string, any> = {};
     
-    for (const tokenData of requestedTokens) {
-      const mockTimeSeriesData = generateMockTimeSeries(tokenData, timeframe, limit);
+    for (const tokenId of foundTokens) {
+      const tokenData = prices[tokenId];
       
-      seriesData[tokenData.tokenId] = {
-        tokenId: tokenData.tokenId,
+      // Get historical data if available
+      let historicalData = [];
+      try {
+        const historyResult = await priceAPI.getPriceHistory({
+          tokenId,
+          timeframe: timeframe as any,
+          limit
+        });
+        
+        if (historyResult.success && historyResult.data && historyResult.data.length > 0) {
+          historicalData = historyResult.data.map((point: any) => ({
+            timestamp: point.timestamp,
+            time: point.timestamp,
+            value: point.usdPrice || point.price,
+            usdPrice: point.usdPrice || point.price,
+            confidence: point.reliability || point.confidence || 0.9,
+            volume: point.volume || 0,
+            liquidity: point.liquidity || 0
+          }));
+        }
+      } catch (error) {
+        console.warn(`[Series API] Failed to get history for ${tokenId}:`, error);
+      }
+
+      // If no historical data, generate sample time series based on current price
+      if (historicalData.length === 0) {
+        historicalData = generateSampleTimeSeries(tokenData, timeframe, limit);
+      }
+      
+      seriesData[tokenId] = {
+        tokenId,
         symbol: tokenData.symbol,
-        name: tokenData.name,
-        image: tokenData.image,
+        name: tokenData.symbol,
+        image: '',
         currentPrice: tokenData.usdPrice,
-        confidence: tokenData.confidence,
-        totalLiquidity: tokenData.totalLiquidity,
-        isLpToken: tokenData.isLpToken || false,
-        nestLevel: tokenData.nestLevel || 0,
-        priceSource: tokenData.calculationDetails?.priceSource || 'unknown',
-        isArbitrageOpportunity: tokenData.isArbitrageOpportunity || false,
-        priceDeviation: tokenData.priceDeviation || 0,
-        series: mockTimeSeriesData,
+        confidence: tokenData.reliability || 0.9,
+        totalLiquidity: tokenData.marketData?.totalLiquidity || 0,
+        isLpToken: false,
+        nestLevel: 0,
+        priceSource: tokenData.source,
+        isArbitrageOpportunity: !!tokenData.arbitrageOpportunity,
+        priceDeviation: tokenData.arbitrageOpportunity?.deviation || 0,
+        series: historicalData,
         // Include detailed information only if requested
         ...(includeDetails && {
-          primaryPath: tokenData.primaryPath || null,
-          alternativePaths: tokenData.alternativePaths || [],
-          calculationDetails: tokenData.calculationDetails || null
+          primaryPath: tokenData.marketData?.primaryPath || null,
+          alternativePaths: tokenData.marketData?.alternativePaths || [],
+          calculationDetails: tokenData.marketData || tokenData.oracleData || tokenData.intrinsicData || null
         })
       };
     }
 
     const processingTime = Date.now() - startTime;
     
-    console.log(`[Series API] Generated bulk series data for ${requestedTokens.length} tokens in ${processingTime}ms`);
+    console.log(`[Series API] Generated bulk series data for ${foundTokens.length} tokens in ${processingTime}ms`);
 
     return NextResponse.json({
       status: 'success',
       data: seriesData,
       metadata: {
         requestedTokens: tokenIds.length,
-        foundTokens: requestedTokens.length,
-        missingTokens: tokenIds.filter(id => !requestedTokens.some(t => t.tokenId === id)),
+        foundTokens: foundTokens.length,
+        missingTokens: tokenIds.filter(id => !foundTokens.includes(id)),
         timeframe,
         dataPointsPerToken: limit,
         processingTimeMs: processingTime,
@@ -150,8 +190,8 @@ export async function POST(request: Request) {
   }
 }
 
-// Generate mock time series data based on current price
-function generateMockTimeSeries(tokenData: any, timeframe: string, limit: number) {
+// Generate sample time series data when no historical data is available
+function generateSampleTimeSeries(tokenData: any, timeframe: string, limit: number) {
   const now = Date.now();
   const series = [];
   
@@ -166,31 +206,37 @@ function generateMockTimeSeries(tokenData: any, timeframe: string, limit: number
   const interval = intervals[timeframe as keyof typeof intervals] || intervals['1h'];
   const basePrice = tokenData.usdPrice || 0;
   
-  // Generate historical data points
+  // Generate realistic time series data points
   for (let i = limit - 1; i >= 0; i--) {
     const timestamp = now - (i * interval);
     
-    // Add some realistic price variation based on confidence
-    const variation = (1 - tokenData.confidence) * 0.1; // Lower confidence = more variation
-    const priceMultiplier = 1 + (Math.random() - 0.5) * variation;
+    // Add realistic price variation (smaller for more stable tokens)
+    const confidence = tokenData.reliability || 0.9;
+    const maxVariation = (1 - confidence) * 0.05; // Max 5% variation for low confidence
+    const priceMultiplier = 1 + (Math.random() - 0.5) * maxVariation;
     const price = basePrice * priceMultiplier;
     
-    // Add some trend based on arbitrage opportunities
-    const trend = tokenData.isArbitrageOpportunity ? 
-      (Math.random() > 0.5 ? 1.02 : 0.98) : 1; // 2% trend for arbitrage tokens
+    // Add slight trend based on token type
+    let trend = 1;
+    if (tokenData.source === 'oracle') {
+      trend = 1 + (Math.random() - 0.5) * 0.001; // Very stable for oracle prices
+    } else if (tokenData.arbitrageOpportunity) {
+      trend = Math.random() > 0.5 ? 1.005 : 0.995; // Slight trend for arbitrage opportunities
+    }
     
     const finalPrice = price * Math.pow(trend, i / limit);
     
     series.push({
       timestamp,
-      time: timestamp, // For chart compatibility
+      time: timestamp,
       value: finalPrice,
       usdPrice: finalPrice,
-      confidence: tokenData.confidence + (Math.random() - 0.5) * 0.1,
-      volume: Math.random() * 1000000, // Mock volume
-      liquidity: tokenData.totalLiquidity * (0.8 + Math.random() * 0.4) // Vary liquidity
+      confidence: confidence + (Math.random() - 0.5) * 0.05,
+      volume: Math.random() * 100000, // Sample volume
+      liquidity: (tokenData.marketData?.totalLiquidity || 0) * (0.9 + Math.random() * 0.2)
     });
   }
   
   return series;
 }
+

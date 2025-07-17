@@ -17,7 +17,7 @@ import type {
 } from '../shared/types';
 import type { OracleEngine } from '../engines/oracle-engine';
 import type { CpmmEngine, CpmmPriceResult } from '../engines/cpmm-engine';
-import type { IntrinsicValueEngine } from '../engines/intrinsic-value-engine';
+import type { VirtualEngine } from '../engines/virtual-engine';
 
 /**
  * Price Service Orchestrator - Main coordinator for all pricing engines
@@ -25,7 +25,7 @@ import type { IntrinsicValueEngine } from '../engines/intrinsic-value-engine';
 export class PriceServiceOrchestrator {
     private oracleEngine: OracleEngine | null = null;
     private cpmmEngine: CpmmEngine | null = null;
-    private intrinsicEngine: IntrinsicValueEngine | null = null;
+    private virtualEngine: VirtualEngine | null = null;
     private config: PriceServiceConfig | null = null;
     
     // Health monitoring
@@ -57,8 +57,22 @@ export class PriceServiceOrchestrator {
     /**
      * Set the intrinsic value engine
      */
-    setIntrinsicEngine(engine: IntrinsicValueEngine): void {
-        this.intrinsicEngine = engine;
+    setVirtualEngine(engine: VirtualEngine): void {
+        this.virtualEngine = engine;
+    }
+
+    /**
+     * Get the CPMM engine
+     */
+    getCpmmEngine(): CpmmEngine | null {
+        return this.cpmmEngine;
+    }
+
+    /**
+     * Get the virtual engine
+     */
+    getVirtualEngine(): VirtualEngine | null {
+        return this.virtualEngine;
     }
 
     /**
@@ -198,7 +212,7 @@ export class PriceServiceOrchestrator {
         const batchSize = options?.batchSize || 10;
         const results = new Map<string, TokenPriceData>();
         const errors = new Map<string, string>();
-        const engineStats = { oracle: 0, market: 0, intrinsic: 0, hybrid: 0 };
+        const engineStats = { oracle: 0, market: 0, virtual: 0, hybrid: 0 };
 
         console.log(`[PriceOrchestrator] Calculating prices for ${tokenIds.length} tokens`);
 
@@ -256,11 +270,11 @@ export class PriceServiceOrchestrator {
         // Smart engine selection based on asset type
         
         // Check if it's an intrinsic asset first
-        if (this.intrinsicEngine) {
-            const hasIntrinsic = await this.intrinsicEngine.hasIntrinsicValue(tokenId);
+        if (this.virtualEngine) {
+            const hasIntrinsic = await this.virtualEngine.hasVirtualValue(tokenId);
             if (hasIntrinsic) {
                 return {
-                    primary: 'intrinsic',
+                    primary: 'virtual',
                     alternatives: ['market'] // Can compare with market price for arbitrage
                 };
             }
@@ -283,8 +297,8 @@ export class PriceServiceOrchestrator {
                     return await this.tryOracleEngine(tokenId);
                 case 'market':
                     return await this.tryMarketEngine(tokenId);
-                case 'intrinsic':
-                    return await this.tryIntrinsicEngine(tokenId);
+                case 'virtual':
+                    return await this.tryVirtualEngine(tokenId);
                 default:
                     console.warn(`[PriceOrchestrator] Unknown engine type: ${engineType}`);
                     return null;
@@ -488,22 +502,22 @@ export class PriceServiceOrchestrator {
     /**
      * Try intrinsic value engine
      */
-    private async tryIntrinsicEngine(tokenId: string): Promise<TokenPriceData | null> {
-        if (!this.intrinsicEngine) return null;
+    private async tryVirtualEngine(tokenId: string): Promise<TokenPriceData | null> {
+        if (!this.virtualEngine) return null;
 
-        const intrinsicResult = await this.intrinsicEngine.calculateIntrinsicValue(tokenId);
+        const intrinsicResult = await this.virtualEngine.calculateVirtualValue(tokenId);
         if (!intrinsicResult) return null;
 
-        this.recordEngineSuccess('intrinsic');
+        this.recordEngineSuccess('virtual');
         return {
             tokenId,
             symbol: intrinsicResult.symbol,
             usdPrice: intrinsicResult.usdValue,
             sbtcRatio: intrinsicResult.btcRatio,
             lastUpdated: intrinsicResult.lastUpdated,
-            source: 'intrinsic',
+            source: 'virtual',
             reliability: 0.95, // High reliability for intrinsic values
-            intrinsicData: {
+            virtualData: {
                 assetType: intrinsicResult.type,
                 calculationMethod: intrinsicResult.calculationMethod,
                 sourceData: intrinsicResult.sourceData
@@ -521,21 +535,21 @@ export class PriceServiceOrchestrator {
         if (alternatives.length === 0) return;
 
         const marketPrice = alternatives.find(a => a.source === 'market')?.price.usdPrice;
-        const intrinsicValue = alternatives.find(a => a.source === 'intrinsic')?.price.usdPrice;
+        const virtualValue = alternatives.find(a => a.source === 'virtual')?.price.usdPrice;
         const oraclePrice = alternatives.find(a => a.source === 'oracle')?.price.usdPrice;
 
-        if (marketPrice && intrinsicValue) {
-            const deviation = Math.abs(marketPrice - intrinsicValue) / intrinsicValue;
+        if (marketPrice && virtualValue) {
+            const deviation = Math.abs(marketPrice - virtualValue) / virtualValue;
             const profitable = deviation > 0.05; // 5% threshold
 
             primaryResult.arbitrageOpportunity = {
                 marketPrice,
-                intrinsicValue,
+                virtualValue,
                 deviation: deviation * 100,
                 profitable
             };
 
-            console.log(`[PriceOrchestrator] Arbitrage analysis: Market=$${marketPrice.toFixed(6)}, Intrinsic=$${intrinsicValue.toFixed(6)}, Deviation=${(deviation * 100).toFixed(2)}%, Profitable=${profitable}`);
+            console.log(`[PriceOrchestrator] Arbitrage analysis: Market=$${marketPrice.toFixed(6)}, Intrinsic=$${virtualValue.toFixed(6)}, Deviation=${(deviation * 100).toFixed(2)}%, Profitable=${profitable}`);
         }
     }
 
@@ -568,7 +582,7 @@ export class PriceServiceOrchestrator {
      * Engine health monitoring
      */
     private initializeEngineHealth(): void {
-        const engines: PriceSource[] = ['oracle', 'market', 'intrinsic'];
+        const engines: PriceSource[] = ['oracle', 'market', 'virtual'];
         for (const engine of engines) {
             this.engineHealth.set(engine, {
                 engine,

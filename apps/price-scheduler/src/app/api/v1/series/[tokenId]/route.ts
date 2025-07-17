@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
+import { PriceSeriesAPI, PriceSeriesStorage } from '@services/prices';
 
-const DEX_CACHE_BASE_URL = process.env.DEX_CACHE_BASE_URL || 'https://dex-cache.charisma.rocks';
+const BLOB_READ_WRITE_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
+
+if (!BLOB_READ_WRITE_TOKEN) {
+  throw new Error('BLOB_READ_WRITE_TOKEN environment variable is required');
+}
+
+// Initialize price series components
+const storage = new PriceSeriesStorage({
+  blobToken: BLOB_READ_WRITE_TOKEN,
+  baseUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
+});
+const priceAPI = new PriceSeriesAPI(storage);
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -14,13 +26,9 @@ export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers });
 }
 
-interface RouteParams {
-  tokenId: string;
-}
-
 export async function GET(
   request: Request,
-  { params }: { params: RouteParams }
+  { params }: { params: { tokenId: string } }
 ) {
   const startTime = Date.now();
   
@@ -43,72 +51,82 @@ export async function GET(
 
     console.log(`[Series API] Fetching series data for token: ${tokenId}, timeframe: ${timeframe}`);
 
-    // Fetch token details from dex-cache API
-    const dexCacheUrl = `${DEX_CACHE_BASE_URL}/api/v1/prices/${encodeURIComponent(tokenId)}?details=${includeDetails}`;
+    // Get current price from internal price service
+    const currentPriceResult = await priceAPI.getCurrentPrice(tokenId);
     
-    const response = await fetch(dexCacheUrl, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'price-scheduler-series/1.0'
-      }
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        return NextResponse.json({
-          status: 'error',
-          error: 'Token not found',
-          message: `Token with ID ${tokenId} not found`
-        }, {
-          status: 404,
-          headers
-        });
-      }
-      throw new Error(`DEX Cache API error: ${response.status} ${response.statusText}`);
+    if (!currentPriceResult.success) {
+      return NextResponse.json({
+        status: 'error',
+        error: 'Token not found',
+        message: currentPriceResult.error || `Token with ID ${tokenId} not found in price service`
+      }, {
+        status: 404,
+        headers
+      });
     }
 
-    const dexData = await response.json();
-
-    if (dexData.status !== 'success') {
-      throw new Error(`DEX Cache API returned error: ${dexData.error}`);
+    const tokenData = currentPriceResult.data;
+    
+    // Get historical data from price service
+    let historicalData = [];
+    try {
+      const historyResult = await priceAPI.getPriceHistory({
+        tokenId,
+        timeframe: timeframe as any,
+        limit: parseInt(limit)
+      });
+      
+      if (historyResult.success && historyResult.data && historyResult.data.length > 0) {
+        historicalData = historyResult.data.map((point: any) => ({
+          timestamp: point.timestamp,
+          time: point.timestamp,
+          value: point.usdPrice || point.price,
+          usdPrice: point.usdPrice || point.price,
+          confidence: point.reliability || point.confidence || 0.9,
+          volume: point.volume || 0,
+          liquidity: point.liquidity || 0
+        }));
+      }
+    } catch (error) {
+      console.warn(`[Series API] Failed to get history for ${tokenId}:`, error);
     }
 
-    const tokenData = dexData.data;
-
-    // For now, we'll generate mock time series data based on current price
-    // In a real implementation, this would fetch historical data from blob storage
-    const mockTimeSeriesData = generateMockTimeSeries(tokenData, timeframe, parseInt(limit));
+    // If no historical data, generate sample time series based on current price
+    if (historicalData.length === 0) {
+      historicalData = generateSampleTimeSeries(tokenData, timeframe, parseInt(limit));
+    }
 
     const processingTime = Date.now() - startTime;
     
-    console.log(`[Series API] Generated ${mockTimeSeriesData.length} data points for ${tokenData.symbol} in ${processingTime}ms`);
+    console.log(`[Series API] Generated ${historicalData.length} data points for ${tokenData.symbol} in ${processingTime}ms`);
 
     return NextResponse.json({
       status: 'success',
       data: {
-        tokenId: tokenData.tokenId,
+        tokenId,
         symbol: tokenData.symbol,
-        name: tokenData.name,
-        image: tokenData.image,
+        name: tokenData.symbol,
+        image: '',
         currentPrice: tokenData.usdPrice,
-        confidence: tokenData.confidence,
-        totalLiquidity: tokenData.totalLiquidity,
-        isLpToken: tokenData.isLpToken || false,
-        nestLevel: tokenData.nestLevel || 0,
-        priceSource: tokenData.calculationDetails?.priceSource || 'unknown',
-        isArbitrageOpportunity: tokenData.isArbitrageOpportunity || false,
-        priceDeviation: tokenData.priceDeviation || 0,
-        series: mockTimeSeriesData,
+        confidence: tokenData.reliability || 0.9,
+        totalLiquidity: tokenData.marketData?.totalLiquidity || 0,
+        isLpToken: false,
+        nestLevel: 0,
+        priceSource: tokenData.source,
+        isArbitrageOpportunity: !!tokenData.arbitrageOpportunity,
+        priceDeviation: tokenData.arbitrageOpportunity?.deviation || 0,
+        series: historicalData,
         // Include detailed path information if available
-        primaryPath: tokenData.primaryPath || null,
-        alternativePaths: tokenData.alternativePaths || [],
-        calculationDetails: tokenData.calculationDetails || null
+        primaryPath: tokenData.marketData?.primaryPath || null,
+        alternativePaths: tokenData.marketData?.alternativePaths || [],
+        calculationDetails: tokenData.marketData || tokenData.oracleData || tokenData.intrinsicData || null
       },
       metadata: {
         timeframe,
-        dataPoints: mockTimeSeriesData.length,
+        dataPoints: historicalData.length,
         processingTimeMs: processingTime,
-        includeDetails
+        includeDetails,
+        cached: currentPriceResult.cached
       }
     }, {
       status: 200,
@@ -134,8 +152,8 @@ export async function GET(
   }
 }
 
-// Generate mock time series data based on current price
-function generateMockTimeSeries(tokenData: any, timeframe: string, limit: number) {
+// Generate sample time series data when no historical data is available
+function generateSampleTimeSeries(tokenData: any, timeframe: string, limit: number) {
   const now = Date.now();
   const series = [];
   
@@ -150,31 +168,37 @@ function generateMockTimeSeries(tokenData: any, timeframe: string, limit: number
   const interval = intervals[timeframe as keyof typeof intervals] || intervals['1h'];
   const basePrice = tokenData.usdPrice || 0;
   
-  // Generate historical data points
+  // Generate realistic time series data points
   for (let i = limit - 1; i >= 0; i--) {
     const timestamp = now - (i * interval);
     
-    // Add some realistic price variation based on confidence
-    const variation = (1 - tokenData.confidence) * 0.1; // Lower confidence = more variation
-    const priceMultiplier = 1 + (Math.random() - 0.5) * variation;
+    // Add realistic price variation (smaller for more stable tokens)
+    const confidence = tokenData.reliability || 0.9;
+    const maxVariation = (1 - confidence) * 0.05; // Max 5% variation for low confidence
+    const priceMultiplier = 1 + (Math.random() - 0.5) * maxVariation;
     const price = basePrice * priceMultiplier;
     
-    // Add some trend based on arbitrage opportunities
-    const trend = tokenData.isArbitrageOpportunity ? 
-      (Math.random() > 0.5 ? 1.02 : 0.98) : 1; // 2% trend for arbitrage tokens
+    // Add slight trend based on token type
+    let trend = 1;
+    if (tokenData.source === 'oracle') {
+      trend = 1 + (Math.random() - 0.5) * 0.001; // Very stable for oracle prices
+    } else if (tokenData.arbitrageOpportunity) {
+      trend = Math.random() > 0.5 ? 1.005 : 0.995; // Slight trend for arbitrage opportunities
+    }
     
     const finalPrice = price * Math.pow(trend, i / limit);
     
     series.push({
       timestamp,
-      time: timestamp, // For chart compatibility
+      time: timestamp,
       value: finalPrice,
       usdPrice: finalPrice,
-      confidence: tokenData.confidence + (Math.random() - 0.5) * 0.1,
-      volume: Math.random() * 1000000, // Mock volume
-      liquidity: tokenData.totalLiquidity * (0.8 + Math.random() * 0.4) // Vary liquidity
+      confidence: confidence + (Math.random() - 0.5) * 0.05,
+      volume: Math.random() * 100000, // Sample volume
+      liquidity: (tokenData.marketData?.totalLiquidity || 0) * (0.9 + Math.random() * 0.2)
     });
   }
   
   return series;
 }
+

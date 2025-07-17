@@ -8,7 +8,7 @@
 import { PriceServiceOrchestrator } from '../orchestrator/price-service-orchestrator';
 import { OracleEngine } from '../engines/oracle-engine';
 import { CpmmEngine } from '../engines/cpmm-engine';
-import { IntrinsicValueEngine } from '../engines/intrinsic-value-engine';
+import { VirtualEngine } from '../engines/virtual-engine';
 import type { TokenPriceData } from '../shared/types';
 
 export interface LegacyPriceServiceConfig {
@@ -57,12 +57,12 @@ export class LegacyPriceService {
     // Create and configure engines
     const oracleEngine = new OracleEngine();
     const cpmmEngine = new CpmmEngine();
-    const intrinsicEngine = new IntrinsicValueEngine();
+    const virtualEngine = new VirtualEngine();
 
     // Set up basic dependencies (providers would need to be set externally)
     this.orchestrator.setOracleEngine(oracleEngine);
     this.orchestrator.setCpmmEngine(cpmmEngine);
-    this.orchestrator.setIntrinsicEngine(intrinsicEngine);
+    this.orchestrator.setVirtualEngine(virtualEngine);
 
     this.initialized = true;
   }
@@ -131,8 +131,8 @@ export class LegacyPriceService {
    * Set liquidity provider (for intrinsic engine)
    */
   setLiquidityProvider(provider: any): void {
-    if (this.orchestrator.getIntrinsicEngine()) {
-      this.orchestrator.getIntrinsicEngine()!.setLpProvider(provider);
+    if (this.orchestrator.getVirtualEngine()) {
+      this.orchestrator.getVirtualEngine()!.setLpProvider(provider);
     }
   }
 
@@ -140,8 +140,8 @@ export class LegacyPriceService {
    * Set token metadata provider (for intrinsic engine)
    */
   setTokenMetadataProvider(provider: any): void {
-    if (this.orchestrator.getIntrinsicEngine()) {
-      this.orchestrator.getIntrinsicEngine()!.setTokenMetadataProvider(provider);
+    if (this.orchestrator.getVirtualEngine()) {
+      this.orchestrator.getVirtualEngine()!.setTokenMetadataProvider(provider);
     }
   }
 }

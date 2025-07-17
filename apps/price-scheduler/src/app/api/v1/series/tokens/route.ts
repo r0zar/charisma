@@ -1,6 +1,18 @@
 import { NextResponse } from 'next/server';
+import { PriceSeriesAPI, PriceSeriesStorage } from '@services/prices';
 
-const DEX_CACHE_BASE_URL = process.env.DEX_CACHE_BASE_URL || 'https://dex-cache.charisma.rocks';
+const BLOB_READ_WRITE_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
+
+if (!BLOB_READ_WRITE_TOKEN) {
+  throw new Error('BLOB_READ_WRITE_TOKEN environment variable is required');
+}
+
+// Initialize price series components
+const storage = new PriceSeriesStorage({
+  blobToken: BLOB_READ_WRITE_TOKEN,
+  baseUrl: process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'
+});
+const priceAPI = new PriceSeriesAPI(storage);
 
 const headers = {
   'Access-Control-Allow-Origin': '*',
@@ -19,67 +31,62 @@ export async function GET(request: Request) {
   
   try {
     const url = new URL(request.url);
-    const limit = url.searchParams.get('limit') || '100';
+    const limit = parseInt(url.searchParams.get('limit') || '100');
     const search = url.searchParams.get('search') || '';
     const includeDetails = url.searchParams.get('details') === 'true';
 
     console.log(`[Series API] Fetching tokens list with limit: ${limit}, search: ${search}`);
 
-    // Fetch tokens from dex-cache API
-    const dexCacheUrl = `${DEX_CACHE_BASE_URL}/api/v1/prices?limit=${limit}&details=${includeDetails}`;
-    
-    const response = await fetch(dexCacheUrl, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'price-scheduler-series/1.0'
-      }
-    });
+    // Use internal price service API
+    const tokensResult = await priceAPI.getAllTokens();
 
-    if (!response.ok) {
-      throw new Error(`DEX Cache API error: ${response.status} ${response.statusText}`);
+    if (!tokensResult.success) {
+      return NextResponse.json({
+        status: 'error',
+        error: 'Price service error',
+        message: tokensResult.error || 'Failed to fetch tokens from price service',
+        metadata: {
+          count: 0,
+          totalAvailable: 0,
+          processingTimeMs: Date.now() - startTime,
+          cached: tokensResult.cached
+        }
+      }, {
+        status: 503,
+        headers
+      });
     }
 
-    const dexData = await response.json();
-
-    if (dexData.status !== 'success') {
-      throw new Error(`DEX Cache API returned error: ${dexData.error}`);
-    }
-
-    // Process and filter tokens
-    let tokens = dexData.data || [];
+    let tokens = tokensResult.data || [];
 
     // Apply search filter if provided
     if (search) {
       const searchLower = search.toLowerCase();
       tokens = tokens.filter((token: any) => 
         token.symbol.toLowerCase().includes(searchLower) ||
-        token.name.toLowerCase().includes(searchLower) ||
         token.tokenId.toLowerCase().includes(searchLower)
       );
     }
 
-    // Sort tokens by confidence and liquidity
-    tokens.sort((a: any, b: any) => {
-      // Prioritize by confidence first, then by liquidity
-      const confDiff = b.confidence - a.confidence;
-      if (Math.abs(confDiff) > 0.1) return confDiff;
-      return b.totalLiquidity - a.totalLiquidity;
-    });
+    // Apply limit
+    if (limit > 0) {
+      tokens = tokens.slice(0, limit);
+    }
 
-    // Format response for series UI
+    // Format response for series UI (matching existing interface)
     const formattedTokens = tokens.map((token: any) => ({
       tokenId: token.tokenId,
       symbol: token.symbol,
-      name: token.name,
-      image: token.image,
+      name: token.symbol, // Use symbol as name fallback
+      image: '', // Not available from internal service
       usdPrice: token.usdPrice,
-      confidence: token.confidence,
-      totalLiquidity: token.totalLiquidity,
-      isLpToken: token.isLpToken || false,
-      nestLevel: token.nestLevel || 0,
-      priceSource: token.calculationDetails?.priceSource || 'unknown',
-      isArbitrageOpportunity: token.isArbitrageOpportunity || false,
-      priceDeviation: token.priceDeviation || 0,
+      confidence: 0.9, // Default confidence for internal data
+      totalLiquidity: 0, // Not available from getAllTokens
+      isLpToken: false, // Could be enhanced later
+      nestLevel: 0,
+      priceSource: token.source,
+      isArbitrageOpportunity: false, // Could be enhanced later
+      priceDeviation: 0,
       lastUpdated: token.lastUpdated
     }));
 
@@ -92,10 +99,11 @@ export async function GET(request: Request) {
       data: formattedTokens,
       metadata: {
         count: formattedTokens.length,
-        totalAvailable: dexData.metadata?.totalTokensAvailable || 0,
+        totalAvailable: tokensResult.data?.length || 0,
         processingTimeMs: processingTime,
         search,
-        includeDetails
+        includeDetails,
+        cached: tokensResult.cached
       }
     }, {
       status: 200,

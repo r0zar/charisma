@@ -5,10 +5,10 @@
 ```
 src/
 ├── engines/                     # Three-Engine Core
-│   ├── oracle-engine.ts         # External market feeds (BTC from exchanges)
+│   ├── oracle-engine.ts         # External market feeds (BTC from exchanges, stablecoins)
 │   ├── cpmm-engine.ts           # AMM pool price discovery
-│   ├── intrinsic-value-engine.ts # Redeemable asset pricing
-│   ├── lp-token-calculator.ts   # LP token intrinsic value support
+│   ├── virtual-engine.ts        # Virtual asset pricing (subnet, LP tokens)
+│   ├── lp-token-calculator.ts   # LP token virtual value support
 │   ├── lp-dependency-graph.ts   # LP dependency resolution
 │   └── lp-processing-queue.ts   # LP batch processing
 │
@@ -34,17 +34,17 @@ src/
 ## 🎯 Architecture Layers
 
 ### 1. **Engines Layer** (`/engines/`)
-- **Oracle Engine**: External market price feeds (BTC via Kraken/CoinGecko)
+- **Oracle Engine**: External market price feeds (BTC via Kraken/CoinGecko, stablecoins at $1)
 - **CPMM Engine**: Pure AMM price discovery through liquidity pools  
-- **Intrinsic Engine**: Redeemable asset valuation (stablecoins, sBTC, subnet tokens, LP tokens)
+- **Virtual Engine**: Virtual asset pricing calculated from existing data (subnet tokens, LP tokens)
 
 ### 2. **Orchestrator Layer** (`/orchestrator/`)
 - **Price Service Orchestrator**: Intelligent engine coordination, arbitrage analysis
 
 ### 3. **Price Series Layer** (`/price-series/`)
-- **Storage**: Vercel Blob integration with global CDN
+- **Storage**: Hybrid Vercel KV + Blob integration (KV for latest, Blob for historical)
 - **API**: Public endpoints for efficient consumption
-- **Scheduler**: Background job system
+- **Scheduler**: Multi-frequency background job system
 
 ### 4. **Shared Layer** (`/shared/`)
 - **Types**: Common interfaces and type definitions
@@ -56,14 +56,14 @@ src/
 ## 🔄 Data Flow
 
 ```
-Background Scheduler → Three Engines → Orchestrator → Vercel Blob → CDN → Public APIs
+Multi-Frequency Schedulers → Three Engines → Orchestrator → KV/Blob Storage → Public APIs
 ```
 
-1. **Scheduled Updates** (every 5 minutes): Background job calculates fresh prices
-2. **Engine Coordination**: Orchestrator intelligently selects appropriate engines
-3. **Storage**: Results stored in Vercel Blob with structured paths
-4. **Distribution**: Global CDN serves cached data instantly
-5. **Public Access**: Lightning-fast APIs for end-user consumption
+1. **Oracle Updates** (30s): BTC, ETH, sBTC (1:1), stablecoins ($1) from external sources
+2. **Market Updates** (5min): AMM pool price discovery  
+3. **Virtual Updates** (post-processing): subnet, LP token calculations
+4. **Storage**: Latest prices in KV (ultra-fast), historical snapshots in Blob (1-year cache)
+5. **Public Access**: KV-first lookups with Blob fallback
 
 ## 📚 Import Guide
 
@@ -73,7 +73,7 @@ Background Scheduler → Three Engines → Orchestrator → Vercel Blob → CDN 
 import { PriceServiceOrchestrator } from '@services/prices';
 
 // Individual engines
-import { OracleEngine, CpmmEngine, IntrinsicValueEngine } from '@services/prices';
+import { OracleEngine, CpmmEngine, VirtualEngine } from '@services/prices';
 
 // Public API layer
 import { PriceSeriesAPI, PriceSeriesStorage } from '@services/prices';
@@ -96,10 +96,10 @@ import { LegacyPriceService, PriceService } from '@services/prices';
 ## 🛠️ Current Implementation Status
 
 ### ✅ Completed
-- **Three-Engine Architecture**: Oracle, CPMM, and Intrinsic Value engines
+- **Three-Engine Architecture**: Oracle, CPMM, and Virtual engines
 - **Price Service Orchestrator**: Intelligent coordination and arbitrage analysis
-- **Price Series Storage**: Vercel Blob integration with CDN
-- **Price Scheduler App**: Automated background price updates
+- **Price Series Storage**: Hybrid Vercel KV + Blob integration
+- **Price Scheduler App**: Multi-frequency background price updates
 - **Legacy Adapters**: Backward compatibility for existing code
 - **Service Discovery Integration**: Uses `@modules/discovery` for service URLs
 - **Build System**: Clean package exports and dependency management
@@ -114,6 +114,10 @@ import { LegacyPriceService, PriceService } from '@services/prices';
 ```bash
 # Environment Variables (Vercel)
 BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
+KV_URL=redis://...
+KV_REST_API_URL=https://...
+KV_REST_API_TOKEN=...
+KV_REST_API_READ_ONLY_TOKEN=...
 CRON_SECRET=your-cron-secret
 NODE_ENV=production
 
@@ -140,7 +144,7 @@ The system has been tested and is functional:
 - **Separation of Concerns**: Clean engine boundaries
 - **Cost Efficiency**: Scheduled calculations vs on-demand
 - **Performance**: Global CDN + intelligent caching
-- **Arbitrage Analysis**: Built-in market vs intrinsic comparison
+- **Arbitrage Analysis**: Built-in market vs virtual comparison
 - **Backward Compatibility**: Zero-disruption migration
 - **Service Discovery**: Dynamic URL resolution across environments
 - **Monitoring**: Built-in health checks and dashboard

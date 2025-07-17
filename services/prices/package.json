@@ -23,6 +23,7 @@
   },
   "scripts": {
     "build": "bunchee",
+    "build:dev": "c8 --reporter=json --reports-dir=../../coverage/services/prices --src=src --all bunchee",
     "dev": "bunchee --watch",
     "x": "node --import tsx",
     "lint": "eslint .",
@@ -35,18 +36,27 @@
   "dependencies": {
     "@repo/polyglot": "workspace:*",
     "@swc/helpers": "^0.5.17",
-    "@vercel/blob": "^1.1.1"
+    "@vercel/blob": "^1.1.1",
+    "@vercel/kv": "^3.0.0"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^24.0.14",
     "bunchee": "^6.5.4",
+    "c8": "^10.1.3",
     "dotenv": "^16.4.7",
     "eslint": "^9.31.0",
     "happy-dom": "^18.0.1",
     "tsx": "^4.19.3",
     "typescript": "5.8.3",
     "vitest": "^3.1.3"
+  },
+  "c8": {
+    "src": ["src/"],
+    "exclude": ["**/*.test.ts", "**/*.spec.ts", "dist/", "node_modules/"],
+    "reporter": ["json", "html"],
+    "reports-dir": "../../coverage/services/prices",
+    "all": true
   }
 }

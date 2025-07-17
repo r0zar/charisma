@@ -6,7 +6,8 @@
  */
 
 import { put, list, head } from '@vercel/blob';
-import type { TokenPriceData, BulkPriceResult } from '../shared/types';
+import { kv } from '@vercel/kv';
+import type { TokenPriceData, BulkPriceResult, PriceSource } from '../shared/types';
 
 export interface PriceSnapshot {
     timestamp: number;
@@ -15,7 +16,7 @@ export interface PriceSnapshot {
         engineStats?: {
             oracle: number;
             market: number;
-            intrinsic: number;
+            virtual: number;
             hybrid: number;
         };
         calculationTime?: number;
@@ -38,7 +39,7 @@ export interface ArbitrageOpportunity {
     symbol: string;
     timestamp: number;
     marketPrice: number;
-    intrinsicValue: number;
+    virtualValue: number;
     deviation: number;
     profitable: boolean;
 }
@@ -87,20 +88,35 @@ export class PriceSeriesStorage {
         const snapshotPath = `snapshots/${year}/${month}/${day}/${hour}-${minute}.json`;
 
         try {
-            // Store full snapshot
-            const result = await put(snapshotPath, JSON.stringify(serializableSnapshot), {
+            // Check file size before upload (512MB limit for edge caching)
+            const jsonString = JSON.stringify(serializableSnapshot);
+            const fileSizeBytes = Buffer.byteLength(jsonString, 'utf8');
+            const fileSizeMB = fileSizeBytes / (1024 * 1024);
+            
+            if (fileSizeMB > 500) {
+                console.warn(`[PriceSeriesStorage] WARNING: File size ${fileSizeMB.toFixed(2)}MB approaching 512MB limit`);
+            }
+            if (fileSizeMB > 512) {
+                console.error(`[PriceSeriesStorage] ERROR: File size ${fileSizeMB.toFixed(2)}MB exceeds 512MB limit - will not be edge cached`);
+            }
+
+            // Store full snapshot with 1-year cache (immutable historical data)
+            const result = await put(snapshotPath, jsonString, {
                 access: 'public',
                 token: this.blobToken,
-                cacheControlMaxAge: 300 // 5 minutes cache
+                cacheControlMaxAge: 31536000 // 1 year cache for immutable historical data
             });
             const snapshotUrl = result.url;
 
-            // Update latest snapshot for instant access
-            await put('latest/current-prices.json', JSON.stringify(serializableSnapshot), {
+            // Store latest prices in KV for ultra-fast access
+            await this.storeLatestPricesInKV(serializableSnapshot);
+
+            // Keep blob fallback for backward compatibility
+            await put('latest/current-prices.json', jsonString, {
                 access: 'public',
                 token: this.blobToken,
                 allowOverwrite: true,
-                cacheControlMaxAge: 60 // 1 minute cache for latest
+                cacheControlMaxAge: 60 // Short cache as KV is primary
             });
 
             // Extract and store arbitrage opportunities
@@ -121,7 +137,47 @@ export class PriceSeriesStorage {
     }
 
     /**
-     * Get the latest price snapshot (cached response)
+     * Store latest prices in KV for ultra-fast access
+     */
+    private async storeLatestPricesInKV(snapshot: any): Promise<void> {
+        try {
+            // Store the complete snapshot in KV
+            await kv.set('latest:snapshot', snapshot);
+            
+            // Store individual token prices for fast lookup
+            const pipeline = kv.pipeline();
+            snapshot.prices.forEach((price: any) => {
+                pipeline.set(`latest:price:${price.tokenId}`, price);
+            });
+            await pipeline.exec();
+            
+            console.log(`[PriceSeriesStorage] Stored latest prices in KV (${snapshot.prices.length} tokens)`);
+        } catch (error) {
+            console.error('[PriceSeriesStorage] Error storing latest prices in KV:', error);
+            // Don't throw - fallback to blob storage will still work
+        }
+    }
+
+    /**
+     * Helper to convert serialized snapshot back to PriceSnapshot format
+     */
+    private deserializeSnapshot(data: any): PriceSnapshot {
+        // Convert back to Map format
+        const prices = new Map<string, TokenPriceData>();
+        data.prices.forEach((item: any) => {
+            const { tokenId, ...priceData } = item;
+            prices.set(tokenId, priceData);
+        });
+
+        return {
+            timestamp: data.timestamp,
+            prices,
+            metadata: data.metadata
+        };
+    }
+
+    /**
+     * Get the latest price snapshot (KV-first with blob fallback)
      */
     async getLatestSnapshot(): Promise<PriceSnapshot | null> {
         try {
@@ -154,11 +210,54 @@ export class PriceSeriesStorage {
     }
 
     /**
-     * Get current price for a specific token
+     * Update individual token price (for real-time updates)
+     */
+    async updateTokenPrice(tokenId: string, priceData: TokenPriceData): Promise<void> {
+        try {
+            // Determine TTL based on price source
+            const ttl = this.getTTLForSource(priceData.source);
+            
+            // Store in KV for ultra-fast access
+            await kv.set(`latest:price:${tokenId}`, priceData, { ex: ttl });
+            
+            console.log(`[PriceSeriesStorage] Updated ${tokenId} price: $${priceData.usdPrice} (${priceData.source}, TTL: ${ttl}s)`);
+        } catch (error) {
+            console.error(`[PriceSeriesStorage] Error updating token price for ${tokenId}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get TTL based on price source type
+     */
+    private getTTLForSource(source: PriceSource): number {
+        switch (source) {
+            case 'oracle': return 60;        // 1 minute (fast updates)
+            case 'market': return 300;       // 5 minutes (medium updates)
+            case 'virtual': return 604800; // 1 week (slow updates for virtual prices)
+            case 'hybrid': return 300;       // 5 minutes (default)
+            default: return 300;
+        }
+    }
+
+    /**
+     * Get current price for a specific token (KV-first with fallback)
      */
     async getCurrentPrice(tokenId: string): Promise<TokenPriceData | null> {
-        const latest = await this.getLatestSnapshot();
-        return latest?.prices.get(tokenId) || null;
+        try {
+            // Try KV first for individual token lookup
+            const kvPrice = await kv.get(`latest:price:${tokenId}`);
+            if (kvPrice) {
+                return kvPrice as TokenPriceData;
+            }
+
+            // Fallback to latest snapshot
+            const latest = await this.getLatestSnapshot();
+            return latest?.prices.get(tokenId) || null;
+        } catch (error) {
+            console.error(`[PriceSeriesStorage] Error getting current price for ${tokenId}:`, error);
+            return null;
+        }
     }
 
     /**
@@ -178,6 +277,45 @@ export class PriceSeriesStorage {
         }
 
         return result;
+    }
+
+    /**
+     * Get all current prices (for virtual price calculations)
+     */
+    async getAllCurrentPrices(): Promise<Map<string, TokenPriceData>> {
+        try {
+            const result = new Map<string, TokenPriceData>();
+            
+            // Get all individual KV price keys
+            const keys = await kv.keys('latest:price:*');
+            if (keys.length > 0) {
+                // Batch get all KV prices
+                const kvPrices = await kv.mget(...keys);
+                
+                keys.forEach((key: string, index: number) => {
+                    const tokenId = key.replace('latest:price:', '');
+                    const price = kvPrices[index];
+                    if (price) {
+                        result.set(tokenId, price as TokenPriceData);
+                    }
+                });
+            }
+            
+            // Fallback to snapshot for any missing tokens
+            const snapshot = await this.getLatestSnapshot();
+            if (snapshot) {
+                snapshot.prices.forEach((price, tokenId) => {
+                    if (!result.has(tokenId)) {
+                        result.set(tokenId, price);
+                    }
+                });
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('[PriceSeriesStorage] Error getting all current prices:', error);
+            return new Map();
+        }
     }
 
     /**
@@ -254,7 +392,7 @@ export class PriceSeriesStorage {
                     symbol: price.symbol,
                     timestamp: snapshot.timestamp,
                     marketPrice: price.arbitrageOpportunity.marketPrice || 0,
-                    intrinsicValue: price.arbitrageOpportunity.intrinsicValue || 0,
+                    virtualValue: price.arbitrageOpportunity.virtualValue || 0,
                     deviation: price.arbitrageOpportunity.deviation,
                     profitable: price.arbitrageOpportunity.profitable
                 });
@@ -290,7 +428,7 @@ export class PriceSeriesStorage {
                     access: 'public',
                     token: this.blobToken,
                     allowOverwrite: true,
-                    cacheControlMaxAge: 3600 // 1 hour cache
+                    cacheControlMaxAge: 31536000 // 1 year cache for historical arbitrage data
                 });
 
                 console.log(`[PriceSeriesStorage] Stored ${opportunities.length} arbitrage opportunities for ${year}-${month}-${day}`);

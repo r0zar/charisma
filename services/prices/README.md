@@ -1,6 +1,6 @@
 # Price Service - Three-Engine Architecture
 
-A comprehensive price discovery system that separates concerns into three specialized engines: Oracle, CPMM (Constant Product Market Maker), and Intrinsic Value calculation.
+A comprehensive price discovery system that separates concerns into three specialized engines: Oracle, CPMM (Constant Product Market Maker), and Virtual Price calculation.
 
 ## 🏗️ Architecture Overview
 
@@ -20,7 +20,7 @@ The price service is built around **three distinct pricing engines** that handle
      ┌────────┼────────┐
      │        │        │
 ┌────▼───┐ ┌──▼──┐ ┌───▼────┐
-│Oracle  │ │CPMM │ │Intrinsic│
+│Oracle  │ │CPMM │ │Virtual │
 │Engine  │ │Engine│ │ Engine │
 └────────┘ └─────┘ └────────┘
 ```
@@ -35,22 +35,22 @@ The price service is built around **three distinct pricing engines** that handle
 - **Assets**: Any token with sufficient liquidity pools
 - **Use Case**: Real market prices from trading activity
 
-### 💎 Intrinsic Value Engine
-- **Purpose**: Redeemable asset valuation
-- **Assets**: Stablecoins ($1.00), sBTC (BTC price), Subnet tokens (base price), LP tokens (underlying assets)
-- **Use Case**: Assets with defined redemption values
+### 💎 Virtual Engine
+- **Purpose**: Virtual asset price calculation
+- **Assets**: Subnet tokens (base price), LP tokens (underlying assets)
+- **Use Case**: Assets calculated from existing oracle/market data
 
 ## 🎯 Key Concepts
 
 ### Price Source Types
-- **Oracle**: External market feeds (e.g., BTC from exchanges)
+- **Oracle**: External market feeds (e.g., BTC from exchanges, sBTC 1:1 with BTC, stablecoins at $1)
 - **Market**: AMM pool price discovery (e.g., CHA/sBTC pool rates)  
-- **Intrinsic**: Redeemable value calculation (e.g., LP token underlying assets)
+- **Virtual**: Calculated prices from existing data (e.g., LP token underlying assets)
 - **Hybrid**: Combination of multiple sources with arbitrage analysis
 
 ### Arbitrage Analysis
 When multiple price sources are available, the system automatically:
-- Compares market vs intrinsic values
+- Compares market vs virtual values
 - Calculates percentage deviations
 - Identifies profitable arbitrage opportunities
 - Provides detailed breakdown of price differences
@@ -64,19 +64,19 @@ import {
     PriceServiceOrchestrator, 
     OracleEngine, 
     CpmmEngine, 
-    IntrinsicValueEngine 
+    VirtualEngine 
 } from '@services/prices';
 
 // Create engines
 const oracleEngine = new OracleEngine();
 const cpmmEngine = new CpmmEngine();
-const intrinsicEngine = new IntrinsicValueEngine();
+const virtualEngine = new VirtualEngine();
 
 // Create orchestrator
 const priceService = new PriceServiceOrchestrator();
 priceService.setOracleEngine(oracleEngine);
 priceService.setCpmmEngine(cpmmEngine);
-priceService.setIntrinsicEngine(intrinsicEngine);
+priceService.setVirtualEngine(virtualEngine);
 
 // Calculate a price
 const result = await priceService.calculateTokenPrice('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token');
@@ -95,7 +95,7 @@ const result = await priceService.calculateTokenPrice(
 
 if (result.success && result.price.arbitrageOpportunity) {
     const arb = result.price.arbitrageOpportunity;
-    console.log(`Market: $${arb.marketPrice}, Intrinsic: $${arb.intrinsicValue}`);
+    console.log(`Market: $${arb.marketPrice}, Virtual: $${arb.virtualValue}`);
     console.log(`Deviation: ${arb.deviation.toFixed(2)}%, Profitable: ${arb.profitable}`);
 }
 ```
@@ -153,25 +153,25 @@ const stats = cpmmEngine.getStats();
 console.log(`CPMM graph: ${stats.totalTokens} tokens, ${stats.totalPools} pools`);
 ```
 
-### Intrinsic Value Engine Setup
+### Virtual Engine Setup
 
 ```typescript
 // Configure all providers
-const intrinsicEngine = new IntrinsicValueEngine();
+const virtualEngine = new VirtualEngine();
 
 // Oracle for BTC price (for sBTC and ratios)
-intrinsicEngine.setOracleEngine(oracleEngine);
+virtualEngine.setOracleEngine(oracleEngine);
 
 // Token metadata for subnet token detection
-intrinsicEngine.setTokenMetadataProvider({
+virtualEngine.setTokenMetadataProvider({
     getTokenMetadata: async (contractId) => {
         // Return metadata including type: 'SUBNET', base token, etc.
         return tokenMetadata;
     }
 });
 
-// LP provider for liquidity pool intrinsic values
-intrinsicEngine.setLpProvider({
+// LP provider for liquidity pool virtual values
+virtualEngine.setLpProvider({
     getAllVaultData: async () => vaultData,
     getRemoveLiquidityQuote: async (contractId, amount) => {
         // Return remove liquidity simulation
@@ -180,7 +180,7 @@ intrinsicEngine.setLpProvider({
 });
 
 // Price provider for underlying asset prices
-intrinsicEngine.setPriceProvider({
+virtualEngine.setPriceProvider({
     getPrice: async (contractId) => {
         // Return USD price for any token
         return { usdPrice: price };
@@ -227,18 +227,18 @@ interface TokenPriceData {
     usdPrice: number;
     sbtcRatio: number;
     lastUpdated: number;
-    source: 'oracle' | 'market' | 'intrinsic' | 'hybrid';
+    source: 'oracle' | 'market' | 'virtual' | 'hybrid';
     reliability: number; // 0-1 scale
     
     // Engine-specific data
     oracleData?: OraclePriceData;
     marketData?: MarketPriceData;
-    intrinsicData?: IntrinsicPriceData;
+    virtualData?: VirtualPriceData;
     
     // Arbitrage analysis (when available)
     arbitrageOpportunity?: {
         marketPrice?: number;
-        intrinsicValue?: number;
+        virtualValue?: number;
         deviation: number;
         profitable: boolean;
     };
@@ -251,25 +251,25 @@ The system automatically detects asset types and routes to appropriate engines:
 
 ### Stablecoins
 - **Detection**: Symbol matching (USDC, USDT, DAI, etc.)
-- **Engine**: Intrinsic Value Engine
+- **Engine**: Oracle Engine
 - **Price**: Fixed $1.00
 - **Use Case**: Arbitrage baseline, stable value reference
 
 ### sBTC
 - **Detection**: Contract ID matching
-- **Engine**: Oracle Engine → Intrinsic Value Engine
-- **Price**: BTC oracle price (redeemable for BTC)
-- **Use Case**: Bitcoin price exposure on Stacks
+- **Engine**: Oracle Engine
+- **Price**: BTC oracle price (1:1 redeemable for BTC)
+- **Use Case**: Bitcoin price exposure on Stacks, anchor for other calculations
 
 ### Subnet Tokens
 - **Detection**: Metadata `type: 'SUBNET'` with `base` reference
-- **Engine**: Intrinsic Value Engine
+- **Engine**: Virtual Engine
 - **Price**: Inherits from mainnet base token
 - **Use Case**: Layer 2 token representations
 
 ### LP Tokens
 - **Detection**: Vault data `type: 'POOL'`
-- **Engine**: Intrinsic Value Engine
+- **Engine**: Virtual Engine
 - **Price**: Remove liquidity quote of underlying assets
 - **Use Case**: Liquidity provider tokens
 
@@ -305,7 +305,7 @@ console.log(`Arbitrage opportunities: ${arbitrageOpportunities}`);
 
 ### 2. DEX Price Display
 ```typescript
-// Get real-time price with market/intrinsic comparison
+// Get real-time price with market/virtual comparison
 const priceData = await priceService.calculateTokenPrice(tokenId, {
     includeArbitrageAnalysis: true
 });
@@ -319,7 +319,7 @@ if (priceData.success) {
     // Show arbitrage if available
     if (price.arbitrageOpportunity) {
         const arb = price.arbitrageOpportunity;
-        const type = arb.marketPrice > arb.intrinsicValue ? 'overvalued' : 'undervalued';
+        const type = arb.marketPrice > arb.virtualValue ? 'overvalued' : 'undervalued';
         console.log(`Market ${type} by ${arb.deviation.toFixed(1)}%`);
     }
 }
@@ -342,7 +342,7 @@ results.prices.forEach((price, tokenId) => {
                 tokenId,
                 symbol: price.symbol,
                 marketPrice: arb.marketPrice,
-                intrinsicValue: arb.intrinsicValue,
+                virtualValue: arb.virtualValue,
                 profit: arb.deviation
             });
         }
@@ -373,7 +373,7 @@ console.log(`Cache: ${cacheStats.size} entries`);
 
 #### 1. "All engines failed for token"
 - **Cause**: Token not found in any engine's scope
-- **Solution**: Check if token has liquidity pools, is a known intrinsic asset, or oracle coverage
+- **Solution**: Check if token has liquidity pools, is a known virtual asset, or oracle coverage
 
 #### 2. LP Token pricing fails
 - **Cause**: Missing LP provider or remove liquidity quote fails
@@ -400,8 +400,8 @@ console.log('Debug info:', result.debugInfo);
 
 ### Key Changes
 1. **Confidence → Reliability**: Replaced confidence scoring with reliability (0-1 scale)
-2. **Separated Engines**: Oracle, market, and intrinsic pricing are now distinct
-3. **Arbitrage Analysis**: Built-in market vs intrinsic value comparison
+2. **Separated Engines**: Oracle, market, and virtual pricing are now distinct
+3. **Arbitrage Analysis**: Built-in market vs virtual value comparison
 4. **Source Attribution**: All prices include which engine provided them
 
 ### Migration Steps
@@ -484,7 +484,7 @@ await storage.storePriceSnapshot({
 - [Architecture Documentation](./ARCHITECTURE.md)
 - [Oracle Engine Implementation](./src/engines/oracle-engine.ts)
 - [CPMM Engine Implementation](./src/engines/cpmm-engine.ts)  
-- [Intrinsic Value Engine Implementation](./src/engines/intrinsic-value-engine.ts)
+- [Virtual Engine Implementation](./src/engines/virtual-engine.ts)
 - [Orchestrator Implementation](./src/orchestrator/price-service-orchestrator.ts)
 - [Type Definitions](./src/shared/types.ts)
 - [Legacy Adapters](./src/adapters/)

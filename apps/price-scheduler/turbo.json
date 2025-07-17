@@ -8,10 +8,23 @@
         ".next/**",
         "!.next/cache/**"
       ],
+      "dependsOn": [
+        "@services/prices#build:dev"
+      ],
       "env": [
         "HIRO_API_KEY",
         "BLOB_READ_WRITE_TOKEN",
-        "CRON_SECRET"
+        "CRON_SECRET",
+        "KV_URL",
+        "KV_REST_API_URL",
+        "KV_REST_API_TOKEN",
+        "KV_REST_API_READ_ONLY_TOKEN",
+        "NODE_V8_COVERAGE"
+      ]
+    },
+    "dev": {
+      "dependsOn": [
+        "@services/prices#build:dev"
       ]
     }
   }

@@ -9,9 +9,9 @@ export * from './shared/decimal-utils';
 // Three engines
 export { OracleEngine } from './engines/oracle-engine';
 export { CpmmEngine } from './engines/cpmm-engine';
-export { IntrinsicValueEngine } from './engines/intrinsic-value-engine';
+export { VirtualEngine } from './engines/virtual-engine';
 
-// LP token support for intrinsic engine
+// LP token support for virtual engine
 export * from './engines/lp-token-calculator';
 export * from './engines/lp-dependency-graph';
 export * from './engines/lp-processing-queue';

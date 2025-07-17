@@ -1,5 +1,5 @@
 import { getLpDependencyGraph, LpDependency, setVaultDataProvider } from './lp-dependency-graph';
-import { calculateLpIntrinsicValueFromVault, type VaultLiquidityProvider } from './lp-token-calculator';
+import { calculateLpIntrinsicValueFromVault, type VaultLiquidityProvider, type Vault as LpVault } from './lp-token-calculator';
 
 /**
  * Result of LP token intrinsic calculation
@@ -36,24 +36,35 @@ interface Vault {
  */
 export class LpProcessingQueue {
     private dependencyGraph: any;
-    private vaultMap = new Map<string, Vault>();
+    private vaultMap = new Map<string, LpVault>();
     private calculatedPrices = new Map<string, number>(); // contractId -> USD price
-    private vaultDataProvider: { getAllVaultData(): Promise<Vault[]> } | null = null;
+    private vaultDataProvider: VaultLiquidityProvider | null = null;
 
     /**
      * Initialize the processing queue
      */
     async initialize(
         basePrices: Record<string, number>,
-        vaultDataProvider: { getAllVaultData(): Promise<Vault[]> }
+        vaultDataProvider: VaultLiquidityProvider
     ): Promise<void> {
         console.log('[LpProcessingQueue] Initializing...');
         
         // Store vault data provider
         this.vaultDataProvider = vaultDataProvider;
         
+        // Create adapter for dependency graph (needs symbol property)
+        const dependencyGraphProvider = {
+            getAllVaultData: async () => {
+                const vaults = await vaultDataProvider.getAllVaultData();
+                return vaults.map(vault => ({
+                    ...vault,
+                    symbol: (vault as any).symbol || 'LP' // Add symbol if missing
+                }));
+            }
+        };
+        
         // Set vault data provider for dependency graph
-        setVaultDataProvider(vaultDataProvider);
+        setVaultDataProvider(dependencyGraphProvider);
         
         // Build dependency graph
         this.dependencyGraph = await getLpDependencyGraph();
