@@ -240,7 +240,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className={`text-2xl font-bold mb-3 ${getStatusColor(systemStatus?.status || 'unknown')}`}>
-              {systemStatus?.status?.charAt(0).toUpperCase() + systemStatus?.status?.slice(1) || 'Unknown'}
+              {systemStatus?.status ? (systemStatus.status.charAt(0).toUpperCase() + systemStatus.status.slice(1)) : 'Unknown'}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline">
