@@ -1,6 +1,10 @@
 import { fileURLToPath } from 'url';
 import path from 'path';
-import fs from 'fs/promises';
+import fs from 'fs';
+import { config } from 'dotenv';
+
+// Load environment variables from .env.local
+config({ path: path.resolve(process.cwd(), '.env.local') });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -9,7 +13,7 @@ interface LogData {
   [key: string]: any;
 }
 
-// Simple human-friendly logger for TypeScript scripts
+// Simple human-friendly logger (like the legacy execute.sh style)
 class SimpleLogger {
   private logFile: string;
   private startTime: Date;
@@ -20,23 +24,23 @@ class SimpleLogger {
     this.startTime = new Date();
   }
 
-  async initialize(): Promise<void> {
+  initialize(): void {
     if (this.initialized) return;
-    
+
     // Ensure logs directory exists
-    await fs.mkdir('logs', { recursive: true });
-    
-    await this.writeHeader();
+    fs.mkdirSync('logs', { recursive: true });
+
+    this.writeHeader();
     this.initialized = true;
-    
+
     // Now safely call info after initialization
-    await this.info('Script session started');
+    this.info('Script session started');
     console.log(`📋 Logging to: ${this.logFile}`);
   }
 
-  async writeHeader(): Promise<void> {
+  writeHeader(): void {
     let nodeVersion = process.version;
-    
+
     const header = `📋 Script Execution Log
 📁 Script: ${path.basename(process.argv[1])}
 ⏰ Started: ${this.startTime.toLocaleString()}
@@ -44,53 +48,52 @@ class SimpleLogger {
 📂 Working Directory: ${process.cwd()}
 🖥️  Platform: ${process.platform}
 📦 Node Version: ${nodeVersion}
-🔧 Task Runner: Node.js --import tsx
+🔧 Task Runner: Node.js v22 --import tsx
 ----------------------------------------
 
 `;
-    await fs.appendFile(this.logFile, header);
+    fs.appendFileSync(this.logFile, header);
   }
 
-  async writeLog(message: string): Promise<void> {
+  writeLog(message: string): void {
     const timestamp = new Date().toLocaleTimeString();
     const logLine = `[${timestamp}] ${message}\n`;
-    await fs.appendFile(this.logFile, logLine);
+    fs.appendFileSync(this.logFile, logLine);
   }
 
-  async info(message: string, data?: LogData): Promise<void> {
-    if (!this.initialized) await this.initialize();
+  info(message: string, data?: LogData): void {
+    if (!this.initialized) this.initialize();
     console.log(`ℹ️  ${message}`);
-    return this.writeLog(`ℹ️  ${message}`);
+    this.writeLog(`ℹ️  ${message}`);
   }
 
-  async error(message: string, data?: LogData): Promise<void> {
-    if (!this.initialized) await this.initialize();
+  error(message: string, data?: LogData): void {
+    if (!this.initialized) this.initialize();
     console.error(`❌ ${message}`);
-    return this.writeLog(`❌ ${message}`);
+    this.writeLog(`❌ ${message}`);
   }
 
-  async debug(message: string, data?: LogData): Promise<void> {
-    if (!this.initialized) await this.initialize();
+  debug(message: string, data?: LogData): void {
+    if (!this.initialized) this.initialize();
     if (process.env.LOG_LEVEL === 'debug') {
       console.log(`🐛 ${message}`);
-      return this.writeLog(`🐛 ${message}`);
+      this.writeLog(`🐛 ${message}`);
     }
-    return Promise.resolve();
   }
 
-  async warn(message: string, data?: LogData): Promise<void> {
-    if (!this.initialized) await this.initialize();
+  warn(message: string, data?: LogData): void {
+    if (!this.initialized) this.initialize();
     console.warn(`⚠️  ${message}`);
-    return this.writeLog(`⚠️  ${message}`);
+    this.writeLog(`⚠️  ${message}`);
   }
 
-  async success(message: string): Promise<void> {
-    if (!this.initialized) await this.initialize();
+  success(message: string): void {
+    if (!this.initialized) this.initialize();
     console.log(`✅ ${message}`);
-    return this.writeLog(`✅ ${message}`);
+    this.writeLog(`✅ ${message}`);
   }
 
-  async writeFooter(): Promise<void> {
+  writeFooter(): void {
     const endTime = new Date();
     const duration = endTime.getTime() - this.startTime.getTime();
     const footer = `
@@ -99,7 +102,7 @@ class SimpleLogger {
 ⏱️  Duration: ${duration}ms
 ${duration < 5000 ? '✅ Completed successfully' : '🐌 Took longer than expected'}
 `;
-    await fs.appendFile(this.logFile, footer);
+    fs.appendFileSync(this.logFile, footer);
   }
 }
 
@@ -111,25 +114,44 @@ const logFile = path.join(process.cwd(), 'logs', `${timestamp}-${scriptName}.log
 export const logger = new SimpleLogger(logFile);
 
 // Helper function to log script execution
-export async function logExecution(description: string, command: string): Promise<void> {
-  return logger.info(`Executing: ${description}`);
+export function logExecution(description: string, command: string): void {
+  logger.info(`Executing: ${description}`);
 }
 
 // Helper function to log script results
-export async function logResult(description: string, result: { exitCode: number; stdout?: string; stderr?: string }, duration: number): Promise<void> {
-  return logger.info(`Completed: ${description}`);
+export function logResult(description: string, result: { exitCode: number; stdout?: string; stderr?: string }, duration: number): void {
+  logger.info(`Completed: ${description}`);
 }
 
 // Helper function to log errors
-export async function logError(description: string, error: Error): Promise<void> {
-  return logger.error(`Error: ${description}`);
+export function logError(description: string, error: Error): void {
+  logger.error(`Error: ${description}`);
 }
 
 // Write footer on exit
-process.on('exit', async () => {
+process.on('beforeExit', () => {
   try {
-    await logger.writeFooter();
+    logger.writeFooter();
   } catch (error) {
     // Ignore footer errors
   }
+});
+
+// Handle SIGINT (Ctrl+C) and SIGTERM gracefully
+process.on('SIGINT', () => {
+  try {
+    logger.writeFooter();
+  } catch (error) {
+    // Ignore footer errors
+  }
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  try {
+    logger.writeFooter();
+  } catch (error) {
+    // Ignore footer errors
+  }
+  process.exit(0);
 });
