@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
             environment: {
                 INVEST_URL: getHostUrl('invest'),
                 SWAP_URL: getHostUrl('swap'),
-                NODE_ENV: process.env.NODE_ENV || 'development'
+                NODE_ENV: process.env.NODE_ENV || 'development',
+                BLOB_URL: process.env.BLOB_BASE_URL || null
             }
         };
 

@@ -49,6 +49,7 @@ interface SystemStatus {
     INVEST_URL: string;
     SWAP_URL: string;
     NODE_ENV: string;
+    BLOB_URL: string | null;
   };
 }
 
@@ -137,6 +138,21 @@ export default function DashboardPage() {
       setTimeout(fetchSystemData, 2000)
     } catch (error) {
       console.error('Manual trigger failed:', error)
+    }
+  }
+
+  const handleTestBlobUpload = async () => {
+    try {
+      const response = await fetch('/api/test-blob', { method: 'POST' })
+      const result = await response.json()
+      if (result.success) {
+        alert(`Blob URL discovered!\n\nFull URL: ${result.fullUrl}\n\nBase URL: ${result.baseUrl}\n\nAdd this to your .env.local:\nBLOB_BASE_URL="${result.baseUrl}/"`)
+      } else {
+        alert(`Error: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Test blob upload failed:', error)
+      alert('Test blob upload failed - check console')
     }
   }
 
@@ -471,6 +487,37 @@ export default function DashboardPage() {
                       {systemStatus?.environment.SWAP_URL || 'Not configured'}
                     </span>
                   </div>
+                </div>
+              </div>
+              <Separator />
+              <div>
+                <div className="text-sm font-medium mb-2">Blob Storage</div>
+                <div className="space-y-2">
+                  <div className="p-2 bg-muted rounded text-xs font-mono break-all">
+                    {systemStatus?.environment.BLOB_URL ? (
+                      <a 
+                        href={systemStatus.environment.BLOB_URL} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800 underline"
+                      >
+                        {systemStatus.environment.BLOB_URL}
+                      </a>
+                    ) : (
+                      'Not configured'
+                    )}
+                  </div>
+                  {!systemStatus?.environment.BLOB_URL && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleTestBlobUpload}
+                      className="w-full"
+                    >
+                      <Database className="mr-2 h-3 w-3" />
+                      Test Upload & Get URL
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardContent>
