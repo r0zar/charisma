@@ -6,7 +6,7 @@ import { callReadOnlyFunction, getAccountBalances, type AccountBalancesResponse 
 import { principalCV } from "@stacks/transactions";
 import { loadVaults, Router, listTokens as listSwappableTokens } from 'dexterity-sdk'
 import { TokenCacheData, listTokens as listAllTokens, listPrices, type KraxelPriceData } from "@repo/tokens";
-import { getPriceService } from "@/lib/price-service-setup";
+// import { getPriceService } from "@/lib/price-service-setup"; // Removed - service not available
 
 // Configure Dexterity router
 const routerAddress = process.env.NEXT_PUBLIC_ROUTER_ADDRESS || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
@@ -385,35 +385,26 @@ export async function getTokenPricesAction(tokenIds: string[]): Promise<{
             tokenIds = tokenIds.slice(0, 50);
         }
         
-        // Get the price service instance (server-side with proper env access)
-        const priceService = await getPriceService();
-        const result = await priceService.calculateBulkPrices(tokenIds);
+        // Fallback to basic token pricing since unified price service is not available
+        console.warn('[getTokenPricesAction] Using fallback pricing - unified price service not available');
         
-        if (!result.success) {
-            console.error('[getTokenPricesAction] Bulk price calculation failed:', result.errors);
-            return {
-                success: false,
-                prices: {},
-                error: 'Failed to calculate prices'
-            };
-        }
-        
-        // Convert to the format expected by the context
         const formattedPrices: Record<string, any> = {};
-        result.prices.forEach((priceData, contractId) => {
-            formattedPrices[contractId] = {
-                usdPrice: priceData.usdPrice,
-                change24h: undefined, // Would calculate from historical data
-                isLpToken: priceData.isLpToken,
-                intrinsicValue: priceData.intrinsicValue,
-                marketPrice: priceData.marketPrice,
-                confidence: priceData.confidence,
-                lastUpdated: priceData.lastUpdated,
-                priceDeviation: priceData.priceDeviation,
-                isArbitrageOpportunity: priceData.isArbitrageOpportunity,
-                pathsUsed: priceData.calculationDetails?.pathsUsed,
-                totalLiquidity: priceData.calculationDetails?.totalLiquidity,
-                priceSource: priceData.calculationDetails?.priceSource,
+        
+        // For now, return empty prices until service is restored
+        tokenIds.forEach(tokenId => {
+            formattedPrices[tokenId] = {
+                usdPrice: 0,
+                change24h: undefined,
+                isLpToken: false,
+                intrinsicValue: undefined,
+                marketPrice: undefined,
+                confidence: 0,
+                lastUpdated: Date.now(),
+                priceDeviation: undefined,
+                isArbitrageOpportunity: false,
+                pathsUsed: 0,
+                totalLiquidity: 0,
+                priceSource: 'fallback' as const,
             };
         });
         
