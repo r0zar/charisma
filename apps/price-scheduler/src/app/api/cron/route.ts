@@ -181,12 +181,17 @@ async function discoverAllTokens(): Promise<string[]> {
     try {
         // Get vault data to discover all known tokens
         const investUrl = getHostUrl('invest');
-        const response = await fetch(`${investUrl}/api/vaults`);
+        const response = await fetch(`${investUrl}/api/v1/vaults`);
         if (!response.ok) {
             throw new Error(`Failed to fetch vaults: ${response.statusText}`);
         }
 
-        const pools = await response.json();
+        const { data } = await response.json();
+        if (!Array.isArray(data)) {
+            console.error('[PriceScheduler] Vault data is not an array:', data);
+            throw new Error('Vault data is not an array');
+        }
+        const pools = data;
         const tokenSet = new Set<string>();
 
         // Extract all unique token contract IDs from pools
