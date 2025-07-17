@@ -6,12 +6,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-    PriceServiceOrchestrator, 
-    OracleEngine, 
-    CpmmEngine, 
+import {
+    PriceServiceOrchestrator,
+    OracleEngine,
+    CpmmEngine,
     IntrinsicValueEngine,
-    PriceSeriesStorage 
+    PriceSeriesStorage
 } from '@services/prices';
 import { getHostUrl } from '@modules/discovery';
 
@@ -146,7 +146,7 @@ async function initializeOrchestrator(): Promise<PriceServiceOrchestrator> {
                     preferredSources: ['oracle', 'market'], // Avoid intrinsic recursion
                     useCache: true
                 });
-                
+
                 if (result?.success && result.price) {
                     return { usdPrice: result.price.usdPrice };
                 }
@@ -173,7 +173,7 @@ async function initializeOrchestrator(): Promise<PriceServiceOrchestrator> {
  */
 async function discoverAllTokens(): Promise<string[]> {
     console.log('[PriceScheduler] Discovering tokens to price...');
-    
+
     try {
         // Get vault data to discover all known tokens
         const investUrl = getHostUrl('invest');
@@ -181,7 +181,7 @@ async function discoverAllTokens(): Promise<string[]> {
         if (!response.ok) {
             throw new Error(`Failed to fetch vaults: ${response.statusText}`);
         }
-        
+
         const pools = await response.json();
         const tokenSet = new Set<string>();
 
@@ -218,7 +218,7 @@ async function discoverAllTokens(): Promise<string[]> {
  */
 export async function GET(request: NextRequest) {
     const startTime = Date.now();
-    
+
     try {
         console.log('[PriceScheduler] 🚀 Starting scheduled price update...');
 
