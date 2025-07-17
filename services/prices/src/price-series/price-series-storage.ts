@@ -54,7 +54,7 @@ export interface ArbitrageOpportunity {
  */
 export class PriceSeriesStorage {
     private readonly blobToken: string;
-    
+
     constructor(blobToken?: string) {
         this.blobToken = blobToken || process.env.BLOB_READ_WRITE_TOKEN || '';
         if (!this.blobToken) {
@@ -65,7 +65,7 @@ export class PriceSeriesStorage {
     /**
      * Store a new price snapshot
      */
-    async storePriceSnapshot(snapshot: PriceSnapshot): Promise<void> {
+    async storePriceSnapshot(snapshot: PriceSnapshot): Promise<string> {
         const date = new Date(snapshot.timestamp);
         const year = date.getUTCFullYear();
         const month = String(date.getUTCMonth() + 1).padStart(2, '0');
@@ -76,22 +76,24 @@ export class PriceSeriesStorage {
         // Convert Map to serializable format
         const serializableSnapshot = {
             timestamp: snapshot.timestamp,
-            prices: Array.from(snapshot.prices.entries()).map(([tokenId, price]) => ({
-                tokenId,
-                ...price
-            })),
+            prices: Array.from(snapshot.prices.entries()).map(([tokenId, price]) => {
+                // Avoid duplicate tokenId if price already has it
+                const { tokenId: _omit, ...rest } = price;
+                return { tokenId, ...rest };
+            }),
             metadata: snapshot.metadata
         };
 
         const snapshotPath = `snapshots/${year}/${month}/${day}/${hour}-${minute}.json`;
-        
+
         try {
             // Store full snapshot
-            await put(snapshotPath, JSON.stringify(serializableSnapshot), {
+            const result = await put(snapshotPath, JSON.stringify(serializableSnapshot), {
                 access: 'public',
                 token: this.blobToken,
                 cacheControlMaxAge: 300 // 5 minutes cache
             });
+            const snapshotUrl = result.url;
 
             // Update latest snapshot for instant access
             await put('latest/current-prices.json', JSON.stringify(serializableSnapshot), {
@@ -109,7 +111,8 @@ export class PriceSeriesStorage {
                 console.error('[PriceSeriesStorage] Error updating time series:', error);
             });
 
-            console.log(`[PriceSeriesStorage] Stored snapshot: ${snapshotPath} (${snapshot.metadata.totalTokens} tokens)`);
+            console.log(`[PriceSeriesStorage] Stored snapshot: ${snapshotPath} (${snapshot.metadata.totalTokens} tokens) at URL: ${snapshotUrl}`);
+            return snapshotUrl;
 
         } catch (error) {
             console.error('[PriceSeriesStorage] Error storing snapshot:', error);
@@ -122,11 +125,15 @@ export class PriceSeriesStorage {
      */
     async getLatestSnapshot(): Promise<PriceSnapshot | null> {
         try {
-            const response = await fetch('https://your-blob-url/latest/current-prices.json');
+            const BLOB_BASE_URL = process.env.BLOB_BASE_URL;
+            if (!BLOB_BASE_URL) {
+                throw new Error('BLOB_BASE_URL environment variable is required for PriceSeriesStorage');
+            }
+            const response = await fetch(`${BLOB_BASE_URL}latest/current-prices.json`);
             if (!response.ok) return null;
 
             const data = await response.json();
-            
+
             // Convert back to Map format
             const prices = new Map<string, TokenPriceData>();
             data.prices.forEach((item: any) => {
@@ -160,7 +167,7 @@ export class PriceSeriesStorage {
     async getCurrentPrices(tokenIds: string[]): Promise<Map<string, TokenPriceData>> {
         const latest = await this.getLatestSnapshot();
         const result = new Map<string, TokenPriceData>();
-        
+
         if (latest) {
             tokenIds.forEach(tokenId => {
                 const price = latest.prices.get(tokenId);
@@ -169,7 +176,7 @@ export class PriceSeriesStorage {
                 }
             });
         }
-        
+
         return result;
     }
 
@@ -177,8 +184,8 @@ export class PriceSeriesStorage {
      * Get price history for a token with different timeframes
      */
     async getPriceHistory(
-        tokenId: string, 
-        timeframe: '1m' | '5m' | '1h' | '1d', 
+        tokenId: string,
+        timeframe: '1m' | '5m' | '1h' | '1d',
         limit: number = 100,
         endTime?: number
     ): Promise<TimeSeriesEntry[]> {
@@ -206,7 +213,7 @@ export class PriceSeriesStorage {
      * Get arbitrage opportunities for a specific day or recent period
      */
     async getArbitrageOpportunities(
-        date?: Date, 
+        date?: Date,
         minDeviation: number = 5
     ): Promise<ArbitrageOpportunity[]> {
         const targetDate = date || new Date();
@@ -217,7 +224,11 @@ export class PriceSeriesStorage {
         const arbPath = `arbitrage/${year}/${month}/${day}.json`;
 
         try {
-            const response = await fetch(`https://your-blob-url/${arbPath}`);
+            const BLOB_BASE_URL = process.env.BLOB_BASE_URL;
+            if (!BLOB_BASE_URL) {
+                throw new Error('BLOB_BASE_URL environment variable is required for PriceSeriesStorage');
+            }
+            const response = await fetch(`${BLOB_BASE_URL}${arbPath}`);
             if (!response.ok) return [];
 
             const opportunities: ArbitrageOpportunity[] = await response.json();
@@ -260,7 +271,11 @@ export class PriceSeriesStorage {
                 // Try to read existing opportunities for the day
                 let existingOpps: ArbitrageOpportunity[] = [];
                 try {
-                    const response = await fetch(`https://your-blob-url/${arbPath}`);
+                    const BLOB_BASE_URL = process.env.BLOB_BASE_URL;
+                    if (!BLOB_BASE_URL) {
+                        throw new Error('BLOB_BASE_URL environment variable is required for PriceSeriesStorage');
+                    }
+                    const response = await fetch(`${BLOB_BASE_URL}${arbPath}`);
                     if (response.ok) {
                         existingOpps = await response.json();
                     }
@@ -292,7 +307,7 @@ export class PriceSeriesStorage {
     private async getSnapshotHistory(tokenId: string, limit: number, endTime: number): Promise<TimeSeriesEntry[]> {
         const entries: TimeSeriesEntry[] = [];
         const endDate = new Date(endTime);
-        
+
         // Go back in time looking for snapshots
         for (let i = 0; i < limit && entries.length < limit; i++) {
             const checkTime = new Date(endTime - (i * 5 * 60 * 1000)); // Go back 5 minutes each iteration
@@ -305,11 +320,15 @@ export class PriceSeriesStorage {
             const snapshotPath = `snapshots/${year}/${month}/${day}/${hour}-${minute}.json`;
 
             try {
-                const response = await fetch(`https://your-blob-url/${snapshotPath}`);
+                const BLOB_BASE_URL = process.env.BLOB_BASE_URL;
+                if (!BLOB_BASE_URL) {
+                    throw new Error('BLOB_BASE_URL environment variable is required for PriceSeriesStorage');
+                }
+                const response = await fetch(`${BLOB_BASE_URL}${snapshotPath}`);
                 if (response.ok) {
                     const snapshot = await response.json();
                     const tokenPrice = snapshot.prices.find((p: any) => p.tokenId === tokenId);
-                    
+
                     if (tokenPrice) {
                         entries.push({
                             timestamp: snapshot.timestamp,
@@ -334,9 +353,9 @@ export class PriceSeriesStorage {
      * Get aggregated history (1m, 1h, 1d intervals from monthly files)
      */
     private async getAggregatedHistory(
-        tokenId: string, 
-        timeframe: '1m' | '1h' | '1d', 
-        limit: number, 
+        tokenId: string,
+        timeframe: '1m' | '1h' | '1d',
+        limit: number,
         endTime: number
     ): Promise<TimeSeriesEntry[]> {
         // Implementation would read from monthly aggregated files
@@ -355,7 +374,7 @@ export class PriceSeriesStorage {
         // Update each token's monthly series
         for (const [tokenId, price] of snapshot.prices) {
             const seriesPath = `series/${tokenId}/${year}-${month}.json`;
-            
+
             try {
                 // This would append to monthly aggregated data
                 // Implementation depends on how much aggregation we want
