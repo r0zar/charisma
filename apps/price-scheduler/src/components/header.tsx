@@ -15,6 +15,9 @@ export function Header() {
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
           <Link href="/" className="text-sm hover:text-foreground/80">
+            System Status
+          </Link>
+          <Link href="/dashboard" className="text-sm hover:text-foreground/80 font-medium">
             Dashboard
           </Link>
           <Link href="/docs" className="text-sm hover:text-foreground/80">

@@ -21,12 +21,12 @@ function extractTimestampFromPath(path: string): number | null {
 
 export async function GET(
     request: NextRequest,
-    context: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     if (!BLOB_READ_WRITE_TOKEN) {
         return NextResponse.json({ error: 'BLOB_READ_WRITE_TOKEN not configured' }, { status: 500 });
     }
-    const { id } = context.params;
+    const { id } = await context.params;
     const targetTimestamp = Number(id);
     if (!targetTimestamp) {
         return NextResponse.json({ error: 'Invalid snapshot id' }, { status: 400 });

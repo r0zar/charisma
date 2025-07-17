@@ -154,11 +154,16 @@ export default function HistoryPage() {
 
   return (
     <div className="container mx-auto p-6 space-y-8">
+      {/* Top Navigation Link */}
+      <div className="mb-4">
+        <Link href="/" className="text-blue-600 hover:underline font-semibold text-lg">← Dashboard</Link>
+      </div>
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div>
+          {/* Breadcrumbs */}
           <div className="flex items-center gap-2 mb-2">
-            <Link href="/dashboard" className="text-muted-foreground hover:text-foreground">
+            <Link href="/" className="text-muted-foreground hover:text-foreground">
               Dashboard
             </Link>
             <span className="text-muted-foreground">/</span>
@@ -180,7 +185,8 @@ export default function HistoryPage() {
           </Button>
         </div>
       </div>
-
+      {/* Section Heading */}
+      <h2 className="text-2xl font-semibold mt-8 mb-4">Price History</h2>
       {/* Filters */}
       <Card>
         <CardHeader>

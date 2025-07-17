@@ -193,16 +193,18 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Network Health */}
+        {/* Price System Health */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Network Health</CardTitle>
-            <Network className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Price System</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-2xl font-bold text-green-600 mb-2">Excellent</div>
+            <div className="text-2xl font-bold text-green-600 mb-2">Active</div>
             <p className="text-xs text-muted-foreground">
-              Block height: 142,847
+              <Link href="/dashboard/history" className="text-blue-600 hover:underline">
+                View History →
+              </Link>
             </p>
           </CardContent>
         </Card>
@@ -286,6 +288,53 @@ export default function DashboardPage() {
                   </div>
                 </TabsContent>
               </Tabs>
+            </CardContent>
+          </Card>
+
+          {/* Price System Management */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center space-x-2">
+                <BarChart3 className="h-5 w-5" />
+                <span>Price System</span>
+              </CardTitle>
+              <CardDescription>
+                Monitor and manage the three-engine price discovery system
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">Active</div>
+                  <div className="text-sm text-muted-foreground">System Status</div>
+                </div>
+                <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                  <div className="text-2xl font-bold text-blue-600">3</div>
+                  <div className="text-sm text-muted-foreground">Engines Running</div>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <Link href="/dashboard/history">
+                  <Button className="w-full justify-start" size="lg">
+                    <BarChart3 className="mr-2 h-5 w-5" />
+                    View Price History & Export Data
+                  </Button>
+                </Link>
+                <div className="grid grid-cols-2 gap-2">
+                  <Link href="/api/trigger">
+                    <Button variant="outline" size="sm" className="w-full">
+                      <RefreshCw className="mr-1 h-4 w-4" />
+                      Manual Trigger
+                    </Button>
+                  </Link>
+                  <Link href="/api/status">
+                    <Button variant="outline" size="sm" className="w-full">
+                      <Activity className="mr-1 h-4 w-4" />
+                      System Status
+                    </Button>
+                  </Link>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -447,6 +496,12 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0 space-y-3">
+              <Link href="/dashboard/history">
+                <Button variant="outline" className="w-full justify-start">
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  Price History
+                </Button>
+              </Link>
               <Link href="/settings">
                 <Button variant="outline" className="w-full justify-start">
                   <Settings className="mr-2 h-4 w-4" />
