@@ -598,7 +598,7 @@ async function getCurrentPrices(contractIds: string[]): Promise<CurrentPriceData
     // Use @repo/tokens directly to get current prices
     const priceData = await listPrices({
       strategy: 'fallback',
-      sources: { kraxel: false, stxtools: true, internal: true }
+      sources: { stxtools: true, internal: true }
     });
 
     const results: CurrentPriceData[] = [];

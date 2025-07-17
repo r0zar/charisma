@@ -54,7 +54,7 @@ async function verifyEntryPriceIssue() {
       const { listPrices } = await import('@repo/tokens');
       const priceData = await listPrices({
         strategy: 'fallback',
-        sources: { kraxel: false, stxtools: true, internal: true }
+        sources: { stxtools: true, internal: true }
       });
 
       const chaPrice = priceData[activity.toToken.contractId];
