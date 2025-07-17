@@ -1,3 +1,4 @@
+// @ts-ignore
 // @ts-nocheck
 
 'use client';
