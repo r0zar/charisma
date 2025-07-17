@@ -1,6 +1,6 @@
 {
   "buildCommand": "pnpm build",
-  "installCommand": "npm install -g pnpm@latest && pnpm install",
+  "installCommand": "npm install -g pnpm@9.0.0 && pnpm install",
   "framework": null,
   "functions": {
     "apps/*/src/app/api/**/*.ts": {
