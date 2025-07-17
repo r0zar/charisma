@@ -16,7 +16,7 @@ import type {
     PriceServiceConfig
 } from '../shared/types';
 import type { OracleEngine } from '../engines/oracle-engine';
-import type { CpmmEngine } from '../engines/cpmm-engine';
+import type { CpmmEngine, CpmmPriceResult } from '../engines/cpmm-engine';
 import type { IntrinsicValueEngine } from '../engines/intrinsic-value-engine';
 
 /**
@@ -330,15 +330,159 @@ export class PriceServiceOrchestrator {
      * Try CPMM market engine
      */
     private async tryMarketEngine(tokenId: string): Promise<TokenPriceData | null> {
-        if (!this.cpmmEngine) return null;
+        if (!this.cpmmEngine) {
+            console.log(`[PriceOrchestrator] CPMM engine not available for ${tokenId}`);
+            return null;
+        }
 
-        // For market engine, we need to discover prices from a base token
-        // This is a simplified implementation - in practice you'd need to:
-        // 1. Get sBTC price from oracle
-        // 2. Use CPMM engine to discover prices relative to sBTC
-        
-        console.log(`[PriceOrchestrator] Market engine not fully implemented for ${tokenId}`);
-        return null; // TODO: Implement market price discovery
+        try {
+            // sBTC contract ID - our base token for market discovery
+            const SBTC_CONTRACT_ID = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token';
+            
+            // If requesting sBTC directly, get from oracle
+            if (tokenId === SBTC_CONTRACT_ID) {
+                return await this.tryOracleEngine(tokenId);
+            }
+
+            // Get sBTC price from oracle as our base price
+            const sbtcPrice = await this.getSbtcBasePrice();
+            if (!sbtcPrice) {
+                console.log(`[PriceOrchestrator] Cannot get sBTC base price for market discovery`);
+                return null;
+            }
+
+            // Ensure CPMM graph is built and current
+            if (this.cpmmEngine.needsRebuild()) {
+                console.log(`[PriceOrchestrator] Rebuilding CPMM graph for market discovery`);
+                await this.cpmmEngine.buildGraph();
+            }
+
+            // Use CPMM engine to discover prices relative to sBTC
+            const baseTokenPrices = new Map<string, number>();
+            baseTokenPrices.set(SBTC_CONTRACT_ID, 1.0); // sBTC = 1.0 in sBTC terms
+            
+            const discoveredPrices = await this.cpmmEngine.discoverPricesFromBase(
+                SBTC_CONTRACT_ID, 
+                baseTokenPrices
+            );
+
+            const priceResult = discoveredPrices.get(tokenId);
+            if (!priceResult) {
+                console.log(`[PriceOrchestrator] No market path found for ${tokenId} via sBTC`);
+                return null;
+            }
+
+            // Convert ratio to USD price using sBTC base price
+            const usdPrice = priceResult.ratio * sbtcPrice;
+            const sbtcRatio = priceResult.ratio;
+
+            console.log(`[PriceOrchestrator] Market discovery: ${priceResult.symbol} = ${sbtcRatio.toFixed(6)} sBTC = $${usdPrice.toFixed(6)}`);
+
+            // Build market-specific data
+            const marketData = {
+                primaryPath: {
+                    tokens: priceResult.primaryPath.tokens,
+                    pools: priceResult.primaryPath.pools.map(pool => ({
+                        poolId: pool.poolId,
+                        tokenA: pool.tokenA,
+                        tokenB: pool.tokenB,
+                        reservesA: pool.reservesA,
+                        reservesB: pool.reservesB,
+                        liquidityUsd: pool.liquidityUsd,
+                        liquidityRelative: pool.liquidityUsd / priceResult.totalLiquidity,
+                        weight: pool.weight,
+                        lastUpdated: pool.lastUpdated,
+                        fee: 0.003 // 0.3% standard AMM fee
+                    })),
+                    totalLiquidity: priceResult.totalLiquidity,
+                    pathLength: priceResult.primaryPath.pathLength,
+                    reliability: priceResult.reliability,
+                    confidence: priceResult.reliability
+                },
+                alternativePaths: priceResult.alternativePaths.map(path => ({
+                    tokens: path.tokens,
+                    pools: path.pools.map(pool => ({
+                        poolId: pool.poolId,
+                        tokenA: pool.tokenA,
+                        tokenB: pool.tokenB,
+                        reservesA: pool.reservesA,
+                        reservesB: pool.reservesB,
+                        liquidityUsd: pool.liquidityUsd,
+                        liquidityRelative: pool.liquidityUsd / path.totalLiquidity,
+                        weight: pool.weight,
+                        lastUpdated: pool.lastUpdated,
+                        fee: 0.003
+                    })),
+                    totalLiquidity: path.totalLiquidity,
+                    pathLength: path.pathLength,
+                    reliability: path.reliability,
+                    confidence: path.reliability
+                })),
+                pathsUsed: priceResult.pathsUsed,
+                totalLiquidity: priceResult.totalLiquidity,
+                priceVariation: this.calculatePriceVariation(priceResult)
+            };
+
+            this.recordEngineSuccess('market');
+            return {
+                tokenId,
+                symbol: priceResult.symbol,
+                usdPrice,
+                sbtcRatio,
+                lastUpdated: Date.now(),
+                source: 'market',
+                reliability: priceResult.reliability,
+                marketData
+            };
+
+        } catch (error) {
+            console.error(`[PriceOrchestrator] Market engine failed for ${tokenId}:`, error);
+            this.recordEngineFailure('market');
+            return null;
+        }
+    }
+
+    /**
+     * Get sBTC base price from oracle engine
+     */
+    private async getSbtcBasePrice(): Promise<number | null> {
+        if (!this.oracleEngine) {
+            console.log('[PriceOrchestrator] Oracle engine not available for sBTC price');
+            return null;
+        }
+
+        try {
+            const btcData = await this.oracleEngine.getBtcPrice();
+            if (!btcData) {
+                console.log('[PriceOrchestrator] Failed to get BTC price from oracle');
+                return null;
+            }
+
+            // sBTC has 1:1 ratio with BTC
+            return btcData.price;
+        } catch (error) {
+            console.error('[PriceOrchestrator] Error getting sBTC base price:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Calculate price variation across alternative paths
+     */
+    private calculatePriceVariation(priceResult: CpmmPriceResult): number {
+        if (priceResult.alternativePaths.length === 0) return 0;
+
+        const allPrices = [priceResult.ratio, ...priceResult.alternativePaths.map(path => 
+            // For alternative paths, we'd need to recalculate ratios
+            // This is a simplified approach using reliability as a proxy
+            priceResult.ratio * (1 + (0.5 - path.reliability))
+        )];
+
+        const mean = allPrices.reduce((sum, price) => sum + price, 0) / allPrices.length;
+        const variance = allPrices.reduce((sum, price) => sum + Math.pow(price - mean, 2), 0) / allPrices.length;
+        const standardDeviation = Math.sqrt(variance);
+
+        return standardDeviation / mean; // Coefficient of variation
     }
 
     /**

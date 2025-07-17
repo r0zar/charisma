@@ -14,20 +14,11 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
-          <Link href="/" className="text-sm hover:text-foreground/80">
-            System Status
-          </Link>
-          <Link href="/dashboard" className="text-sm hover:text-foreground/80 font-medium">
+          <Link href="/" className="text-sm hover:text-foreground/80 font-medium">
             Dashboard
           </Link>
           <Link href="/docs" className="text-sm hover:text-foreground/80">
             Documentation
-          </Link>
-          <Link href="/docs/readme" className="text-sm hover:text-foreground/80">
-            README
-          </Link>
-          <Link href="/docs/architecture" className="text-sm hover:text-foreground/80">
-            Architecture
           </Link>
           <Link href="/settings" className="text-sm hover:text-foreground/80">
             Settings

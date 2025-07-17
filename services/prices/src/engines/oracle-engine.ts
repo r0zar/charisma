@@ -234,7 +234,7 @@ export class OracleEngine {
         if (result.success && result.price) {
             return {
                 price: result.price.usdPrice,
-                confidence: result.price.reliability === 'high' ? 0.99 : 0.95,
+                reliability: result.price.reliability === 'high' ? 0.99 : result.price.reliability === 'medium' ? 0.95 : 0.8,
                 source: result.price.source,
                 lastUpdated: result.price.timestamp
             };
