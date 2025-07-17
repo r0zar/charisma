@@ -107,7 +107,7 @@ async function initializeOrchestrator(): Promise<PriceServiceOrchestrator> {
         getRemoveLiquidityQuote: async (contractId: string, amount: number) => {
             try {
                 console.log(`[PriceScheduler] Getting remove liquidity quote for ${contractId}, amount: ${amount}`);
-                const dexCacheUrl = getHostUrl('dex-cache');
+                const dexCacheUrl = getHostUrl('invest');
                 const response = await fetch(`${dexCacheUrl}/api/v1/quote/remove-liquidity`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
