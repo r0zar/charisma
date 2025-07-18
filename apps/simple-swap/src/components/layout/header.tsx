@@ -10,10 +10,10 @@ import { Button } from "@/components/ui/button";
 
 // Navigation links array for reuse in both desktop and mobile views
 const navigationLinks = [
-    { href: "/activity", label: "Activity" },
+    // { href: "/activity", label: "Activity" },
     { href: "/swap", label: "Swap" },
     { href: "/orders", label: "Orders" },
-    { href: "/tokens", label: "Tokens" },
+    // { href: "/tokens", label: "Tokens" },
 ];
 
 export function Header() {
@@ -69,13 +69,13 @@ export function Header() {
                         </Link>
                     )}
                     <WalletButton />
-                    
+
                     {/* Mobile Menu Button - Visible only on mobile */}
                     <Drawer.Root open={isOpen} onOpenChange={setIsOpen} direction="right">
                         <Drawer.Trigger asChild>
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
+                            <Button
+                                variant="ghost"
+                                size="icon"
                                 className="md:hidden p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/70 hover:text-white hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-200 backdrop-blur-sm"
                             >
                                 <Menu className="h-5 w-5" />
@@ -107,7 +107,7 @@ export function Header() {
                                                 {link.label}
                                             </Link>
                                         ))}
-                                        
+
                                         {connected && (
                                             <Link
                                                 href="/settings"
@@ -118,7 +118,7 @@ export function Header() {
                                                 Settings
                                             </Link>
                                         )}
-                                        
+
                                         {isDev && (
                                             <Link
                                                 href="/admin"
