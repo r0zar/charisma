@@ -1,4 +1,5 @@
-import { getMultipleTokenPrices, type TokenPriceData } from '@/lib/pricing/price-calculator';
+import { PriceAPIResponse, PriceSeriesAPI, PriceSeriesStorage, TokenPriceData } from '@services/prices';
+const priceSeriesService = new PriceSeriesAPI(new PriceSeriesStorage());
 
 // Energy-related token contract IDs
 export const ENERGY_TOKENS = {
@@ -18,7 +19,7 @@ export interface EnergyTokenPrices {
     hoot?: TokenPriceData; // Using energy price as HOOT proxy for now
     lastUpdated: number;
     isStale: boolean;
-    confidence: number; // Average confidence across all prices
+    reliability: number; // Average confidence across all prices
 }
 
 export interface PriceError {
@@ -58,7 +59,7 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
 
         // Fetch prices for all tokens
         console.log('[EnergyPriceService] Calling getMultipleTokenPrices...');
-        const priceMap = await getMultipleTokenPrices(tokenIds);
+        const priceMap = await priceSeriesService.getBulkCurrentPrices({ tokenIds });
         console.log('[EnergyPriceService] Received price map:', priceMap);
 
         const errors: PriceError[] = [];
@@ -68,10 +69,10 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
         };
 
         // Extract individual token prices
-        const energyPrice = priceMap.get(ENERGY_TOKENS.ENERGY);
-        const hootPrice = priceMap.get(ENERGY_TOKENS.HOOT);
-        const charismaPrice = priceMap.get(ENERGY_TOKENS.CHARISMA);
-        const dexterityPrice = priceMap.get(ENERGY_TOKENS.DEXTERITY);
+        const energyPrice = priceMap.data?.prices[ENERGY_TOKENS.ENERGY];
+        const hootPrice = priceMap.data?.prices[ENERGY_TOKENS.HOOT];
+        const charismaPrice = priceMap.data?.prices[ENERGY_TOKENS.CHARISMA];
+        const dexterityPrice = priceMap.data?.prices[ENERGY_TOKENS.DEXTERITY];
 
         if (energyPrice) {
             prices.energy = energyPrice;
@@ -119,8 +120,8 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
 
         // Calculate average confidence
         const availablePrices = [energyPrice, hootPrice, charismaPrice, dexterityPrice].filter(Boolean);
-        prices.confidence = availablePrices.length > 0
-            ? availablePrices.reduce((sum, price) => sum + (price?.confidence || 0), 0) / availablePrices.length
+        prices.reliability = availablePrices.length > 0
+            ? availablePrices.reduce((sum, price) => sum + (price?.reliability || 0), 0) / availablePrices.length
             : 0;
 
         // Cache the results
@@ -164,20 +165,22 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
                 symbol: 'ENERGY',
                 usdPrice: 0.01, // Mock $0.01 per energy token
                 sbtcRatio: 0.0000001,
-                confidence: 0.5,
-                lastUpdated: now
+                reliability: 0.5,
+                lastUpdated: now,
+                source: 'market'
             },
             hoot: {
                 tokenId: ENERGY_TOKENS.HOOT,
                 symbol: 'HOOT',
                 usdPrice: 0.01, // Mock $0.01 per HOOT token
                 sbtcRatio: 0.0000001,
-                confidence: 0.5,
-                lastUpdated: now
+                reliability: 0.5,
+                lastUpdated: now,
+                source: 'market'
             },
             lastUpdated: now,
             isStale: true,
-            confidence: 0.5
+            reliability: 0.5
         };
 
         console.log('[EnergyPriceService] Using mock prices as fallback:', mockPrices);

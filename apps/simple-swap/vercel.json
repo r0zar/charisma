@@ -13,16 +13,8 @@
             "schedule": "*/10 * * * *"
         },
         {
-            "path": "/api/cron/margin-sync",
-            "schedule": "5 * * * *"
-        },
-        {
             "path": "/api/cron/bot-monitor",
             "schedule": "*/1 * * * *"
-        },
-        {
-            "path": "/api/cron/twitter-triggers",
-            "schedule": "*/30 * * * *"
         },
         {
             "path": "/api/cron/yield-farmers",

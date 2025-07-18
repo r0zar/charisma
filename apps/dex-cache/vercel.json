@@ -1,9 +1,4 @@
 {
-    "functions": {
-        "app/api/v1/prices/route.ts": {
-            "maxDuration": 30
-        }
-    },
     "crons": [
         {
             "path": "/api/v1/cron/energy-data",
@@ -12,10 +7,6 @@
         {
             "path": "/api/cron/update-reserves",
             "schedule": "*/10 * * * *"
-        },
-        {
-            "path": "/api/cron/warm-prices",
-            "schedule": "*/30 * * * *"
         }
     ]
 }

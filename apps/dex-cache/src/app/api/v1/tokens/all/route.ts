@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { listVaultTokens, listVaults, getLpTokenMetadata } from '@/lib/pool-service';
-import { getMultipleTokenPrices } from '@/lib/pricing/price-calculator';
-import { calculateAllLpIntrinsicValues } from '@/lib/pricing/lp-token-calculator';
+
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -64,19 +63,19 @@ export async function OPTIONS() {
 
 export async function GET(request: Request) {
     const startTime = Date.now();
-    
+
     try {
         const url = new URL(request.url);
-        
+
         // Parse query parameters
         const typeFilter = url.searchParams.get('type') as 'lp' | 'tradeable' | 'all' || 'all';
         const nestLevelParam = url.searchParams.get('nestLevel');
         const includePricing = url.searchParams.get('includePricing') === 'true';
         const includeDetails = url.searchParams.get('includeDetails') === 'true';
         const minConfidence = parseFloat(url.searchParams.get('minConfidence') || '0');
-        
+
         // Parse nest level filter - supports "level and down" logic
-        const nestLevelFilter = nestLevelParam ? 
+        const nestLevelFilter = nestLevelParam ?
             nestLevelParam.split(',').map(level => {
                 if (level.endsWith('+')) {
                     return { type: 'gte', value: parseInt(level.slice(0, -1)) };
@@ -113,7 +112,7 @@ export async function GET(request: Request) {
         if (typeFilter === 'all' || typeFilter === 'lp') {
             const allVaults = await listVaults();
             const poolVaults = allVaults.filter(vault => vault.type === 'POOL');
-            
+
             const lpTokens: UnifiedToken[] = poolVaults.map(vault => {
                 const lpMeta = getLpTokenMetadata(vault);
                 return {
@@ -162,17 +161,12 @@ export async function GET(request: Request) {
         });
         allTokens = Array.from(tokenMap.values());
 
-        // Add pricing and nest level data if requested
-        if (includePricing) {
-            await addPricingData(allTokens, includeDetails);
-        }
-
         // Apply nest level filtering - "level and down" logic
         if (nestLevelFilter && nestLevelFilter.length > 0) {
             allTokens = allTokens.filter(token => {
                 // Non-LP tokens are considered "level 0" and included in low-level filters
                 const effectiveNestLevel = token.isLpToken ? (token.nestLevel ?? 0) : 0;
-                
+
                 return nestLevelFilter.some(filter => {
                     if (filter.type === 'lte') {
                         // "Level and down" - include tokens at this level or lower
@@ -188,7 +182,7 @@ export async function GET(request: Request) {
 
         // Apply confidence filtering if pricing is included
         if (includePricing && minConfidence > 0) {
-            allTokens = allTokens.filter(token => 
+            allTokens = allTokens.filter(token =>
                 token.confidence === undefined || token.confidence >= minConfidence
             );
         }
@@ -197,7 +191,7 @@ export async function GET(request: Request) {
         const tradeableCount = allTokens.filter(t => !t.isLpToken).length;
         const lpCount = allTokens.filter(t => t.isLpToken).length;
         const nestLevelBreakdown: Record<string, number> = {};
-        
+
         allTokens.forEach(token => {
             if (token.isLpToken && token.nestLevel !== undefined) {
                 const level = token.nestLevel.toString();
@@ -206,7 +200,7 @@ export async function GET(request: Request) {
         });
 
         const processingTime = Date.now() - startTime;
-        
+
         console.log(`[Tokens All API] Returning ${allTokens.length} tokens in ${processingTime}ms`);
 
         return NextResponse.json({
@@ -233,9 +227,9 @@ export async function GET(request: Request) {
 
     } catch (error: any) {
         console.error('[Tokens All API] Error:', error);
-        
+
         const processingTime = Date.now() - startTime;
-        
+
         return NextResponse.json({
             status: 'error',
             error: 'Internal Server Error',
@@ -247,112 +241,5 @@ export async function GET(request: Request) {
             status: 500,
             headers
         });
-    }
-}
-
-/**
- * Add pricing data and nest levels to tokens
- */
-async function addPricingData(tokens: UnifiedToken[], includeDetails: boolean): Promise<void> {
-    try {
-        // Get all token IDs
-        const tokenIds = tokens.map(t => t.contractId);
-        
-        // Get regular pricing for all tokens
-        const priceMap = await getMultipleTokenPrices(tokenIds);
-        
-        // Get base prices for LP token dependency calculation
-        const basePrices: Record<string, number> = {};
-        priceMap.forEach((priceData, tokenId) => {
-            const token = tokens.find(t => t.contractId === tokenId);
-            if (token && !token.isLpToken && priceData.usdPrice > 0) {
-                basePrices[tokenId] = priceData.usdPrice;
-            }
-        });
-        
-        // Calculate LP token nest levels and intrinsic pricing
-        const lpTokenIds = tokens.filter(t => t.isLpToken).map(t => t.contractId);
-        let lpIntrinsicResults: Map<string, { usdPrice: number; sbtcRatio: number; confidence: number; level: number }> = new Map();
-        
-        if (lpTokenIds.length > 0) {
-            try {
-                lpIntrinsicResults = await calculateAllLpIntrinsicValues(basePrices);
-            } catch (error) {
-                console.warn('[Tokens All API] LP intrinsic calculation failed:', error);
-            }
-        }
-        
-        // Get price graph for liquidity data
-        const { getPriceGraph } = await import('@/lib/pricing/price-graph');
-        const graph = await getPriceGraph();
-        
-        // Apply pricing data to tokens
-        tokens.forEach(token => {
-            const priceData = priceMap.get(token.contractId);
-            const lpIntrinsic = lpIntrinsicResults.get(token.contractId);
-            const tokenNode = graph.getNode(token.contractId);
-            
-            if (priceData) {
-                token.usdPrice = priceData.usdPrice;
-                token.confidence = priceData.confidence;
-                token.lastUpdated = priceData.lastUpdated;
-                
-                // Add liquidity data from price graph
-                if (tokenNode) {
-                    token.totalLiquidity = tokenNode.totalLiquidity;
-                }
-                
-                if (includeDetails) {
-                    token.marketPrice = priceData.marketPrice;
-                    token.intrinsicValue = priceData.intrinsicValue;
-                    
-                    // Add trading metadata if available
-                    if (priceData.calculationDetails) {
-                        token.tradingMetadata = {
-                            volume24h: undefined, // Would need separate volume API
-                            priceChange24h: undefined, // Would need historical price data
-                            high24h: undefined,
-                            low24h: undefined
-                        };
-                    }
-                }
-            }
-            
-            // Add nest level for LP tokens
-            if (token.isLpToken && lpIntrinsic) {
-                token.nestLevel = lpIntrinsic.level;
-                
-                // Use intrinsic pricing if no market price or market price is unreliable
-                if (!token.usdPrice || (token.confidence && token.confidence < 0.5)) {
-                    token.usdPrice = lpIntrinsic.usdPrice;
-                    token.confidence = lpIntrinsic.confidence;
-                }
-                
-                if (includeDetails && !token.intrinsicValue) {
-                    token.intrinsicValue = lpIntrinsic.usdPrice;
-                }
-            }
-            
-            // For LP tokens, also add liquidity calculation from vault reserves
-            if (token.isLpToken && token.lpMetadata && token.lpMetadata.reservesA && token.lpMetadata.reservesB) {
-                const tokenAPrice = token.lpMetadata.tokenA ? priceMap.get(token.lpMetadata.tokenA.contractId)?.usdPrice : undefined;
-                const tokenBPrice = token.lpMetadata.tokenB ? priceMap.get(token.lpMetadata.tokenB.contractId)?.usdPrice : undefined;
-                
-                if (tokenAPrice && tokenBPrice && token.lpMetadata.tokenA && token.lpMetadata.tokenB) {
-                    const reserveAValue = (token.lpMetadata.reservesA / Math.pow(10, token.lpMetadata.tokenA.decimals)) * tokenAPrice;
-                    const reserveBValue = (token.lpMetadata.reservesB / Math.pow(10, token.lpMetadata.tokenB.decimals)) * tokenBPrice;
-                    const poolValue = reserveAValue + reserveBValue;
-                    
-                    // Use pool value as liquidity if we don't have graph data or if pool value is higher
-                    if (!token.totalLiquidity || poolValue > token.totalLiquidity) {
-                        token.totalLiquidity = poolValue;
-                    }
-                }
-            }
-        });
-        
-    } catch (error) {
-        console.error('[Tokens All API] Error adding pricing data:', error);
-        // Continue without pricing data rather than failing
     }
 }

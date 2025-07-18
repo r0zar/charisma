@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { getTokenPrice } from '@/lib/pricing/price-calculator';
 import { listVaultTokens } from '@/lib/pool-service';
-import { getPriceGraph } from '@/lib/pricing/price-graph';
+import { PriceSeriesAPI, PriceSeriesStorage } from '@services/prices';
+
+const priceSeriesService = new PriceSeriesAPI(new PriceSeriesStorage());
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -25,7 +26,7 @@ export async function GET(
     { params }: { params: RouteParams }
 ) {
     const startTime = Date.now();
-    
+
     try {
         const { tokenId } = params;
         const url = new URL(request.url);
@@ -59,7 +60,7 @@ export async function GET(
         }
 
         // Calculate price
-        const priceData = await getTokenPrice(tokenId);
+        const priceData = await priceSeriesService.getCurrentPrice(tokenId);
 
         if (!priceData) {
             return NextResponse.json({
@@ -72,68 +73,13 @@ export async function GET(
             });
         }
 
-        // Get node-level total liquidity from the price graph
-        const graph = await getPriceGraph();
-        const tokenNode = graph.getNode(tokenId);
-        const nodeTotalLiquidity = tokenNode?.totalLiquidity || 0;
-
-        // Build response
-        const response: any = {
-            tokenId,
-            symbol: tokenMeta.symbol,
-            name: tokenMeta.name,
-            decimals: tokenMeta.decimals,
-            image: tokenMeta.image,
-            description: tokenMeta.description,
-            usdPrice: priceData.usdPrice,
-            sbtcRatio: priceData.sbtcRatio,
-            confidence: priceData.confidence,
-            lastUpdated: priceData.lastUpdated,
-            totalLiquidity: nodeTotalLiquidity
-        };
-
-        // Include detailed information if requested
-        if (includeDetails) {
-            response.calculationDetails = priceData.calculationDetails;
-            
-            if (priceData.primaryPath) {
-                response.primaryPath = {
-                    tokens: priceData.primaryPath.tokens,
-                    pools: priceData.primaryPath.pools.map(pool => ({
-                        poolId: pool.poolId,
-                        tokenA: pool.tokenA,
-                        tokenB: pool.tokenB,
-                        reserveA: pool.reserveA,
-                        reserveB: pool.reserveB,
-                        fee: pool.fee,
-                        lastUpdated: pool.lastUpdated
-                    })),
-                    totalLiquidity: priceData.primaryPath.totalLiquidity,
-                    reliability: priceData.primaryPath.reliability,
-                    confidence: priceData.primaryPath.confidence,
-                    pathLength: priceData.primaryPath.pathLength
-                };
-            }
-
-            if (priceData.alternativePaths && priceData.alternativePaths.length > 0) {
-                response.alternativePaths = priceData.alternativePaths.map(path => ({
-                    tokens: path.tokens,
-                    poolCount: path.pools.length,
-                    totalLiquidity: path.totalLiquidity,
-                    reliability: path.reliability,
-                    confidence: path.confidence,
-                    pathLength: path.pathLength
-                }));
-            }
-        }
-
         const processingTime = Date.now() - startTime;
-        
-        console.log(`[Price API] Calculated ${tokenMeta.symbol} price in ${processingTime}ms: $${priceData.usdPrice.toFixed(6)}`);
+
+        console.log(`[Price API] Calculated ${tokenMeta.symbol} price in ${processingTime}ms: $${priceData.data?.usdPrice.toFixed(6)}`);
 
         return NextResponse.json({
             status: 'success',
-            data: response,
+            data: priceData.data,
             metadata: {
                 processingTimeMs: processingTime,
                 includeDetails
@@ -145,9 +91,9 @@ export async function GET(
 
     } catch (error: any) {
         console.error(`[Price API] Error fetching price for ${params.tokenId}:`, error);
-        
+
         const processingTime = Date.now() - startTime;
-        
+
         return NextResponse.json({
             status: 'error',
             error: 'Internal Server Error',
