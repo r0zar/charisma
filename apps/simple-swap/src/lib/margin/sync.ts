@@ -1,6 +1,6 @@
+import { priceSeriesService } from '../charts/price-series-service';
 import { listPositions } from '../perps/store';
 import { updateMarginUsage, getMarginAccount } from './store';
-import { getLatestPrice } from '../price/store';
 
 interface PositionPnL {
     uuid: string;
@@ -17,10 +17,10 @@ async function calculatePositionPnL(position: any): Promise<number> {
 
     try {
         // Get current prices
-        const basePrice = await getLatestPrice(position.baseToken);
-        const quotePrice = await getLatestPrice(position.baseAsset);
+        const basePrice = await priceSeriesService.getCurrentPrice(position.baseToken);
+        const quotePrice = await priceSeriesService.getCurrentPrice(position.baseAsset);
 
-        if (basePrice === undefined || quotePrice === undefined || quotePrice === 0) {
+        if (basePrice === null || quotePrice === null || quotePrice === 0) {
             console.log(`⚠️ Missing price data for position ${position.uuid}`);
             return 0;
         }

@@ -6,7 +6,7 @@ import TokenDropdown from "@/components/TokenDropdown";
 import { fetchTokenBalance } from "blaze-sdk";
 import { usePrices } from '@/contexts/token-price-context';
 import { toast } from "sonner";
-import { fetchQuote } from "dexterity-sdk";
+// import { fetchQuote } from "dexterity-sdk";
 import { useWallet } from "@/contexts/wallet-context";
 import { RefreshCw } from "lucide-react";
 
@@ -52,7 +52,7 @@ export default function TokenPurchaseForm() {
         selectedToToken,
         setSelectedToToken,
     } = useSwapTokens();
-    
+
     const { address: userAddress } = useWallet();
     const { prices } = usePrices();
 
@@ -81,11 +81,12 @@ export default function TokenPurchaseForm() {
             try {
                 const amountToQuote = parseFloat(debouncedUsdAmount);
 
-                const quoteResult = await fetchQuote(
-                    "SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1",
-                    selectedToToken.contractId,
-                    amountToQuote * 10 ** 8
-                );
+                // const quoteResult = await fetchQuote(
+                //     "SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1",
+                //     selectedToToken.contractId,
+                //     amountToQuote * 10 ** 8
+                // );
+                const quoteResult = {} as any
 
                 if (quoteResult && typeof quoteResult.amountOut !== 'undefined') {
                     setDexterityQuote({
