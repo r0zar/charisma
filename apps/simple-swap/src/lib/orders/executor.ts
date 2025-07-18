@@ -1,6 +1,5 @@
 import { listOrders, fillOrder, updateOrder } from './store';
 import { LimitOrder } from './types';
-import { getLatestPrice } from '@/lib/price/store';
 import { getQuote } from '@/app/actions';
 import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
 import { executeMultihopSwap, buildXSwapTransaction, broadcastMultihopTransaction } from 'blaze-sdk';
@@ -9,6 +8,7 @@ import { BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from '@/lib/constants'
 import { kv } from '@vercel/kv';
 import { TxMonitorClient } from '@repo/tx-monitor-client';
 import { getTokenMetadataCached } from '@repo/tokens';
+import { priceSeriesService } from '../charts/price-series-service';
 
 // Initialize tx-monitor client
 const txMonitorClient = new TxMonitorClient();
@@ -166,10 +166,10 @@ async function getCurrentPriceRatio(order: LimitOrder): Promise<number | undefin
 
     console.log({ orderUuid: order.uuid, conditionTokenContract, baseAssetContract }, `Fetching prices for ratio.`);
 
-    const priceConditionToken = await getLatestPrice(conditionTokenContract);
-    const priceBaseAsset = await getLatestPrice(baseAssetContract);
+    const priceConditionToken = await priceSeriesService.getCurrentPrice(conditionTokenContract);
+    const priceBaseAsset = await priceSeriesService.getCurrentPrice(baseAssetContract);
 
-    if (priceConditionToken === undefined || priceBaseAsset === undefined) {
+    if (priceConditionToken === null || priceBaseAsset === null) {
         console.log({ orderUuid: order.uuid, priceConditionToken, priceBaseAsset }, "Could not fetch one or both prices for ratio.");
         return undefined;
     }
@@ -362,7 +362,7 @@ export async function processOpenOrders(): Promise<string[]> {
         const now = Date.now();
         const orderAge = now - new Date(order.createdAt).getTime();
         const ABSOLUTE_MAX_AGE = 90 * 24 * 60 * 60 * 1000; // 90 days in milliseconds
-        
+
         // Check 90-day absolute maximum age limit
         if (orderAge > ABSOLUTE_MAX_AGE) {
             const ageDays = Math.round(orderAge / (24 * 60 * 60 * 1000));
@@ -372,7 +372,7 @@ export async function processOpenOrders(): Promise<string[]> {
             await releaseLock(order.uuid);
             continue;
         }
-        
+
         const validFromMs = order.validFrom ? Date.parse(order.validFrom) : undefined;
         const validToMs = order.validTo ? Date.parse(order.validTo) : undefined;
 

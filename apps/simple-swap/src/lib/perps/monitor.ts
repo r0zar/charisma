@@ -1,14 +1,14 @@
+import { priceSeriesService } from '../charts/price-series-service';
 import { listPositions, triggerPosition, closePosition, updateFundingFees } from './store';
 import { PerpetualPosition } from './types';
-import { getLatestPrice } from '@/lib/price/store';
 
 // Get real-time price ratio for a trading pair (e.g., "STX/USDT")
 async function getTradingPairPrice(tradingPair: string, baseToken: string, quoteToken: string): Promise<number | undefined> {
     try {
-        const basePrice = await getLatestPrice(baseToken);
-        const quotePrice = await getLatestPrice(quoteToken);
+        const basePrice = await priceSeriesService.getCurrentPrice(baseToken);
+        const quotePrice = await priceSeriesService.getCurrentPrice(quoteToken);
 
-        if (basePrice === undefined || quotePrice === undefined) {
+        if (basePrice === null || quotePrice === null) {
             console.log(`⚠️ Missing price data for ${tradingPair}: base=${basePrice}, quote=${quotePrice}`);
             return undefined;
         }

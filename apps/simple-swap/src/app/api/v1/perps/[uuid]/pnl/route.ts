@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getPosition } from '@/lib/perps/store';
-import { getLatestPrice } from '@/lib/price/store';
+import { priceSeriesService } from '@/lib/charts/price-series-service';
 
 // Helper function to calculate real-time P&L
 function calculateRealTimePnL(position: any, currentPrice: number) {
@@ -81,10 +81,10 @@ function calculateFundingFees(position: any) {
 // Get current price for a trading pair using real price feed
 async function getCurrentPrice(baseToken: string, quoteToken: string): Promise<number | undefined> {
     try {
-        const basePrice = await getLatestPrice(baseToken);
-        const quotePrice = await getLatestPrice(quoteToken);
+        const basePrice = await priceSeriesService.getCurrentPrice(baseToken);
+        const quotePrice = await priceSeriesService.getCurrentPrice(quoteToken);
 
-        if (basePrice === undefined || quotePrice === undefined) {
+        if (basePrice === null || quotePrice === null) {
             console.log(`⚠️ Missing price data: base=${basePrice}, quote=${quotePrice}`);
             return undefined;
         }

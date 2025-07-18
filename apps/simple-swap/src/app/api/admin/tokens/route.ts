@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic';
 
+import { priceSeriesService } from '@/lib/charts/price-series-service';
 import { NextRequest, NextResponse } from 'next/server';
-import { getAllTrackedTokens } from '@/lib/price/store';
 
 export async function GET(request: NextRequest) {
     try {
-        const tokens = await getAllTrackedTokens();
+        const tokens = await priceSeriesService.getAllTokens();
         return NextResponse.json(tokens);
     } catch (error) {
         console.error('Error fetching tokens:', error);
