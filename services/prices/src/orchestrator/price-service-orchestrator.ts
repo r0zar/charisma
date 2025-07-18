@@ -193,12 +193,6 @@ export class PriceServiceOrchestrator {
      * Auto-initializes with defaults if no engines are configured
      */
     private async ensureInitialized(): Promise<void> {
-        console.log('[PriceOrchestrator] Checking engine configuration...', {
-            hasOracleEngine: !!this.oracleEngine,
-            hasCpmmEngine: !!this.cpmmEngine,
-            hasVirtualEngine: !!this.virtualEngine
-        });
-
         // Check if any engines are configured and functional
         const needsInitialization = !this.oracleEngine && !this.cpmmEngine && !this.virtualEngine;
 
@@ -206,8 +200,8 @@ export class PriceServiceOrchestrator {
             console.log('[PriceOrchestrator] No engines configured, auto-initializing with defaults...');
             await this.initializeWithDefaults();
         } else {
-            console.log('[PriceOrchestrator] Engines already exist, forcing re-initialization to ensure proper configuration...');
-            await this.initializeWithDefaults();
+            // Engines already exist - no need to re-initialize
+            console.log('[PriceOrchestrator] Engines already configured, skipping initialization');
         }
     }
 
@@ -287,6 +281,7 @@ export class PriceServiceOrchestrator {
         includeArbitrageAnalysis?: boolean;
         useCache?: boolean;
         maxAge?: number;
+        skipInitialization?: boolean;
     }): Promise<PriceCalculationResult> {
         const startTime = Date.now();
         const useCache = options?.useCache !== false;
@@ -296,7 +291,9 @@ export class PriceServiceOrchestrator {
 
         try {
             // Auto-initialize with defaults if no engines are configured
-            await this.ensureInitialized();
+            if (!options?.skipInitialization) {
+                await this.ensureInitialized();
+            }
 
             // Check cache first
             if (useCache) {
@@ -415,19 +412,19 @@ export class PriceServiceOrchestrator {
         const engineStats = { oracle: 0, market: 0, virtual: 0, hybrid: 0 };
 
         console.log(`[PriceOrchestrator] Calculating prices for ${tokenIds.length} tokens`);
-        console.log(`[PriceOrchestrator] Starting auto-initialization check...`);
 
-        // Auto-initialize with defaults if no engines are configured
+        // Auto-initialize with defaults if no engines are configured (once for batch)
         await this.ensureInitialized();
-
-        console.log(`[PriceOrchestrator] Auto-initialization check complete, proceeding with calculations...`);
 
         // Process in batches to avoid overwhelming the engines
         for (let i = 0; i < tokenIds.length; i += batchSize) {
             const batch = tokenIds.slice(i, i + batchSize);
 
             const promises = batch.map(async (tokenId) => {
-                const result = await this.calculateTokenPrice(tokenId, options);
+                const result = await this.calculateTokenPrice(tokenId, {
+                    ...options,
+                    skipInitialization: true // Skip initialization for bulk operations
+                });
                 if (result.success && result.price) {
                     results.set(tokenId, result.price);
                     engineStats[result.price.source]++;

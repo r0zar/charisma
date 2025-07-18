@@ -10,7 +10,8 @@
         "blaze-sdk#build",
         "@repo/tx-monitor-client#build",
         "@modules/discovery#build",
-        "@services/prices#build"
+        "@services/prices#build",
+        "dexterity-sdk#build"
       ],
       "outputs": [
         ".next/**",
@@ -58,7 +59,8 @@
         "blaze-sdk#build",
         "@repo/tx-monitor-client#build",
         "@modules/discovery#build",
-        "@services/prices#build"
+        "@services/prices#build",
+        "dexterity-sdk#build"
       ]
     }
   }
