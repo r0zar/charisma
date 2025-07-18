@@ -29,7 +29,8 @@
     "check-types": "tsc --noEmit",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "check-urls": "tsx scripts/check-urls.ts"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
@@ -38,6 +39,7 @@
     "bunchee": "^6.5.4",
     "eslint": "^9.31.0",
     "happy-dom": "^18.0.1",
+    "tsx": "^4.19.3",
     "typescript": "5.8.3",
     "vitest": "^3.1.3"
   }

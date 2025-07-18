@@ -5,10 +5,6 @@
             "schedule": "*/30 * * * *"
         },
         {
-            "path": "/api/cron/price",
-            "schedule": "0 * * * *"
-        },
-        {
             "path": "/api/cron/orders",
             "schedule": "*/1 * * * *"
         },

@@ -5,12 +5,10 @@
  * unified price discovery with arbitrage analysis and intelligent source selection.
  */
 
-import type { 
-    TokenPriceData, 
-    PriceCalculationResult, 
+import type {
+    TokenPriceData,
+    PriceCalculationResult,
     BulkPriceResult,
-    PriceServiceRequest,
-    PriceServiceResponse,
     PriceSource,
     EngineHealth,
     PriceServiceConfig
@@ -18,6 +16,7 @@ import type {
 import type { OracleEngine } from '../engines/oracle-engine';
 import type { CpmmEngine, CpmmPriceResult } from '../engines/cpmm-engine';
 import type { VirtualEngine } from '../engines/virtual-engine';
+import { getHostUrl } from '@modules/discovery';
 
 /**
  * Price Service Orchestrator - Main coordinator for all pricing engines
@@ -27,10 +26,10 @@ export class PriceServiceOrchestrator {
     private cpmmEngine: CpmmEngine | null = null;
     private virtualEngine: VirtualEngine | null = null;
     private config: PriceServiceConfig | null = null;
-    
+
     // Health monitoring
     private engineHealth = new Map<PriceSource, EngineHealth>();
-    
+
     // Caching
     private priceCache = new Map<string, { data: TokenPriceData; timestamp: number }>();
     private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes default
@@ -38,6 +37,204 @@ export class PriceServiceOrchestrator {
     constructor(config?: PriceServiceConfig) {
         this.config = config || null;
         this.initializeEngineHealth();
+    }
+
+    /**
+     * Initialize orchestrator with default engines and providers (like @apps/price-scheduler)
+     * This allows apps to simply use `new PriceServiceOrchestrator()` without manual configuration
+     */
+    async initializeWithDefaults(options?: {
+        investServiceUrl?: string;
+        blobToken?: string;
+    }): Promise<void> {
+        console.log('[PriceOrchestrator] Initializing with default engine configuration...');
+
+        try {
+            // Import engines dynamically to avoid circular dependencies
+            const { OracleEngine } = await import('../engines/oracle-engine');
+            const { CpmmEngine } = await import('../engines/cpmm-engine');
+            const { VirtualEngine } = await import('../engines/virtual-engine');
+
+            // Create engines
+            const oracleEngine = new OracleEngine();
+            const cpmmEngine = new CpmmEngine();
+            const virtualEngine = new VirtualEngine();
+
+            // Get invest service URL for vault data
+            const investUrl = options?.investServiceUrl || this.getDefaultInvestUrl();
+            console.log('[PriceOrchestrator] Using invest service URL:', investUrl);
+
+            // Set up CPMM engine with pool data provider
+            const poolDataProvider = {
+                getAllVaultData: async () => {
+                    console.log('[PriceOrchestrator] Fetching vault data from invest service...');
+                    try {
+                        const response = await fetch(`${investUrl}/api/v1/vaults`);
+                        console.log('[PriceOrchestrator] Vault API response status:', response.status, response.statusText);
+
+                        if (!response.ok) {
+                            throw new Error(`Failed to fetch vaults: ${response.statusText}`);
+                        }
+
+                        const { data } = await response.json();
+                        if (!Array.isArray(data)) {
+                            console.error('[PriceOrchestrator] Vault data is not an array:', data);
+                            throw new Error('Vault data is not an array');
+                        }
+                        console.log(`[PriceOrchestrator] Found ${data.length} vaults`);
+                        return data;
+                    } catch (error) {
+                        console.error('[PriceOrchestrator] Error fetching vault data:', error);
+                        throw error;
+                    }
+                }
+            };
+
+            cpmmEngine.setPoolDataProvider(poolDataProvider);
+            await cpmmEngine.buildGraph();
+
+            // Set up virtual engine providers
+            virtualEngine.setOracleEngine(oracleEngine);
+
+            // Token metadata provider (for subnet tokens)
+            virtualEngine.setTokenMetadataProvider({
+                getTokenMetadata: async (contractId: string) => {
+                    try {
+                        // Use @repo/tokens to get proper token metadata
+                        const { getTokenMetadataCached } = await import('@repo/tokens');
+                        const metadata = await getTokenMetadataCached(contractId);
+                        
+                        // Return in the format expected by virtual engine
+                        if (metadata && metadata.contractId) {
+                            return {
+                                contractId: metadata.contractId,
+                                type: metadata.type || 'STANDARD',
+                                symbol: metadata.symbol,
+                                decimals: metadata.decimals,
+                                base: metadata.base || null
+                            };
+                        }
+                        return null;
+                    } catch (error) {
+                        console.warn(`[PriceOrchestrator] Error getting metadata for ${contractId}:`, error);
+                        return null;
+                    }
+                }
+            });
+
+            // LP provider (for virtual LP token calculation)
+            virtualEngine.setLpProvider({
+                getAllVaultData: poolDataProvider.getAllVaultData,
+                getRemoveLiquidityQuote: async (contractId: string, amount: number) => {
+                    try {
+                        console.log(`[PriceOrchestrator] Getting remove liquidity quote for ${contractId}, amount: ${amount}`);
+                        const response = await fetch(`${investUrl}/api/v1/quote/remove-liquidity`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ vaultContractId: contractId, targetLpAmountToBurn: amount })
+                        });
+
+                        if (!response.ok) {
+                            return { success: false, error: `API error: ${response.statusText}` };
+                        }
+
+                        const data = await response.json();
+                        if (data.success && data.quote) {
+                            return {
+                                success: true,
+                                quote: data.quote
+                            };
+                        }
+
+                        return { success: false, error: data.error || 'Unknown error' };
+                    } catch (error) {
+                        console.error(`[PriceOrchestrator] Error getting LP quote for ${contractId}:`, error);
+                        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+                    }
+                }
+            });
+
+            // Price provider (for recursive pricing in virtual engine)
+            virtualEngine.setPriceProvider({
+                getPrice: async (contractId: string) => {
+                    try {
+                        // Use our own orchestrator for recursive pricing (avoid infinite loops)
+                        const result = await this.calculateTokenPrice(contractId, {
+                            preferredSources: ['oracle', 'market'], // Avoid virtual recursion
+                            useCache: true
+                        });
+
+                        if (result?.success && result.price) {
+                            return { usdPrice: result.price.usdPrice };
+                        }
+                        return null;
+                    } catch (error) {
+                        console.warn(`[PriceOrchestrator] Error getting price for ${contractId}:`, error);
+                        return null;
+                    }
+                }
+            });
+
+            // Set engines on orchestrator
+            this.setOracleEngine(oracleEngine);
+            this.setCpmmEngine(cpmmEngine);
+            this.setVirtualEngine(virtualEngine);
+
+            console.log('[PriceOrchestrator] ✅ Default initialization complete');
+
+        } catch (error) {
+            console.error('[PriceOrchestrator] ❌ Default initialization failed:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Ensure the orchestrator is initialized with engines
+     * Auto-initializes with defaults if no engines are configured
+     */
+    private async ensureInitialized(): Promise<void> {
+        console.log('[PriceOrchestrator] Checking engine configuration...', {
+            hasOracleEngine: !!this.oracleEngine,
+            hasCpmmEngine: !!this.cpmmEngine,
+            hasVirtualEngine: !!this.virtualEngine
+        });
+
+        // Check if any engines are configured and functional
+        const needsInitialization = !this.oracleEngine && !this.cpmmEngine && !this.virtualEngine;
+
+        if (needsInitialization) {
+            console.log('[PriceOrchestrator] No engines configured, auto-initializing with defaults...');
+            await this.initializeWithDefaults();
+        } else {
+            console.log('[PriceOrchestrator] Engines already exist, forcing re-initialization to ensure proper configuration...');
+            await this.initializeWithDefaults();
+        }
+    }
+
+    /**
+     * Get default invest service URL using discovery module
+     */
+    private getDefaultInvestUrl(): string {
+        try {
+            // Use discovery module for URL resolution
+            const url = getHostUrl('invest');
+            console.log('[PriceOrchestrator] Using discovery module for invest URL:', url);
+            return url;
+        } catch (error) {
+            console.warn('[PriceOrchestrator] Could not use discovery module, falling back to environment/default URL:', error);
+
+            // Development fallback
+            if (typeof process !== 'undefined' && process.env) {
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('[PriceOrchestrator] Using development fallback URL');
+                    return 'http://localhost:3003'; // Assume local dev server
+                }
+            }
+
+            // Production fallback
+            console.log('[PriceOrchestrator] Using production fallback URL');
+            return 'https://invest.charisma.rocks';
+        }
     }
 
     /**
@@ -98,6 +295,9 @@ export class PriceServiceOrchestrator {
         console.log(`[PriceOrchestrator] Calculating price for ${tokenId}`);
 
         try {
+            // Auto-initialize with defaults if no engines are configured
+            await this.ensureInitialized();
+
             // Check cache first
             if (useCache) {
                 const cached = this.getCachedPrice(tokenId, options?.maxAge);
@@ -138,7 +338,7 @@ export class PriceServiceOrchestrator {
                         enginesUsed.push(engineType);
                         alternativeResults.push({ source: engineType, price: altResult });
                         console.log(`[PriceOrchestrator] Alternative engine ${engineType} result: $${altResult.usdPrice.toFixed(6)}`);
-                        
+
                         // Use as primary if we don't have one yet
                         if (!primaryResult) {
                             primaryResult = altResult;
@@ -201,7 +401,7 @@ export class PriceServiceOrchestrator {
      * Calculate prices for multiple tokens efficiently
      */
     async calculateMultipleTokenPrices(
-        tokenIds: string[], 
+        tokenIds: string[],
         options?: {
             includeArbitrageAnalysis?: boolean;
             useCache?: boolean;
@@ -215,11 +415,17 @@ export class PriceServiceOrchestrator {
         const engineStats = { oracle: 0, market: 0, virtual: 0, hybrid: 0 };
 
         console.log(`[PriceOrchestrator] Calculating prices for ${tokenIds.length} tokens`);
+        console.log(`[PriceOrchestrator] Starting auto-initialization check...`);
+
+        // Auto-initialize with defaults if no engines are configured
+        await this.ensureInitialized();
+
+        console.log(`[PriceOrchestrator] Auto-initialization check complete, proceeding with calculations...`);
 
         // Process in batches to avoid overwhelming the engines
         for (let i = 0; i < tokenIds.length; i += batchSize) {
             const batch = tokenIds.slice(i, i + batchSize);
-            
+
             const promises = batch.map(async (tokenId) => {
                 const result = await this.calculateTokenPrice(tokenId, options);
                 if (result.success && result.price) {
@@ -255,10 +461,10 @@ export class PriceServiceOrchestrator {
      * Determine which engines to use for a token
      */
     private async determineEngineStrategy(
-        tokenId: string, 
+        tokenId: string,
         preferredSources?: PriceSource[]
     ): Promise<{ primary: PriceSource; alternatives: PriceSource[] }> {
-        
+
         // If user specified preferences, use them
         if (preferredSources && preferredSources.length > 0) {
             return {
@@ -268,7 +474,7 @@ export class PriceServiceOrchestrator {
         }
 
         // Smart engine selection based on asset type
-        
+
         // Check if it's an intrinsic asset first
         if (this.virtualEngine) {
             const hasIntrinsic = await this.virtualEngine.hasVirtualValue(tokenId);
@@ -344,6 +550,8 @@ export class PriceServiceOrchestrator {
      * Try CPMM market engine
      */
     private async tryMarketEngine(tokenId: string): Promise<TokenPriceData | null> {
+        console.log(`[PriceOrchestrator] Trying market engine for ${tokenId}, engine exists: ${!!this.cpmmEngine}`);
+
         if (!this.cpmmEngine) {
             console.log(`[PriceOrchestrator] CPMM engine not available for ${tokenId}`);
             return null;
@@ -352,7 +560,7 @@ export class PriceServiceOrchestrator {
         try {
             // sBTC contract ID - our base token for market discovery
             const SBTC_CONTRACT_ID = 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token';
-            
+
             // If requesting sBTC directly, get from oracle
             if (tokenId === SBTC_CONTRACT_ID) {
                 return await this.tryOracleEngine(tokenId);
@@ -374,9 +582,9 @@ export class PriceServiceOrchestrator {
             // Use CPMM engine to discover prices relative to sBTC
             const baseTokenPrices = new Map<string, number>();
             baseTokenPrices.set(SBTC_CONTRACT_ID, 1.0); // sBTC = 1.0 in sBTC terms
-            
+
             const discoveredPrices = await this.cpmmEngine.discoverPricesFromBase(
-                SBTC_CONTRACT_ID, 
+                SBTC_CONTRACT_ID,
                 baseTokenPrices
             );
 
@@ -486,7 +694,7 @@ export class PriceServiceOrchestrator {
     private calculatePriceVariation(priceResult: CpmmPriceResult): number {
         if (priceResult.alternativePaths.length === 0) return 0;
 
-        const allPrices = [priceResult.ratio, ...priceResult.alternativePaths.map(path => 
+        const allPrices = [priceResult.ratio, ...priceResult.alternativePaths.map(path =>
             // For alternative paths, we'd need to recalculate ratios
             // This is a simplified approach using reliability as a proxy
             priceResult.ratio * (1 + (0.5 - path.reliability))
@@ -529,7 +737,7 @@ export class PriceServiceOrchestrator {
      * Add arbitrage analysis to primary result
      */
     private addArbitrageAnalysis(
-        primaryResult: TokenPriceData, 
+        primaryResult: TokenPriceData,
         alternatives: Array<{ source: PriceSource; price: TokenPriceData }>
     ): void {
         if (alternatives.length === 0) return;
@@ -562,7 +770,7 @@ export class PriceServiceOrchestrator {
 
         const age = Date.now() - cached.timestamp;
         const maxAgeMs = maxAge || this.CACHE_DURATION;
-        
+
         if (age < maxAgeMs) {
             return cached.data;
         }
@@ -638,7 +846,7 @@ export class PriceServiceOrchestrator {
     getCacheStats() {
         return {
             size: this.priceCache.size,
-            oldestEntry: this.priceCache.size > 0 
+            oldestEntry: this.priceCache.size > 0
                 ? Math.min(...Array.from(this.priceCache.values()).map(c => c.timestamp))
                 : null
         };

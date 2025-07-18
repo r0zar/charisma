@@ -82,28 +82,37 @@ interface SeriesData {
   calculationDetails?: any
 }
 
-// Custom tooltip component
-const CustomTooltip = ({ active, payload, label }: any) => {
+// Custom tooltip component factory
+const createCustomTooltip = (seriesDataMap: Record<string, SeriesData>) => ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
-    const data = payload[0].payload
     return (
       <div className="bg-background border border-border rounded-lg shadow-lg p-3">
         <p className="text-sm font-medium text-foreground mb-2">
           {new Date(label).toLocaleString()}
         </p>
-        {payload.map((entry: any, index: number) => (
-          <div key={index} className="text-sm">
-            <p className="text-muted-foreground">
-              <span className="font-medium" style={{ color: entry.color }}>
-                {entry.name}:
-              </span>{' '}
-              ${entry.value.toFixed(8)}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Confidence: {Math.round(data.confidence * 100)}%
-            </p>
-          </div>
-        ))}
+        {payload.map((entry: any, index: number) => {
+          // Find the corresponding series data to get confidence
+          const tokenSymbol = entry.name;
+          const tokenSeries = Object.values(seriesDataMap).find(
+            (series: any) => series.symbol === tokenSymbol
+          ) as any;
+          
+          return (
+            <div key={index} className="text-sm">
+              <p className="text-muted-foreground">
+                <span className="font-medium" style={{ color: entry.color }}>
+                  {entry.name}:
+                </span>{' '}
+                ${entry.value.toFixed(8)}
+              </p>
+              {tokenSeries && (
+                <p className="text-xs text-muted-foreground">
+                  Confidence: {Math.round((tokenSeries.confidence || 0) * 100)}%
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
     )
   }
@@ -114,24 +123,34 @@ export default function SeriesPage() {
   const [availableTokens, setAvailableTokens] = useState<TokenData[]>([])
   const [selectedTokenIds, setSelectedTokenIds] = useState<string[]>([])
   const [seriesData, setSeriesData] = useState<Record<string, SeriesData>>({})
-  const [timeframe, setTimeframe] = useState('1h')
+  const [timeframe, setTimeframe] = useState('5m')
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [chartLoading, setChartLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [exporting, setExporting] = useState(false)
+  const [useLogScale, setUseLogScale] = useState(false)
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date()
+    date.setHours(date.getHours() - 24) // 24 hours ago
+    return date.toISOString().slice(0, 16) // Format for datetime-local
+  })
+  const [endDate, setEndDate] = useState(() => {
+    const date = new Date()
+    return date.toISOString().slice(0, 16) // Format for datetime-local
+  })
 
   // Fetch available tokens on component mount
   useEffect(() => {
     fetchAvailableTokens()
   }, [])
 
-  // Fetch series data when tokens or timeframe changes
+  // Fetch series data when tokens, timeframe, or date range changes
   useEffect(() => {
     if (selectedTokenIds.length > 0) {
       fetchSeriesData()
     }
-  }, [selectedTokenIds, timeframe])
+  }, [selectedTokenIds, timeframe, startDate, endDate])
 
   const fetchAvailableTokens = async () => {
     try {
@@ -176,7 +195,9 @@ export default function SeriesPage() {
           tokenIds: selectedTokenIds,
           timeframe,
           limit: 100,
-          includeDetails: true
+          includeDetails: true,
+          startDate: startDate ? new Date(startDate).getTime() : undefined,
+          endDate: endDate ? new Date(endDate).getTime() : undefined
         })
       })
       
@@ -288,6 +309,12 @@ export default function SeriesPage() {
             const point = series.series.find(p => p.timestamp === timestamp)
             if (point) {
               dataPoint[series.symbol] = point.value
+            } else {
+              // Find the closest previous point for interpolation
+              const previousPoints = series.series.filter(p => p.timestamp < timestamp).sort((a, b) => b.timestamp - a.timestamp)
+              if (previousPoints.length > 0) {
+                dataPoint[series.symbol] = previousPoints[0].value
+              }
             }
           })
           
@@ -335,7 +362,7 @@ export default function SeriesPage() {
       </div>
 
       {/* Controls */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Token Selection */}
         <Card className="bg-gradient-to-r from-card to-card/50 border-border shadow-sm">
           <CardHeader>
@@ -425,21 +452,46 @@ export default function SeriesPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-primary" />
-              Timeframe
+              Timeframe & Range
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Select value={timeframe} onValueChange={setTimeframe}>
-              <SelectTrigger className="bg-background border-accent/50 hover:border-accent transition-colors">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="1m">1 Minute</SelectItem>
-                <SelectItem value="5m">5 Minutes</SelectItem>
-                <SelectItem value="1h">1 Hour</SelectItem>
-                <SelectItem value="1d">1 Day</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Interval</label>
+                <Select value={timeframe} onValueChange={setTimeframe}>
+                  <SelectTrigger className="bg-background border-accent/50 hover:border-accent transition-colors">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1m">1 Minute</SelectItem>
+                    <SelectItem value="5m">5 Minutes</SelectItem>
+                    <SelectItem value="1h">1 Hour</SelectItem>
+                    <SelectItem value="1d">1 Day</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Start Date</label>
+                  <Input
+                    type="datetime-local"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">End Date</label>
+                  <Input
+                    type="datetime-local"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="text-xs"
+                  />
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -466,6 +518,31 @@ export default function SeriesPage() {
                 <span className="font-medium text-orange-500">
                   {availableTokens.filter(t => t.isArbitrageOpportunity).length}
                 </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Chart Options */}
+        <Card className="bg-gradient-to-r from-card to-card/50 border-border shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              Chart Options
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Logarithmic Scale</span>
+                <Button
+                  variant={useLogScale ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setUseLogScale(!useLogScale)}
+                  className="h-7 px-2 text-xs"
+                >
+                  {useLogScale ? 'ON' : 'OFF'}
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -531,13 +608,26 @@ export default function SeriesPage() {
                       hour: '2-digit', 
                       minute: '2-digit' 
                     })}
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke="white"
+                    tick={{ fill: 'white' }}
                   />
                   <YAxis 
-                    stroke="hsl(var(--muted-foreground))"
-                    tickFormatter={(value) => `$${value.toFixed(6)}`}
+                    scale={useLogScale ? "log" : "linear"}
+                    domain={useLogScale ? ['auto', 'auto'] : ['dataMin', 'dataMax']}
+                    stroke="white"
+                    tick={{ fill: 'white' }}
+                    width={80}
+                    tickFormatter={(value) => {
+                      if (value >= 1) {
+                        return `$${value.toFixed(2)}`;
+                      } else if (value >= 0.01) {
+                        return `$${value.toFixed(4)}`;
+                      } else {
+                        return `$${value.toFixed(8)}`;
+                      }
+                    }}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip content={createCustomTooltip(seriesData)} />
                   
                   {Object.entries(seriesData).map(([tokenId, series], index) => (
                     <Line
@@ -548,6 +638,7 @@ export default function SeriesPage() {
                       strokeWidth={2}
                       dot={false}
                       name={series.symbol}
+                      connectNulls={false}
                     />
                   ))}
                 </LineChart>

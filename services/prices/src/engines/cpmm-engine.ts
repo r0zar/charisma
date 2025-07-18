@@ -228,7 +228,7 @@ export class CpmmEngine {
      */
     async discoverPricesFromBase(baseTokenId: string, knownPrices?: Map<string, number>): Promise<Map<string, CpmmPriceResult>> {
         console.log(`[CpmmEngine] Starting price discovery from base token: ${baseTokenId}`);
-        
+
         const discoveredPrices = new Map<string, number>();
         const priceResults = new Map<string, CpmmPriceResult>();
 
@@ -266,7 +266,7 @@ export class CpmmEngine {
                     if (newPrice && newPrice > 0) {
                         const reliability = this.calculatePoolReliability(edge);
                         const path = `${this.getTokenSymbol(edge.tokenA)}→${this.getTokenSymbol(edge.tokenB)}`;
-                        
+
                         if (!newPrices.has(edge.tokenB) || newPrices.get(edge.tokenB)!.reliability < reliability) {
                             newPrices.set(edge.tokenB, { price: newPrice, reliability, path });
                         }
@@ -279,7 +279,7 @@ export class CpmmEngine {
                     if (newPrice && newPrice > 0) {
                         const reliability = this.calculatePoolReliability(edge);
                         const path = `${this.getTokenSymbol(edge.tokenB)}→${this.getTokenSymbol(edge.tokenA)}`;
-                        
+
                         if (!newPrices.has(edge.tokenA) || newPrices.get(edge.tokenA)!.reliability < reliability) {
                             newPrices.set(edge.tokenA, { price: newPrice, reliability, path });
                         }
@@ -290,7 +290,7 @@ export class CpmmEngine {
             // Add discovered prices
             for (const [tokenId, { price, reliability, path }] of newPrices) {
                 discoveredPrices.set(tokenId, price);
-                console.log(`[CpmmEngine] Discovered: ${this.getTokenSymbol(tokenId)} = ${price.toFixed(6)} (${path})`);
+                console.log(`[CpmmEngine] Discovered: ${this.getTokenSymbol(tokenId)} = ${price.toFixed(12)} (${path})`);
             }
 
             const newCount = discoveredPrices.size;

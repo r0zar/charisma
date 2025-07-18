@@ -47,7 +47,8 @@
         "TWITTER_ACCESS_TOKEN",
         "TWITTER_ACCESS_SECRET",
         "TWITTER_REPLIES_ENABLED",
-        "BLOB_READ_WRITE_TOKEN"
+        "BLOB_READ_WRITE_TOKEN",
+        "BLOB_BASE_URL"
       ]
     },
     "dev": {

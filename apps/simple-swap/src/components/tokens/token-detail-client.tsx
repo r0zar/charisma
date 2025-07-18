@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
-import type { TokenSummary } from '@/app/token-actions';
+import type { TokenSummary } from '@/types/token-types';
 import TokenChartWrapper from './token-chart-wrapper';
+import AnalyticsDashboard from './analytics-dashboard';
 import { useDominantColor } from '../utils/useDominantColor';
 import CompareTokenSelector from './compare-token-selector';
-import { perfMonitor } from '@/lib/performance-monitor';
 import LivePriceIndicator, { LivePriceStatus } from './live-price-indicator';
 import { usePrices } from '@/contexts/token-price-context';
 import { useBalances } from '@/contexts/wallet-balance-context';
@@ -16,6 +16,7 @@ import { useComparisonToken } from '@/contexts/comparison-token-context';
 interface Props {
     detail: TokenSummary;
     tokens?: TokenSummary[];
+    preloadedData?: Record<string, any>;
 }
 
 interface PremiumComparisonCardProps {
@@ -51,7 +52,7 @@ function PremiumComparisonCard({ period, change, isRelative, compareSymbol }: Pr
         <div className={`group relative p-4 sm:p-6 rounded-2xl border bg-black/20 backdrop-blur-sm transition-all duration-300 hover:bg-black/30 hover:shadow-lg ${getBorderGlow(change)}`}>
             {/* Subtle gradient overlay */}
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-            
+
             <div className="relative flex flex-col items-center space-y-2 sm:space-y-3">
                 <div className="text-xs text-white/50 uppercase tracking-wider font-medium group-hover:text-white/70 transition-colors duration-300 text-center">
                     {period} {isRelative && compareSymbol && (
@@ -65,7 +66,7 @@ function PremiumComparisonCard({ period, change, isRelative, compareSymbol }: Pr
                     {fmtDelta(change)}
                 </div>
             </div>
-            
+
             {/* Trend indicator */}
             {change !== null && (
                 <div className="absolute top-3 right-3">
@@ -99,7 +100,7 @@ function TokenImage({ token, size = 56 }: { token: TokenSummary; size?: number }
     );
 }
 
-export default function TokenDetailClient({ detail, tokens: initialTokens }: Props) {
+export default function TokenDetailClient({ detail, tokens: initialTokens, preloadedData }: Props) {
     const [tokens, setTokens] = useState<TokenSummary[]>(initialTokens ?? []);
     const [isLoadingTokens, setIsLoadingTokens] = useState(false);
 
@@ -113,38 +114,38 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
     const isConnected = !pricesLoading && !balancesLoading;
 
     // Only fetch tokens if not provided from SSR and we don't have any tokens yet
-    useEffect(() => {
-        if (initialTokens && initialTokens.length > 0) {
-            console.log('[TOKEN-DETAIL-CLIENT] Using SSR token data, skipping API call');
-            return;
-        }
+    // useEffect(() => {
+    //     if (initialTokens && initialTokens.length > 0) {
+    //         console.log('[TOKEN-DETAIL-CLIENT] Using SSR token data, skipping API call');
+    //         return;
+    //     }
 
-        if (tokens.length > 0) {
-            console.log('[TOKEN-DETAIL-CLIENT] Tokens already loaded, skipping API call');
-            return;
-        }
+    //     if (tokens.length > 0) {
+    //         console.log('[TOKEN-DETAIL-CLIENT] Tokens already loaded, skipping API call');
+    //         return;
+    //     }
 
-        const timer = perfMonitor.startTiming('token-detail-client-fetch-tokens');
-        setIsLoadingTokens(true);
+    //     const timer = perfMonitor.startTiming('token-detail-client-fetch-tokens');
+    //     setIsLoadingTokens(true);
 
-        fetch('/api/token-summaries')
-            .then((r) => {
-                if (!r.ok) throw new Error(`HTTP ${r.status}`);
-                return r.json();
-            })
-            .then((d: TokenSummary[]) => {
-                setTokens(d);
-                timer.end({ source: 'api', tokenCount: d.length });
-                console.log('[TOKEN-DETAIL-CLIENT] Loaded tokens from API:', d.length);
-            })
-            .catch((error) => {
-                console.error('[TOKEN-DETAIL-CLIENT] Failed to fetch tokens:', error);
-                timer.end({ source: 'api', error: error.message });
-            })
-            .finally(() => {
-                setIsLoadingTokens(false);
-            });
-    }, [initialTokens, tokens.length]);
+    //     fetch('/api/token-summaries')
+    //         .then((r) => {
+    //             if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    //             return r.json();
+    //         })
+    //         .then((d: TokenSummary[]) => {
+    //             setTokens(d);
+    //             timer.end({ source: 'api', tokenCount: d.length });
+    //             console.log('[TOKEN-DETAIL-CLIENT] Loaded tokens from API:', d.length);
+    //         })
+    //         .catch((error) => {
+    //             console.error('[TOKEN-DETAIL-CLIENT] Failed to fetch tokens:', error);
+    //             timer.end({ source: 'api', error: error.message });
+    //         })
+    //         .finally(() => {
+    //             setIsLoadingTokens(false);
+    //         });
+    // }, [initialTokens, tokens.length]);
 
     // compareId initialization is now handled by ComparisonTokenContext
 
@@ -249,7 +250,7 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
             console.log('[TOKEN-DETAIL-CLIENT] Waiting for context initialization...');
             return;
         }
-        
+
         if (!compareId && defaultCompareId) {
             console.log('[TOKEN-DETAIL-CLIENT] Setting default comparison token:', defaultCompareId.substring(0, 10));
             setCompareId(defaultCompareId);
@@ -284,7 +285,7 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
                                 <span className="hidden sm:inline">Your balance: </span>
                                 <span className="sm:hidden">Balance: </span>
                                 {enhancedDetail.userBalance.toFixed(4)} {enhancedDetail.enhancedMetadata?.symbol}
-                                
+
                                 {/* Tooltip */}
                                 <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-black/20 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-lg text-xs text-white/80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
                                     <div className="font-medium mb-2 text-white/95">Balance Breakdown</div>
@@ -323,7 +324,7 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
                 <div className="group relative p-4 sm:p-6 rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm transition-all duration-300 hover:bg-black/30 hover:border-white/[0.15] hover:shadow-lg">
                     {/* Subtle gradient overlay */}
                     <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
-                    
+
                     <div className="relative flex flex-col items-center space-y-2 sm:space-y-3">
                         <div className="text-xs text-white/50 uppercase tracking-wider font-medium group-hover:text-white/70 transition-colors duration-300 text-center">
                             Price
@@ -336,7 +337,7 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
                             showStatus={false}
                         />
                     </div>
-                    
+
                     {/* Live indicator */}
                     {isConnected && (
                         <div className="absolute top-3 right-3">
@@ -347,21 +348,21 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
                         </div>
                     )}
                 </div>
-                
+
                 <PremiumComparisonCard
                     period="1h"
                     change={relativeChanges.change1h}
                     isRelative={relativeChanges.isRelative}
                     compareSymbol={compareToken?.symbol}
                 />
-                
+
                 <PremiumComparisonCard
                     period="24h"
                     change={relativeChanges.change24h}
                     isRelative={relativeChanges.isRelative}
                     compareSymbol={compareToken?.symbol}
                 />
-                
+
                 <PremiumComparisonCard
                     period="7d"
                     change={relativeChanges.change7d}
@@ -376,6 +377,15 @@ export default function TokenDetailClient({ detail, tokens: initialTokens }: Pro
                 compareId={compareId}
                 primaryColor={primaryColor ?? '#3b82f6'}
                 compareColor={compareColor ?? '#f87171'}
+                preloadedData={preloadedData}
+            />
+
+            {/* Analytics Dashboard */}
+            <AnalyticsDashboard
+                token={enhancedDetail}
+                compareToken={compareToken}
+                preloadedAnalytics={preloadedData?.[detail.contractId]?.analytics}
+                className="mt-8"
             />
         </>
     );

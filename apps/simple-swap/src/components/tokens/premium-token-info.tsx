@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { TokenSummary } from '@/app/token-actions';
+import type { TokenSummary } from '@/types/token-types';
 import { truncateSmartContract } from '@/lib/address-utils';
 
 interface PremiumTokenInfoProps {

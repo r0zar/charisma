@@ -4,7 +4,7 @@ import React, { useMemo, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import type { TokenSummary } from "@/app/token-actions";
+import type { TokenSummary } from "@/types/token-types";
 import { cn } from "@/lib/utils";
 
 interface RelatedTokensProps {

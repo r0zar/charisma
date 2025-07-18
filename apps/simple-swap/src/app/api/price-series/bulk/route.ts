@@ -1,4 +1,3 @@
-import { getPricesInRange } from "@/lib/price/store";
 import { NextResponse } from "next/server";
 
 interface SeriesPoint {
@@ -97,48 +96,126 @@ export async function GET(request: Request) {
         const result: Record<string, SeriesPoint[] | AggregatedPoint[]> = {};
 
         const startTime = Date.now();
-        console.log('[BULK-API] Processing request', { 
-            tokenCount: contractIds.length, 
+        console.log('[BULK-API] Processing request via centralized service', {
+            tokenCount: contractIds.length,
             timeRange: `${Math.round((toNum - fromNum) / (24 * 60 * 60 * 1000))}d`,
-            aggregated: !!periodSec 
+            aggregated: !!periodSec
         });
 
         const results = { processed: 0, totalPoints: 0, errors: 0 };
 
-        // Process all contract IDs
-        await Promise.all(contractIds.map(async (contractId: string) => {
-            try {
-                const raw = await getPricesInRange(contractId, fromNum, toNum);
-                results.processed++;
+        try {
+            // Use centralized PriceSeriesAPI for fetching
+            const { PriceSeriesAPI, PriceSeriesStorage } = await import('@services/prices');
+            const storage = new PriceSeriesStorage();
+            const priceSeriesAPI = new PriceSeriesAPI(storage);
 
-                // Validate the data structure
-                if (!Array.isArray(raw)) {
-                    console.warn(`[WARN] Invalid data format for ${contractId}: expected array`);
+            const fromSec = Math.floor(fromNum / 1000); // Convert to seconds
+            const toSec = Math.floor(toNum / 1000); // Convert to seconds
+
+            // Determine appropriate timeframe based on time range
+            const timeRangeHours = (toSec - fromSec) / 3600;
+            let timeframe: '1m' | '5m' | '1h' | '1d';
+            if (timeRangeHours <= 24) {
+                timeframe = '5m';
+            } else if (timeRangeHours <= 168) { // 1 week
+                timeframe = '1h';
+            } else {
+                timeframe = '1d';
+            }
+
+            // Fetch data for each token individually
+            const bulkData: Record<string, any[]> = {};
+
+            for (const contractId of contractIds) {
+                try {
+                    const historyResponse = await priceSeriesAPI.getPriceHistory({
+                        tokenId: contractId,
+                        timeframe,
+                        limit: 1000,
+                        endTime: toSec
+                    });
+
+                    if (historyResponse.success && historyResponse.data) {
+                        // Filter by time range and convert to expected format
+                        bulkData[contractId] = historyResponse.data
+                            .filter(entry => entry.timestamp >= fromSec && entry.timestamp <= toSec)
+                            .map(entry => ({
+                                timestamp: entry.timestamp,
+                                price: entry.usdPrice
+                            }));
+                    } else {
+                        console.warn(`[BULK-API] Failed to get history for ${contractId}: ${historyResponse.error}`);
+                        bulkData[contractId] = [];
+                    }
+                } catch (error) {
+                    console.error(`[BULK-API] Error fetching ${contractId}:`, error);
+                    bulkData[contractId] = [];
+                }
+            }
+
+            console.log('[BULK-API] Received bulk data from centralized service:', {
+                requestedTokens: contractIds.length,
+                receivedTokens: Object.keys(bulkData).length,
+                successfulFetches: Object.values(bulkData).filter(series => Array.isArray(series) && series.length > 0).length
+            });
+
+            // Process the centralized service response
+            Object.entries(bulkData).forEach(([contractId, seriesData]) => {
+                try {
+                    results.processed++;
+
+                    if (!Array.isArray(seriesData)) {
+                        console.warn(`[BULK-API] Invalid data format for ${contractId}: expected array, got ${typeof seriesData}`);
+                        result[contractId] = [];
+                        return;
+                    }
+
+                    // Convert centralized service format to SeriesPoint format
+                    const series: SeriesPoint[] = seriesData
+                        .map((point: any) => {
+                            // Handle both price series storage format and direct format
+                            const time = point.timestamp || point.time;
+                            const value = point.price || point.value;
+
+                            return {
+                                time: Number(time),
+                                value: Number(value),
+                            };
+                        })
+                        .filter(point => !isNaN(point.time) && !isNaN(point.value));
+
+                    if (periodSec) {
+                        result[contractId] = aggregateSeries(series, periodSec);
+                    } else {
+                        result[contractId] = series;
+                    }
+
+                    results.totalPoints += series.length;
+                } catch (error) {
+                    console.warn(`[BULK-API] Failed to process token ${contractId.substring(0, 10)}...:`, error instanceof Error ? error.message : 'Unknown error');
                     result[contractId] = [];
-                    return;
+                    results.errors++;
                 }
+            });
 
-                const series: SeriesPoint[] = raw
-                    .filter(item => Array.isArray(item) && item.length >= 2)
-                    .map(([ts, price]) => ({
-                        time: Math.floor(Number(ts) / 1000), // Convert to seconds
-                        value: Number(price),
-                    }))
-                    .filter(point => !isNaN(point.time) && !isNaN(point.value));
-
-                if (periodSec) {
-                    result[contractId] = aggregateSeries(series, periodSec);
-                } else {
-                    result[contractId] = series;
+            // Handle any tokens that weren't returned by the centralized service
+            contractIds.forEach(contractId => {
+                if (!(contractId in result)) {
+                    console.warn(`[BULK-API] Token ${contractId.substring(0, 10)}... not returned by centralized service`);
+                    result[contractId] = [];
+                    results.errors++;
                 }
-                
-                results.totalPoints += series.length;
-            } catch (error) {
-                console.warn(`[BULK-API] Failed to process token ${contractId.substring(0, 10)}...:`, error instanceof Error ? error.message : 'Unknown error');
+            });
+
+        } catch (error) {
+            console.error('[BULK-API] Centralized service request failed:', error);
+            // Fallback: return empty arrays for all tokens
+            contractIds.forEach(contractId => {
                 result[contractId] = [];
                 results.errors++;
-            }
-        }));
+            });
+        }
 
         const duration = Date.now() - startTime;
         console.log('[BULK-API] Completed', {
@@ -146,9 +223,9 @@ export async function GET(request: Request) {
             duration: `${duration}ms`,
             avgPointsPerToken: Math.round(results.totalPoints / results.processed)
         });
-        
+
         const response = NextResponse.json(result);
-        
+
         // Add CORS headers
         response.headers.set('Access-Control-Allow-Origin', '*');
         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -167,7 +244,7 @@ export async function GET(request: Request) {
         };
 
         const errorResponse = NextResponse.json(errorBody, { status: 500 });
-        
+
         // Add CORS headers to error response
         errorResponse.headers.set('Access-Control-Allow-Origin', '*');
         errorResponse.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');

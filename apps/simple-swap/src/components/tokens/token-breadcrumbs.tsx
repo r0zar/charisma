@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { ChevronRight, Home } from "lucide-react";
-import type { TokenSummary } from "@/app/token-actions";
+import type { TokenSummary } from "@/types/token-types";
 import { cn } from "@/lib/utils";
 
 interface TokenBreadcrumbsProps {

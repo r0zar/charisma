@@ -14,7 +14,8 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "script": "node --import tsx"
+    "script": "node --import tsx",
+    "debug-storage": "tsx scripts/debug-storage-comparison.ts"
   },
   "dependencies": {
     "@charisma/notifier": "workspace:^",

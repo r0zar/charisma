@@ -11,6 +11,7 @@
       "env": [
         "HIRO_API_KEY",
         "BLOB_READ_WRITE_TOKEN",
+        "BLOB_BASE_URL",
         "CRON_SECRET",
         "KV_URL",
         "KV_REST_API_URL",

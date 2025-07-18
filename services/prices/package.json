@@ -33,6 +33,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@modules/discovery": "workspace:*",
+    "@repo/tokens": "workspace:*",
     "@repo/polyglot": "workspace:*",
     "@swc/helpers": "^0.5.17",
     "@vercel/blob": "^1.1.1",

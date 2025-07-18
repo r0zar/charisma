@@ -37,7 +37,8 @@
         "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
         "CLERK_SECRET_KEY",
         "NEXT_PUBLIC_TX_MONITOR_URL",
-        "BLOB_READ_WRITE_TOKEN"
+        "BLOB_READ_WRITE_TOKEN",
+        "BLOB_BASE_URL"
       ]
     },
     "build:dev": {

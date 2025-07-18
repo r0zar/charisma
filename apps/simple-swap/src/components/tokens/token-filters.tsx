@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Download, Heart } from "lucide-react";
+import { Download, Heart, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TokenFiltersProps {
@@ -9,31 +9,37 @@ interface TokenFiltersProps {
     setCategoryFilter: (category: string) => void;
     sortBy: string;
     setSortBy: (sort: string) => void;
+    hasArbitrageCategory?: boolean;
     className?: string;
 }
-
-const categories = [
-    { id: "all", label: "All Tokens", icon: "🔍" },
-    { id: "stablecoin", label: "Stablecoins", icon: "💰" },
-    { id: "defi", label: "DeFi", icon: "🏦" },
-    { id: "governance", label: "Governance", icon: "🗳️" },
-];
-
-const sortOptions = [
-    { id: "market_cap", label: "Market Cap" },
-    { id: "price", label: "Price" },
-    { id: "change24h", label: "24h Change" },
-    { id: "change7d", label: "7d Change" },
-    { id: "name", label: "Name" },
-];
 
 export default function TokenFilters({
     categoryFilter,
     setCategoryFilter,
     sortBy,
     setSortBy,
+    hasArbitrageCategory = false,
     className
 }: TokenFiltersProps) {
+
+    const categories = [
+        { id: "all", label: "All Tokens", icon: "🔍" },
+        { id: "stablecoin", label: "Stablecoins", icon: "💰" },
+        { id: "defi", label: "DeFi", icon: "🏦" },
+        { id: "governance", label: "Governance", icon: "🗳️" },
+        // Conditionally add arbitrage category
+        ...(hasArbitrageCategory ? [{ id: "arbitrage", label: "Arbitrage", icon: "⚡" }] : [])
+    ];
+
+    const sortOptions = [
+        { id: "market_cap", label: "Market Cap" },
+        { id: "price", label: "Price" },
+        { id: "change24h", label: "24h Change" },
+        { id: "change7d", label: "7d Change" },
+        { id: "name", label: "Name" },
+        { id: "source", label: "Source" },
+        { id: "arbitrage", label: "Arbitrage %" },
+    ];
 
     const handleExport = () => {
         // Simple CSV export functionality
@@ -64,12 +70,17 @@ export default function TokenFilters({
                             className={cn(
                                 "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
                                 categoryFilter === category.id
-                                    ? "bg-white/[0.08] text-white border border-white/[0.2]"
+                                    ? category.id === "arbitrage"
+                                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
+                                        : "bg-white/[0.08] text-white border border-white/[0.2]"
                                     : "text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent"
                             )}
                         >
                             <span className="text-xs">{category.icon}</span>
                             {category.label}
+                            {category.id === "arbitrage" && hasArbitrageCategory && (
+                                <TrendingUp className="h-3 w-3" />
+                            )}
                         </button>
                     ))}
                 </div>
@@ -113,4 +124,4 @@ export default function TokenFilters({
             </div>
         </div>
     );
-} 
+}

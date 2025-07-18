@@ -3,6 +3,10 @@
 // Core types and interfaces
 export * from './shared/types';
 
+// Price series types
+export * from './price-series/price-series-storage';
+export * from './price-series/price-series-api';
+
 // Shared utilities
 export * from './shared/decimal-utils';
 

@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from 'next/image';
-import type { TokenSummary } from "@/app/token-actions";
+import type { TokenSummary } from "@/types/token-types";
 import CompareTokenDropdown from "./compare-token-dropdown";
 
 interface CompareTokenSelectorProps {
@@ -21,26 +21,6 @@ export default function CompareTokenSelector({ tokens, primary, selectedId, onSe
     const helpers = helperSymbols
         .map((sym) => tokens.find((t) => t.symbol === sym))
         .filter(Boolean) as TokenSummary[];
-
-    function fmtDelta(delta: number | null) {
-        if (delta === null) return "-";
-        const sign = delta > 0 ? "+" : "";
-        return `${sign}${delta.toFixed(2)}%`;
-    }
-
-    function getColour(delta: number | null) {
-        if (delta === null) return "text-muted-foreground";
-        if (delta > 0) return "text-green-600";
-        if (delta < 0) return "text-red-600";
-        return "";
-    }
-
-    function diff(a: number | null, b: number | null) {
-        if (a === null || b === null) return null;
-        return a - b;
-    }
-
-    const compare = selected ?? helpers[0] ?? null;
 
     return (
         <div className="mb-4 self-end w-full sm:w-auto">

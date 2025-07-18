@@ -9,7 +9,7 @@ import {
     LineSeries,
     ColorType,
 } from 'lightweight-charts';
-import { usePriceSeriesService } from '@/lib/price-series-service';
+import { usePriceSeriesService } from '@/lib/charts/price-series-service';
 import { perfMonitor } from '@/lib/performance-monitor';
 import {
     enhanceSparseTokenData,
@@ -400,8 +400,8 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                             key={key}
                             onClick={() => handleTimeRangeChange(key)}
                             className={`px-3 py-1.5 text-sm font-medium rounded-xl transition-all duration-200 ${activeTimeRange === key
-                                    ? 'bg-white/[0.08] text-white border border-white/[0.2]'
-                                    : 'text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent'
+                                ? 'bg-white/[0.08] text-white border border-white/[0.2]'
+                                : 'text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent'
                                 }`}
                         >
                             {range.label}

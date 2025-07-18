@@ -24,7 +24,7 @@ function ChartLoadingSpinner() {
     );
 }
 
-const TokenChart = dynamic(() => import('./token-chart'), { 
+const EnhancedTokenChart = dynamic(() => import('./enhanced-token-chart'), { 
     ssr: false,
     loading: () => <ChartLoadingSpinner />
 });
@@ -34,8 +34,9 @@ interface Props {
     compareId: string | null;
     primaryColor: string;
     compareColor: string;
+    preloadedData?: Record<string, any>;
 }
 
-export default function TokenChartWrapper({ primary, compareId, primaryColor, compareColor }: Props) {
-    return <TokenChart primary={primary} compareId={compareId} primaryColor={primaryColor} compareColor={compareColor} />;
+export default function TokenChartWrapper({ primary, compareId, primaryColor, compareColor, preloadedData }: Props) {
+    return <EnhancedTokenChart primary={primary} compareId={compareId} primaryColor={primaryColor} compareColor={compareColor} preloadedData={preloadedData} />;
 } 

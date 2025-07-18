@@ -2,17 +2,25 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight } from 'lucide-react';
-import type { TokenSummary } from '@/app/token-actions';
+import { ArrowUpRight, TrendingUp, AlertTriangle } from 'lucide-react';
+import type { TokenSummary } from '@/types/token-types';
 import { cn } from '@/lib/utils';
 import { useComparisonToken } from '@/contexts/comparison-token-context';
 
 interface MarketInsightsProps {
-    tokens: TokenSummary[];
+    tokenSummaries: TokenSummary[];
+    arbitrageOpportunities?: Array<{
+        tokenId: string;
+        symbol: string;
+        marketPrice: number;
+        virtualValue: number;
+        deviation: number;
+        profitable: boolean;
+    }>;
 }
 
 interface MarketInsight {
-    type: 'momentum_cluster' | 'price_correlation' | 'market_cap_leaders' | 'volatility_sync' | 'breakout_candidates';
+    type: 'momentum_cluster' | 'price_correlation' | 'market_cap_leaders' | 'volatility_sync' | 'breakout_candidates' | 'arbitrage_alert';
     title: string;
     description: string;
     tokens: TokenWithScore[];
@@ -73,14 +81,44 @@ function InsightsSkeleton() {
     );
 }
 
-export default function MarketInsights({ tokens }: MarketInsightsProps) {
+export default function MarketInsights({ tokenSummaries, arbitrageOpportunities = [] }: MarketInsightsProps) {
     const { compareId } = useComparisonToken();
     const [isLoading, setIsLoading] = useState(false);
     const [lastCompareId, setLastCompareId] = useState<string | null>(compareId);
 
     const insights = useMemo(() => {
-        return generateMarketInsights(tokens);
-    }, [tokens]);
+        const allInsights = generateMarketInsights(tokenSummaries);
+
+        // Add arbitrage insights if available
+        if (arbitrageOpportunities.length > 0) {
+            const arbTokens = arbitrageOpportunities
+                .filter(opp => opp.profitable)
+                .slice(0, 5)
+                .map(opp => {
+                    const token = tokenSummaries.find(t => t.contractId === opp.tokenId);
+                    if (!token) return null;
+
+                    return {
+                        token,
+                        score: opp.deviation,
+                        reason: `Market: $${opp.marketPrice.toFixed(4)}, Virtual: $${opp.virtualValue.toFixed(4)} (${opp.deviation.toFixed(1)}% difference)`
+                    };
+                })
+                .filter((item): item is TokenWithScore => item !== null);
+
+            if (arbTokens.length > 0) {
+                allInsights.unshift({
+                    type: 'arbitrage_alert' as const,
+                    title: 'Live Arbitrage Opportunities',
+                    description: 'Tokens with significant price differences between market and intrinsic values',
+                    tokens: arbTokens,
+                    confidence: 1.0
+                });
+            }
+        }
+
+        return allInsights;
+    }, [tokenSummaries, arbitrageOpportunities]);
 
     // Trigger loading state when comparison token changes
     useEffect(() => {
@@ -97,7 +135,7 @@ export default function MarketInsights({ tokens }: MarketInsightsProps) {
             const timer = setTimeout(() => {
                 setIsLoading(false);
             }, 150);
-            
+
             return () => clearTimeout(timer);
         }
     }, [isLoading, insights.length]);
@@ -117,6 +155,7 @@ export default function MarketInsights({ tokens }: MarketInsightsProps) {
                 </h2>
                 <p className="text-sm text-white/50">
                     Advanced pattern analysis and market correlation insights
+                    {arbitrageOpportunities.length > 0 && ' including live arbitrage opportunities'}
                 </p>
             </div>
 
@@ -130,59 +169,6 @@ export default function MarketInsights({ tokens }: MarketInsightsProps) {
     );
 }
 
-function InsightCard({ insight, index }: { insight: MarketInsight; index: number }) {
-    const getInsightColor = (type: MarketInsight['type']) => {
-        switch (type) {
-            case 'momentum_cluster': return 'border-emerald-500/20 bg-emerald-500/5';
-            case 'price_correlation': return 'border-blue-500/20 bg-blue-500/5';
-            case 'market_cap_leaders': return 'border-orange-500/20 bg-orange-500/5';
-            case 'volatility_sync': return 'border-purple-500/20 bg-purple-500/5';
-            case 'breakout_candidates': return 'border-red-500/20 bg-red-500/5';
-            default: return 'border-white/[0.05] bg-white/[0.02]';
-        }
-    };
-
-    const getConfidenceColor = (confidence: number) => {
-        if (confidence > 0.8) return 'text-emerald-400';
-        if (confidence > 0.6) return 'text-yellow-400';
-        return 'text-orange-400';
-    };
-
-    return (
-        <div className={`border rounded-2xl p-6 ${getInsightColor(insight.type)} hover:border-opacity-40 transition-all duration-300`}>
-            {/* Header */}
-            <div className="flex items-start justify-between mb-4">
-                <div>
-                    <h3 className="font-medium text-white/90 mb-1">{insight.title}</h3>
-                    <p className="text-sm text-white/60 leading-relaxed">{insight.description}</p>
-                </div>
-                <div className="text-right">
-                    <div className={`text-sm font-medium ${getConfidenceColor(insight.confidence)}`}>
-                        {(insight.confidence * 100).toFixed(0)}%
-                    </div>
-                    <div className="text-xs text-white/40">confidence</div>
-                </div>
-            </div>
-
-            {/* Token list */}
-            <div className="space-y-3">
-                {insight.tokens.slice(0, 3).map((tokenWithScore) => (
-                    <TokenInsightRow key={tokenWithScore.token.contractId} tokenWithScore={tokenWithScore} />
-                ))}
-            </div>
-
-            {/* View more if applicable */}
-            {insight.tokens.length > 3 && (
-                <div className="mt-4 pt-3 border-t border-white/[0.05]">
-                    <div className="text-xs text-white/40">
-                        +{insight.tokens.length - 3} more tokens in this pattern
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
 function ImmersiveInsightRow({ insight, index }: { insight: MarketInsight; index: number }) {
     const getConfidenceColor = (confidence: number) => {
         if (confidence > 0.8) return 'text-emerald-400';
@@ -192,6 +178,7 @@ function ImmersiveInsightRow({ insight, index }: { insight: MarketInsight; index
 
     const getInsightIcon = (type: MarketInsight['type']) => {
         switch (type) {
+            case 'arbitrage_alert': return '⚡';
             case 'momentum_cluster': return '📈';
             case 'price_correlation': return '🔄';
             case 'market_cap_leaders': return '👑';
@@ -201,14 +188,24 @@ function ImmersiveInsightRow({ insight, index }: { insight: MarketInsight; index
         }
     };
 
+    const isArbitrageInsight = insight.type === 'arbitrage_alert';
+
     return (
-        <div className="py-6 border-b border-white/[0.03] last:border-b-0">
+        <div className={cn(
+            "py-6 border-b border-white/[0.03] last:border-b-0",
+            isArbitrageInsight && "bg-gradient-to-r from-amber-500/5 via-transparent to-amber-500/5 -mx-4 px-4 rounded-xl"
+        )}>
             {/* Clean header */}
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-start gap-3">
                     <span className="text-lg">{getInsightIcon(insight.type)}</span>
                     <div>
-                        <h3 className="font-medium text-white/90 mb-1">{insight.title}</h3>
+                        <h3 className={cn(
+                            "font-medium mb-1",
+                            isArbitrageInsight ? "text-amber-400" : "text-white/90"
+                        )}>
+                            {insight.title}
+                        </h3>
                         <p className="text-sm text-white/60 leading-relaxed">{insight.description}</p>
                     </div>
                 </div>
@@ -223,7 +220,11 @@ function ImmersiveInsightRow({ insight, index }: { insight: MarketInsight; index
             {/* Flowing token grid */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {insight.tokens.slice(0, 3).map((tokenWithScore) => (
-                    <TokenInsightCard key={tokenWithScore.token.contractId} tokenWithScore={tokenWithScore} />
+                    <TokenInsightCard
+                        key={tokenWithScore.token.contractId}
+                        tokenWithScore={tokenWithScore}
+                        isArbitrage={isArbitrageInsight}
+                    />
                 ))}
             </div>
 
@@ -239,7 +240,7 @@ function ImmersiveInsightRow({ insight, index }: { insight: MarketInsight; index
     );
 }
 
-function TokenInsightRow({ tokenWithScore }: { tokenWithScore: TokenWithScore }) {
+function TokenInsightCard({ tokenWithScore, isArbitrage }: { tokenWithScore: TokenWithScore; isArbitrage?: boolean }) {
     const { token, reason } = tokenWithScore;
     const change = token.change24h || 0;
     const isPositive = change > 0;
@@ -248,51 +249,12 @@ function TokenInsightRow({ tokenWithScore }: { tokenWithScore: TokenWithScore })
     return (
         <Link
             href={`/tokens/${encodeURIComponent(token.contractId)}`}
-            className="group flex items-center justify-between py-2 px-3 rounded-xl hover:bg-white/[0.03] transition-all duration-200"
-        >
-            <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center overflow-hidden">
-                    {token.image ? (
-                        <img src={token.image} alt={token.symbol} className="w-full h-full object-cover" />
-                    ) : (
-                        <span className="text-xs font-bold text-white/60">{token.symbol.charAt(0)}</span>
-                    )}
-                </div>
-                <div>
-                    <div className="font-medium text-white/90 text-sm group-hover:text-white transition-colors duration-200">
-                        {token.symbol}
-                    </div>
-                    <div className="text-xs text-white/40" title={reason}>
-                        {reason.length > 30 ? `${reason.slice(0, 30)}...` : reason}
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-                <div className={cn(
-                    "text-sm font-medium",
-                    isPositive ? "text-emerald-400" :
-                    isNegative ? "text-red-400" : 
-                    "text-white/60"
-                )}>
-                    {change > 0 ? "+" : ""}{change.toFixed(2)}%
-                </div>
-                <ArrowUpRight className="h-3 w-3 text-white/20 group-hover:text-white/60 transition-colors duration-200" />
-            </div>
-        </Link>
-    );
-}
-
-function TokenInsightCard({ tokenWithScore }: { tokenWithScore: TokenWithScore }) {
-    const { token, reason } = tokenWithScore;
-    const change = token.change24h || 0;
-    const isPositive = change > 0;
-    const isNegative = change < 0;
-
-    return (
-        <Link
-            href={`/tokens/${encodeURIComponent(token.contractId)}`}
-            className="group block p-3 rounded-xl hover:bg-white/[0.03] transition-all duration-200"
+            className={cn(
+                "group block p-3 rounded-xl transition-all duration-200",
+                isArbitrage
+                    ? "hover:bg-amber-500/10 border border-amber-500/20"
+                    : "hover:bg-white/[0.03]"
+            )}
         >
             <div className="flex items-center gap-3 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center overflow-hidden">
@@ -303,15 +265,20 @@ function TokenInsightCard({ tokenWithScore }: { tokenWithScore: TokenWithScore }
                     )}
                 </div>
                 <div className="flex-1 min-w-0">
-                    <div className="font-medium text-white/90 text-sm group-hover:text-white transition-colors duration-200">
+                    <div className={cn(
+                        "font-medium text-sm transition-colors duration-200",
+                        isArbitrage
+                            ? "text-amber-400 group-hover:text-amber-300"
+                            : "text-white/90 group-hover:text-white"
+                    )}>
                         {token.symbol}
                     </div>
                 </div>
                 <div className={cn(
                     "text-sm font-medium",
                     isPositive ? "text-emerald-400" :
-                    isNegative ? "text-red-400" : 
-                    "text-white/60"
+                        isNegative ? "text-red-400" :
+                            "text-white/60"
                 )}>
                     {change > 0 ? "+" : ""}{change.toFixed(1)}%
                 </div>
@@ -319,6 +286,12 @@ function TokenInsightCard({ tokenWithScore }: { tokenWithScore: TokenWithScore }
             <div className="text-xs text-white/40 leading-relaxed" title={reason}>
                 {reason.length > 40 ? `${reason.slice(0, 40)}...` : reason}
             </div>
+            {isArbitrage && (
+                <div className="mt-2 flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3 text-amber-400" />
+                    <span className="text-xs text-amber-400">Trade opportunity</span>
+                </div>
+            )}
         </Link>
     );
 }
@@ -367,10 +340,10 @@ function generateMarketInsights(tokens: TokenSummary[]): MarketInsight[] {
 
 function findMomentumClusters(tokens: TokenSummary[]): MarketInsight {
     const validTokens = tokens.filter(t => t.change24h !== null && t.change7d !== null);
-    
+
     // Find tokens with consistent positive momentum (24h and 7d both positive)
-    const positiveMomentum = validTokens.filter(t => 
-        t.change24h! > 2 && t.change7d! > 5 && 
+    const positiveMomentum = validTokens.filter(t =>
+        t.change24h! > 2 && t.change7d! > 5 &&
         Math.abs(t.change24h! - (t.change7d! / 7)) < 3 // Consistent daily average
     );
 
@@ -396,10 +369,10 @@ function findMomentumClusters(tokens: TokenSummary[]): MarketInsight {
 
 function findPriceCorrelations(tokens: TokenSummary[]): MarketInsight {
     const validTokens = tokens.filter(t => t.price && t.change24h !== null);
-    
+
     // Group tokens by price ranges and find those moving together
     const priceGroups = new Map<string, TokenSummary[]>();
-    
+
     validTokens.forEach(token => {
         const priceRange = getPriceRange(token.price!);
         if (!priceGroups.has(priceRange)) {
@@ -414,10 +387,10 @@ function findPriceCorrelations(tokens: TokenSummary[]): MarketInsight {
 
     for (const group of priceGroups.values()) {
         if (group.length < 3) continue;
-        
+
         const avgChange = group.reduce((sum, t) => sum + t.change24h!, 0) / group.length;
         const correlation = group.filter(t => Math.abs(t.change24h! - avgChange) < 2).length / group.length;
-        
+
         if (correlation > bestCorrelation) {
             bestCorrelation = correlation;
             bestGroup = group;
@@ -444,7 +417,7 @@ function findPriceCorrelations(tokens: TokenSummary[]): MarketInsight {
 
 function findMarketCapLeaders(tokens: TokenSummary[]): MarketInsight {
     const validTokens = tokens.filter(t => t.marketCap && t.marketCap > 0);
-    
+
     // Find top market cap tokens with recent positive performance
     const leaders = validTokens
         .filter(t => t.change24h !== null && t.change24h! > -5) // Not severely declining
@@ -468,7 +441,7 @@ function findMarketCapLeaders(tokens: TokenSummary[]): MarketInsight {
 }
 
 function findVolatilitySync(tokens: TokenSummary[]): MarketInsight {
-    const validTokens = tokens.filter(t => 
+    const validTokens = tokens.filter(t =>
         t.change24h !== null && t.change7d !== null
     );
 
@@ -477,7 +450,7 @@ function findVolatilitySync(tokens: TokenSummary[]): MarketInsight {
         const expectedWeekly = token.change24h! * 7;
         const actualWeekly = token.change7d!;
         const volatility = Math.abs(actualWeekly - expectedWeekly);
-        
+
         return {
             token,
             volatility,
@@ -487,7 +460,7 @@ function findVolatilitySync(tokens: TokenSummary[]): MarketInsight {
 
     // Find tokens with similar volatility levels
     const medianVolatility = volatilityTokens.sort((a, b) => a.volatility - b.volatility)[Math.floor(volatilityTokens.length / 2)]?.volatility || 0;
-    
+
     const syncedTokens = volatilityTokens
         .filter(t => Math.abs(t.volatility - medianVolatility) < 5)
         .sort((a, b) => Math.abs(a.token.change24h!) - Math.abs(b.token.change24h!))
@@ -510,13 +483,13 @@ function findVolatilitySync(tokens: TokenSummary[]): MarketInsight {
 }
 
 function findBreakoutCandidates(tokens: TokenSummary[]): MarketInsight {
-    const validTokens = tokens.filter(t => 
+    const validTokens = tokens.filter(t =>
         t.change24h !== null && t.change7d !== null && t.marketCap
     );
 
     // Find tokens with strong recent momentum that could continue
     const candidates = validTokens
-        .filter(t => 
+        .filter(t =>
             t.change24h! > 5 && // Strong 24h performance
             t.change7d! > 10 && // Strong weekly performance  
             t.change24h! > t.change7d! / 7 // Accelerating momentum

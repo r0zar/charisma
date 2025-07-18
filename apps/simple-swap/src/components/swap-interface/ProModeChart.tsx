@@ -22,7 +22,7 @@ import {
 } from "lightweight-charts";
 import SandwichPreviewOverlay from '../pro-mode/SandwichPreviewOverlay';
 import TargetPriceHoverOverlay from '../pro-mode/TargetPriceHoverOverlay';
-import { usePriceSeriesService } from '@/lib/price-series-service';
+import { usePriceSeriesService } from '@/lib/charts/price-series-service';
 import { usePrices } from '@/contexts/token-price-context';
 
 // Enriched order type with token metadata

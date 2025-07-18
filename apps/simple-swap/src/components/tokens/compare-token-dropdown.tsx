@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import type { TokenSummary } from "@/app/token-actions";
+import type { TokenSummary } from "@/types/token-types";
 
 interface CompareTokenDropdownProps {
     tokens: TokenSummary[];

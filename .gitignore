@@ -25,3 +25,7 @@ coverage
 
 # generated files
 **/src/generated/
+
+
+# coverage/cypress
+true/

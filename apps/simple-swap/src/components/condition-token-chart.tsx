@@ -21,7 +21,7 @@ import {
 } from "@/lib/chart-data-utils";
 import { usePrices } from '@/contexts/token-price-context';
 import { useWallet } from '@/contexts/wallet-context';
-import { usePriceSeriesService } from '@/lib/price-series-service';
+import { usePriceSeriesService } from '@/lib/charts/price-series-service';
 import { perfMonitor } from '@/lib/performance-monitor';
 
 interface Props {

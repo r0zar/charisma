@@ -3,13 +3,47 @@
 import React, { useMemo, useState } from "react";
 import { TrendingUp, TrendingDown, Activity, Info } from "lucide-react";
 import Image from "next/image";
-import type { TokenSummary } from "@/app/token-actions";
+import type { TokenSummary } from "@/types/token-types";
 import { cn, getIpfsUrl } from "@/lib/utils";
 import { usePrices } from '@/contexts/token-price-context';
 
 interface MarketHighlightsProps {
-    tokens: TokenSummary[];
+    tokenSummaries: TokenSummary[];
+    priceHistories?: Record<string, any[]>;
     className?: string;
+}
+
+// Mini sparkline component
+function MiniSparkline({ data, width = 40, height = 16 }: {
+    data: number[];
+    width?: number;
+    height?: number;
+}) {
+    if (!data || data.length < 2) return null;
+
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = max - min || 1;
+
+    const points = data.map((value, index) => {
+        const x = (index / (data.length - 1)) * width;
+        const y = height - ((value - min) / range) * height;
+        return `${x},${y}`;
+    }).join(' ');
+
+    const isPositive = data[data.length - 1] > data[0];
+    const lineColor = isPositive ? "#10b981" : "#ef4444";
+
+    return (
+        <svg width={width} height={height} className="inline-block opacity-60">
+            <polyline
+                fill="none"
+                stroke={lineColor}
+                strokeWidth="1"
+                points={points}
+            />
+        </svg>
+    );
 }
 
 // Token Image component with error handling
@@ -36,12 +70,12 @@ function TokenImage({ token, size = 32 }: { token: TokenSummary; size?: number }
     );
 }
 
-export default function MarketHighlights({ tokens, className }: MarketHighlightsProps) {
+export default function MarketHighlights({ tokenSummaries, priceHistories = {}, className }: MarketHighlightsProps) {
     const { getPrice } = usePrices();
 
     const highlights = useMemo(() => {
         // Use all passed tokens for total count, but filter for calculations that need valid data
-        const tokensWithPriceData = tokens.filter(t => {
+        const tokensWithPriceData = tokenSummaries.filter(t => {
             const currentPrice = getPrice(t.contractId) ?? t.price;
             return currentPrice !== null &&
                 t.change24h !== null &&
@@ -65,10 +99,10 @@ export default function MarketHighlights({ tokens, className }: MarketHighlights
             .slice(0, 3);
 
         // Market metrics - use all passed tokens for total, but valid data for calculations
-        const totalTokens = tokens.length; // Use all visible tokens, not just ones with price data
+        const totalTokens = tokenSummaries.length;
         const gainers = tokensWithPriceData.filter(t => (t.change24h || 0) > 0).length;
         const losers = tokensWithPriceData.filter(t => (t.change24h || 0) < 0).length;
-        
+
         // Market cap weighted average change (more representative than simple mean)
         const tokensWithMarketCap = tokensWithPriceData.filter(t => t.marketCap && t.marketCap > 0);
         const avgChange = tokensWithMarketCap.length > 0 ? (() => {
@@ -92,7 +126,7 @@ export default function MarketHighlights({ tokens, className }: MarketHighlights
                 avgChange
             }
         };
-    }, [tokens, getPrice]);
+    }, [tokenSummaries, getPrice]);
 
     return (
         <div className={cn("space-y-8", className)}>
@@ -123,7 +157,7 @@ export default function MarketHighlights({ tokens, className }: MarketHighlights
                     <div className={cn(
                         "text-2xl font-semibold font-mono",
                         highlights.metrics.avgChange > 0 ? "text-emerald-400" :
-                        highlights.metrics.avgChange < 0 ? "text-red-400" : "text-white/60"
+                            highlights.metrics.avgChange < 0 ? "text-red-400" : "text-white/60"
                     )}>
                         {highlights.metrics.avgChange > 0 ? "+" : ""}{highlights.metrics.avgChange.toFixed(2)}%
                     </div>
@@ -160,6 +194,7 @@ export default function MarketHighlights({ tokens, className }: MarketHighlights
                                     rank={index + 1}
                                     type="gainer"
                                     getPrice={(contractId: string) => getPrice(contractId) ?? null}
+                                    sparklineData={priceHistories[token.contractId]}
                                 />
                             ))}
                         </div>
@@ -180,6 +215,7 @@ export default function MarketHighlights({ tokens, className }: MarketHighlights
                                     rank={index + 1}
                                     type="loser"
                                     getPrice={(contractId: string) => getPrice(contractId) ?? null}
+                                    sparklineData={priceHistories[token.contractId]}
                                 />
                             ))}
                         </div>
@@ -200,6 +236,7 @@ export default function MarketHighlights({ tokens, className }: MarketHighlights
                                     rank={index + 1}
                                     type="active"
                                     getPrice={(contractId: string) => getPrice(contractId) ?? null}
+                                    sparklineData={priceHistories[token.contractId]}
                                 />
                             ))}
                         </div>
@@ -215,56 +252,15 @@ interface TokenHighlightProps {
     rank: number;
     type: "gainer" | "loser" | "active";
     getPrice: (contractId: string) => number | null;
+    sparklineData?: any[];
 }
 
-function TokenHighlight({ token, rank, type, getPrice }: TokenHighlightProps) {
+function CleanTokenHighlight({ token, rank, type, getPrice, sparklineData }: TokenHighlightProps) {
     const change = token.change24h || 0;
     const isPositive = change > 0;
     const isNegative = change < 0;
 
-    return (
-        <div
-            className="flex items-center justify-between hover:bg-muted/20 rounded-lg p-2 -m-2 cursor-pointer transition-colors"
-            onClick={() => {
-                if (token.contractId && typeof token.contractId === 'string' && token.contractId.trim()) {
-                    try {
-                        window.location.href = `/tokens/${encodeURIComponent(token.contractId)}`;
-                    } catch (error) {
-                        console.error('Failed to navigate to token page:', error, token);
-                    }
-                } else {
-                    console.warn('Invalid token contractId for navigation:', token);
-                }
-            }}
-        >
-            <div className="flex items-center gap-3">
-                <span className="text-xs font-medium text-muted-foreground w-4">#{rank}</span>
-                <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center overflow-hidden">
-                    <TokenImage token={token} size={32} />
-                </div>
-                <div className="min-w-0">
-                    <div className="font-medium text-sm truncate max-w-[12rem]">{token.symbol}</div>
-                    <div className="text-xs text-muted-foreground">
-                        {fmtPrice(getPrice(token.contractId) ?? token.price)}
-                    </div>
-                </div>
-            </div>
-            <div className={cn(
-                "text-sm font-medium",
-                type === "active" ? (
-                    isPositive ? "text-green-600" : isNegative ? "text-red-600" : "text-muted-foreground"
-                ) : type === "gainer" ? "text-green-600" : "text-red-600"
-            )}>
-                {change > 0 ? "+" : ""}{change.toFixed(2)}%
-            </div>
-        </div>
-    );
-}
-
-function CleanTokenHighlight({ token, rank, type, getPrice }: TokenHighlightProps) {
-    const change = token.change24h || 0;
-    const isPositive = change > 0;
-    const isNegative = change < 0;
+    const priceData = sparklineData?.map(entry => entry.usdPrice || entry.price).filter(p => p != null);
 
     return (
         <div
@@ -295,13 +291,18 @@ function CleanTokenHighlight({ token, rank, type, getPrice }: TokenHighlightProp
                     </div>
                 </div>
             </div>
-            <div className={cn(
-                "text-sm font-medium",
-                type === "active" ? (
-                    isPositive ? "text-emerald-400" : isNegative ? "text-red-400" : "text-white/60"
-                ) : type === "gainer" ? "text-emerald-400" : "text-red-400"
-            )}>
-                {change > 0 ? "+" : ""}{change.toFixed(2)}%
+            <div className="flex items-center gap-3">
+                {priceData && priceData.length > 1 && (
+                    <MiniSparkline data={priceData} />
+                )}
+                <div className={cn(
+                    "text-sm font-medium",
+                    type === "active" ? (
+                        isPositive ? "text-emerald-400" : isNegative ? "text-red-400" : "text-white/60"
+                    ) : type === "gainer" ? "text-emerald-400" : "text-red-400"
+                )}>
+                    {change > 0 ? "+" : ""}{change.toFixed(2)}%
+                </div>
             </div>
         </div>
     );
@@ -313,24 +314,18 @@ function fmtPrice(price: number | null) {
 
     // Dynamic price formatting based on price range
     if (price >= 1000) {
-        // Large prices: show 2 decimal places
         return `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     } else if (price >= 1) {
-        // Medium prices: show 2-4 decimal places
         return `$${price.toFixed(4).replace(/\.?0+$/, '')}`;
     } else if (price >= 0.01) {
-        // Small prices: show 3-4 decimal places
         return `$${price.toFixed(4)}`;
     } else if (price >= 0.0001) {
-        // Very small prices: show 6 decimal places
         return `$${price.toFixed(6)}`;
     } else if (price >= 0.000001) {
-        // Extremely small prices: show 8 decimal places
         return `$${price.toFixed(8)}`;
     } else if (price > 0) {
-        // Microscopic prices: use scientific notation
         return `$${price.toExponential(3)}`;
     } else {
         return "$0.00";
     }
-} 
+}

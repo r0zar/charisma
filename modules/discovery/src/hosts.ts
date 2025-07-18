@@ -9,10 +9,6 @@ interface HostUrls {
 }
 
 export const HOSTS: Record<string, HostUrls> = {
-  'party': {
-    development: 'http://localhost:1999',
-    production: 'https://charisma-party.r0zar.partykit.dev'
-  },
   'tokens': {
     development: 'http://localhost:3000',
     production: 'https://tokens.charisma.rocks'
@@ -28,5 +24,9 @@ export const HOSTS: Record<string, HostUrls> = {
   'tx-monitor': {
     development: 'http://localhost:3012',
     production: 'https://tx.charisma.rocks'
+  },
+  'prices': {
+    development: 'http://localhost:3500',
+    production: 'https://prices.charisma.rocks'
   }
 } as const;
