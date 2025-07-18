@@ -5,7 +5,8 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@services/prices#build"
+        "@services/prices#build",
+        "@blaze-sdk#build"
       ],
       "outputs": [
         ".next/**",
@@ -27,7 +28,8 @@
     },
     "dev": {
       "dependsOn": [
-        "@services/prices#build"
+        "@services/prices#build",
+        "@blaze-sdk#build"
       ]
     }
   }
