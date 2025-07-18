@@ -11,7 +11,8 @@
         "@repo/tx-monitor-client#build",
         "@modules/discovery#build",
         "@services/prices#build",
-        "dexterity-sdk#build"
+        "dexterity-sdk#build",
+        "@charisma/notifier#build"
       ],
       "outputs": [
         ".next/**",
@@ -60,7 +61,8 @@
         "@repo/tx-monitor-client#build",
         "@modules/discovery#build",
         "@services/prices#build",
-        "dexterity-sdk#build"
+        "dexterity-sdk#build",
+        "@charisma/notifier#build"
       ]
     }
   }
