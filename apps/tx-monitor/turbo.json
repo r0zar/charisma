@@ -16,7 +16,9 @@
         "HIRO_API_KEY",
         "SIMPLE_SWAP_URL",
         "CHARISMA_PARTY_URL",
-        "CRON_SECRET"
+        "CRON_SECRET",
+        "BLOB_READ_WRITE_TOKEN",
+        "BLOB_BASE_URL"
       ]
     }
   }
