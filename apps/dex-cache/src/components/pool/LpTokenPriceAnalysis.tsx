@@ -13,8 +13,8 @@ import {
     Scale,
     Target
 } from 'lucide-react';
-import { analyzeLpTokenPricing, formatLpPriceAnalysis, type LpTokenPriceAnalysis } from '@/lib/pricing/lp-token-calculator';
 import { Vault } from '@/lib/pool-service';
+import { analyzeLpTokenPricing, formatLpPriceAnalysis } from '@services/prices';
 
 interface LpTokenPriceAnalysisProps {
     vault: Vault;
@@ -111,7 +111,7 @@ export default function LpTokenPriceAnalysis({ vault, prices, analytics, classNa
     // Analyze LP token pricing
     React.useEffect(() => {
         let isMounted = true;
-        
+
         analyzeLpTokenPricing(vault, prices).then(result => {
             if (isMounted) {
                 setAnalysis(result);
