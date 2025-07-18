@@ -3,6 +3,8 @@
  * Calculates actual P&L based on entry prices and current/historical prices
  */
 
+import { PriceSeriesAPI, PriceSeriesStorage, TimeSeriesEntry } from '@services/prices';
+
 import { ActivityItem } from './activity-types';
 import {
   ProfitabilityData,
@@ -15,6 +17,8 @@ import {
 } from './profitability-types';
 import { listTokens, listPrices, type TokenCacheData } from '@repo/tokens';
 import { getHostUrl } from '@modules/discovery';
+
+const priceSeriesService = new PriceSeriesAPI(new PriceSeriesStorage());
 
 // Token mapping cache
 let tokenMappingCache: Record<string, string> | null = null;
@@ -653,7 +657,7 @@ async function getCurrentPrices(contractIds: string[]): Promise<CurrentPriceData
 }
 
 /**
- * Get historical price data for tokens using existing /api/price-series/bulk endpoint
+ * Get historical price data for tokens 
  */
 async function getHistoricalPriceData(
   inputContractId: string,
@@ -671,37 +675,31 @@ async function getHistoricalPriceData(
     const fromSeconds = Math.floor(startTimestamp / 1000);
     const toSeconds = Math.floor(endTimestamp / 1000);
 
-    // Call existing /api/price-series/bulk endpoint
-    const contractIds = [inputContractId, outputContractId].join(',');
-    const url = `${getHostUrl('swap')}/api/price-series/bulk?contractIds=${encodeURIComponent(contractIds)}&from=${fromSeconds}&to=${toSeconds}`;
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+    const data = await priceSeriesService.getBulkPriceSeries({
+      tokenIds: [inputContractId, outputContractId],
+      timeframe: '1d',
+      limit: 1000,
+      endTime: toSeconds
     });
 
-    if (!response.ok) {
-      console.warn(`[getHistoricalPriceData] API call failed with status ${response.status}, falling back to local price store`);
-      return await getHistoricalDataFromPriceStore(inputContractId, outputContractId, startTimestamp, endTimestamp);
+    // Convert API response to our format
+    const inputData = data.data?.[inputContractId] || [];
+    const outputData = data.data?.[outputContractId] || [];
+
+    if (!data.data) {
+      console.warn(`[getHistoricalPriceData] No data returned for ${inputContractId} or ${outputContractId}`);
+      return [[], []];
     }
 
-    const data = await response.json();
-
-    // Convert API response to our format
-    const inputData = data[inputContractId] || [];
-    const outputData = data[outputContractId] || [];
-
-    const inputHistory: HistoricalPricePoint[] = inputData.map((point: { time: number, value: number }) => ({
-      timestamp: point.time * 1000, // Convert back to milliseconds
-      price: point.value,
+    const inputHistory: HistoricalPricePoint[] = inputData.map((point: TimeSeriesEntry) => ({
+      timestamp: point.timestamp * 1000, // Convert back to milliseconds
+      price: point.usdPrice,
       source: 'price-series-bulk'
     }));
 
-    const outputHistory: HistoricalPricePoint[] = outputData.map((point: { time: number, value: number }) => ({
-      timestamp: point.time * 1000, // Convert back to milliseconds
-      price: point.value,
+    const outputHistory: HistoricalPricePoint[] = outputData.map((point: TimeSeriesEntry) => ({
+      timestamp: point.timestamp * 1000, // Convert back to milliseconds
+      price: point.usdPrice,
       source: 'price-series-bulk'
     }));
 

@@ -25,13 +25,6 @@ function PriceSeriesDialog({ open, onClose, contractId, symbol }: { open: boolea
             to: to.toString(),
             period: period.toString()
         });
-        fetch(`/api/price-series/bulk?${params.toString()}`)
-            .then(res => res.json())
-            .then(data => {
-                setSeries(data[contractId] || []);
-            })
-            .catch(err => setError(err.message || 'Unknown error'))
-            .finally(() => setLoading(false));
     }, [open, contractId, period]);
 
     if (!open || !contractId) return null;
