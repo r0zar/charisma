@@ -4,7 +4,12 @@ import { KVBalanceStore } from '@services/balances'
 import { BalanceService } from '@services/balances'
 
 const kvStore = new KVBalanceStore()
-const balanceService = new BalanceService(kvStore)
+const balanceService = new BalanceService(kvStore, undefined, {
+  enableAutoDiscovery: true,
+  discoveryConfig: {
+    enableAutoCollection: true
+  }
+})
 
 export async function getBalance(address: string, contractId: string) {
   try {

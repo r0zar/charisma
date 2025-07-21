@@ -21,17 +21,87 @@ import {
 import { periodToTimeRange } from '../utils/time-series';
 import { KVBalanceStore } from '../storage/KVBalanceStore';
 import { BalanceTimeSeriesStore } from '../storage/BalanceTimeSeriesStore';
+import { AddressDiscoveryService } from '../discovery/AddressDiscoveryService';
+
+export interface BalanceServiceOptions {
+  enableAutoDiscovery?: boolean;
+  discoveryConfig?: {
+    minTokenBalance?: string;
+    enableAutoCollection?: boolean;
+  };
+}
 
 export class BalanceService {
   private currentStore: BalanceStore;
   private timeSeriesStore: TimeSeriesStore;
+  private discoveryService?: AddressDiscoveryService;
+  private enableAutoDiscovery: boolean;
 
   constructor(
     currentStore?: BalanceStore,
-    timeSeriesStore?: TimeSeriesStore
+    timeSeriesStore?: TimeSeriesStore,
+    options?: BalanceServiceOptions
   ) {
     this.currentStore = currentStore || new KVBalanceStore();
     this.timeSeriesStore = timeSeriesStore || new BalanceTimeSeriesStore();
+    this.enableAutoDiscovery = options?.enableAutoDiscovery ?? true;
+    
+    // Initialize discovery service if auto-discovery is enabled
+    if (this.enableAutoDiscovery && this.currentStore instanceof KVBalanceStore) {
+      this.discoveryService = new AddressDiscoveryService(this.currentStore, options?.discoveryConfig);
+    }
+  }
+
+  // === Auto-Discovery Helper Methods ===
+
+  /**
+   * Check if an address is already known in the system
+   */
+  private async isAddressKnown(address: string): Promise<boolean> {
+    if (!this.currentStore instanceof KVBalanceStore) {
+      return true; // Skip auto-discovery for non-KV stores
+    }
+
+    try {
+      const kvStore = this.currentStore as KVBalanceStore;
+      const metadata = await kvStore.getAddressMetadata(address);
+      return metadata !== null;
+    } catch (error) {
+      console.warn(`Failed to check if address ${address} is known:`, error);
+      return false;
+    }
+  }
+
+  /**
+   * Auto-discover and add a new address to the system
+   */
+  private async autoDiscoverAddress(address: string, context?: { contractId?: string }): Promise<void> {
+    if (!this.enableAutoDiscovery || !this.discoveryService) {
+      return;
+    }
+
+    try {
+      console.log(`🔍 Auto-discovering new address: ${address}`);
+      
+      // Add the address with auto-discovery metadata
+      const kvStore = this.currentStore as KVBalanceStore;
+      await kvStore.setAddressMetadata(address, {
+        autoDiscovered: true,
+        discoverySource: 'manual', // Since it was requested manually
+        discoveredAt: Date.now(),
+        lastSync: Date.now(),
+        contracts: context?.contractId ? [context.contractId] : []
+      });
+
+      // Trigger balance collection for the address if enabled
+      if (this.discoveryService) {
+        await this.discoveryService.collectAddressBalances([address]);
+      }
+
+      console.log(`✅ Auto-discovery completed for address: ${address}`);
+    } catch (error) {
+      console.warn(`Failed to auto-discover address ${address}:`, error);
+    }
   }
 
   // === Current Balance Methods ===
@@ -43,6 +113,11 @@ export class BalanceService {
     try {
       this.validateAddress(address);
       this.validateContractId(contractId);
+
+      // Auto-discover address if not known and auto-discovery is enabled
+      if (this.enableAutoDiscovery && !(await this.isAddressKnown(address))) {
+        await this.autoDiscoverAddress(address, { contractId });
+      }
 
       const balance = await this.currentStore.getBalance(address, contractId);
       return balance || '0';
@@ -62,6 +137,11 @@ export class BalanceService {
   async getBalances(address: string, contractIds?: string[]): Promise<BalanceMap> {
     try {
       this.validateAddress(address);
+
+      // Auto-discover address if not known and auto-discovery is enabled
+      if (this.enableAutoDiscovery && !(await this.isAddressKnown(address))) {
+        await this.autoDiscoverAddress(address);
+      }
 
       const allBalances = await this.currentStore.getAddressBalances(address);
 
@@ -92,6 +172,11 @@ export class BalanceService {
   async getAllBalances(address: string): Promise<BalanceResult[]> {
     try {
       this.validateAddress(address);
+
+      // Auto-discover address if not known and auto-discovery is enabled
+      if (this.enableAutoDiscovery && !(await this.isAddressKnown(address))) {
+        await this.autoDiscoverAddress(address);
+      }
 
       const balances = await this.currentStore.getAddressBalances(address);
       const results: BalanceResult[] = [];
@@ -134,6 +219,11 @@ export class BalanceService {
       // Process each address
       for (const address of addresses) {
         this.validateAddress(address);
+
+        // Auto-discover address if not known and auto-discovery is enabled  
+        if (this.enableAutoDiscovery && !(await this.isAddressKnown(address))) {
+          await this.autoDiscoverAddress(address);
+        }
 
         const balances = await this.getBalances(address, contractIds);
 
@@ -430,5 +520,91 @@ export class BalanceService {
     }
 
     return alerts.sort((a, b) => b.timestamp - a.timestamp);
+  }
+
+  // === Auto-Discovery Management Methods ===
+
+  /**
+   * Enable or disable auto-discovery for new addresses
+   */
+  setAutoDiscovery(enabled: boolean): void {
+    this.enableAutoDiscovery = enabled;
+    
+    if (enabled && !this.discoveryService && this.currentStore instanceof KVBalanceStore) {
+      this.discoveryService = new AddressDiscoveryService(this.currentStore);
+    }
+  }
+
+  /**
+   * Get current auto-discovery status
+   */
+  isAutoDiscoveryEnabled(): boolean {
+    return this.enableAutoDiscovery;
+  }
+
+  /**
+   * Manually add an address to the system
+   */
+  async addAddress(address: string, metadata?: {
+    discoverySource?: 'manual' | 'token_holders' | 'whale_detection' | 'transaction_monitor';
+    autoDiscovered?: boolean;
+  }): Promise<void> {
+    try {
+      this.validateAddress(address);
+
+      if (this.currentStore instanceof KVBalanceStore) {
+        const kvStore = this.currentStore as KVBalanceStore;
+        await kvStore.setAddressMetadata(address, {
+          autoDiscovered: metadata?.autoDiscovered ?? false,
+          discoverySource: metadata?.discoverySource ?? 'manual',
+          discoveredAt: Date.now(),
+          lastSync: Date.now(),
+          contracts: []
+        });
+
+        console.log(`✅ Manually added address to system: ${address}`);
+      }
+    } catch (error) {
+      console.error(`Failed to manually add address ${address}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get auto-discovery statistics
+   */
+  async getAutoDiscoveryStats(): Promise<{
+    enabled: boolean;
+    totalAddresses: number;
+    autoDiscoveredCount: number;
+    lastDiscoveryTime?: Date;
+  }> {
+    if (!this.currentStore instanceof KVBalanceStore) {
+      return {
+        enabled: false,
+        totalAddresses: 0,
+        autoDiscoveredCount: 0
+      };
+    }
+
+    try {
+      const kvStore = this.currentStore as KVBalanceStore;
+      const allAddresses = await kvStore.getAllAddresses();
+      const autoDiscoveredAddresses = await kvStore.getAutoDiscoveredAddresses();
+
+      return {
+        enabled: this.enableAutoDiscovery,
+        totalAddresses: allAddresses.length,
+        autoDiscoveredCount: autoDiscoveredAddresses.length,
+        lastDiscoveryTime: autoDiscoveredAddresses.length > 0 ? new Date() : undefined
+      };
+    } catch (error) {
+      console.warn('Failed to get auto-discovery stats:', error);
+      return {
+        enabled: this.enableAutoDiscovery,
+        totalAddresses: 0,
+        autoDiscoveredCount: 0
+      };
+    }
   }
 }

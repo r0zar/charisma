@@ -4,7 +4,7 @@
  */
 
 // Main service
-export { BalanceService } from './service/BalanceService';
+export { BalanceService, type BalanceServiceOptions } from './service/BalanceService';
 
 // Balance series API
 export { BalanceSeriesAPI } from './balance-series/balance-series-api';

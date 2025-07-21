@@ -34,7 +34,12 @@ let kvStore: KVBalanceStore | null = null
 if (areServicesConfigured()) {
   try {
     kvStore = new KVBalanceStore()
-    balanceService = new BalanceService(kvStore)
+    balanceService = new BalanceService(kvStore, undefined, {
+      enableAutoDiscovery: true,
+      discoveryConfig: {
+        enableAutoCollection: true
+      }
+    })
   } catch (error) {
     console.warn('Balance service not available:', error)
   }
