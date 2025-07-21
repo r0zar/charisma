@@ -40,6 +40,10 @@ export class BlobStorage {
     if (process.env.BLOB_BASE_URL === undefined) {
       throw new Error('BLOB_BASE_URL environment variable is required for BlobStorage');
     }
+    
+    if (process.env.BLOB_READ_WRITE_TOKEN === undefined) {
+      throw new Error('BLOB_READ_WRITE_TOKEN environment variable is required for BlobStorage');
+    }
 
     this.config = {
       enforcementLevel: 'warn' as const,
@@ -319,11 +323,11 @@ export class BlobStorage {
 
   /**
    * Optimized bulk contract retrieval with aggressive parallelization for Vercel Pro plan
-   * Pro plan limits: 120 simple operations/second, so we default to 20 concurrent for solid throughput
+   * Pro plan limits: 120 simple operations/second, so we default to 5 concurrent for solid throughput
    */
   async getContracts(
-    contractIds: string[], 
-    maxConcurrency: number = 20,
+    contractIds: string[],
+    maxConcurrency: number = 2,
     autoDiscoveryCallback?: (contractId: string) => Promise<ContractMetadata | null>
   ): Promise<{
     successful: { contractId: string; metadata: ContractMetadata }[];
@@ -502,7 +506,7 @@ export class BlobStorage {
   }
 
   private async processSingleContractWithAutoDiscovery(
-    contractId: string, 
+    contractId: string,
     autoDiscoveryCallback?: (contractId: string) => Promise<ContractMetadata | null>
   ): Promise<{
     success: boolean;
@@ -511,19 +515,39 @@ export class BlobStorage {
     error?: string
   }> {
     try {
+      console.log(`🔍 [DEBUG] Processing single contract with auto-discovery: ${contractId}`);
       let metadata = await this.getContract(contractId);
+      console.log(`🔍 [DEBUG] Initial getContract result for ${contractId}:`, { hasMetadata: !!metadata });
+      
       if (metadata) {
         return { success: true, contractId, metadata };
       } else if (autoDiscoveryCallback) {
-        // Try auto-discovery
-        metadata = await autoDiscoveryCallback(contractId);
-        if (metadata) {
-          return { success: true, contractId, metadata };
+        console.log(`🔍 [DEBUG] Attempting auto-discovery callback for ${contractId}`);
+        try {
+          metadata = await autoDiscoveryCallback(contractId);
+          console.log(`🔍 [DEBUG] Auto-discovery callback result for ${contractId}:`, { 
+            hasMetadata: !!metadata, 
+            isNull: metadata === null, 
+            isUndefined: metadata === undefined,
+            type: typeof metadata
+          });
+          
+          if (metadata) {
+            return { success: true, contractId, metadata };
+          } else {
+            const errorMsg = metadata === null ? 'Auto-discovery returned null' : 'Auto-discovery returned undefined';
+            return { success: false, contractId, error: errorMsg };
+          }
+        } catch (callbackError) {
+          const callbackErrorMsg = callbackError instanceof Error ? callbackError.message : String(callbackError);
+          console.error(`❌ [DEBUG] Auto-discovery callback exception for ${contractId}: ${callbackErrorMsg}`);
+          return { success: false, contractId, error: `Auto-discovery failed: ${callbackErrorMsg}` };
         }
       }
-      return { success: false, contractId, error: 'Contract not found' };
+      return { success: false, contractId, error: 'Contract not found and no auto-discovery callback' };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error(`❌ [DEBUG] processSingleContract exception for ${contractId}: ${errorMessage}`);
       return { success: false, contractId, error: errorMessage };
     }
   }
@@ -636,9 +660,9 @@ export class ConsolidatedBlobManager {
         const batch = contractIds.slice(i, i + batchSize);
         const batchNum = Math.floor(i / batchSize) + 1;
         const totalBatches = Math.ceil(contractIds.length / batchSize);
-        
+
         console.log(`[ConsolidatedBlobManager] Processing batch ${batchNum}/${totalBatches} (${batch.length} contracts)...`);
-        
+
         try {
           // Add delay between batches to respect rate limits
           if (i > 0) {
@@ -647,7 +671,7 @@ export class ConsolidatedBlobManager {
           }
 
           const result = await this.blobStorage.getContracts(batch, maxConcurrency);
-          
+
           // Add successful contracts to our registry
           result.successful.forEach(({ contractId, metadata }) => {
             contracts[contractId] = metadata;
@@ -658,7 +682,7 @@ export class ConsolidatedBlobManager {
           totalFailed += result.failed.length;
 
           if (result.failed.length > 0) {
-            console.warn(`[ConsolidatedBlobManager] Batch ${batchNum}: ${result.failed.length} failures:`, 
+            console.warn(`[ConsolidatedBlobManager] Batch ${batchNum}: ${result.failed.length} failures:`,
               result.failed.slice(0, 3).map(f => f.contractId));
           }
 
@@ -667,7 +691,7 @@ export class ConsolidatedBlobManager {
         } catch (error) {
           console.error(`[ConsolidatedBlobManager] Batch ${batchNum} failed:`, error);
           totalFailed += batch.length;
-          
+
           // Don't fail entire operation for one batch - continue with other batches
           continue;
         }
@@ -707,12 +731,12 @@ export class ConsolidatedBlobManager {
   async loadConsolidatedBlob(): Promise<ConsolidatedRegistry | null> {
     try {
       console.log('[ConsolidatedBlobManager] Loading consolidated blob...');
-      
+
       // Use the same URL construction pattern as the rest of the codebase
       const filePath = this.blobStorage['config'].pathPrefix + ConsolidatedBlobManager.CONSOLIDATED_PATH;
       const blobUrl = this.blobStorage['constructBlobUrl'](filePath);
       console.log(`[ConsolidatedBlobManager] Fetching from URL: ${blobUrl}`);
-      
+
       const response = await this.blobStorage['monitor'].fetch(blobUrl);
 
       if (!response.ok) {
@@ -729,7 +753,7 @@ export class ConsolidatedBlobManager {
 
       // Parse the JSON data
       const consolidatedRegistry: ConsolidatedRegistry = JSON.parse(data);
-      
+
       // Validate the structure
       if (!consolidatedRegistry.contracts || typeof consolidatedRegistry.contracts !== 'object') {
         throw new Error('Invalid consolidated blob format: missing contracts object');
@@ -751,20 +775,20 @@ export class ConsolidatedBlobManager {
   async saveConsolidatedBlob(registry: ConsolidatedRegistry): Promise<void> {
     try {
       console.log(`[ConsolidatedBlobManager] Saving consolidated blob with ${registry.contractCount} contracts...`);
-      
+
       const jsonData = JSON.stringify(registry, null, 0); // No pretty printing for size
       const filePath = this.blobStorage['config'].pathPrefix + ConsolidatedBlobManager.CONSOLIDATED_PATH;
-      
+
       console.log(`[ConsolidatedBlobManager] Saving to path: ${filePath}`);
       console.log(`[ConsolidatedBlobManager] Data size: ${Math.round(jsonData.length / 1024)}KB`);
-      
+
       const result = await this.blobStorage['monitor'].put(filePath, jsonData, {
         contentType: 'application/json',
         access: 'public',
         addRandomSuffix: false, // Disable random suffix for consistent URLs
         allowOverwrite: true
       });
-      
+
       console.log(`[ConsolidatedBlobManager] Save result URL: ${result.url}`);
       console.log(`[ConsolidatedBlobManager] Successfully saved consolidated blob (${Math.round(jsonData.length / 1024)}KB)`);
 
@@ -782,7 +806,7 @@ export class ConsolidatedBlobManager {
   async isConsolidationNeeded(): Promise<boolean> {
     try {
       const existing = await this.loadConsolidatedBlob();
-      
+
       if (!existing) {
         console.log('[ConsolidatedBlobManager] Consolidation needed: no existing blob');
         return true;
@@ -798,7 +822,7 @@ export class ConsolidatedBlobManager {
       // Check if contract count has changed significantly (>5% change)
       const currentContractIds = await this.blobStorage.getAllContracts();
       const countChangePercent = Math.abs(currentContractIds.length - existing.contractCount) / existing.contractCount;
-      
+
       if (countChangePercent > 0.05) {
         console.log(`[ConsolidatedBlobManager] Consolidation needed: ${Math.round(countChangePercent * 100)}% contract count change`);
         return true;
@@ -820,7 +844,7 @@ export class ConsolidatedBlobManager {
     try {
       const registry = await this.generateConsolidatedBlob();
       await this.saveConsolidatedBlob(registry);
-      
+
       return {
         success: true,
         contractCount: registry.contractCount,

@@ -20,6 +20,8 @@ interface WalletBalanceContextType {
   getStxBalance: (address: string) => number;
   getFormattedMainnetBalance: (address: string, contractId: string) => string;
   getFormattedSubnetBalance: (address: string, contractId: string) => string;
+  // New functions for automatic subnet/mainnet lookup
+  getFormattedBalanceWithSubnet: (address: string, contractId: string) => { mainnet: string; subnet: string; hasSubnet: boolean };
   addWalletAddress: (address: string) => void;
   removeWalletAddress: (address: string) => void;
   watchedAddresses: string[];
@@ -240,6 +242,39 @@ export function WalletBalanceProvider({
     return formatTokenAmount(rawBalance, decimals);
   };
 
+  const getFormattedBalanceWithSubnet = (address: string, contractId: string): { mainnet: string; subnet: string; hasSubnet: boolean } => {
+    const token = tokens[contractId];
+    if (!token) {
+      return { mainnet: "0", subnet: "0", hasSubnet: false };
+    }
+
+    let mainnetBalance: string;
+    let subnetBalance: string;
+    let hasSubnet: boolean;
+
+    if (token.type === 'SUBNET' && token.base) {
+      // This is a subnet token - get mainnet balance from base, subnet balance from this token
+      mainnetBalance = getFormattedMainnetBalance(address, token.base);
+      subnetBalance = getFormattedSubnetBalance(address, contractId);
+      hasSubnet = getSubnetBalance(address, contractId) > 0;
+    } else {
+      // This is a mainnet token - get mainnet balance from this token, look for corresponding subnet token
+      mainnetBalance = getFormattedMainnetBalance(address, contractId);
+      
+      // Find corresponding subnet token
+      const subnetToken = Object.values(tokens).find(t => t.type === 'SUBNET' && t.base === contractId);
+      if (subnetToken) {
+        subnetBalance = getFormattedSubnetBalance(address, subnetToken.contractId);
+        hasSubnet = getSubnetBalance(address, subnetToken.contractId) > 0;
+      } else {
+        subnetBalance = "0";
+        hasSubnet = false;
+      }
+    }
+
+    return { mainnet: mainnetBalance, subnet: subnetBalance, hasSubnet };
+  };
+
   const addWalletAddress = (address: string) => {
     if (!isValidStacksAddress(address)) return;
     
@@ -338,6 +373,7 @@ export function WalletBalanceProvider({
     getStxBalance,
     getFormattedMainnetBalance,
     getFormattedSubnetBalance,
+    getFormattedBalanceWithSubnet,
     addWalletAddress,
     removeWalletAddress,
     watchedAddresses,
@@ -388,5 +424,6 @@ export function useBalances(addresses?: string[]) {
     getStxBalance: context.getStxBalance,
     getFormattedMainnetBalance: context.getFormattedMainnetBalance,
     getFormattedSubnetBalance: context.getFormattedSubnetBalance,
+    getFormattedBalanceWithSubnet: context.getFormattedBalanceWithSubnet,
   };
 }

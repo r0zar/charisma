@@ -89,13 +89,15 @@ export class ContractRegistry implements RegistryAPI {
       // Set up auto-discovery callback if enabled
       const autoDiscoveryCallback = this.config.enableAutoDiscovery 
         ? async (contractId: string) => {
-            console.log(`🔍 Auto-discovering contract: ${contractId}`);
-            const addResult = await this.addContract(contractId);
-            if (addResult.success && addResult.metadata) {
-              console.log(`✅ Auto-discovery successful for ${contractId}`);
-              return addResult.metadata;
-            } else {
-              console.warn(`⚠️ Auto-discovery failed for ${contractId}: ${addResult.error}`);
+            try {
+              const addResult = await this.addContract(contractId);
+              
+              if (addResult.success) {
+                return addResult.metadata || null;
+              } else {
+                return null;
+              }
+            } catch (error) {
               return null;
             }
           }
@@ -164,6 +166,15 @@ export class ContractRegistry implements RegistryAPI {
               };
             } catch (error) {
               // If analysis fails, just ensure indexing and continue
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              
+              // Log storage authentication errors prominently
+              if (errorMessage.includes('Access denied') || errorMessage.includes('token')) {
+                console.error(`🔐 [STORAGE AUTH ERROR] Failed to re-analyze existing contract ${contractId}: ${errorMessage}`);
+              } else {
+                console.warn(`⚠️ [ANALYSIS ERROR] Failed to re-analyze existing contract ${contractId}: ${errorMessage}`);
+              }
+              
               await this.indexManager.addToIndexes(contractId, metadata);
             }
           } else {
@@ -171,14 +182,20 @@ export class ContractRegistry implements RegistryAPI {
             await this.indexManager.addToIndexes(contractId, metadata);
           }
         }
-        return {
-          success: true,
-          timestamp: Date.now(),
-          duration: Date.now() - startTime,
-          contractId,
-          wasExisting: true,
-          metadata: metadata || undefined
-        };
+        
+        // If metadata is null/undefined, fall through to new contract logic
+        if (!metadata) {
+          // Existing contract has corrupted metadata, treat as new contract
+        } else {
+          return {
+            success: true,
+            timestamp: Date.now(),
+            duration: Date.now() - startTime,
+            contractId,
+            wasExisting: true,
+            metadata
+          };
+        }
       }
 
       // Analyze contract if analysis is enabled
@@ -247,6 +264,14 @@ export class ContractRegistry implements RegistryAPI {
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Log storage authentication errors prominently
+      if (errorMessage.includes('Access denied') || errorMessage.includes('token')) {
+        console.error(`🔐 [STORAGE AUTH ERROR] Failed to add contract ${contractId}: ${errorMessage}`);
+      } else {
+        console.error(`❌ [STORAGE ERROR] Failed to add contract ${contractId}: ${errorMessage}`);
+      }
+      
       return {
         success: false,
         timestamp: Date.now(),
@@ -454,13 +479,26 @@ export class ContractRegistry implements RegistryAPI {
     // Set up auto-discovery callback for BlobStorage if enabled
     const autoDiscoveryCallback = this.config.enableAutoDiscovery 
       ? async (contractId: string) => {
-          console.log(`🔍 Auto-discovering contract: ${contractId}`);
-          const addResult = await this.addContract(contractId);
-          if (addResult.success && addResult.metadata) {
-            console.log(`✅ Auto-discovery successful for ${contractId}`);
-            return addResult.metadata;
-          } else {
-            console.warn(`⚠️ Auto-discovery failed for ${contractId}: ${addResult.error}`);
+          console.log(`🔍 [DEBUG] Bulk auto-discovering contract: ${contractId}`);
+          try {
+            const addResult = await this.addContract(contractId);
+            console.log(`🔍 [DEBUG] Bulk add result for ${contractId}:`, { 
+              success: addResult.success, 
+              hasMetadata: !!addResult.metadata, 
+              error: addResult.error 
+            });
+            
+            if (addResult.success) {
+              console.log(`✅ [DEBUG] Bulk auto-discovery successful for ${contractId}${!addResult.metadata ? ' (minimal metadata)' : ''}`);
+              return addResult.metadata || null; // Return metadata if available, null if minimal
+            } else {
+              const errorMsg = addResult.error || 'Unknown error';
+              console.warn(`⚠️ [DEBUG] Bulk auto-discovery failed for ${contractId}: ${errorMsg}`);
+              return null;
+            }
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            console.error(`❌ [DEBUG] Bulk auto-discovery exception for ${contractId}: ${errorMsg}`);
             return null;
           }
         }
@@ -628,6 +666,41 @@ export class ContractRegistry implements RegistryAPI {
   }
 
   /**
+   * Filter contract IDs against consolidated blob to avoid re-processing existing contracts
+   */
+  private async filterExistingContracts(contractIds: string[]): Promise<{ newContracts: string[], existingContracts: string[] }> {
+    try {
+      const consolidatedManager = this.blobStorage.getConsolidatedBlobManager(this.indexManager);
+      const consolidatedBlob = await consolidatedManager.loadConsolidatedBlob();
+      
+      if (!consolidatedBlob) {
+        // No consolidated blob available, treat all as new
+        return { newContracts: contractIds, existingContracts: [] };
+      }
+      
+      const newContracts: string[] = [];
+      const existingContracts: string[] = [];
+      
+      for (const contractId of contractIds) {
+        if (consolidatedBlob.contracts[contractId]) {
+          existingContracts.push(contractId);
+        } else {
+          newContracts.push(contractId);
+        }
+      }
+      
+      if (existingContracts.length > 0) {
+        console.log(`⏭️ Skipped ${existingContracts.length} contracts already in consolidated blob`);
+      }
+      
+      return { newContracts, existingContracts };
+    } catch (error) {
+      console.warn('Failed to check consolidated blob, treating all contracts as new:', error instanceof Error ? error.message : String(error));
+      return { newContracts: contractIds, existingContracts: [] };
+    }
+  }
+
+  /**
    * Discover contracts using specified configuration
    */
   async discoverContracts(config: DiscoveryOrchestrationConfig): Promise<DiscoveryOrchestrationResult> {
@@ -644,8 +717,11 @@ export class ContractRegistry implements RegistryAPI {
             console.log(`✅ Trait discovery for "${traitConfig.trait.name}" completed: Found ${result.contractsFound} contracts`);
             results.push(result);
 
-            // Store discovered contracts
-            for (const contractId of result.newContracts) {
+            // Filter out contracts already in consolidated blob
+            const filtered = await this.filterExistingContracts(result.newContracts);
+            
+            // Store only new contracts
+            for (const contractId of filtered.newContracts) {
               try {
                 await this.addContract(contractId);
               } catch (error) {
@@ -667,8 +743,11 @@ export class ContractRegistry implements RegistryAPI {
             const result = await this.discoveryEngine.discoverBySipStandard(sipConfig);
             results.push(result);
 
-            // Store discovered contracts
-            for (const contractId of result.newContracts) {
+            // Filter out contracts already in consolidated blob
+            const filtered = await this.filterExistingContracts(result.newContracts);
+            
+            // Store only new contracts
+            for (const contractId of filtered.newContracts) {
               try {
                 await this.addContract(contractId);
               } catch (error) {
@@ -689,8 +768,11 @@ export class ContractRegistry implements RegistryAPI {
           const result = await this.discoveryEngine.discoverByApiScan(config.apiScan);
           results.push(result);
 
-          // Store discovered contracts
-          for (const contractId of result.newContracts) {
+          // Filter out contracts already in consolidated blob
+          const filtered = await this.filterExistingContracts(result.newContracts);
+          
+          // Store only new contracts
+          for (const contractId of filtered.newContracts) {
             try {
               await this.addContract(contractId);
             } catch (error) {

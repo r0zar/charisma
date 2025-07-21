@@ -58,7 +58,7 @@ function getPriceSeriesAPI(): PriceSeriesAPI {
  */
 function adaptTokenMetadata(contractId: string, registryData: any): TokenCacheData {
   const tokenMetadata = registryData?.tokenMetadata;
-  
+
   if (!tokenMetadata) {
     // Return default structure for missing tokens
     return {
@@ -120,26 +120,26 @@ function adaptTokenMetadata(contractId: string, registryData: any): TokenCacheDa
  */
 export async function listTokens(): Promise<TokenCacheData[]> {
   const contractRegistryUrl = getHostUrl('contract-registry');
-  const response = await fetch(`${contractRegistryUrl}/api/tokens?type=all&limit=1000`);
-  
+  const response = await fetch(`${contractRegistryUrl}/api/tokens?type=all`);
+
   if (!response.ok) {
     throw new Error(`Failed to fetch tokens: ${response.status} ${response.statusText}`);
   }
-  
+
   const result = await response.json();
-  
+
   if (!result.success || !result.data) {
     throw new Error(`Invalid tokens response: ${result.error}`);
   }
-  
+
   const { tokens } = result.data;
   console.log(`[Contract Registry Adapter] Fetched ${tokens?.length || 0} tokens from cached API`);
-  
+
   // Convert to TokenCacheData format
   const tokenData: TokenCacheData[] = tokens
     .filter((contract: any) => contract.tokenMetadata)
     .map((contract: any) => adaptTokenMetadata(contract.contractId, contract));
-  
+
   return tokenData;
 }
 
@@ -151,7 +151,7 @@ export async function listTokens(): Promise<TokenCacheData[]> {
 export async function getTokenMetadataCached(contractId: string): Promise<TokenCacheData> {
   const contractRegistryUrl = getHostUrl('contract-registry');
   const response = await fetch(`${contractRegistryUrl}/api/contracts/${encodeURIComponent(contractId)}`);
-  
+
   if (!response.ok) {
     if (response.status === 404) {
       // Token not found in registry
@@ -159,19 +159,19 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
     }
     throw new Error(`Failed to fetch contract ${contractId}: ${response.status} ${response.statusText}`);
   }
-  
+
   const result = await response.json();
-  
+
   if (!result.success || !result.data) {
     throw new Error(`Invalid contract response for ${contractId}: ${result.error}`);
   }
-  
+
   const contract = result.data;
-  
+
   if (contract && contract.tokenMetadata) {
     return adaptTokenMetadata(contractId, contract);
   }
-  
+
   // Return default structure for missing tokens
   return adaptTokenMetadata(contractId, null);
 }
@@ -184,18 +184,18 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
 export async function discoverAndAddToken(contractId: string): Promise<TokenCacheData | null> {
   try {
     console.log(`[Contract Registry Adapter] Discovering token: ${contractId}`);
-    
+
     const registry = getContractRegistry();
-    
+
     // Try to add the contract (this will discover and analyze it automatically)
     const result = await registry.addContract(contractId);
-    
+
     if (result.success && result.metadata) {
       console.log(`[Contract Registry Adapter] Successfully discovered token: ${contractId}`);
-      
+
       // Convert to our format
       const tokenData = adaptTokenMetadata(contractId, result.metadata);
-      
+
       return tokenData;
     } else {
       console.warn(`[Contract Registry Adapter] Failed to discover token ${contractId}:`, result.error);
@@ -214,18 +214,18 @@ export async function discoverAndAddToken(contractId: string): Promise<TokenCach
 export async function getTokenMetadataWithDiscovery(contractId: string): Promise<TokenCacheData> {
   // First try regular lookup
   let tokenData = await getTokenMetadataCached(contractId);
-  
+
   // If we get an unknown token back, try discovery
   if (tokenData.symbol === 'UNKNOWN' || tokenData.name === 'Unknown Token') {
     console.log(`[Contract Registry Adapter] Token ${contractId} not found, attempting discovery...`);
-    
+
     const discoveredToken = await discoverAndAddToken(contractId);
     if (discoveredToken) {
       tokenData = discoveredToken;
       console.log(`[Contract Registry Adapter] Successfully discovered and added token: ${contractId} (${discoveredToken.symbol})`);
     }
   }
-  
+
   return tokenData;
 }
 
@@ -234,16 +234,16 @@ export async function getTokenMetadataWithDiscovery(contractId: string): Promise
  */
 export async function getMultipleTokenMetadata(contractIds: string[]): Promise<Record<string, TokenCacheData>> {
   const results: Record<string, TokenCacheData> = {};
-  
+
   // Use very conservative settings to avoid Vercel Blob rate limits
   const BATCH_SIZE = 2; // Reduced from 5 to 2
   const DELAY_MS = 200; // Increased delay between batches
-  
+
   console.log(`[getMultipleTokenMetadata] Processing ${contractIds.length} tokens in batches of ${BATCH_SIZE}`);
-  
+
   for (let i = 0; i < contractIds.length; i += BATCH_SIZE) {
     const batch = contractIds.slice(i, i + BATCH_SIZE);
-    
+
     // Process batch with individual error handling and delays
     for (let j = 0; j < batch.length; j++) {
       const contractId = batch[j];
@@ -252,7 +252,7 @@ export async function getMultipleTokenMetadata(contractIds: string[]): Promise<R
         if (j > 0) {
           await new Promise(resolve => setTimeout(resolve, 50));
         }
-        
+
         const tokenData = await getTokenMetadataCached(contractId);
         results[contractId] = tokenData;
       } catch (error) {
@@ -261,13 +261,13 @@ export async function getMultipleTokenMetadata(contractIds: string[]): Promise<R
         results[contractId] = adaptTokenMetadata(contractId, null);
       }
     }
-    
+
     // Add delay between batches to avoid hitting rate limits
     if (i + BATCH_SIZE < contractIds.length) {
       await new Promise(resolve => setTimeout(resolve, DELAY_MS));
     }
   }
-  
+
   console.log(`[getMultipleTokenMetadata] Successfully processed ${Object.keys(results).length} tokens`);
   return results;
 }
@@ -281,55 +281,55 @@ export async function listPrices(): Promise<KraxelPriceData> {
     // First get all tokens to know which prices to fetch
     const tokens = await listTokens();
     const tokenIds = tokens.map(token => token.contractId);
-    
+
     if (tokenIds.length === 0) {
       console.warn('[listPrices] No tokens found to fetch prices for');
       return {};
     }
-    
+
     // Split into smaller batches to avoid URL length limits
     const BATCH_SIZE = 20;
     const kraxelPrices: KraxelPriceData = {};
-    
+
     console.log(`[listPrices] Fetching prices for ${tokenIds.length} tokens in batches of ${BATCH_SIZE}`);
-    
+
     // Get price-scheduler URL for prices API
     const pricesUrl = getHostUrl('prices');
-    
+
     for (let i = 0; i < tokenIds.length; i += BATCH_SIZE) {
       const batch = tokenIds.slice(i, i + BATCH_SIZE);
-      
+
       const response = await fetch(`${pricesUrl}/api/prices?tokens=${batch.map(encodeURIComponent).join(',')}&currency=usd`);
-      
+
       if (!response.ok) {
         console.error(`[listPrices] Failed to fetch prices batch ${i / BATCH_SIZE + 1}: ${response.status} ${response.statusText}`);
         continue;
       }
-      
+
       const result = await response.json();
-      
+
       if (!result.success || !result.data) {
         console.error(`[listPrices] Invalid prices response for batch ${i / BATCH_SIZE + 1}:`, result.error);
         continue;
       }
-      
+
       const { prices } = result.data;
-      
+
       // Merge prices into kraxelPrices
       Object.entries(prices).forEach(([tokenId, priceData]: [string, any]) => {
         if (priceData && typeof priceData.usd === 'number') {
           kraxelPrices[tokenId] = priceData.usd;
         }
       });
-      
+
       // Small delay between batches to be respectful
       if (i + BATCH_SIZE < tokenIds.length) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
-    
+
     console.log(`[Contract Registry Adapter] Fetched ${Object.keys(kraxelPrices).length} token prices from cached API`);
-    
+
     return kraxelPrices;
   } catch (error) {
     console.error('[listPrices] Error fetching prices:', error);

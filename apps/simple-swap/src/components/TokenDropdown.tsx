@@ -35,7 +35,7 @@ export default function TokenDropdown({
 
     // Get balance data for enhanced display
     const { address } = useWallet();
-    const { getTokenBalance, getSubnetBalance, getFormattedMainnetBalance, getFormattedSubnetBalance } = useBalances(address ? [address] : []);
+    const { getFormattedBalanceWithSubnet } = useBalances(address ? [address] : []);
     const { getTokenDecimals } = useTokenMetadata();
 
     /* ---------------- helpers ---------------- */
@@ -221,22 +221,21 @@ export default function TokenDropdown({
                                                 {showBalances && address && (
                                                     <div className="text-right flex-shrink-0 ml-2 sm:ml-4">
                                                         {(() => {
-                                                            const formattedMainnet = getFormattedMainnetBalance(address, token.contractId);
-                                                            const formattedSubnet = getFormattedSubnetBalance(address, token.contractId);
-                                                            const subnetBalance = getSubnetBalance(address, token.contractId);
+                                                            // Use the new function that automatically handles subnet/mainnet lookup
+                                                            const { mainnet, subnet, hasSubnet } = getFormattedBalanceWithSubnet(address, token.contractId);
                                                             
                                                             return (
                                                                 <>
                                                                     <div className="text-sm sm:text-base font-semibold text-white/90">
-                                                                        {formattedMainnet}
+                                                                        {mainnet}
                                                                     </div>
-                                                                    {subnetBalance > 0 && (
+                                                                    {hasSubnet && (
                                                                         <div className="text-xs sm:text-sm text-purple-400 font-medium">
-                                                                            +{formattedSubnet} subnet
+                                                                            +{subnet} subnet
                                                                         </div>
                                                                     )}
                                                                     <div className="text-xs text-white/50 mt-1">
-                                                                        {subnetBalance > 0 ? 'Mainnet' : 'Balance'}
+                                                                        {hasSubnet ? 'Mainnet' : 'Balance'}
                                                                     </div>
                                                                 </>
                                                             );
