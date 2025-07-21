@@ -80,7 +80,7 @@ async function fetchEngineData(): Promise<{
           engineStats = {
             oracle: stats.oracle || 0,
             market: stats.market || 0,
-            intrinsic: stats.intrinsic || 0,
+            virtual: stats.virtual || 0,
             hybrid: stats.hybrid || 0
           };
         }
