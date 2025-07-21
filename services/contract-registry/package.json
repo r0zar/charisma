@@ -60,7 +60,9 @@
     "script:validate-compliance": "tsx scripts/validate-sip-compliance.ts",
     "script:discover-sips": "tsx scripts/discover-all-sips.ts",
     "script:discover-quick": "tsx scripts/discover-sips-quick.ts",
-    "script:scan-mainnet": "tsx scripts/scan-all-mainnet.ts"
+    "script:scan-mainnet": "tsx scripts/scan-all-mainnet.ts",
+    "script:create-consolidated-blob": "tsx scripts/create-consolidated-blob.ts",
+    "script:verify-consolidated-blob": "tsx scripts/verify-consolidated-blob.ts"
   },
   "dependencies": {
     "@modules/blob-monitor": "workspace:*",

@@ -378,7 +378,7 @@ export class ContractRegistry implements RegistryAPI {
   async getFungibleTokens(): Promise<ContractMetadata[]> {
     try {
       // Try to use consolidated blob first for better performance
-      const consolidatedManager = this.blobStorage.getConsolidatedBlobManager();
+      const consolidatedManager = this.blobStorage.getConsolidatedBlobManager(this.indexManager);
       const consolidatedBlob = await consolidatedManager.loadConsolidatedBlob();
       
       if (consolidatedBlob) {
@@ -414,7 +414,7 @@ export class ContractRegistry implements RegistryAPI {
   async getNonFungibleTokens(): Promise<ContractMetadata[]> {
     try {
       // Try to use consolidated blob first for better performance
-      const consolidatedManager = this.blobStorage.getConsolidatedBlobManager();
+      const consolidatedManager = this.blobStorage.getConsolidatedBlobManager(this.indexManager);
       const consolidatedBlob = await consolidatedManager.loadConsolidatedBlob();
       
       if (consolidatedBlob) {

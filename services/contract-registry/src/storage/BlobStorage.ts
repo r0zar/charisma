@@ -589,8 +589,8 @@ export class BlobStorage {
   /**
    * Get the consolidated blob manager for bulk operations
    */
-  getConsolidatedBlobManager(): ConsolidatedBlobManager {
-    return new ConsolidatedBlobManager(this);
+  getConsolidatedBlobManager(indexManager?: any): ConsolidatedBlobManager {
+    return new ConsolidatedBlobManager(this, indexManager);
   }
 }
 
@@ -599,16 +599,19 @@ export class BlobStorage {
  * This reduces individual blob API calls and provides efficient bulk operations
  */
 export class ConsolidatedBlobManager {
-  private static readonly CONSOLIDATED_PATH = 'consolidated-registry.json.gz';
+  private static readonly CONSOLIDATED_PATH = 'consolidated-registry.json';
   private static readonly VERSION = '1.0.0';
   private blobStorage: BlobStorage;
+  private indexManager?: any;
 
-  constructor(blobStorage: BlobStorage) {
+  constructor(blobStorage: BlobStorage, indexManager?: any) {
     this.blobStorage = blobStorage;
+    this.indexManager = indexManager;
   }
 
   /**
    * Generate a new consolidated blob from all individual contracts
+   * Uses batched processing to avoid rate limits
    */
   async generateConsolidatedBlob(): Promise<ConsolidatedRegistry> {
     const startTime = Date.now();
@@ -619,29 +622,62 @@ export class ConsolidatedBlobManager {
       const contractIds = await this.blobStorage.getAllContracts();
       console.log(`[ConsolidatedBlobManager] Found ${contractIds.length} contracts to consolidate`);
 
-      // Fetch all contracts in parallel with controlled concurrency
-      const result = await this.blobStorage.getContracts(contractIds, 15); // Conservative concurrency
-      
-      if (result.failed.length > 0) {
-        console.warn(`[ConsolidatedBlobManager] Failed to fetch ${result.failed.length} contracts:`, 
-          result.failed.slice(0, 5).map(f => f.contractId));
-      }
-
-      // Build the contracts map
+      // Process contracts in small batches to avoid rate limits
       const contracts: Record<string, ContractMetadata> = {};
+      let totalProcessed = 0;
+      let totalFailed = 0;
       let totalSize = 0;
+      const batchSize = 50; // Small batch size
+      const maxConcurrency = 2; // Very conservative concurrency
 
-      result.successful.forEach(({ contractId, metadata }) => {
-        contracts[contractId] = metadata;
-        // Estimate size (rough JSON size)
-        totalSize += JSON.stringify(metadata).length;
-      });
+      console.log(`[ConsolidatedBlobManager] Processing ${contractIds.length} contracts in batches of ${batchSize}...`);
+
+      for (let i = 0; i < contractIds.length; i += batchSize) {
+        const batch = contractIds.slice(i, i + batchSize);
+        const batchNum = Math.floor(i / batchSize) + 1;
+        const totalBatches = Math.ceil(contractIds.length / batchSize);
+        
+        console.log(`[ConsolidatedBlobManager] Processing batch ${batchNum}/${totalBatches} (${batch.length} contracts)...`);
+        
+        try {
+          // Add delay between batches to respect rate limits
+          if (i > 0) {
+            console.log('[ConsolidatedBlobManager] Waiting 2s between batches...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+
+          const result = await this.blobStorage.getContracts(batch, maxConcurrency);
+          
+          // Add successful contracts to our registry
+          result.successful.forEach(({ contractId, metadata }) => {
+            contracts[contractId] = metadata;
+            totalSize += JSON.stringify(metadata).length;
+          });
+
+          totalProcessed += result.successful.length;
+          totalFailed += result.failed.length;
+
+          if (result.failed.length > 0) {
+            console.warn(`[ConsolidatedBlobManager] Batch ${batchNum}: ${result.failed.length} failures:`, 
+              result.failed.slice(0, 3).map(f => f.contractId));
+          }
+
+          console.log(`[ConsolidatedBlobManager] Batch ${batchNum} completed: ${result.successful.length} success, ${result.failed.length} failed`);
+
+        } catch (error) {
+          console.error(`[ConsolidatedBlobManager] Batch ${batchNum} failed:`, error);
+          totalFailed += batch.length;
+          
+          // Don't fail entire operation for one batch - continue with other batches
+          continue;
+        }
+      }
 
       const generationTimeMs = Date.now() - startTime;
       const consolidatedRegistry: ConsolidatedRegistry = {
         version: ConsolidatedBlobManager.VERSION,
         generatedAt: Date.now(),
-        contractCount: result.successful.length,
+        contractCount: totalProcessed,
         contracts,
         metadata: {
           totalSize,
@@ -651,7 +687,11 @@ export class ConsolidatedBlobManager {
         }
       };
 
-      console.log(`[ConsolidatedBlobManager] Generated consolidated blob in ${generationTimeMs}ms with ${result.successful.length} contracts`);
+      console.log(`[ConsolidatedBlobManager] Generated consolidated blob in ${generationTimeMs}ms:`);
+      console.log(`[ConsolidatedBlobManager]   - Processed: ${totalProcessed} contracts`);
+      console.log(`[ConsolidatedBlobManager]   - Failed: ${totalFailed} contracts`);
+      console.log(`[ConsolidatedBlobManager]   - Success rate: ${(totalProcessed / (totalProcessed + totalFailed) * 100).toFixed(1)}%`);
+
       return consolidatedRegistry;
 
     } catch (error) {
@@ -668,20 +708,33 @@ export class ConsolidatedBlobManager {
     try {
       console.log('[ConsolidatedBlobManager] Loading consolidated blob...');
       
-      const blobUrl = this.blobStorage['constructBlobUrl'](
-        this.blobStorage['config'].pathPrefix + ConsolidatedBlobManager.CONSOLIDATED_PATH
-      );
+      // First try to get the stored URL from the last save operation
+      const storedUrl = await this.getStoredConsolidatedBlobUrl();
+      
+      let blobUrl: string;
+      if (storedUrl) {
+        console.log(`[ConsolidatedBlobManager] Using stored URL: ${storedUrl}`);
+        blobUrl = storedUrl;
+      } else {
+        // Fallback to constructing URL (may not work due to Vercel's unique suffixes)
+        const filePath = this.blobStorage['config'].pathPrefix + ConsolidatedBlobManager.CONSOLIDATED_PATH;
+        blobUrl = this.blobStorage['constructBlobUrl'](filePath);
+        console.log(`[ConsolidatedBlobManager] No stored URL found, trying constructed URL: ${blobUrl}`);
+      }
+      
       const response = await this.blobStorage['monitor'].fetch(blobUrl);
 
       if (!response.ok) {
         if (response.status === 404) {
-          console.log('[ConsolidatedBlobManager] No consolidated blob found');
+          console.log('[ConsolidatedBlobManager] No consolidated blob found (404)');
           return null;
         }
-        throw new Error(`Failed to fetch consolidated blob: ${response.status}`);
+        console.error(`[ConsolidatedBlobManager] Failed to fetch consolidated blob: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to fetch consolidated blob: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.text();
+      console.log(`[ConsolidatedBlobManager] Loaded ${data.length} bytes of data`);
 
       // Parse the JSON data
       const consolidatedRegistry: ConsolidatedRegistry = JSON.parse(data);
@@ -711,17 +764,65 @@ export class ConsolidatedBlobManager {
       const jsonData = JSON.stringify(registry, null, 0); // No pretty printing for size
       const filePath = this.blobStorage['config'].pathPrefix + ConsolidatedBlobManager.CONSOLIDATED_PATH;
       
-      await this.blobStorage['monitor'].put(filePath, jsonData, {
+      console.log(`[ConsolidatedBlobManager] Saving to path: ${filePath}`);
+      console.log(`[ConsolidatedBlobManager] Data size: ${Math.round(jsonData.length / 1024)}KB`);
+      
+      const result = await this.blobStorage['monitor'].put(filePath, jsonData, {
         contentType: 'application/json',
         access: 'public',
         allowOverwrite: true
       });
+      
+      console.log(`[ConsolidatedBlobManager] Save result URL: ${result.url}`);
       console.log(`[ConsolidatedBlobManager] Successfully saved consolidated blob (${Math.round(jsonData.length / 1024)}KB)`);
+
+      // Store the actual URL for future access
+      // We'll use KV storage to store the mapping from logical path to actual URL
+      await this.storeConsolidatedBlobUrl(result.url);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error('[ConsolidatedBlobManager] Failed to save consolidated blob:', errorMessage);
       throw new Error(`Failed to save consolidated blob: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Store the consolidated blob URL in KV for future retrieval
+   */
+  private async storeConsolidatedBlobUrl(url: string): Promise<void> {
+    if (!this.indexManager) {
+      console.warn('[ConsolidatedBlobManager] No IndexManager available, cannot store URL mapping');
+      return;
+    }
+    
+    try {
+      // Use the IndexManager to store the URL mapping
+      const key = `${this.blobStorage['config'].serviceName}:consolidated-blob-url`;
+      await this.indexManager.kv.set(key, url);
+      console.log(`[ConsolidatedBlobManager] Stored blob URL mapping: ${key} -> ${url}`);
+    } catch (error) {
+      console.warn('[ConsolidatedBlobManager] Failed to store blob URL mapping:', error);
+      // Don't fail the whole operation for this
+    }
+  }
+
+  /**
+   * Retrieve the stored consolidated blob URL
+   */
+  private async getStoredConsolidatedBlobUrl(): Promise<string | null> {
+    if (!this.indexManager) {
+      console.warn('[ConsolidatedBlobManager] No IndexManager available, cannot retrieve stored URL');
+      return null;
+    }
+    
+    try {
+      const key = `${this.blobStorage['config'].serviceName}:consolidated-blob-url`;
+      const url = await this.indexManager.kv.get(key);
+      return url || null;
+    } catch (error) {
+      console.warn('[ConsolidatedBlobManager] Failed to retrieve stored blob URL:', error);
+      return null;
     }
   }
 

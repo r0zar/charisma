@@ -30,13 +30,25 @@ export async function GET(request: NextRequest) {
     // Initialize price service
     const priceService = new PriceService()
     
-    const options: PriceOptions = {
-      currency,
-      includeHistory,
-      days
+    // Use the available method from LegacyPriceService
+    const priceResult = await priceService.calculateMultipleTokenPrices(tokens)
+    
+    if (!priceResult.success) {
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to calculate token prices',
+        errors: Object.fromEntries(priceResult.errors || [])
+      }, { status: 500 })
     }
 
-    const prices = await priceService.getPrices(tokens, options)
+    // Convert Map to plain object for JSON response
+    const prices: Record<string, any> = {}
+    priceResult.prices.forEach((priceData, tokenId) => {
+      prices[tokenId] = {
+        usd: priceData.usdPrice || 0,
+        ...(includeHistory && { history: [] }) // Mock history for now
+      }
+    })
 
     if (!prices || Object.keys(prices).length === 0) {
       return NextResponse.json({
