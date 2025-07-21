@@ -120,7 +120,7 @@ export default async function EngineHealth() {
             <div className="flex items-center justify-center py-8 text-center">
               <div className="space-y-3">
                 <div className="p-3 rounded-full bg-destructive/10 border border-destructive/20 w-fit mx-auto">
-                  <Activity className="h-6 w-6 text-destructive" />
+                  <svg className="h-6 w-6 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 </div>
                 <div>
                   <div className="font-medium text-sm text-destructive mb-1">Engine Health Unavailable</div>
