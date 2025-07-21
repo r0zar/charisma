@@ -21,6 +21,10 @@ export const HOSTS: Record<string, HostUrls> = {
     development: 'http://localhost:3003',
     production: 'https://invest.charisma.rocks'
   },
+  'contract-registry': {
+    development: 'http://localhost:3600',
+    production: 'https://contracts.charisma.rocks'
+  },
   'tx-monitor': {
     development: 'http://localhost:3012',
     production: 'https://tx.charisma.rocks'
