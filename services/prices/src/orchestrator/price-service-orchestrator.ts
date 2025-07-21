@@ -17,6 +17,7 @@ import type { OracleEngine } from '../engines/oracle-engine';
 import type { CpmmEngine, CpmmPriceResult } from '../engines/cpmm-engine';
 import type { VirtualEngine } from '../engines/virtual-engine';
 import { getHostUrl } from '@modules/discovery';
+import { ContractRegistry, createDefaultConfig } from '@services/contract-registry';
 
 /**
  * Price Service Orchestrator - Main coordinator for all pricing engines
@@ -26,6 +27,7 @@ export class PriceServiceOrchestrator {
     private cpmmEngine: CpmmEngine | null = null;
     private virtualEngine: VirtualEngine | null = null;
     private config: PriceServiceConfig | null = null;
+    private contractRegistry: ContractRegistry | null = null;
 
     // Health monitoring
     private engineHealth = new Map<PriceSource, EngineHealth>();
@@ -93,6 +95,10 @@ export class PriceServiceOrchestrator {
             cpmmEngine.setPoolDataProvider(poolDataProvider);
             await cpmmEngine.buildGraph();
 
+            // Initialize contract registry for token metadata
+            const registryConfig = createDefaultConfig('prices');
+            this.contractRegistry = new ContractRegistry(registryConfig);
+
             // Set up virtual engine providers
             virtualEngine.setOracleEngine(oracleEngine);
 
@@ -100,9 +106,14 @@ export class PriceServiceOrchestrator {
             virtualEngine.setTokenMetadataProvider({
                 getTokenMetadata: async (contractId: string) => {
                     try {
-                        // Use @repo/tokens to get proper token metadata
-                        const { getTokenMetadataCached } = await import('@repo/tokens');
-                        const metadata = await getTokenMetadataCached(contractId);
+                        // Use contract registry to get token metadata
+                        if (!this.contractRegistry) {
+                            console.warn(`[PriceOrchestrator] Contract registry not initialized for ${contractId}`);
+                            return null;
+                        }
+
+                        const contract = await this.contractRegistry.getContract(contractId);
+                        const metadata = contract?.tokenMetadata;
                         
                         // Return in the format expected by virtual engine
                         if (metadata && metadata.contractId) {
@@ -111,7 +122,7 @@ export class PriceServiceOrchestrator {
                                 type: metadata.type || 'STANDARD',
                                 symbol: metadata.symbol,
                                 decimals: metadata.decimals,
-                                base: metadata.base || null
+                                base: metadata.base || undefined
                             };
                         }
                         return null;

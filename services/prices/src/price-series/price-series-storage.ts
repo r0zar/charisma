@@ -7,7 +7,7 @@
  * 3. Cache optimization for 512MB limit and better hit rates
  */
 
-import { put, list } from '@vercel/blob';
+import { BlobMonitor } from '@modules/blob-monitor';
 import { kv } from '@vercel/kv';
 import type { TokenPriceData, PriceSource } from '../shared/types';
 
@@ -72,12 +72,20 @@ const CONFIG = {
  */
 export class PriceSeriesStorage {
     private readonly blobToken: string;
+    private blobMonitor: BlobMonitor;
 
     constructor(blobToken?: string) {
         this.blobToken = blobToken || process.env.BLOB_READ_WRITE_TOKEN || '';
         if (!this.blobToken) {
             throw new Error('Blob token required for price series storage');
         }
+        
+        this.blobMonitor = new BlobMonitor({
+            serviceName: 'price-series-storage',
+            enforcementLevel: 'warn',
+            enableCostTracking: true,
+            enableCapacityTracking: true
+        });
     }
 
     /**
@@ -121,9 +129,8 @@ export class PriceSeriesStorage {
 
         try {
             // Store snapshot with optimized cache headers
-            const result = await put(snapshotPath, jsonString, {
+            const result = await this.blobMonitor.put(snapshotPath, jsonString, {
                 access: 'public',
-                token: this.blobToken,
                 cacheControlMaxAge: CONFIG.CACHE_DURATIONS.IMMUTABLE_SNAPSHOTS // 1 year for immutable data
             });
 
@@ -162,9 +169,8 @@ export class PriceSeriesStorage {
             await this.storeLatestPricesInKV(serializableSnapshot);
 
             // Store latest with shorter cache for frequently accessed data
-            await put('latest/current-prices.json', jsonString, {
+            await this.blobMonitor.put('latest/current-prices.json', jsonString, {
                 access: 'public',
-                token: this.blobToken,
                 allowOverwrite: true,
                 cacheControlMaxAge: CONFIG.CACHE_DURATIONS.LATEST_PRICES // 5 minutes
             });
@@ -327,9 +333,8 @@ export class PriceSeriesStorage {
 
         try {
             // Get recent snapshots using blob list
-            const snapshots = await list({
+            const snapshots = await this.blobMonitor.list({
                 prefix: 'snapshots/',
-                token: this.blobToken,
                 limit: 50 // Get enough snapshots to find 1hr and 24hr ago data
             });
 
@@ -339,7 +344,7 @@ export class PriceSeriesStorage {
 
             // Sort by upload time (most recent first)
             const sortedBlobs = snapshots.blobs
-                .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+                .sort((a: any, b: any) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
 
             // Get current prices (from latest snapshot)
             const latestBlob = sortedBlobs[0];
@@ -544,21 +549,20 @@ export class PriceSeriesStorage {
         
         try {
             // Use blob list() to get recent snapshots
-            const snapshots = await list({
+            const snapshots = await this.blobMonitor.list({
                 prefix: 'snapshots/',
-                token: this.blobToken,
                 limit: Math.min(limit * 3, 100) // Get more files to ensure we find token data
             });
 
             // Sort by uploaded time (most recent first)
             const sortedBlobs = snapshots.blobs
-                .sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
+                .sort((a: any, b: any) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
                 .slice(0, limit * 2); // Take enough to find data
 
             // Fetch and process snapshots in parallel with concurrency control
             for (let i = 0; i < sortedBlobs.length; i += CONFIG.MAX_CONCURRENT_FETCHES) {
                 const batch = sortedBlobs.slice(i, i + CONFIG.MAX_CONCURRENT_FETCHES);
-                const fetchPromises = batch.map(async (blob) => {
+                const fetchPromises = batch.map(async (blob: any) => {
                     try {
                         const response = await fetch(blob.url);
                         return response.ok ? await response.json() : null;
@@ -569,7 +573,7 @@ export class PriceSeriesStorage {
 
                 const snapshotData = await Promise.all(fetchPromises);
 
-                snapshotData.forEach(snapshot => {
+                snapshotData.forEach((snapshot: any) => {
                     if (snapshot?.prices) {
                         const tokenPrice = snapshot.prices.find((p: any) => p.tokenId === tokenId);
                         if (tokenPrice && entries.length < limit) {
@@ -893,9 +897,8 @@ export class PriceSeriesStorage {
             const arbPath = `arbitrage/${year}/${month}/${day}.json`;
 
             try {
-                await put(arbPath, JSON.stringify(opportunities), {
+                await this.blobMonitor.put(arbPath, JSON.stringify(opportunities), {
                     access: 'public',
-                    token: this.blobToken,
                     allowOverwrite: true,
                     cacheControlMaxAge: CONFIG.CACHE_DURATIONS.IMMUTABLE_SNAPSHOTS
                 });
@@ -985,9 +988,8 @@ export class PriceSeriesStorage {
             }
 
             // Store with optimized cache headers
-            await put(seriesPath, JSON.stringify(existingEntries), {
+            await this.blobMonitor.put(seriesPath, JSON.stringify(existingEntries), {
                 access: 'public',
-                token: this.blobToken,
                 allowOverwrite: true,
                 cacheControlMaxAge: CONFIG.CACHE_DURATIONS.MONTHLY_SERIES
             });
@@ -1008,14 +1010,13 @@ export class PriceSeriesStorage {
     }> {
         try {
             // Use limited list operation for stats only
-            const snapshots = await list({
+            const snapshots = await this.blobMonitor.list({
                 prefix: 'snapshots/',
-                token: this.blobToken,
                 limit: 100 // Reduced limit for cost optimization
             });
 
             const totalSnapshots = snapshots.blobs.length;
-            const totalSize = snapshots.blobs.reduce((sum, blob) => sum + blob.size, 0);
+            const totalSize = snapshots.blobs.reduce((sum: number, blob: any) => sum + blob.size, 0);
             const estimatedStorageGB = totalSize / (1024 * 1024 * 1024);
 
             // Get timestamp range from KV instead of processing all blobs
@@ -1040,6 +1041,27 @@ export class PriceSeriesStorage {
                 estimatedStorageGB: 0
             };
         }
+    }
+
+    /**
+     * Get blob monitoring statistics
+     */
+    getBlobMonitorStats() {
+        return this.blobMonitor.getStats();
+    }
+
+    /**
+     * Get recent blob operations for monitoring
+     */
+    getRecentBlobOperations(limit: number = 10) {
+        return this.blobMonitor.getRecentOperations(limit);
+    }
+
+    /**
+     * Get active blob alerts
+     */
+    getBlobAlerts() {
+        return this.blobMonitor.getAlerts();
     }
 
 }

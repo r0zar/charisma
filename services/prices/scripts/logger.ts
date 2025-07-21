@@ -26,13 +26,13 @@ class SimpleLogger {
 
   initialize(): void {
     if (this.initialized) return;
-    
+
     // Ensure logs directory exists
     fs.mkdirSync('logs', { recursive: true });
-    
+
     this.writeHeader();
     this.initialized = true;
-    
+
     // Now safely call info after initialization
     this.info('Script session started');
     console.log(`📋 Logging to: ${this.logFile}`);
@@ -40,7 +40,7 @@ class SimpleLogger {
 
   writeHeader(): void {
     let nodeVersion = process.version;
-    
+
     const header = `📋 Script Execution Log
 📁 Script: ${path.basename(process.argv[1])}
 ⏰ Started: ${this.startTime.toLocaleString()}
@@ -111,8 +111,6 @@ const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
 const scriptName = path.basename(process.argv[1], '.ts');
 const logFile = path.join(process.cwd(), 'logs', `${timestamp}-${scriptName}.log`);
 
-export const logger = new SimpleLogger(logFile);
-
 // Helper function to log script execution
 export function logExecution(description: string, command: string): void {
   logger.info(`Executing: ${description}`);
@@ -155,3 +153,6 @@ process.on('SIGTERM', () => {
   }
   process.exit(0);
 });
+
+// Export the logger
+export const logger = new SimpleLogger(logFile);
