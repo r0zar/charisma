@@ -115,7 +115,11 @@ export class TokenHolderScanner {
       console.log('🪙 Using tokens from existing balance tracking...');
       
       // Get currently tracked tokens from our balance store
-      const balanceStats = await this.balanceStore.getStats();
+      const balanceStats = await this.balanceStore.getStats?.();
+      if (!balanceStats) {
+        console.log('No balance stats available, using fallback discovery method');
+        return [];
+      }
       console.log(`Found ${balanceStats.totalTokens} tokens and ${balanceStats.totalAddresses} addresses already tracked`);
       
       // Use our existing tracked addresses as a starting point to discover their tokens
@@ -320,8 +324,8 @@ export class TokenHolderScanner {
   private async getKnownAddresses(): Promise<string[]> {
     try {
       // Get addresses that already have metadata in our system
-      const stats = await this.balanceStore.getStats();
-      return stats.addresses || [];
+      const stats = await this.balanceStore.getStats?.();
+      return stats?.addresses || [];
     } catch (error) {
       console.warn('Failed to get known addresses:', error);
       return [];
