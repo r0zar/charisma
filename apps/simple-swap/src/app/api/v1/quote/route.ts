@@ -46,7 +46,10 @@ export async function GET(request: NextRequest) {
                 {
                     status: 200,
                     headers: {
-                        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=59',
+                        // Optimized caching: 30s browser, 2min CDN, 5min Vercel CDN (quotes change frequently)
+                        'Cache-Control': 'public, max-age=30',
+                        'CDN-Cache-Control': 'public, s-maxage=120',
+                        'Vercel-CDN-Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
                         ...CORS_HEADERS,
                     }
                 }

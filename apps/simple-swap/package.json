@@ -34,6 +34,7 @@
     "@react-spring/web": "^10.0.1",
     "@repo/polyglot": "workspace:*",
     "@repo/tx-monitor-client": "workspace:*",
+    "@services/balances": "workspace:*",
     "@services/contract-registry": "workspace:*",
     "@stacks/connect": "latest",
     "@stacks/encryption": "latest",

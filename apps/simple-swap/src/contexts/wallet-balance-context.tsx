@@ -2,9 +2,10 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { AccountBalancesResponse } from '@repo/polyglot';
-import { getAccountBalancesWithSubnet } from '@/app/actions';
+import { getAccountBalancesWithSubnet, getBalancesAction, getAddressBalancesAction } from '@/app/actions';
 import { formatTokenAmount } from '@/lib/swap-utils';
 import { useTokenMetadata } from './token-metadata-context';
+import type { BulkBalanceResponse } from '@services/balances/src/types';
 
 interface WalletBalanceContextType {
   balances: Record<string, AccountBalancesResponse>;
@@ -29,14 +30,22 @@ const WalletBalanceContext = createContext<WalletBalanceContextType | undefined>
 interface WalletBalanceProviderProps {
   children: ReactNode;
   refreshInterval?: number;
+  initialBalances?: Record<string, AccountBalancesResponse>;
+  initialServiceBalances?: BulkBalanceResponse;
 }
 
-export function WalletBalanceProvider({ children, refreshInterval = 60000 }: WalletBalanceProviderProps) {
-  const [balances, setBalances] = useState<Record<string, AccountBalancesResponse>>({});
+export function WalletBalanceProvider({ 
+  children, 
+  refreshInterval = 60000,
+  initialBalances,
+  initialServiceBalances
+}: WalletBalanceProviderProps) {
+  const [balances, setBalances] = useState<Record<string, AccountBalancesResponse>>(initialBalances || {});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [watchedAddresses, setWatchedAddresses] = useState<string[]>([]);
+  const [useBalanceService, setUseBalanceService] = useState(!!initialServiceBalances);
   
   const { tokens } = useTokenMetadata();
   
@@ -48,6 +57,41 @@ export function WalletBalanceProvider({ children, refreshInterval = 60000 }: Wal
     return Boolean(address && (address.startsWith('SP') || address.startsWith('ST')));
   };
 
+  // Helper function to convert balance service data to AccountBalancesResponse format
+  const convertServiceBalancesToAccountResponse = (
+    address: string,
+    serviceBalances: Record<string, string>
+  ): AccountBalancesResponse => {
+    const fungible_tokens: Record<string, any> = {};
+    
+    Object.entries(serviceBalances).forEach(([contractId, balance]) => {
+      if (balance !== '0') {
+        fungible_tokens[contractId] = {
+          balance: balance,
+          total_sent: '0',
+          total_received: balance,
+        };
+      }
+    });
+
+    return {
+      stx: {
+        balance: serviceBalances['STX'] || '0',
+        total_sent: '0',
+        total_received: serviceBalances['STX'] || '0',
+        total_fees_sent: '0',
+        total_miner_rewards_received: '0',
+        lock_tx_id: '',
+        locked: '0',
+        lock_height: 0,
+        burnchain_lock_height: 0,
+        burnchain_unlock_height: 0
+      },
+      fungible_tokens,
+      non_fungible_tokens: {}
+    };
+  };
+
   const refreshBalances = async (addresses?: string[]) => {
     const addressesToUpdate = addresses || watchedAddresses;
     if (addressesToUpdate.length === 0) return;
@@ -56,43 +100,78 @@ export function WalletBalanceProvider({ children, refreshInterval = 60000 }: Wal
     setError(null);
 
     try {
-      const results = await Promise.allSettled(
-        addressesToUpdate.map(async (address) => {
-          // Skip if request is already active for this address
-          if (activeRequests.current.has(address)) {
-            return null;
-          }
-
-          if (!isValidStacksAddress(address)) {
-            return null;
-          }
-
-          activeRequests.current.add(address);
+      // Use balance service if enabled, otherwise fall back to original method
+      if (useBalanceService) {
+        console.log('[WalletBalanceContext] Using balance service for refresh');
+        
+        const response = await getBalancesAction(addressesToUpdate, undefined, false);
+        
+        if (response.success && response.data) {
+          const newBalances = { ...balances };
           
-          try {
-            const balanceData = await getAccountBalancesWithSubnet(address, { trim: true });
-            return { address, balanceData };
-          } catch (err) {
-            console.error(`Failed to fetch balance for ${address}:`, err);
-            return null;
-          } finally {
-            activeRequests.current.delete(address);
-          }
-        })
-      );
-
-      const newBalances = { ...balances };
-      results.forEach((result) => {
-        if (result.status === 'fulfilled' && result.value && result.value.balanceData) {
-          newBalances[result.value.address] = result.value.balanceData;
+          // Convert service balance data to AccountBalancesResponse format
+          Object.entries(response.data).forEach(([address, serviceBalances]) => {
+            newBalances[address] = convertServiceBalancesToAccountResponse(address, serviceBalances);
+          });
+          
+          setBalances(newBalances);
+          setLastUpdate(Date.now());
+          console.log(`[WalletBalanceContext] Successfully updated ${Object.keys(response.data).length} addresses using balance service`);
+        } else {
+          console.warn('[WalletBalanceContext] Balance service failed, falling back to original method');
+          setUseBalanceService(false);
+          // Fall through to original method
         }
-      });
+      }
+      
+      // Original method (fallback or when balance service is disabled)
+      if (!useBalanceService) {
+        console.log('[WalletBalanceContext] Using original balance fetching method');
+        
+        const results = await Promise.allSettled(
+          addressesToUpdate.map(async (address) => {
+            // Skip if request is already active for this address
+            if (activeRequests.current.has(address)) {
+              return null;
+            }
 
-      setBalances(newBalances);
-      setLastUpdate(Date.now());
+            if (!isValidStacksAddress(address)) {
+              return null;
+            }
+
+            activeRequests.current.add(address);
+            
+            try {
+              const balanceData = await getAccountBalancesWithSubnet(address, { trim: true });
+              return { address, balanceData };
+            } catch (err) {
+              console.error(`Failed to fetch balance for ${address}:`, err);
+              return null;
+            } finally {
+              activeRequests.current.delete(address);
+            }
+          })
+        );
+
+        const newBalances = { ...balances };
+        results.forEach((result) => {
+          if (result.status === 'fulfilled' && result.value && result.value.balanceData) {
+            newBalances[result.value.address] = result.value.balanceData;
+          }
+        });
+
+        setBalances(newBalances);
+        setLastUpdate(Date.now());
+      }
     } catch (err) {
       console.error('Failed to refresh balances:', err);
       setError(err instanceof Error ? err.message : 'Failed to refresh balances');
+      
+      // If balance service failed, try falling back to original method
+      if (useBalanceService) {
+        console.log('[WalletBalanceContext] Balance service error, disabling for this session');
+        setUseBalanceService(false);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -178,6 +257,32 @@ export function WalletBalanceProvider({ children, refreshInterval = 60000 }: Wal
       return newBalances;
     });
   };
+
+  // Process initial service balance data
+  useEffect(() => {
+    if (initialServiceBalances?.success && initialServiceBalances.data) {
+      console.log('[WalletBalanceContext] Processing initial service balance data');
+      
+      const processedBalances: Record<string, AccountBalancesResponse> = {};
+      
+      Object.entries(initialServiceBalances.data).forEach(([address, serviceBalances]) => {
+        processedBalances[address] = convertServiceBalancesToAccountResponse(address, serviceBalances);
+        
+        // Auto-add the address to watched list
+        setWatchedAddresses(prev => {
+          if (!prev.includes(address)) {
+            return [...prev, address];
+          }
+          return prev;
+        });
+      });
+      
+      setBalances(prev => ({ ...prev, ...processedBalances }));
+      setLastUpdate(Date.now());
+      
+      console.log(`[WalletBalanceContext] Processed ${Object.keys(processedBalances).length} addresses from initial service data`);
+    }
+  }, [initialServiceBalances]);
 
   // Set up polling for balance updates
   useEffect(() => {

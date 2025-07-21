@@ -1,7 +1,8 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { listTokens } from '../actions';
+import { listTokens, getBalancesAction } from '../actions';
 import SwapPageClient from './swap-page-client';
+import type { BulkBalanceResponse } from '@services/balances/src/types';
 
 type Props = {
     searchParams: { [key: string]: string | string[] | undefined }
@@ -70,5 +71,23 @@ export default async function SwapPage({ searchParams }: { searchParams: { [key:
     // Await searchParams as required by Next.js 15
     const params = await searchParams;
 
-    return <SwapPageClient tokens={tokens} searchParams={params} />;
+    // Pre-load balance data for commonly used addresses
+    // This is a basic implementation - could be enhanced with user-specific pre-loading
+    let initialBalances: BulkBalanceResponse | undefined;
+    
+    try {
+        // For now, we'll just initialize the balance service without pre-loading specific addresses
+        // This could be enhanced to pre-load balances for known popular addresses or user wallets
+        console.log('[SwapPage] Balance service will be available for client-side requests');
+        
+        // Example of how to pre-load specific addresses:
+        // const commonAddresses = ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS']; // Example addresses
+        // initialBalances = await getBalancesAction(commonAddresses, undefined, false);
+        
+    } catch (error) {
+        console.warn('[SwapPage] Failed to pre-load balance data:', error);
+        // Continue without pre-loaded balances
+    }
+
+    return <SwapPageClient tokens={tokens} searchParams={params} initialBalances={initialBalances} />;
 } 

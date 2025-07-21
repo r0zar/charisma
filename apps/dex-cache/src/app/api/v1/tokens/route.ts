@@ -6,8 +6,10 @@ const headers = {
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
     'Access-Control-Allow-Headers': '*, X-Requested-With, Content-Type, Authorization',
     'Content-Type': 'application/json',
-    // Cache for 5 minutes on CDN, stale-while-revalidate for 10 minutes
-    'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
+    // Optimized caching: 15min browser, 1hr CDN, 6hr Vercel CDN (tokens change infrequently)
+    'Cache-Control': 'public, max-age=900',
+    'CDN-Cache-Control': 'public, s-maxage=3600',
+    'Vercel-CDN-Cache-Control': 'public, s-maxage=21600, stale-while-revalidate=86400'
 };
 
 export async function OPTIONS() {
