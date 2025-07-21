@@ -35,7 +35,7 @@ export default function TokenDropdown({
 
     // Get balance data for enhanced display
     const { address } = useWallet();
-    const { getTokenBalance, getSubnetBalance } = useBalances(address ? [address] : []);
+    const { getTokenBalance, getSubnetBalance, getFormattedMainnetBalance, getFormattedSubnetBalance } = useBalances(address ? [address] : []);
     const { getTokenDecimals } = useTokenMetadata();
 
     /* ---------------- helpers ---------------- */
@@ -221,12 +221,9 @@ export default function TokenDropdown({
                                                 {showBalances && address && (
                                                     <div className="text-right flex-shrink-0 ml-2 sm:ml-4">
                                                         {(() => {
-                                                            const mainnetBalance = getTokenBalance(address, token.contractId);
+                                                            const formattedMainnet = getFormattedMainnetBalance(address, token.contractId);
+                                                            const formattedSubnet = getFormattedSubnetBalance(address, token.contractId);
                                                             const subnetBalance = getSubnetBalance(address, token.contractId);
-                                                            const decimals = getTokenDecimals(token.contractId);
-                                                            const displayDecimals = Math.min(decimals, 8);
-                                                            const formattedMainnet = mainnetBalance > 0 ? mainnetBalance.toFixed(displayDecimals) : '0';
-                                                            const formattedSubnet = subnetBalance > 0 ? subnetBalance.toFixed(displayDecimals) : '0';
                                                             
                                                             return (
                                                                 <>
