@@ -22,7 +22,8 @@ import {
   Database,
   FileText,
   Table as TableIcon,
-  BarChart3
+  BarChart3,
+  ArrowUpDown
 } from "lucide-react"
 import {
   LineChart,
@@ -201,36 +202,54 @@ export default function HistoryPage() {
   }) || []
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen max-w-screen-3xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Price History</h1>
-          <p className="text-muted-foreground">View and export price calculation history from all engines</p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={fetchSnapshots}
-            variant="outline"
-            className="flex items-center gap-2"
-            disabled={loading}
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button
-            onClick={() => exportData('json')}
-            variant="outline"
-            disabled={!!exporting}
-            className="flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Export All
-          </Button>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
+      <div className="p-6 space-y-6 max-w-screen-3xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Price History</h1>
+            <p className="text-muted-foreground">View and export price calculation history from all engines</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex gap-2">
+              <Button
+                onClick={fetchSnapshots}
+                variant="outline"
+                className="flex items-center gap-2 hover:scale-105 transition-all duration-300 bg-background/50 backdrop-blur-sm hover:bg-background/80"
+                disabled={loading}
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button
+                onClick={() => exportData('json')}
+                variant="outline"
+                disabled={!!exporting}
+                className="flex items-center gap-2 hover:scale-105 transition-all duration-300 bg-background/50 backdrop-blur-sm hover:bg-background/80"
+              >
+                <Download className="w-4 h-4" />
+                Export All
+              </Button>
+            </div>
+            
+            <div className="flex gap-2">
+              <Link href="/">
+                <Button variant="outline" className="flex items-center gap-2 hover:scale-105 transition-all duration-300 bg-background/50 backdrop-blur-sm hover:bg-background/80">
+                  <ArrowUpDown className="w-4 h-4" />
+                  Dashboard
+                </Button>
+              </Link>
+              <Link href="/series">
+                <Button variant="outline" className="flex items-center gap-2 hover:scale-105 transition-all duration-300 bg-background/50 backdrop-blur-sm hover:bg-background/80">
+                  <BarChart3 className="w-4 h-4" />
+                  Series Analysis
+                </Button>
+              </Link>
+            </div>
+          </div>
       </div>
       {/* Time Range Filter */}
-      <Card className="bg-gradient-to-r from-card to-card/50 border-border shadow-sm">
+      <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5 text-primary" />
@@ -263,7 +282,7 @@ export default function HistoryPage() {
       {/* Two-Panel Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-400px)]">
         {/* Left Panel - Snapshots List */}
-        <Card className="flex flex-col bg-gradient-to-br from-card to-card/80 border-border shadow-sm">
+        <Card className="flex flex-col bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Database className="h-5 w-5 text-primary" />
@@ -380,7 +399,7 @@ export default function HistoryPage() {
         </Card>
 
         {/* Right Panel - Snapshot Preview */}
-        <Card className="flex flex-col bg-gradient-to-br col-span-1 sm:col-span-2 from-card to-card/80 border-border shadow-sm">
+        <Card className="flex flex-col bg-card/50 backdrop-blur-sm border-border/50 shadow-lg col-span-1 sm:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Eye className="h-5 w-5 text-primary" />
@@ -398,19 +417,19 @@ export default function HistoryPage() {
               <div className="space-y-6 h-full overflow-y-auto">
                 {/* Snapshot Summary */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                  <div className="p-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-lg">
+                  <div className="p-4 bg-card/50 backdrop-blur-sm border border-blue-500/20 rounded-lg hover:shadow-md transition-all duration-200">
                     <div className="text-xl font-bold text-blue-500 mb-1">{selectedSnapshot.snapshot.totalTokens}</div>
                     <div className="text-xs text-muted-foreground font-medium">Total Tokens</div>
                   </div>
-                  <div className="p-4 bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 rounded-lg">
+                  <div className="p-4 bg-card/50 backdrop-blur-sm border border-green-500/20 rounded-lg hover:shadow-md transition-all duration-200">
                     <div className="text-xl font-bold text-green-500 mb-1">{selectedSnapshot.snapshot.successfulPrices}</div>
                     <div className="text-xs text-muted-foreground font-medium">Success</div>
                   </div>
-                  <div className="p-4 bg-gradient-to-br from-red-500/10 to-red-600/5 border border-red-500/20 rounded-lg">
+                  <div className="p-4 bg-card/50 backdrop-blur-sm border border-red-500/20 rounded-lg hover:shadow-md transition-all duration-200">
                     <div className="text-xl font-bold text-red-500 mb-1">{selectedSnapshot.snapshot.failedPrices}</div>
                     <div className="text-xs text-muted-foreground font-medium">Failed</div>
                   </div>
-                  <div className="p-4 bg-gradient-to-br from-orange-500/10 to-orange-600/5 border border-orange-500/20 rounded-lg">
+                  <div className="p-4 bg-card/50 backdrop-blur-sm border border-orange-500/20 rounded-lg hover:shadow-md transition-all duration-200">
                     <div className="text-xl font-bold text-orange-500 mb-1">{selectedSnapshot.snapshot.calculationTimeMs}ms</div>
                     <div className="text-xs text-muted-foreground font-medium">Calc Time</div>
                   </div>
@@ -421,7 +440,7 @@ export default function HistoryPage() {
                   <h4 className="font-semibold mb-3 text-foreground">Engine Distribution</h4>
                   <div className="grid grid-cols-1 gap-2">
                     {generateEngineDistributionData(selectedSnapshot.snapshot.engineStats).map((item) => (
-                      <div key={item.name} className="flex items-center justify-between p-3 bg-gradient-to-r from-accent/50 to-accent/20 border border-accent rounded-lg">
+                      <div key={item.name} className="group flex items-center justify-between p-3 bg-card/50 backdrop-blur-sm border border-accent/30 rounded-lg hover:bg-card/70 transition-all duration-200 hover:shadow-md">
                         <div className="flex items-center gap-3">
                           <div
                             className="w-4 h-4 rounded-full shadow-sm"
@@ -450,7 +469,7 @@ export default function HistoryPage() {
                       </TableHeader>
                       <TableBody>
                         {selectedSnapshot.prices.slice(0, 20).map((price) => (
-                          <TableRow key={price.tokenId} className="hover:bg-accent/30 transition-colors">
+                          <TableRow key={price.tokenId} className="hover:bg-card/50 transition-all duration-200">
                             <TableCell className="py-3">
                               <div>
                                 <div className="font-semibold text-sm">{price.symbol}</div>
@@ -507,7 +526,7 @@ export default function HistoryPage() {
                       variant="outline"
                       onClick={() => exportData(format, selectedSnapshot.snapshot.id)}
                       disabled={!!exporting}
-                      className="flex-1 bg-gradient-to-r from-accent/30 to-accent/10 hover:from-accent/50 hover:to-accent/20 border-accent/50 transition-all duration-200"
+                      className="flex-1 bg-card/50 backdrop-blur-sm border-accent/30 hover:bg-card/70 hover:scale-105 transition-all duration-200"
                     >
                       {exporting === format ? (
                         <RefreshCw className="h-3 w-3 animate-spin mr-1" />
@@ -537,6 +556,7 @@ export default function HistoryPage() {
             )}
           </CardContent>
         </Card>
+      </div>
       </div>
     </div>
   )
@@ -624,32 +644,6 @@ function generateReliabilityData(prices: TokenPrice[]) {
   }));
 }
 
-function generatePriceTrendsData(prices: TokenPrice[]) {
-  // Generate mock time series data for demonstration
-  const timePoints = Array.from({ length: 24 }, (_, i) => {
-    const hour = 23 - i;
-    const avgPrice = prices.reduce((sum, p) => sum + p.usdPrice, 0) / prices.length;
-    const medianPrice = prices.sort((a, b) => a.usdPrice - b.usdPrice)[Math.floor(prices.length / 2)]?.usdPrice || 0;
-
-    return {
-      time: `${hour}:00`,
-      avgPrice: avgPrice * (0.9 + Math.random() * 0.2),
-      medianPrice: medianPrice * (0.9 + Math.random() * 0.2)
-    };
-  }).reverse();
-
-  return timePoints;
-}
-
-function generateSnapshotsTimelineData(snapshots: PriceSnapshot[]) {
-  return snapshots.map(snapshot => ({
-    time: snapshot.timestamp,
-    tokenCount: snapshot.successfulPrices,
-    successRate: Math.round((snapshot.successfulPrices / snapshot.totalTokens) * 100),
-    calculationTime: snapshot.calculationTimeMs,
-    arbitrageOpportunities: snapshot.arbitrageOpportunities
-  })).reverse(); // Reverse to show oldest first (left to right)
-}
 
 function generateEngineDistributionData(engineStats: { oracle: number; market: number; intrinsic: number; hybrid: number }) {
   return [

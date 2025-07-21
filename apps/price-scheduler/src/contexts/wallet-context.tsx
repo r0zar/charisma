@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from 'react';
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { connect, request } from "@stacks/connect";
 

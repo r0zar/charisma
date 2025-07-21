@@ -1,0 +1,235 @@
+@import "tailwindcss";
+
+@theme {
+  --default-transition-duration: 150ms;
+  --default-font-family: var(--font-geist-sans);
+  --default-mono-font-family: var(--font-geist-mono);
+  
+  /* Default theme - light */
+  --color-background: #ffffff;
+  --color-foreground: #0f172a;
+  --color-card: #ffffff;
+  --color-card-foreground: #0f172a;
+  --color-popover: #ffffff;
+  --color-popover-foreground: #0f172a;
+  --color-primary: #3b82f6;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #f1f5f9;
+  --color-secondary-foreground: #0f172a;
+  --color-muted: #f1f5f9;
+  --color-muted-foreground: #64748b;
+  --color-accent: #f1f5f9;
+  --color-accent-foreground: #0f172a;
+  --color-destructive: #ef4444;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #e2e8f0;
+  --color-input: #e2e8f0;
+  --color-ring: #3b82f6;
+}
+
+/* Default theme - dark */
+.dark {
+  --color-background: #0f172a;
+  --color-foreground: #f8fafc;
+  --color-card: #1e293b;
+  --color-card-foreground: #f8fafc;
+  --color-popover: #1e293b;
+  --color-popover-foreground: #f8fafc;
+  --color-primary: #60a5fa;
+  --color-primary-foreground: #0f172a;
+  --color-secondary: #334155;
+  --color-secondary-foreground: #f8fafc;
+  --color-muted: #334155;
+  --color-muted-foreground: #94a3b8;
+  --color-accent: #334155;
+  --color-accent-foreground: #f8fafc;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #f8fafc;
+  --color-border: #334155;
+  --color-input: #334155;
+  --color-ring: #60a5fa;
+}
+
+/* Ocean color scheme - light */
+.ocean {
+  --color-background: #f0f9ff;
+  --color-foreground: #0c4a6e;
+  --color-card: #f0f9ff;
+  --color-card-foreground: #0c4a6e;
+  --color-popover: #f0f9ff;
+  --color-popover-foreground: #0c4a6e;
+  --color-primary: #0891b2;
+  --color-primary-foreground: #f0f9ff;
+  --color-secondary: #bae6fd;
+  --color-secondary-foreground: #0c4a6e;
+  --color-muted: #bae6fd;
+  --color-muted-foreground: #0369a1;
+  --color-accent: #bae6fd;
+  --color-accent-foreground: #0c4a6e;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #f0f9ff;
+  --color-border: #7dd3fc;
+  --color-input: #7dd3fc;
+  --color-ring: #0891b2;
+}
+
+/* Ocean color scheme - dark */
+.ocean.dark {
+  --color-background: #0c4a6e;
+  --color-foreground: #f0f9ff;
+  --color-card: #075985;
+  --color-card-foreground: #f0f9ff;
+  --color-popover: #075985;
+  --color-popover-foreground: #f0f9ff;
+  --color-primary: #22d3ee;
+  --color-primary-foreground: #0c4a6e;
+  --color-secondary: #164e63;
+  --color-secondary-foreground: #f0f9ff;
+  --color-muted: #164e63;
+  --color-muted-foreground: #7dd3fc;
+  --color-accent: #164e63;
+  --color-accent-foreground: #f0f9ff;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #f0f9ff;
+  --color-border: #164e63;
+  --color-input: #164e63;
+  --color-ring: #22d3ee;
+}
+
+/* Sunset color scheme - light */
+.sunset {
+  --color-background: #fff7ed;
+  --color-foreground: #9a3412;
+  --color-card: #fff7ed;
+  --color-card-foreground: #9a3412;
+  --color-popover: #fff7ed;
+  --color-popover-foreground: #9a3412;
+  --color-primary: #f97316;
+  --color-primary-foreground: #fff7ed;
+  --color-secondary: #fed7aa;
+  --color-secondary-foreground: #9a3412;
+  --color-muted: #fed7aa;
+  --color-muted-foreground: #c2410c;
+  --color-accent: #fed7aa;
+  --color-accent-foreground: #9a3412;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #fff7ed;
+  --color-border: #fdba74;
+  --color-input: #fdba74;
+  --color-ring: #f97316;
+}
+
+/* Sunset color scheme - dark */
+.sunset.dark {
+  --color-background: #9a3412;
+  --color-foreground: #fff7ed;
+  --color-card: #9a3412;
+  --color-card-foreground: #fff7ed;
+  --color-popover: #9a3412;
+  --color-popover-foreground: #fff7ed;
+  --color-primary: #fb923c;
+  --color-primary-foreground: #9a3412;
+  --color-secondary: #c2410c;
+  --color-secondary-foreground: #fff7ed;
+  --color-muted: #c2410c;
+  --color-muted-foreground: #fed7aa;
+  --color-accent: #c2410c;
+  --color-accent-foreground: #fff7ed;
+  --color-destructive: #991b1b;
+  --color-destructive-foreground: #fff7ed;
+  --color-border: #c2410c;
+  --color-input: #c2410c;
+  --color-ring: #fb923c;
+}
+
+/* Forest color scheme - light */
+.forest {
+  --color-background: #f0fdf4;
+  --color-foreground: #14532d;
+  --color-card: #f0fdf4;
+  --color-card-foreground: #14532d;
+  --color-popover: #f0fdf4;
+  --color-popover-foreground: #14532d;
+  --color-primary: #059669;
+  --color-primary-foreground: #f0fdf4;
+  --color-secondary: #bbf7d0;
+  --color-secondary-foreground: #14532d;
+  --color-muted: #bbf7d0;
+  --color-muted-foreground: #047857;
+  --color-accent: #bbf7d0;
+  --color-accent-foreground: #14532d;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #f0fdf4;
+  --color-border: #86efac;
+  --color-input: #86efac;
+  --color-ring: #059669;
+}
+
+/* Forest color scheme - dark */
+.forest.dark {
+  --color-background: #14532d;
+  --color-foreground: #f0fdf4;
+  --color-card: #14532d;
+  --color-card-foreground: #f0fdf4;
+  --color-popover: #14532d;
+  --color-popover-foreground: #f0fdf4;
+  --color-primary: #34d399;
+  --color-primary-foreground: #14532d;
+  --color-secondary: #166534;
+  --color-secondary-foreground: #f0fdf4;
+  --color-muted: #166534;
+  --color-muted-foreground: #bbf7d0;
+  --color-accent: #166534;
+  --color-accent-foreground: #f0fdf4;
+  --color-destructive: #991b1b;
+  --color-destructive-foreground: #f0fdf4;
+  --color-border: #166534;
+  --color-input: #166534;
+  --color-ring: #34d399;
+}
+
+/* Lavender color scheme - light */
+.lavender {
+  --color-background: #faf5ff;
+  --color-foreground: #581c87;
+  --color-card: #faf5ff;
+  --color-card-foreground: #581c87;
+  --color-popover: #faf5ff;
+  --color-popover-foreground: #581c87;
+  --color-primary: #7c3aed;
+  --color-primary-foreground: #faf5ff;
+  --color-secondary: #ddd6fe;
+  --color-secondary-foreground: #581c87;
+  --color-muted: #ddd6fe;
+  --color-muted-foreground: #6d28d9;
+  --color-accent: #ddd6fe;
+  --color-accent-foreground: #581c87;
+  --color-destructive: #dc2626;
+  --color-destructive-foreground: #faf5ff;
+  --color-border: #c4b5fd;
+  --color-input: #c4b5fd;
+  --color-ring: #7c3aed;
+}
+
+/* Lavender color scheme - dark */
+.lavender.dark {
+  --color-background: #581c87;
+  --color-foreground: #faf5ff;
+  --color-card: #581c87;
+  --color-card-foreground: #faf5ff;
+  --color-popover: #581c87;
+  --color-popover-foreground: #faf5ff;
+  --color-primary: #a855f7;
+  --color-primary-foreground: #581c87;
+  --color-secondary: #6d28d9;
+  --color-secondary-foreground: #faf5ff;
+  --color-muted: #6d28d9;
+  --color-muted-foreground: #ddd6fe;
+  --color-accent: #6d28d9;
+  --color-accent-foreground: #faf5ff;
+  --color-destructive: #991b1b;
+  --color-destructive-foreground: #faf5ff;
+  --color-border: #6d28d9;
+  --color-input: #6d28d9;
+  --color-ring: #a855f7;
+}

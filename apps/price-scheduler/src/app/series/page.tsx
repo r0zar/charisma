@@ -21,7 +21,8 @@ import {
   Eye,
   LineChart as LineChartIcon,
   ArrowUpDown,
-  Filter
+  Filter,
+  History
 } from "lucide-react"
 import { 
   LineChart, 
@@ -36,6 +37,7 @@ import {
   ReferenceLine
 } from "recharts"
 import Link from "next/link"
+import { TokenInfo, TokenInfoCard } from "@/components/token-info"
 
 interface TokenData {
   tokenId: string
@@ -162,18 +164,14 @@ export default function SeriesPage() {
       
       if (data.status === 'success') {
         setAvailableTokens(data.data)
-        
-        // Auto-select first few tokens for demo
-        if (data.data.length > 0) {
-          const autoSelected = data.data.slice(0, 3).map((token: TokenData) => token.tokenId)
-          setSelectedTokenIds(autoSelected)
-        }
       } else {
         setError(data.message || 'Failed to fetch tokens')
+        setAvailableTokens([])
       }
     } catch (err) {
       console.error('Error fetching tokens:', err)
       setError('Failed to fetch available tokens')
+      setAvailableTokens([])
     } finally {
       setLoading(false)
     }
@@ -207,10 +205,12 @@ export default function SeriesPage() {
         setSeriesData(data.data)
       } else {
         setError(data.message || 'Failed to fetch series data')
+        setSeriesData({})
       }
     } catch (err) {
       console.error('Error fetching series data:', err)
       setError('Failed to fetch series data')
+      setSeriesData({})
     } finally {
       setChartLoading(false)
     }
@@ -326,45 +326,57 @@ export default function SeriesPage() {
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6']
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen max-w-screen-3xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Price Series Analysis</h1>
-          <p className="text-muted-foreground">Interactive price charts and arbitrage analysis</p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={fetchAvailableTokens}
-            variant="outline"
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button
-            onClick={() => exportData('json')}
-            variant="outline"
-            disabled={exporting || selectedTokenIds.length === 0}
-            className="flex items-center gap-2"
-          >
-            <Download className={`w-4 h-4 ${exporting ? 'animate-spin' : ''}`} />
-            Export Data
-          </Button>
-          <Link href="/">
-            <Button variant="outline" className="flex items-center gap-2">
-              <ArrowUpDown className="w-4 h-4" />
-              Dashboard
-            </Button>
-          </Link>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
+      <div className="p-6 space-y-6 max-w-screen-3xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Price Series Analysis</h1>
+            <p className="text-muted-foreground">Interactive price charts and arbitrage analysis</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex gap-2">
+              <Button
+                onClick={fetchAvailableTokens}
+                variant="outline"
+                disabled={loading}
+                className="flex items-center gap-2 hover:scale-105 transition-all duration-300 bg-background/50 backdrop-blur-sm hover:bg-background/80"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button
+                onClick={() => exportData('json')}
+                variant="outline"
+                disabled={exporting || selectedTokenIds.length === 0}
+                className="flex items-center gap-2 hover:scale-105 transition-all duration-300 bg-background/50 backdrop-blur-sm hover:bg-background/80"
+              >
+                <Download className={`w-4 h-4 ${exporting ? 'animate-spin' : ''}`} />
+                Export Data
+              </Button>
+            </div>
+            
+            <div className="flex gap-2">
+              <Link href="/">
+                <Button variant="outline" className="flex items-center gap-2 hover:scale-105 transition-all duration-300 bg-background/50 backdrop-blur-sm hover:bg-background/80">
+                  <ArrowUpDown className="w-4 h-4" />
+                  Dashboard
+                </Button>
+              </Link>
+              <Link href="/history">
+                <Button variant="outline" className="flex items-center gap-2 hover:scale-105 transition-all duration-300 bg-background/50 backdrop-blur-sm hover:bg-background/80">
+                  <History className="w-4 h-4" />
+                  Price History
+                </Button>
+              </Link>
+            </div>
+          </div>
       </div>
 
       {/* Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Token Selection */}
-        <Card className="bg-gradient-to-r from-card to-card/50 border-border shadow-sm">
+        <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Search className="h-5 w-5 text-primary" />
@@ -392,6 +404,41 @@ export default function SeriesPage() {
                     <div key={i} className="skeleton-loading h-12 rounded-md" />
                   ))}
                 </div>
+              ) : error ? (
+                <div className="flex items-center justify-center py-8 text-center">
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-full bg-destructive/10 border border-destructive/20 w-fit mx-auto">
+                      <Activity className="h-6 w-6 text-destructive" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm text-destructive mb-1">Failed to Load Tokens</div>
+                      <div className="text-xs text-muted-foreground max-w-sm">{error}</div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={fetchAvailableTokens}
+                      className="mt-2"
+                    >
+                      <RefreshCw className="h-3 w-3 mr-2" />
+                      Retry
+                    </Button>
+                  </div>
+                </div>
+              ) : filteredTokens.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-center">
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-full bg-muted/50 w-fit mx-auto">
+                      <Search className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm mb-1">No Tokens Found</div>
+                      <div className="text-xs text-muted-foreground">
+                        {searchTerm ? `No tokens match "${searchTerm}"` : 'No tokens available'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div className="max-h-64 overflow-y-auto space-y-2">
                   {filteredTokens.map((token) => (
@@ -405,22 +452,7 @@ export default function SeriesPage() {
                       onClick={() => handleTokenToggle(token.tokenId)}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {token.image && (
-                            <img 
-                              src={token.image} 
-                              alt={token.symbol}
-                              className="w-8 h-8 rounded-full"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none'
-                              }}
-                            />
-                          )}
-                          <div>
-                            <div className="font-medium text-sm">{token.symbol}</div>
-                            <div className="text-xs text-muted-foreground">{token.name}</div>
-                          </div>
-                        </div>
+                        <TokenInfo contractId={token.tokenId} />
                         <div className="text-right">
                           <div className="text-sm font-medium">${token.usdPrice.toFixed(6)}</div>
                           <div className="flex items-center gap-1 text-xs">
@@ -448,7 +480,7 @@ export default function SeriesPage() {
         </Card>
 
         {/* Timeframe Selection */}
-        <Card className="bg-gradient-to-r from-card to-card/50 border-border shadow-sm">
+        <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5 text-primary" />
@@ -496,7 +528,7 @@ export default function SeriesPage() {
         </Card>
 
         {/* Quick Stats */}
-        <Card className="bg-gradient-to-r from-card to-card/50 border-border shadow-sm">
+        <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-primary" />
@@ -524,7 +556,7 @@ export default function SeriesPage() {
         </Card>
 
         {/* Chart Options */}
-        <Card className="bg-gradient-to-r from-card to-card/50 border-border shadow-sm">
+        <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-primary" />
@@ -562,7 +594,7 @@ export default function SeriesPage() {
       )}
 
       {/* Main Chart */}
-      <Card className="bg-gradient-to-br from-card to-card/80 border-border shadow-sm">
+      <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <LineChartIcon className="h-5 w-5 text-primary" />
@@ -582,6 +614,29 @@ export default function SeriesPage() {
               <div className="flex items-center gap-2">
                 <RefreshCw className="h-6 w-6 animate-spin" />
                 <span>Loading chart data...</span>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center h-96">
+              <div className="text-center space-y-4">
+                <div className="p-4 rounded-full bg-destructive/10 border border-destructive/20 mb-4 w-fit mx-auto">
+                  <Activity className="h-8 w-8 text-destructive" />
+                </div>
+                <div>
+                  <div className="text-sm font-medium text-destructive mb-2">Failed to Load Chart Data</div>
+                  <div className="text-xs text-muted-foreground max-w-md mx-auto mb-4">{error}</div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setError(null)
+                      fetchAvailableTokens()
+                    }}
+                  >
+                    <RefreshCw className="h-3 w-3 mr-2" />
+                    Try Again
+                  </Button>
+                </div>
               </div>
             </div>
           ) : selectedTokenIds.length === 0 ? (
@@ -661,23 +716,18 @@ export default function SeriesPage() {
               ((latestPoint.value - firstPoint.value) / firstPoint.value) * 100 : 0
             
             return (
-              <Card key={tokenId} className="bg-gradient-to-br from-card to-card/80 border-border shadow-sm">
+              <Card key={tokenId} className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    {series.image && (
-                      <img 
-                        src={series.image} 
-                        alt={series.symbol}
-                        className="w-6 h-6 rounded-full"
-                      />
-                    )}
-                    <span>{series.symbol}</span>
-                    {series.isLpToken && (
-                      <Badge variant="outline" className="text-xs">LP</Badge>
-                    )}
-                    {series.isArbitrageOpportunity && (
-                      <Badge variant="destructive" className="text-xs">ARB</Badge>
-                    )}
+                  <CardTitle className="flex items-center justify-between">
+                    <TokenInfo contractId={tokenId} />
+                    <div className="flex items-center gap-1">
+                      {series.isLpToken && (
+                        <Badge variant="outline" className="text-xs">LP</Badge>
+                      )}
+                      {series.isArbitrageOpportunity && (
+                        <Badge variant="destructive" className="text-xs">ARB</Badge>
+                      )}
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -719,6 +769,7 @@ export default function SeriesPage() {
           })}
         </div>
       )}
+      </div>
     </div>
   )
 }

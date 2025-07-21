@@ -5,7 +5,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Activity, 
   TrendingUp, 
@@ -88,6 +87,7 @@ export default function UnifiedDashboard() {
   const [engineHealth, setEngineHealth] = useState<EngineHealth[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     fetchSystemData()
@@ -98,12 +98,17 @@ export default function UnifiedDashboard() {
 
   const fetchSystemData = async () => {
     setRefreshing(true)
+    setError(null)
+    
     try {
       // Fetch system status
       const statusResponse = await fetch('/api/status')
       if (statusResponse.ok) {
         const statusData = await statusResponse.json()
         setSystemStatus(statusData)
+      } else {
+        setError('Failed to fetch system status')
+        setSystemStatus(null)
       }
 
       // Fetch engine health
@@ -112,18 +117,20 @@ export default function UnifiedDashboard() {
         const healthData = await healthResponse.json()
         if (healthData.success && healthData.engines) {
           setEngineHealth(healthData.engines)
+        } else {
+          setError('Engine health data unavailable')
+          setEngineHealth([])
         }
       } else {
-        // Fallback engine health data
-        setEngineHealth([
-          { engine: 'Oracle', status: 'unknown', lastSuccess: Date.now() - 60000, errorRate: 0, averageResponseTime: 0 },
-          { engine: 'CPMM', status: 'unknown', lastSuccess: Date.now() - 30000, errorRate: 0, averageResponseTime: 0 },
-          { engine: 'Intrinsic', status: 'unknown', lastSuccess: Date.now() - 180000, errorRate: 0, averageResponseTime: 0 }
-        ])
+        setError('Failed to fetch engine health')
+        setEngineHealth([])
       }
 
     } catch (error) {
       console.error('Error fetching system data:', error)
+      setError('Failed to connect to service')
+      setSystemStatus(null)
+      setEngineHealth([])
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -210,42 +217,80 @@ export default function UnifiedDashboard() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-8">
-      {/* Header with Status Indicator */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-        <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/10">
+      <div className="container mx-auto p-6 space-y-8">
+        {/* Header */}
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div>
-            <h1 className="text-3xl font-bold">Price Service Dashboard</h1>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">Price Service Dashboard</h1>
             <p className="text-muted-foreground">
               Three-Engine Architecture • 5-minute intervals
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {getStatusIcon(systemStatus?.status || 'unknown')}
-            <Badge className={getStatusColor(systemStatus?.status || 'unknown')}>
-              {systemStatus?.status ? (systemStatus.status.charAt(0).toUpperCase() + systemStatus.status.slice(1)) : 'Unknown'}
-            </Badge>
+          
+          {/* Quick Actions & Navigation */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex gap-2">
+              <Button onClick={fetchSystemData} disabled={refreshing} variant="outline" className="hover:scale-105 transition-all duration-300 bg-background/50 backdrop-blur-sm hover:bg-background/80">
+                <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+              <Button onClick={handleManualTrigger} className="hover:scale-105 transition-all duration-300 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary">
+                <Zap className="h-4 w-4 mr-2" />
+                Manual Trigger
+              </Button>
+            </div>
+            
+            {/* Main Navigation */}
+            <div className="flex gap-2">
+              <Link href="/history">
+                <Button variant="outline" className="hover:scale-105 transition-all duration-300 bg-background/50 backdrop-blur-sm hover:bg-background/80">
+                  <History className="h-4 w-4 mr-2" />
+                  Price History
+                </Button>
+              </Link>
+              <Link href="/series">
+                <Button variant="outline" className="hover:scale-105 transition-all duration-300 bg-background/50 backdrop-blur-sm hover:bg-background/80">
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  Series Analysis
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
-        <div className="flex gap-3">
-          <Button onClick={fetchSystemData} disabled={refreshing} variant="outline">
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button onClick={handleManualTrigger} variant="outline">
-            <Zap className="h-4 w-4 mr-2" />
-            Manual Trigger
-          </Button>
-        </div>
-      </div>
 
-      {/* System Status Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Status Banner */}
+        <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  {getStatusIcon(systemStatus?.status || 'unknown')}
+                  <Badge className={getStatusColor(systemStatus?.status || 'unknown')}>
+                    {systemStatus?.status ? (systemStatus.status.charAt(0).toUpperCase() + systemStatus.status.slice(1)) : 'Unknown'}
+                  </Badge>
+                </div>
+                <Separator orientation="vertical" className="h-6" />
+                <div className="text-sm text-muted-foreground">
+                  Last Update: {formatDuration(systemStatus?.lastUpdateAge || null)}
+                </div>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {systemStatus?.latestSnapshot?.tokenCount || 0} tokens priced
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* System Status Overview */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Last Update */}
-        <Card>
+        <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-medium">Last Update</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <Clock className="h-4 w-4 text-primary" />
+            </div>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="text-2xl font-bold mb-2">
@@ -258,10 +303,12 @@ export default function UnifiedDashboard() {
         </Card>
 
         {/* Tokens Priced */}
-        <Card>
+        <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-medium">Tokens Priced</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-lg bg-accent/10 border border-accent/20">
+              <BarChart3 className="h-4 w-4 text-accent" />
+            </div>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="text-2xl font-bold mb-2">
@@ -274,10 +321,12 @@ export default function UnifiedDashboard() {
         </Card>
 
         {/* Arbitrage Opportunities */}
-        <Card>
+        <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-medium">Arbitrage Opportunities</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-lg bg-orange-500/10 border border-orange-500/20">
+              <TrendingUp className="h-4 w-4 text-orange-500" />
+            </div>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="text-2xl font-bold mb-2 text-orange-600">
@@ -290,10 +339,12 @@ export default function UnifiedDashboard() {
         </Card>
 
         {/* Storage Used */}
-        <Card>
+        <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
             <CardTitle className="text-sm font-medium">Storage</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 rounded-lg bg-secondary/10 border border-secondary/20">
+              <Database className="h-4 w-4 text-secondary" />
+            </div>
           </CardHeader>
           <CardContent className="pt-0">
             <div className="text-2xl font-bold mb-2">
@@ -304,23 +355,17 @@ export default function UnifiedDashboard() {
             </p>
           </CardContent>
         </Card>
-      </div>
+        </div>
 
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="engines">Engines</TabsTrigger>
-          <TabsTrigger value="configuration">Configuration</TabsTrigger>
-          <TabsTrigger value="actions">Actions</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          {/* Engine Health Summary */}
-          <Card>
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Left Column - Engine Health */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Engine Health Summary */}
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
+                <Activity className="h-5 w-5 text-primary" />
                 Engine Health Summary
               </CardTitle>
               <CardDescription>
@@ -328,38 +373,62 @@ export default function UnifiedDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {engineHealth.map((engine) => (
-                  <div key={engine.engine} className="flex items-center justify-between p-4 rounded-lg border border-border">
-                    <div className="flex items-center gap-3">
-                      {getStatusIcon(engine.status)}
-                      <div>
-                        <div className="font-medium">{engine.engine}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {Math.round((1 - engine.errorRate) * 100)}% success
+              {error && engineHealth.length === 0 ? (
+                <div className="flex items-center justify-center py-8 text-center">
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-full bg-destructive/10 border border-destructive/20 w-fit mx-auto">
+                      <Activity className="h-6 w-6 text-destructive" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm text-destructive mb-1">Engine Health Unavailable</div>
+                      <div className="text-xs text-muted-foreground max-w-sm">{error}</div>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={fetchSystemData}
+                      disabled={refreshing}
+                      className="mt-2"
+                    >
+                      <RefreshCw className={`h-3 w-3 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+                      Retry
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {engineHealth.map((engine) => (
+                    <div key={engine.engine} className="group flex items-center justify-between p-4 rounded-lg border border-border/50 bg-card/30 hover:bg-card/60 transition-all duration-200 hover:shadow-md">
+                      <div className="flex items-center gap-3">
+                        {getStatusIcon(engine.status)}
+                        <div>
+                          <div className="font-medium">{engine.engine}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {Math.round((1 - engine.errorRate) * 100)}% success
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium">
+                          {engine.averageResponseTime}ms
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          avg response
                         </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-sm font-medium">
-                        {engine.averageResponseTime}ms
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        avg response
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {/* Engine Distribution */}
           {engineData.length > 0 && (
-            <Card>
+            <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
+                  <BarChart3 className="h-5 w-5 text-primary" />
                   Engine Usage Distribution
                 </CardTitle>
                 <CardDescription>
@@ -391,7 +460,7 @@ export default function UnifiedDashboard() {
                   </div>
                   <div className="space-y-4">
                     {engineData.map((item) => (
-                      <div key={item.name} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div key={item.name} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border/30">
                         <div className="flex items-center gap-3">
                           <div 
                             className="w-4 h-4 rounded-full" 
@@ -410,176 +479,62 @@ export default function UnifiedDashboard() {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
+        </div>
 
-        <TabsContent value="engines" className="space-y-6">
-          {/* Detailed Engine Health */}
-          <Card>
+        {/* Right Column - Configuration & Actions */}
+        <div className="space-y-6">
+          {/* Quick Actions */}
+          <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Detailed Engine Health
+                <Zap className="h-5 w-5 text-primary" />
+                Quick Actions
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {engineHealth.map((engine) => (
-                  <div key={engine.engine} className="p-4 rounded-lg border border-border">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        {getStatusIcon(engine.status)}
-                        <div>
-                          <div className="font-medium">{engine.engine} Engine</div>
-                          <div className="text-sm text-muted-foreground">
-                            Last success: {formatDuration(Date.now() - engine.lastSuccess)}
-                          </div>
-                        </div>
-                      </div>
-                      <Badge variant={engine.status === 'healthy' ? 'default' : engine.status === 'degraded' ? 'secondary' : 'destructive'}>
-                        {engine.status}
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div>
-                        <div className="text-muted-foreground">Success Rate</div>
-                        <div className="font-medium">{Math.round((1 - engine.errorRate) * 100)}%</div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground">Avg Response</div>
-                        <div className="font-medium">{engine.averageResponseTime}ms</div>
-                      </div>
-                      <div>
-                        <div className="text-muted-foreground">Error Rate</div>
-                        <div className="font-medium">{Math.round(engine.errorRate * 100)}%</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <CardContent className="space-y-3">
+              <Button onClick={handleTestBlobUpload} variant="outline" className="w-full justify-start">
+                <Database className="mr-2 h-4 w-4" />
+                Test Blob Storage
+              </Button>
+              <Link href="/api/status" className="w-full block">
+                <Button variant="outline" className="w-full justify-start">
+                  <Activity className="mr-2 h-4 w-4" />
+                  API Status
+                </Button>
+              </Link>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="configuration" className="space-y-6">
-          {/* Environment Configuration */}
-          <Card>
+          {/* Environment Info */}
+          <Card className="bg-card/50 backdrop-blur-sm border-border/50 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Environment Configuration
+                <Settings className="h-5 w-5 text-primary" />
+                Environment
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <div className="text-sm font-medium mb-2">Environment</div>
+                <div className="text-sm font-medium mb-2">Mode</div>
                 <Badge variant="outline">
                   {systemStatus?.environment.NODE_ENV || 'unknown'}
                 </Badge>
               </div>
-              <Separator />
               <div>
-                <div className="text-sm font-medium mb-2">Service URLs</div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span>Invest Service:</span>
-                    <span className="font-mono text-muted-foreground">
-                      {systemStatus?.environment.INVEST_URL || 'Not configured'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Swap Service:</span>
-                    <span className="font-mono text-muted-foreground">
-                      {systemStatus?.environment.SWAP_URL || 'Not configured'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <Separator />
-              <div>
-                <div className="text-sm font-medium mb-2">Blob Storage</div>
-                <div className="space-y-2">
-                  <div className="p-2 bg-muted rounded text-xs font-mono break-all">
-                    {systemStatus?.environment.BLOB_URL ? (
-                      <a 
-                        href={systemStatus.environment.BLOB_URL} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 underline"
-                      >
-                        {systemStatus.environment.BLOB_URL}
-                      </a>
-                    ) : (
-                      'Not configured'
-                    )}
-                  </div>
-                  {!systemStatus?.environment.BLOB_URL && (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleTestBlobUpload}
-                      className="w-full"
-                    >
-                      <Database className="mr-2 h-3 w-3" />
-                      Test Upload & Get URL
-                    </Button>
+                <div className="text-sm font-medium mb-2">Storage</div>
+                <div className="text-xs text-muted-foreground">
+                  {systemStatus?.environment.BLOB_URL ? (
+                    <span className="text-green-600">✓ Configured</span>
+                  ) : (
+                    <span className="text-yellow-600">⚠ Not configured</span>
                   )}
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="actions" className="space-y-6">
-          {/* System Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
-                System Actions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Button 
-                  onClick={handleManualTrigger}
-                  className="w-full justify-start"
-                  size="lg"
-                >
-                  <Zap className="mr-2 h-4 w-4" />
-                  Manual Price Update
-                </Button>
-                <Button 
-                  onClick={fetchSystemData}
-                  variant="outline"
-                  className="w-full justify-start"
-                  size="lg"
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Refresh System Data
-                </Button>
-                <Link href="/history" className="w-full">
-                  <Button variant="outline" className="w-full justify-start" size="lg">
-                    <History className="mr-2 h-4 w-4" />
-                    View Price History
-                  </Button>
-                </Link>
-                <Link href="/series" className="w-full">
-                  <Button variant="outline" className="w-full justify-start" size="lg">
-                    <BarChart3 className="mr-2 h-4 w-4" />
-                    Price Series Analysis
-                  </Button>
-                </Link>
-                <Link href="/api/status" className="w-full">
-                  <Button variant="outline" className="w-full justify-start" size="lg">
-                    <Activity className="mr-2 h-4 w-4" />
-                    API Status Endpoint
-                  </Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

@@ -4,6 +4,10 @@
   ],
   "tasks": {
     "build": {
+      "dependsOn": [
+        "@services/contract-registry#build",
+        "@services/prices#build"
+      ],
       "outputs": [
         ".next/**",
         "!.next/cache/**"

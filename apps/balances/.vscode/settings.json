@@ -1,0 +1,5 @@
+{
+    "jest.jestCommandLine": "pnpm test",
+    "jest.rootPath": ".",
+    "jest.runMode": "watch"
+}
