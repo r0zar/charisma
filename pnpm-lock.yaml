@@ -3189,6 +3189,9 @@ importers:
       '@modules/contracts':
         specifier: workspace:*
         version: link:../../modules/contracts
+      '@modules/discovery':
+        specifier: workspace:*
+        version: link:../../modules/discovery
       '@repo/polyglot':
         specifier: workspace:*
         version: link:../../packages/polyglot

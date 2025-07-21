@@ -65,6 +65,7 @@
   "dependencies": {
     "@modules/blob-monitor": "workspace:*",
     "@modules/contracts": "workspace:*",
+    "@modules/discovery": "workspace:*",
     "@repo/polyglot": "workspace:*",
     "@repo/tokens": "workspace:*",
     "@stacks/transactions": "^7.1.0",

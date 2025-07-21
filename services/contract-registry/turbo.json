@@ -6,6 +6,7 @@
     "build": {
       "dependsOn": [
         "@modules/blob-monitor#build",
+        "@modules/discovery#build",
         "@repo/polyglot#build"
       ],
       "env": [
@@ -21,12 +22,14 @@
     "dev": {
       "dependsOn": [
         "@modules/blob-monitor#build",
+        "@modules/discovery#build",
         "@repo/polyglot#build"
       ]
     },
     "lint": {
       "dependsOn": [
         "@modules/blob-monitor#build",
+        "@modules/discovery#build",
         "@repo/polyglot#build"
       ]
     },
