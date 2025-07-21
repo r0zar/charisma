@@ -80,7 +80,7 @@ export default function TokenOutputSection() {
         };
     }, [address, selectedToToken, getFormattedMainnetBalance, getFormattedSubnetBalance, subnetDisplayTokens, useSubnetTo]);
 
-    const outputAmount = quote && selectedToToken ? formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 0) : "0.00";
+    const outputAmount = quote && selectedToToken ? formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 6) : "0.00";
 
     const handleSelectToken = (t: TokenCacheData) => {
         console.log("Selected TO token:", t.symbol);
