@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
-import { AppProvider, SkinProvider, WalletProvider } from "@/contexts";
+import { WalletProvider } from "@/contexts";
 import { Header } from "@/components/header";
 import "./globals.css";
 
@@ -21,42 +21,24 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  const skin = localStorage.getItem('skin');
-                  if (skin === 'ocean') {
-                    document.documentElement.classList.add('ocean');
-                  }
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground flex flex-col min-h-screen`}
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="dark"
           enableSystem
           storageKey="theme"
           themes={["light", "dark"]}
           disableTransitionOnChange={false}
         >
-          <SkinProvider>
-            <WalletProvider>
-              <AppProvider>
-                <Header />
-                <main className="flex-1">
-                  {children}
-                </main>
-              </AppProvider>
-            </WalletProvider>
-          </SkinProvider>
+          <WalletProvider>
+            <Header />
+            <main className="flex-1">
+              {children}
+            </main>
+          </WalletProvider>
         </ThemeProvider>
       </body>
     </html>

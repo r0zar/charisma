@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
-import { Settings, Monitor, Palette, Network } from "lucide-react"
+import { Settings, Monitor, Network } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function SettingsLayout({
@@ -25,7 +25,6 @@ export default function SettingsLayout({
   // Determine active tab from pathname
   const getActiveTab = () => {
     if (pathname.includes('/general')) return 'general'
-    if (pathname.includes('/appearance')) return 'appearance'
     if (pathname.includes('/network')) return 'network'
     return 'general' // default
   }
@@ -50,12 +49,6 @@ export default function SettingsLayout({
             <TabsTrigger value="general" className="flex items-center gap-2 w-full">
               <Monitor className="h-4 w-4" />
               <span className="hidden sm:inline">General</span>
-            </TabsTrigger>
-          </Link>
-          <Link href="/settings/appearance">
-            <TabsTrigger value="appearance" className="flex items-center gap-2 w-full">
-              <Palette className="h-4 w-4" />
-              <span className="hidden sm:inline">Appearance</span>
             </TabsTrigger>
           </Link>
           <Link href="/settings/network">

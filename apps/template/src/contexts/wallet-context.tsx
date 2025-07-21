@@ -104,7 +104,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     // Helper function to detect network from address
     // ST = testnet, SP/SM = mainnet
-    const detectNetworkFromAddress = (address: string): Network => {
+    const detectNetworkFromAddress = useCallback((address: string): Network => {
         if (address.startsWith('ST')) {
             return 'testnet';
         } else if (address.startsWith('SP') || address.startsWith('SM')) {
@@ -112,7 +112,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }
         // Default to current network if we can't determine
         return network;
-    };
+    }, [network]);
 
     // Helper function to load wallet state for a specific network
     const loadWalletStateForNetwork = useCallback((targetNetwork: Network) => {
