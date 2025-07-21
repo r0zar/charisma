@@ -20,22 +20,23 @@ async function testKVStore() {
     // Test basic operations
     console.log('\n📝 Testing basic KV operations...')
     
-    // Test set/get
-    const testKey = `test-${Date.now()}`
-    const testValue = { test: 'data', timestamp: Date.now() }
+    // Test setBalance/getBalance (using KVBalanceStore specific methods)
+    const testAddress = `SP1TEST${Date.now()}`
+    const testContract = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token'
+    const testBalance = '1000000'
     
-    console.log(`📤 Setting key: ${testKey}`)
-    await kvStore.set(testKey, JSON.stringify(testValue))
-    console.log('✅ Set successful')
+    console.log(`📤 Setting balance: ${testBalance} for ${testContract} of ${testAddress}`)
+    await kvStore.setBalance(testAddress, testContract, testBalance)
+    console.log('✅ Set balance successful')
     
-    console.log(`📥 Getting key: ${testKey}`)
-    const retrieved = await kvStore.get(testKey)
-    console.log('✅ Get successful:', retrieved)
+    console.log(`📥 Getting balance for ${testContract} of ${testAddress}`)
+    const retrievedBalance = await kvStore.getBalance(testAddress, testContract)
+    console.log('✅ Get balance successful:', retrievedBalance)
     
-    // Test delete
-    console.log(`🗑️  Deleting key: ${testKey}`)
-    await kvStore.delete(testKey)
-    console.log('✅ Delete successful')
+    // Test getting all balances for address
+    console.log(`📥 Getting all balances for ${testAddress}`)
+    const addressBalances = await kvStore.getAddressBalances(testAddress)
+    console.log('✅ Get address balances successful:', addressBalances)
 
     // Test getting stats
     console.log('\n📊 Testing stats...')

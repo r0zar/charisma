@@ -76,7 +76,13 @@ async function fetchEngineData(): Promise<{
         const storage = new PriceSeriesStorage(BLOB_READ_WRITE_TOKEN);
         const latestSnapshot = await storage.getLatestSnapshot();
         if (latestSnapshot?.metadata?.engineStats) {
-          engineStats = latestSnapshot.metadata.engineStats;
+          const stats = latestSnapshot.metadata.engineStats;
+          engineStats = {
+            oracle: stats.oracle || 0,
+            market: stats.market || 0,
+            intrinsic: stats.intrinsic || 0,
+            hybrid: stats.hybrid || 0
+          };
         }
       } catch (error) {
         console.warn('Failed to fetch engine stats from storage:', error)
