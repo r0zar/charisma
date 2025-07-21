@@ -708,19 +708,10 @@ export class ConsolidatedBlobManager {
     try {
       console.log('[ConsolidatedBlobManager] Loading consolidated blob...');
       
-      // First try to get the stored URL from the last save operation
-      const storedUrl = await this.getStoredConsolidatedBlobUrl();
-      
-      let blobUrl: string;
-      if (storedUrl) {
-        console.log(`[ConsolidatedBlobManager] Using stored URL: ${storedUrl}`);
-        blobUrl = storedUrl;
-      } else {
-        // Fallback to constructing URL (may not work due to Vercel's unique suffixes)
-        const filePath = this.blobStorage['config'].pathPrefix + ConsolidatedBlobManager.CONSOLIDATED_PATH;
-        blobUrl = this.blobStorage['constructBlobUrl'](filePath);
-        console.log(`[ConsolidatedBlobManager] No stored URL found, trying constructed URL: ${blobUrl}`);
-      }
+      // Use the same URL construction pattern as the rest of the codebase
+      const filePath = this.blobStorage['config'].pathPrefix + ConsolidatedBlobManager.CONSOLIDATED_PATH;
+      const blobUrl = this.blobStorage['constructBlobUrl'](filePath);
+      console.log(`[ConsolidatedBlobManager] Fetching from URL: ${blobUrl}`);
       
       const response = await this.blobStorage['monitor'].fetch(blobUrl);
 
@@ -770,15 +761,12 @@ export class ConsolidatedBlobManager {
       const result = await this.blobStorage['monitor'].put(filePath, jsonData, {
         contentType: 'application/json',
         access: 'public',
+        addRandomSuffix: false, // Disable random suffix for consistent URLs
         allowOverwrite: true
       });
       
       console.log(`[ConsolidatedBlobManager] Save result URL: ${result.url}`);
       console.log(`[ConsolidatedBlobManager] Successfully saved consolidated blob (${Math.round(jsonData.length / 1024)}KB)`);
-
-      // Store the actual URL for future access
-      // We'll use KV storage to store the mapping from logical path to actual URL
-      await this.storeConsolidatedBlobUrl(result.url);
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -787,44 +775,6 @@ export class ConsolidatedBlobManager {
     }
   }
 
-  /**
-   * Store the consolidated blob URL in KV for future retrieval
-   */
-  private async storeConsolidatedBlobUrl(url: string): Promise<void> {
-    if (!this.indexManager) {
-      console.warn('[ConsolidatedBlobManager] No IndexManager available, cannot store URL mapping');
-      return;
-    }
-    
-    try {
-      // Use the IndexManager to store the URL mapping
-      const key = `${this.blobStorage['config'].serviceName}:consolidated-blob-url`;
-      await this.indexManager.kv.set(key, url);
-      console.log(`[ConsolidatedBlobManager] Stored blob URL mapping: ${key} -> ${url}`);
-    } catch (error) {
-      console.warn('[ConsolidatedBlobManager] Failed to store blob URL mapping:', error);
-      // Don't fail the whole operation for this
-    }
-  }
-
-  /**
-   * Retrieve the stored consolidated blob URL
-   */
-  private async getStoredConsolidatedBlobUrl(): Promise<string | null> {
-    if (!this.indexManager) {
-      console.warn('[ConsolidatedBlobManager] No IndexManager available, cannot retrieve stored URL');
-      return null;
-    }
-    
-    try {
-      const key = `${this.blobStorage['config'].serviceName}:consolidated-blob-url`;
-      const url = await this.indexManager.kv.get(key);
-      return url || null;
-    } catch (error) {
-      console.warn('[ConsolidatedBlobManager] Failed to retrieve stored blob URL:', error);
-      return null;
-    }
-  }
 
   /**
    * Check if consolidation is needed based on time elapsed or changes
