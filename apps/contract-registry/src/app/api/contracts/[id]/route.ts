@@ -81,9 +81,36 @@ export async function GET(
 
   } catch (error) {
     const responseTime = Date.now() - startTime
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch contract'
+    let errorMessage = 'Failed to fetch contract'
+    let statusCode = 500
+    let statusText = 'Contract Fetch Error'
 
-    console.error(`Failed to fetch contract:`, error)
+    // Handle specific error types
+    if (error instanceof Error) {
+      errorMessage = error.message
+      
+      // Check for specific error patterns
+      if (error.message.includes('Rate limit') || error.message.includes('Too Many Requests')) {
+        statusCode = 429
+        statusText = 'Rate Limited'
+        errorMessage = 'Service temporarily rate limited. Please try again in a moment.'
+      } else if (error.message.includes('timeout') || error.message.includes('Timeout')) {
+        statusCode = 504
+        statusText = 'Gateway Timeout'
+        errorMessage = 'Request timed out. Please try again.'
+      } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+        statusCode = 503
+        statusText = 'Service Unavailable'
+        errorMessage = 'Upstream service unavailable. Please try again.'
+      }
+    }
+
+    console.error(`[Contract API] Error (${statusCode}):`, {
+      error: errorMessage,
+      contractId: request.url.split('/').pop(),
+      stack: error instanceof Error ? error.stack : 'N/A',
+      responseTime
+    })
 
     const errorResponse = {
       success: false,
@@ -94,11 +121,12 @@ export async function GET(
     }
 
     return NextResponse.json(errorResponse, {
-      status: 500,
-      statusText: 'Contract Fetch Error',
+      status: statusCode,
+      statusText,
       headers: {
         'X-Response-Time': `${responseTime}ms`,
-        // No cache headers for errors
+        'X-Error-Type': error instanceof Error ? error.constructor.name : 'Unknown',
+        'Access-Control-Allow-Origin': '*'
       }
     })
   }

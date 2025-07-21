@@ -1,37 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getContractRegistry } from '@/lib/contract-registry'
 
-// Simple in-memory cache for token data
-const tokenCache = new Map<string, { data: any; timestamp: number; ttl: number }>()
-const TOKEN_CACHE_TTL = 5 * 60 * 1000 // 5 minutes (tokens data doesn't change frequently)
-const MAX_TOKEN_CACHE_SIZE = 50 // Cache for 50 different token queries
-
-function getCachedTokens(cacheKey: string) {
-  const cached = tokenCache.get(cacheKey)
-  if (cached && Date.now() - cached.timestamp < cached.ttl) {
-    return cached.data
-  }
-  // Clean up expired entry
-  if (cached) {
-    tokenCache.delete(cacheKey)
-  }
-  return null
-}
-
-function setCachedTokens(cacheKey: string, data: any, customTtl?: number) {
-  // Prevent cache from growing too large
-  if (tokenCache.size >= MAX_TOKEN_CACHE_SIZE) {
-    // Remove oldest entries (simple LRU approximation)
-    const oldestKey = tokenCache.keys().next().value
-    if (oldestKey) tokenCache.delete(oldestKey)
-  }
-  
-  tokenCache.set(cacheKey, {
-    data,
-    timestamp: Date.now(),
-    ttl: customTtl || TOKEN_CACHE_TTL
-  })
-}
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
@@ -42,37 +11,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
     const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : undefined
 
-    // Create cache key based on query parameters
-    const cacheKey = `tokens:${type}:${limit || 'none'}:${offset || 'none'}`
-
-    // Check cache first
-    const cachedResult = getCachedTokens(cacheKey)
-    if (cachedResult) {
-      console.log(`🎯 Cache hit for tokens: ${cacheKey}`)
-      const response = NextResponse.json({
-        success: true,
-        data: cachedResult.data,
-        meta: {
-          cached: true,
-          type,
-          limit,
-          offset,
-          responseTime: Date.now() - startTime,
-          timestamp: cachedResult.timestamp
-        }
-      })
-      
-      // Add cache headers
-      response.headers.set('X-Cache', 'HIT')
-      response.headers.set('X-Cache-TTL', Math.floor((cachedResult.timestamp + TOKEN_CACHE_TTL - Date.now()) / 1000).toString())
-      response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300') // 5 minutes
-      response.headers.set('X-Response-Time', `${Date.now() - startTime}ms`)
-      response.headers.set('X-Query-Type', type)
-      
-      return response
-    }
-
-    console.log(`📄 Fetching tokens: ${cacheKey}`)
+    console.log(`📄 Fetching tokens: ${type}`)
 
     const registry = getContractRegistry()
     let tokens
@@ -86,12 +25,14 @@ export async function GET(request: NextRequest) {
         break
       case 'all':
       default:
-        const [fungible, nonfungible] = await Promise.all([
-          registry.getFungibleTokens(),
-          registry.getNonFungibleTokens()
-        ])
-        tokens = [...fungible, ...nonfungible]
-        break
+        {
+          const [fungible, nonfungible] = await Promise.all([
+            registry.getFungibleTokens(),
+            registry.getNonFungibleTokens()
+          ])
+          tokens = [...fungible, ...nonfungible]
+          break
+        }
     }
 
     if (!tokens) {
@@ -99,12 +40,11 @@ export async function GET(request: NextRequest) {
         success: false,
         error: 'No tokens found',
         type
-      }, { 
+      }, {
         status: 404,
         headers: {
           'X-Response-Time': `${Date.now() - startTime}ms`,
-          'X-Query-Type': type,
-          'X-Cache': 'MISS'
+          'X-Query-Type': type
         }
       })
     }
@@ -131,17 +71,11 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Cache the result
-    setCachedTokens(cacheKey, result)
-    
-    console.log(`💾 Cache miss - storing new tokens result: ${cacheKey}`)
-
     const responseTime = Date.now() - startTime
     const response = NextResponse.json({
       success: true,
       data: result,
       meta: {
-        cached: false,
         type,
         limit,
         offset,
@@ -150,54 +84,86 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Add cache and performance headers
-    response.headers.set('X-Cache', 'MISS')
+    // Add Vercel cache headers - tokens don't change frequently
+    response.headers.set('Cache-Control', 'public, max-age=300') // 5min browser cache
+    response.headers.set('CDN-Cache-Control', 'public, s-maxage=600') // 10min CDN cache
+    response.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=1800') // 30min Vercel cache
     response.headers.set('X-Response-Time', `${responseTime}ms`)
-    response.headers.set('Cache-Control', 'public, max-age=300, s-maxage=300') // 5 minutes
-    response.headers.set('ETag', `W/"tokens-${type}-${Date.now()}"`)
     response.headers.set('X-Query-Type', type)
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'GET, OPTIONS')
+    response.headers.set('ETag', `W/"tokens-${type}-${totalCount}-${Date.now()}"`)
 
     return response
 
   } catch (error) {
     const responseTime = Date.now() - startTime
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch tokens'
+    let errorMessage = 'Failed to fetch tokens'
+    let statusCode = 500
+    let statusText = 'Tokens Fetch Error'
 
-    console.error('Failed to fetch tokens:', error)
+    // Handle specific error types
+    if (error instanceof Error) {
+      errorMessage = error.message
+      
+      // Check for specific error patterns
+      if (error.message.includes('Rate limit') || error.message.includes('Too Many Requests')) {
+        statusCode = 429
+        statusText = 'Rate Limited'
+        errorMessage = 'Service temporarily rate limited. Please try again in a moment.'
+      } else if (error.message.includes('timeout') || error.message.includes('Timeout')) {
+        statusCode = 504
+        statusText = 'Gateway Timeout'
+        errorMessage = 'Request timed out. Please try again.'
+      } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+        statusCode = 503
+        statusText = 'Service Unavailable'
+        errorMessage = 'Upstream service unavailable. Please try again.'
+      }
+    }
+
+    console.error(`[Tokens API] Error (${statusCode}):`, {
+      error: errorMessage,
+      type,
+      stack: error instanceof Error ? error.stack : 'N/A',
+      responseTime
+    })
 
     const errorResponse = {
       success: false,
       error: true,
       message: errorMessage,
+      type,
       timestamp: Date.now(),
       responseTime
     }
 
     return NextResponse.json(errorResponse, {
-      status: 500,
-      statusText: 'Tokens Fetch Error',
+      status: statusCode,
+      statusText,
       headers: {
         'X-Response-Time': `${responseTime}ms`,
-        'X-Cache': 'ERROR'
+        'X-Error-Type': error instanceof Error ? error.constructor.name : 'Unknown',
+        'Access-Control-Allow-Origin': '*'
       }
     })
   }
 }
 
+// Handle CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }
+  })
+}
+
 // Optional: Handle other HTTP methods
 export async function POST() {
-  return NextResponse.json({
-    error: 'Method not allowed'
-  }, { status: 405 })
-}
-
-export async function PUT() {
-  return NextResponse.json({
-    error: 'Method not allowed'
-  }, { status: 405 })
-}
-
-export async function DELETE() {
   return NextResponse.json({
     error: 'Method not allowed'
   }, { status: 405 })

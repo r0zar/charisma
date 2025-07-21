@@ -372,6 +372,24 @@ export class ContractRegistry implements RegistryAPI {
   }
 
   /**
+   * Get fungible token contracts (SIP010 tokens)
+   */
+  async getFungibleTokens(): Promise<ContractMetadata[]> {
+    const tokenIds = await this.getContractsByType('token');
+    const result = await this.getContracts(tokenIds);
+    return result.successful.map(item => item.metadata);
+  }
+
+  /**
+   * Get non-fungible token contracts (SIP009 NFTs)
+   */
+  async getNonFungibleTokens(): Promise<ContractMetadata[]> {
+    const nftIds = await this.getContractsByType('nft');
+    const result = await this.getContracts(nftIds);
+    return result.successful.map(item => item.metadata);
+  }
+
+  /**
    * Get multiple contracts by ID with optimized bulk retrieval (with auto-discovery)
    * Uses high-performance parallel processing optimized for Vercel Pro plan limits
    */

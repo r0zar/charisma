@@ -5,6 +5,7 @@
 
 import { ContractRegistry, createDefaultConfig } from '@services/contract-registry';
 import { PriceSeriesAPI, PriceSeriesStorage } from '@services/prices';
+import { getHostUrl } from '@modules/discovery';
 import type { TokenCacheData, KraxelPriceData } from '@repo/tokens';
 
 // Re-export types for centralized imports
@@ -115,36 +116,57 @@ function adaptTokenMetadata(contractId: string, registryData: any): TokenCacheDa
 
 /**
  * Replacement for listTokens() from @repo/tokens
- * Fetches all tokens from contract-registry and adapts them to TokenCacheData format
+ * Fetches all tokens from cached contract-registry API and adapts them to TokenCacheData format
  */
 export async function listTokens(): Promise<TokenCacheData[]> {
-  const registry = getContractRegistry();
+  const contractRegistryUrl = getHostUrl('contract-registry');
+  const response = await fetch(`${contractRegistryUrl}/api/tokens?type=all&limit=1000`);
   
-  // Get all contracts with token metadata
-  const contracts = await registry.searchContracts({
-    contractType: 'token',
-    limit: 1000
-  });
-
-  console.log(`[Contract Registry Adapter] Raw search result: found ${contracts.contracts?.length || 0} contracts`);
-
+  if (!response.ok) {
+    throw new Error(`Failed to fetch tokens: ${response.status} ${response.statusText}`);
+  }
+  
+  const result = await response.json();
+  
+  if (!result.success || !result.data) {
+    throw new Error(`Invalid tokens response: ${result.error}`);
+  }
+  
+  const { tokens } = result.data;
+  console.log(`[Contract Registry Adapter] Fetched ${tokens?.length || 0} tokens from cached API`);
+  
   // Convert to TokenCacheData format
-  const tokenData: TokenCacheData[] = contracts.contracts
-    .filter(contract => contract.tokenMetadata)
-    .map(contract => adaptTokenMetadata(contract.contractId, contract));
-
-  console.log(`[Contract Registry Adapter] Fetched ${tokenData.length} tokens with metadata from contract-registry`);
+  const tokenData: TokenCacheData[] = tokens
+    .filter((contract: any) => contract.tokenMetadata)
+    .map((contract: any) => adaptTokenMetadata(contract.contractId, contract));
   
   return tokenData;
 }
 
+
 /**
  * Replacement for getTokenMetadataCached() from @repo/tokens
- * Fetches individual token metadata from contract-registry
+ * Fetches individual token metadata from cached contract-registry API
  */
 export async function getTokenMetadataCached(contractId: string): Promise<TokenCacheData> {
-  const registry = getContractRegistry();
-  const contract = await registry.getContract(contractId);
+  const contractRegistryUrl = getHostUrl('contract-registry');
+  const response = await fetch(`${contractRegistryUrl}/api/contracts/${encodeURIComponent(contractId)}`);
+  
+  if (!response.ok) {
+    if (response.status === 404) {
+      // Token not found in registry
+      return adaptTokenMetadata(contractId, null);
+    }
+    throw new Error(`Failed to fetch contract ${contractId}: ${response.status} ${response.statusText}`);
+  }
+  
+  const result = await response.json();
+  
+  if (!result.success || !result.data) {
+    throw new Error(`Invalid contract response for ${contractId}: ${result.error}`);
+  }
+  
+  const contract = result.data;
   
   if (contract && contract.tokenMetadata) {
     return adaptTokenMetadata(contractId, contract);
@@ -153,6 +175,7 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
   // Return default structure for missing tokens
   return adaptTokenMetadata(contractId, null);
 }
+
 
 /**
  * Discovers and adds a missing token to the contract registry
@@ -251,111 +274,62 @@ export async function getMultipleTokenMetadata(contractIds: string[]): Promise<R
 
 /**
  * Replacement for listPrices() from @repo/tokens
- * Fetches current prices from @services/prices and converts to KraxelPriceData format
- * Uses careful concurrency control to avoid Vercel Blob rate limits
+ * Fetches current prices from cached prices API and converts to KraxelPriceData format
  */
 export async function listPrices(): Promise<KraxelPriceData> {
   try {
-    const priceAPI = getPriceSeriesAPI();
+    // First get all tokens to know which prices to fetch
+    const tokens = await listTokens();
+    const tokenIds = tokens.map(token => token.contractId);
     
-    // Use a more conservative approach with concurrency control
-    console.log('[listPrices] Fetching prices with concurrency limiting...');
-    
-    // Get all current token prices with built-in rate limiting
-    const result = await priceAPI.getAllTokens();
-    
-    if (!result.success || !result.data) {
-      console.warn('[listPrices] Failed to get prices from price series:', result.error);
-      
-      // Fallback: try to get prices in smaller batches
-      if (result.error && typeof result.error === 'string' && result.error.includes('Too many requests')) {
-        console.log('[listPrices] Rate limited, trying fallback approach...');
-        return await getTokenPricesWithFallback();
-      }
-      
+    if (tokenIds.length === 0) {
+      console.warn('[listPrices] No tokens found to fetch prices for');
       return {};
     }
     
-    // Convert TokenPriceData[] to KraxelPriceData (Record<string, number>)
+    // Split into smaller batches to avoid URL length limits
+    const BATCH_SIZE = 20;
     const kraxelPrices: KraxelPriceData = {};
     
-    result.data.forEach(token => {
-      if (token.tokenId && token.usdPrice != null) {
-        kraxelPrices[token.tokenId] = token.usdPrice;
+    console.log(`[listPrices] Fetching prices for ${tokenIds.length} tokens in batches of ${BATCH_SIZE}`);
+    
+    // Get price-scheduler URL for prices API
+    const pricesUrl = getHostUrl('prices');
+    
+    for (let i = 0; i < tokenIds.length; i += BATCH_SIZE) {
+      const batch = tokenIds.slice(i, i + BATCH_SIZE);
+      
+      const response = await fetch(`${pricesUrl}/api/prices?tokens=${batch.map(encodeURIComponent).join(',')}&currency=usd`);
+      
+      if (!response.ok) {
+        console.error(`[listPrices] Failed to fetch prices batch ${i / BATCH_SIZE + 1}: ${response.status} ${response.statusText}`);
+        continue;
       }
-    });
-    
-    console.log(`[Contract Registry Adapter] Fetched ${Object.keys(kraxelPrices).length} token prices from price series`);
-    return kraxelPrices;
-    
-  } catch (error) {
-    console.error('[listPrices] Error fetching prices from price series:', error);
-    
-    // If we hit rate limits, try fallback
-    if (error instanceof Error && error.message && error.message.includes('Too many requests')) {
-      console.log('[listPrices] Hit rate limit, trying fallback...');
-      return await getTokenPricesWithFallback();
+      
+      const result = await response.json();
+      
+      if (!result.success || !result.data) {
+        console.error(`[listPrices] Invalid prices response for batch ${i / BATCH_SIZE + 1}:`, result.error);
+        continue;
+      }
+      
+      const { prices } = result.data;
+      
+      // Merge prices into kraxelPrices
+      Object.entries(prices).forEach(([tokenId, priceData]: [string, any]) => {
+        if (priceData && typeof priceData.usd === 'number') {
+          kraxelPrices[tokenId] = priceData.usd;
+        }
+      });
+      
+      // Small delay between batches to be respectful
+      if (i + BATCH_SIZE < tokenIds.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     }
     
-    return {};
-  }
+    console.log(`[Contract Registry Adapter] Fetched ${Object.keys(kraxelPrices).length} token prices from cached API`);
+    
+    return kraxelPrices;
 }
 
-/**
- * Fallback price fetching with very conservative concurrency
- */
-async function getTokenPricesWithFallback(): Promise<KraxelPriceData> {
-  try {
-    // Get token list first
-    const tokens = await listTokens();
-    
-    if (tokens.length === 0) {
-      console.warn('[getTokenPricesWithFallback] No tokens to fetch prices for');
-      return {};
-    }
-    
-    console.log(`[getTokenPricesWithFallback] Fetching prices for ${tokens.length} tokens with strict rate limiting...`);
-    
-    const kraxelPrices: KraxelPriceData = {};
-    const BATCH_SIZE = 3; // Very small batch size to avoid rate limits
-    const DELAY_MS = 500; // Longer delay between batches
-    
-    // Process tokens in very small batches with delays
-    for (let i = 0; i < tokens.length; i += BATCH_SIZE) {
-      const batch = tokens.slice(i, i + BATCH_SIZE);
-      
-      // Process batch with individual error handling
-      await Promise.all(
-        batch.map(async (token, index) => {
-          try {
-            // Add small delay even within batch
-            if (index > 0) {
-              await new Promise(resolve => setTimeout(resolve, 100));
-            }
-            
-            const priceAPI = getPriceSeriesAPI();
-            const result = await priceAPI.getCurrentPrice(token.contractId);
-            
-            if (result.success && result.data && result.data.usdPrice != null) {
-              kraxelPrices[token.contractId] = result.data.usdPrice;
-            }
-          } catch (error) {
-            console.warn(`[getTokenPricesWithFallback] Failed to get price for ${token.contractId}:`, error instanceof Error ? error.message : error);
-          }
-        })
-      );
-      
-      // Delay between batches
-      if (i + BATCH_SIZE < tokens.length) {
-        await new Promise(resolve => setTimeout(resolve, DELAY_MS));
-      }
-    }
-    
-    console.log(`[getTokenPricesWithFallback] Successfully fetched ${Object.keys(kraxelPrices).length} prices with rate limiting`);
-    return kraxelPrices;
-    
-  } catch (error) {
-    console.error('[getTokenPricesWithFallback] Fallback price fetching failed:', error);
-    return {};
-  }
-}

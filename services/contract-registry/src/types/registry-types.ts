@@ -111,6 +111,8 @@ export interface RegistryAPI {
   getContractsByType(type: ContractType): Promise<string[]>;
   getContractsByTrait(trait: string): Promise<string[]>;
   getContractsByDiscovery(method: DiscoveryMethod): Promise<string[]>;
+  getFungibleTokens(): Promise<ContractMetadata[]>;
+  getNonFungibleTokens(): Promise<ContractMetadata[]>;
   searchContracts(query: ContractQuery): Promise<ContractSearchResponse>;
 
   // Discovery operations
