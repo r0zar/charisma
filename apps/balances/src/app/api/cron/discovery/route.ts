@@ -46,8 +46,7 @@ export async function GET(request: NextRequest) {
       topHolderPercentage: 35,
       enableAutoCollection: true,
       batchSize: 10,
-      minTokenBalance: '1000',
-      includeSmallHolders: false
+      minTokenBalance: '1000'
     })
 
     // Run discovery
