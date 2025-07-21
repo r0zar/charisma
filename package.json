@@ -4,7 +4,7 @@
   "scripts": {
     "build": "turbo run build",
     "clean": "turbo run clean",
-    "dev": "turbo run dev --concurrency=30",
+    "dev": "turbo run dev --concurrency=40",
     "generate": "turbo run generate",
     "create-app": "./scripts/create-app.sh",
     "create-package": "./scripts/create-package.sh",
@@ -14,6 +14,7 @@
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint:fix",
     "test": "turbo run test",
+    "test:watch": "turbo run test:watch",
     "test:coverage": "turbo run test:coverage",
     "check-types": "turbo run check-types"
   },
@@ -21,7 +22,7 @@
     "@turbo/gen": "^2.5.4",
     "@types/node": "^24.0.14",
     "prettier": "^3.6.2",
-    "turbo": "^2.5.4"
+    "turbo": "^2.5.5"
   },
   "packageManager": "pnpm@10.5.2",
   "engines": {
