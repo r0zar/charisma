@@ -1,0 +1,100 @@
+{
+  "name": "@services/contract-registry",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/es/index.js",
+  "module": "./dist/es/index.js",
+  "types": "./dist/es/index.d.ts",
+  "typescript": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/es/index.d.ts",
+        "default": "./dist/es/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.cts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    }
+  },
+  "scripts": {
+    "build": "bunchee",
+    "prebuild": "npm run check-types",
+    "dev": "bunchee --watch",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "pretest:coverage": "npm run check-types",
+    "test:watch": "vitest --coverage",
+    "pretest:watch": "npm run check-types",
+    "test:ui": "vitest --ui --coverage",
+    "pretest:ui": "npm run check-types",
+    "test:integration": "vitest run -t integration",
+    "pretest:integration": "npm run check-types",
+    "test:integration:watch": "vitest -t integration",
+    "pretest:integration:watch": "npm run check-types",
+    "test:e2e": "vitest run -t 'E2E'",
+    "pretest:e2e": "npm run check-types",
+    "test:all": "npm run test && npm run test:integration",
+    "script:test-contract-api": "tsx scripts/test-contract-info-api.ts",
+    "script:test-search": "tsx scripts/test-contract-search.ts",
+    "script:debug-trait": "tsx scripts/debug-trait-discovery.ts",
+    "script:show-sip010": "tsx scripts/show-sip010-contracts.ts",
+    "script:test-patterns": "tsx scripts/test-real-patterns.ts",
+    "script:populate-mainnet": "tsx scripts/populate-mainnet-registry.ts --verbose",
+    "script:inspect-mainnet": "tsx scripts/inspect-mainnet-registry.ts --verbose",
+    "script:audit-data": "tsx scripts/audit-contract-data.ts",
+    "script:refresh-analysis": "tsx scripts/refresh-contract-analysis.ts",
+    "script:sync-tokens": "tsx scripts/sync-token-cache.ts",
+    "script:discover-nfts": "tsx scripts/discover-nft-contracts.ts --verbose",
+    "script:debug-minimal": "tsx scripts/debug-minimal-transfer.ts",
+    "script:test-working": "tsx scripts/test-working-patterns.ts",
+    "script:test-sip-configs": "tsx scripts/test-updated-sip-configs.ts",
+    "script:validate-compliance": "tsx scripts/validate-sip-compliance.ts",
+    "script:discover-sips": "tsx scripts/discover-all-sips.ts",
+    "script:discover-quick": "tsx scripts/discover-sips-quick.ts",
+    "script:scan-mainnet": "tsx scripts/scan-all-mainnet.ts"
+  },
+  "dependencies": {
+    "@modules/blob-monitor": "workspace:*",
+    "@modules/contracts": "workspace:*",
+    "@repo/polyglot": "workspace:*",
+    "@repo/tokens": "workspace:*",
+    "@swc/helpers": "^0.5.17",
+    "@vercel/blob": "^0.24.1",
+    "@vercel/kv": "^3.0.0"
+  },
+  "devDependencies": {
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@types/node": "^24.0.14",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.1.3",
+    "bunchee": "^6.5.4",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.31.0",
+    "happy-dom": "^18.0.1",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tsx": "^4.20.3",
+    "typescript": "5.8.3",
+    "vitest": "^3.1.3"
+  },
+  "keywords": [
+    "contract",
+    "registry",
+    "traits",
+    "discovery",
+    "blockchain",
+    "stacks"
+  ]
+}

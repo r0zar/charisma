@@ -1,0 +1,39 @@
+{
+  "extends": [
+    "//"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "@modules/blob-monitor#build",
+        "@repo/polyglot#build"
+      ],
+      "env": [
+        "BLOB_READ_WRITE_TOKEN",
+        "BLOB_BASE_URL",
+        "KV_URL",
+        "KV_REST_API_URL",
+        "KV_REST_API_TOKEN",
+        "KV_REST_API_READ_ONLY_TOKEN",
+        "DEBUG_PERFORMANCE"
+      ]
+    },
+    "dev": {
+      "dependsOn": [
+        "@modules/blob-monitor#build",
+        "@repo/polyglot#build"
+      ]
+    },
+    "lint": {
+      "dependsOn": [
+        "@modules/blob-monitor#build",
+        "@repo/polyglot#build"
+      ]
+    },
+    "test": {
+      "dependsOn": [
+        "lint"
+      ]
+    }
+  }
+}
