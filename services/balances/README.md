@@ -1,6 +1,6 @@
 # Balance Service
 
-A comprehensive balance tracking service with time series data support, built on Vercel Blob storage.
+A comprehensive balance tracking service with time series data support.
 
 ## Features
 
