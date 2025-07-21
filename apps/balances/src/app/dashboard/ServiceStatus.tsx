@@ -3,10 +3,10 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Network, Users, PieChart as PieChartIcon } from "lucide-react"
 import { ServiceUsageChart } from "./components/ServiceUsageChart"
-import { getServiceStats } from "@/lib/actions"
+import { getServiceStats, type ServiceStats } from "@/lib/actions"
 
 
-async function fetchServiceStatus() {
+async function fetchServiceStatus(): Promise<{ isDemo: boolean; stats: ServiceStats }> {
   try {
     const stats = await getServiceStats()
     
@@ -15,7 +15,16 @@ async function fetchServiceStatus() {
       stats: stats
     }
   } catch (error) {
-    return { isDemo: true, stats: {} }
+    return { 
+      isDemo: true, 
+      stats: {
+        totalAddresses: 0,
+        totalTokens: 0,
+        totalSnapshots: 0,
+        status: 'unhealthy' as const,
+        lastUpdate: new Date().toISOString()
+      }
+    }
   }
 }
 

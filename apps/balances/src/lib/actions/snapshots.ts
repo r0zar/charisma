@@ -1,10 +1,23 @@
 'use server'
 
-import { BalanceSnapshotScheduler, SnapshotStorage, SnapshotReader, KVBalanceStore, Snapshot } from '@services/balances'
+import { BalanceSnapshotScheduler, SnapshotStorage, SnapshotReader, KVBalanceStore } from '@services/balances'
 
 export interface CreateSnapshotRequest {
   addresses: string[]
   tokens?: string[]
+}
+
+export interface SnapshotListItem {
+  id: string
+  createdAt: string
+  size: number
+  compressedSize: number
+  compressionRatio: number
+  balanceCount: number
+  addressCount: number
+  contractCount: number
+  status: 'completed'
+  url: string
 }
 
 // Check if services are configured
@@ -28,13 +41,11 @@ if (areServicesConfigured()) {
   }
 }
 
-export async function getSnapshots(): Promise<{ snapshots: Snapshot[], demo?: boolean }> {
+export async function getSnapshots(): Promise<{ snapshots: SnapshotListItem[] }> {
   try {
     console.log('getSnapshots: snapshotReader available:', !!snapshotReader)
     if (!snapshotReader || !snapshotStorage) {
-      // Return empty result with demo flag instead of throwing
-      console.log('getSnapshots: No snapshot reader, returning demo mode')
-      return { snapshots: [], demo: true }
+      throw new Error('Snapshot services not configured - missing KV_URL or BLOB_READ_WRITE_TOKEN')
     }
 
     console.log('getSnapshots: Getting available snapshots using SnapshotReader')
@@ -52,7 +63,7 @@ export async function getSnapshots(): Promise<{ snapshots: Snapshot[], demo?: bo
     console.log('getSnapshots: Querying snapshots for timestamps:', recentTimestamps.length)
     
     // Get information for each snapshot
-    const snapshots: Snapshot[] = await Promise.all(
+    const snapshots: (SnapshotListItem | null)[] = await Promise.all(
       recentTimestamps.map(async (timestamp: number) => {
         try {
           // First try to check if snapshot exists and get basic info
@@ -106,7 +117,7 @@ export async function getSnapshots(): Promise<{ snapshots: Snapshot[], demo?: bo
               url: `balances/snapshots/${timestamp}.json.gz`
             }
           } catch (error) {
-            console.log(`getSnapshots: Snapshot ${timestamp} validation failed, skipping:`, error.message)
+            console.log(`getSnapshots: Snapshot ${timestamp} validation failed, skipping:`, error instanceof Error ? error.message : String(error))
             return null
           }
         } catch (error) {
@@ -117,57 +128,16 @@ export async function getSnapshots(): Promise<{ snapshots: Snapshot[], demo?: bo
     )
     
     // Filter out null entries
-    const validSnapshots = snapshots.filter((s): s is Snapshot => s !== null)
+    const validSnapshots = snapshots.filter((s): s is SnapshotListItem => s !== null)
     
     console.log('getSnapshots: Returning snapshots:', validSnapshots.length)
     return { snapshots: validSnapshots }
   } catch (error) {
     console.error('Failed to get snapshots:', error)
-    // Return demo mode instead of throwing on error
-    return { snapshots: [], demo: true }
+    throw error
   }
 }
 
-export async function createSnapshot(request: CreateSnapshotRequest): Promise<{ snapshot: Snapshot, demo?: boolean }> {
-  try {
-    if (!request.addresses || request.addresses.length === 0) {
-      throw new Error('At least one address is required')
-    }
-
-    if (!scheduler) {
-      // Create a demo snapshot instead of throwing
-      const demoSnapshot: Snapshot = {
-        id: `demo-${Date.now()}`,
-        createdAt: new Date().toISOString(),
-        size: 0,
-        compressedSize: 0,
-        compressionRatio: 0,
-        balanceCount: 0,
-        addressCount: 0,
-        contractCount: 0,
-        status: 'completed',
-        url: undefined
-      }
-      return { snapshot: demoSnapshot, demo: true }
-    }
-
-    const result = await scheduler.createSnapshot()
-    return { snapshot: result }
-  } catch (error) {
-    console.error('Failed to create snapshot:', error)
-    // Create demo snapshot on error
-    const demoSnapshot: Snapshot = {
-      id: `demo-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      size: 0,
-      compressedSize: 0,
-      compressionRatio: 0,
-      balanceCount: 0,
-      addressCount: 0,
-      contractCount: 0,
-      status: 'completed',
-      url: undefined
-    }
-    return { snapshot: demoSnapshot, demo: true }
-  }
+export async function createSnapshot(request: CreateSnapshotRequest): Promise<{ snapshot: SnapshotListItem }> {
+  throw new Error('Snapshot creation not implemented - use the balance service directly')
 }

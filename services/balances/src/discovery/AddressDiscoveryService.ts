@@ -262,16 +262,18 @@ export class AddressDiscoveryService {
     try {
       const whaleResults = await this.whaleDetectionService.classifyAddresses(addresses);
       
-      return whaleResults.map(result => ({
-        addresses: [result.address],
-        source: 'whale_detection' as const,
-        metadata: {
-          whaleClassification: result.classification,
-          balanceAmount: result.totalValue,
-          confidenceScore: result.confidence,
-          discoveredAt: Date.now()
-        },
-        success: result.success,
+      return whaleResults
+        .filter(result => result.classification !== 'none') // Filter out non-whale addresses
+        .map(result => ({
+          addresses: [result.address],
+          source: 'whale_detection' as const,
+          metadata: {
+            whaleClassification: result.classification as 'small' | 'medium' | 'large' | 'mega',
+            balanceAmount: result.totalValue,
+            confidenceScore: result.confidence,
+            discoveredAt: Date.now()
+          },
+          success: result.success,
         error: result.error
       }));
 

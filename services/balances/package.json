@@ -41,6 +41,7 @@
   },
   "dependencies": {
     "@modules/blob-monitor": "workspace:*",
+    "@repo/polyglot": "workspace:*",
     "@repo/tokens": "workspace:*",
     "@swc/helpers": "^0.5.17",
     "@vercel/blob": "^0.24.1",

@@ -9,7 +9,6 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({ 
       snapshots: result.snapshots,
-      demo: result.demo,
       success: true 
     })
   } catch (error) {

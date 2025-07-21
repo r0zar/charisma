@@ -164,6 +164,7 @@ export interface BalanceStore {
   setBalancesBatch(updates: BalanceUpdate[]): Promise<void>;
   invalidateAddress(address: string): Promise<void>;
   getLastSync(address: string, contractId?: string): Promise<Date | null>;
+  setAddressMetadata(address: string, metadata: any): Promise<void>;
 }
 
 export interface TimeSeriesStore {
