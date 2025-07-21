@@ -4,6 +4,7 @@ import TokenLogo from "./TokenLogo";
 import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
+import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import { ChevronDown, Search, X, ArrowLeft } from 'lucide-react';
 
 interface TokenDropdownProps {
@@ -35,6 +36,7 @@ export default function TokenDropdown({
     // Get balance data for enhanced display
     const { address } = useWallet();
     const { getTokenBalance, getSubnetBalance } = useBalances(address ? [address] : []);
+    const { getTokenDecimals } = useTokenMetadata();
 
     /* ---------------- helpers ---------------- */
     const filtered = useMemo(() => {
@@ -221,8 +223,10 @@ export default function TokenDropdown({
                                                         {(() => {
                                                             const mainnetBalance = getTokenBalance(address, token.contractId);
                                                             const subnetBalance = getSubnetBalance(address, token.contractId);
-                                                            const formattedMainnet = mainnetBalance > 0 ? mainnetBalance.toFixed(4) : '0';
-                                                            const formattedSubnet = subnetBalance > 0 ? subnetBalance.toFixed(4) : '0';
+                                                            const decimals = getTokenDecimals(token.contractId);
+                                                            const displayDecimals = Math.min(decimals, 8);
+                                                            const formattedMainnet = mainnetBalance > 0 ? mainnetBalance.toFixed(displayDecimals) : '0';
+                                                            const formattedSubnet = subnetBalance > 0 ? subnetBalance.toFixed(displayDecimals) : '0';
                                                             
                                                             return (
                                                                 <>

@@ -75,8 +75,11 @@ function StatsCard({
 
 async function fetchSystemStats(): Promise<SystemStats> {
   try {
-    const response = await fetch('/api/status')
-    if (!response.ok) {
+    // Import required modules directly instead of making API call
+    const { PriceSeriesStorage } = await import('@services/prices')
+    
+    const BLOB_READ_WRITE_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!BLOB_READ_WRITE_TOKEN) {
       return {
         lastUpdateAge: null,
         lastUpdate: null,
@@ -87,16 +90,27 @@ async function fetchSystemStats(): Promise<SystemStats> {
         status: 'error'
       }
     }
+
+    const storage = new PriceSeriesStorage(BLOB_READ_WRITE_TOKEN);
     
-    const data = await response.json()
+    // Get storage stats and latest snapshot
+    const [storageStats, latestSnapshot] = await Promise.all([
+      storage.getStorageStats(),
+      storage.getLatestSnapshot()
+    ]);
+
+    const now = Date.now();
+    const lastUpdateAge = latestSnapshot ? now - latestSnapshot.timestamp : null;
+    const isHealthy = lastUpdateAge ? lastUpdateAge < 10 * 60 * 1000 : false; // Healthy if updated within 10 minutes
+
     return {
-      lastUpdateAge: data.lastUpdateAge || null,
-      lastUpdate: data.lastUpdate || null,
-      tokenCount: data.latestSnapshot?.tokenCount || 0,
-      arbitrageOpportunities: data.latestSnapshot?.arbitrageOpportunities || 0,
-      estimatedStorageGB: data.storage?.estimatedStorageGB || 0,
-      totalSnapshots: data.storage?.totalSnapshots || 0,
-      status: data.status || 'unknown'
+      lastUpdateAge,
+      lastUpdate: latestSnapshot?.timestamp || null,
+      tokenCount: latestSnapshot?.prices.size || 0,
+      arbitrageOpportunities: latestSnapshot?.metadata.arbitrageOpportunities || 0,
+      estimatedStorageGB: storageStats?.estimatedStorageGB || 0,
+      totalSnapshots: storageStats?.totalSnapshots || 0,
+      status: isHealthy ? 'healthy' : 'degraded'
     }
   } catch (error) {
     console.error('Failed to fetch system stats:', error)

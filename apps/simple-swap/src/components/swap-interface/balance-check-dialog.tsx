@@ -9,6 +9,7 @@ import TokenLogo from '../TokenLogo';
 import { AlertTriangle, ArrowRight, Wallet, Zap, TrendingUp } from 'lucide-react';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { useTokenMetadata } from '@/contexts/token-metadata-context';
 
 interface BalanceCheckDialogProps {
     open: boolean;
@@ -29,6 +30,8 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
         executeSwapForOrder,
         isLoadingSwapOptions
     } = useRouterTrading();
+
+    const { getTokenDecimals } = useTokenMetadata();
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [processingType, setProcessingType] = useState<'deposit' | 'swap' | null>(null);
@@ -101,7 +104,8 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
         onOpenChange(false);
     };
 
-    const formatBalance = (balance: number, decimals: number = 6) => {
+    const formatBalance = (balance: number, token?: any) => {
+        const decimals = token ? getTokenDecimals(token.contractId) : 6;
         // Use similar formatting logic to balance feed for consistency
         if (balance === 0) return '0';
         if (balance < 0.001) {
@@ -131,8 +135,8 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                         Insufficient Balance for Order
                     </DialogTitle>
                     <DialogDescription>
-                        You need {formatBalance(requiredAmount)} {selectedFromToken.symbol} to place this order,
-                        but you only have {formatBalance(subnetBalance)} {selectedFromToken.symbol} in the subnet.
+                        You need {formatBalance(requiredAmount, selectedFromToken)} {selectedFromToken.symbol} to place this order,
+                        but you only have {formatBalance(subnetBalance, selectedFromToken)} {selectedFromToken.symbol} in the subnet.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -148,7 +152,7 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                                     <TokenLogo token={selectedFromToken} />
                                     <span className="text-sm">{selectedFromToken.symbol}</span>
                                 </div>
-                                <span className="font-medium">{formatBalance(subnetBalance)}</span>
+                                <span className="font-medium">{formatBalance(subnetBalance, selectedFromToken)}</span>
                             </div>
                             {mainnetToken && (
                                 <div className="flex justify-between items-center">
@@ -158,22 +162,22 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                                             {mainnetToken.symbol.replace(/^x-/, '')} (Mainnet)
                                         </span>
                                     </div>
-                                    <span className="font-medium">{formatBalance(mainnetBalance)}</span>
+                                    <span className="font-medium">{formatBalance(mainnetBalance, mainnetToken)}</span>
                                 </div>
                             )}
                             <div className="pt-2 border-t">
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-muted-foreground">Required for order:</span>
-                                    <span className="font-medium text-red-600">{formatBalance(requiredAmount)}</span>
+                                    <span className="font-medium text-red-600">{formatBalance(requiredAmount, selectedFromToken)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-muted-foreground">Shortfall:</span>
-                                    <span className="font-medium text-red-600">{formatBalance(remainingShortfall)}</span>
+                                    <span className="font-medium text-red-600">{formatBalance(remainingShortfall, selectedFromToken)}</span>
                                 </div>
                                 {canDeposit && maxDepositAmount > 0 && (
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-muted-foreground">Can deposit:</span>
-                                        <span className="font-medium text-blue-600">{formatBalance(maxDepositAmount)}</span>
+                                        <span className="font-medium text-blue-600">{formatBalance(maxDepositAmount, mainnetToken)}</span>
                                     </div>
                                 )}
                             </div>
@@ -193,11 +197,11 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                                 <div className="space-y-3">
                                     {maxDepositAmount >= rawShortfall ? (
                                         <p className="text-sm text-muted-foreground">
-                                            You have enough {mainnetToken.symbol.replace(/^x-/, '')} on mainnet. Deposit {formatBalance(rawShortfall)} to the subnet to complete your order.
+                                            You have enough {mainnetToken.symbol.replace(/^x-/, '')} on mainnet. Deposit {formatBalance(rawShortfall, selectedFromToken)} to the subnet to complete your order.
                                         </p>
                                     ) : (
                                         <p className="text-sm text-muted-foreground">
-                                            You can deposit {formatBalance(maxDepositAmount)} {mainnetToken.symbol.replace(/^x-/, '')} from mainnet, but you'll still need {formatBalance(remainingShortfall)} more to complete your order.
+                                            You can deposit {formatBalance(maxDepositAmount, mainnetToken)} {mainnetToken.symbol.replace(/^x-/, '')} from mainnet, but you'll still need {formatBalance(remainingShortfall, selectedFromToken)} more to complete your order.
                                         </p>
                                     )}
                                     <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
@@ -205,7 +209,7 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                                             <TokenLogo token={mainnetToken} />
                                             <div>
                                                 <div className="font-medium">
-                                                    {formatBalance(maxDepositAmount)} {mainnetToken.symbol.replace(/^x-/, '')}
+                                                    {formatBalance(maxDepositAmount, mainnetToken)} {mainnetToken.symbol.replace(/^x-/, '')}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground">From mainnet</div>
                                             </div>
@@ -215,7 +219,7 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                                             <TokenLogo token={subnetToken} />
                                             <div>
                                                 <div className="font-medium">
-                                                    {formatBalance(maxDepositAmount)} {subnetToken.symbol}
+                                                    {formatBalance(maxDepositAmount, subnetToken)} {subnetToken.symbol}
                                                 </div>
                                                 <div className="text-xs text-muted-foreground">To subnet</div>
                                             </div>
@@ -231,14 +235,14 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                                         ) : (
                                             <>
                                                 <Wallet className="h-4 w-4 mr-2" />
-                                                Deposit {formatBalance(maxDepositAmount)} {mainnetToken.symbol.replace(/^x-/, '')}
+                                                Deposit {formatBalance(maxDepositAmount, mainnetToken)} {mainnetToken.symbol.replace(/^x-/, '')}
                                                 {maxDepositAmount < rawShortfall && ' (Partial)'}
                                             </>
                                         )}
                                     </Button>
                                     {maxDepositAmount < rawShortfall && (
                                         <p className="text-xs text-amber-600 text-center">
-                                            After deposit, you'll still need {formatBalance(remainingShortfall)} more {selectedFromToken.symbol}
+                                            After deposit, you'll still need {formatBalance(remainingShortfall, selectedFromToken)} more {selectedFromToken.symbol}
                                         </p>
                                     )}
                                 </div>
@@ -270,14 +274,14 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                                                             {option.fromToken.symbol.replace(/^x-/, '')}
                                                         </span>
                                                         <Badge variant="secondary" className="text-xs">
-                                                            Swap Amount: {formatBalance(option.swapAmount)}
+                                                            Swap Amount: {formatBalance(option.swapAmount, option.fromToken)}
                                                         </Badge>
                                                     </div>
                                                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                                                     <div className="flex items-center gap-2">
                                                         <TokenLogo token={selectedFromToken} />
                                                         <span className="font-medium">
-                                                            ~{formatBalance(option.estimatedOutput)} {selectedFromToken.symbol}
+                                                            ~{formatBalance(option.estimatedOutput, selectedFromToken)} {selectedFromToken.symbol}
                                                         </span>
                                                     </div>
                                                 </div>
