@@ -55,11 +55,12 @@ export async function GET(request: NextRequest) {
     const executionTime = Date.now() - startTime
 
     // Log results for monitoring
-    const resultCount = result.results ? result.results.length : 0
+    const resultCount = Array.isArray(result) ? result.length : 0
+    const totalAddresses = Array.isArray(result) ? result.reduce((sum, r) => sum + r.addresses.length, 0) : 0
     console.log('✅ Scheduled discovery completed:', {
-      success: result.success,
-      totalAddresses: resultCount,
-      successRate: result.stats?.successRate || 0,
+      success: resultCount > 0,
+      totalResults: resultCount,
+      totalAddresses: totalAddresses,
       executionTimeMs: executionTime,
       timestamp: new Date().toISOString()
     })

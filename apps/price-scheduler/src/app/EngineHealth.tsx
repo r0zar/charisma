@@ -15,7 +15,7 @@ interface EngineStatus {
 interface EngineStats {
   oracle: number
   market: number
-  intrinsic: number
+  virtual: number
   hybrid: number
 }
 
