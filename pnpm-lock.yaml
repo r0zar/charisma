@@ -1982,6 +1982,9 @@ importers:
       '@repo/tx-monitor-client':
         specifier: workspace:*
         version: link:../../packages/tx-monitor-client
+      '@services/balances':
+        specifier: workspace:*
+        version: link:../../services/balances
       '@services/contract-registry':
         specifier: workspace:*
         version: link:../../services/contract-registry
