@@ -7,7 +7,7 @@
  */
 
 import { BlobMonitor } from '@modules/blob-monitor';
-import type { ContractMetadata } from '../types';
+import type { ContractMetadata, ConsolidatedRegistry } from '../types';
 
 export interface BlobStorageConfig {
   serviceName: string;
@@ -577,5 +577,213 @@ export class BlobStorage {
     // JSON compression typically achieves 60-80% size reduction
     // Return estimated ratio (compressed/original)
     return 0.3; // Assume 70% compression
+  }
+
+  /**
+   * Get all contracts (used by consolidated blob manager)
+   */
+  async getAllContracts(): Promise<string[]> {
+    return await this.listContracts();
+  }
+
+  /**
+   * Get the consolidated blob manager for bulk operations
+   */
+  getConsolidatedBlobManager(): ConsolidatedBlobManager {
+    return new ConsolidatedBlobManager(this);
+  }
+}
+
+/**
+ * ConsolidatedBlobManager - Manages a single consolidated blob containing all contract metadata
+ * This reduces individual blob API calls and provides efficient bulk operations
+ */
+export class ConsolidatedBlobManager {
+  private static readonly CONSOLIDATED_PATH = 'consolidated-registry.json.gz';
+  private static readonly VERSION = '1.0.0';
+  private blobStorage: BlobStorage;
+
+  constructor(blobStorage: BlobStorage) {
+    this.blobStorage = blobStorage;
+  }
+
+  /**
+   * Generate a new consolidated blob from all individual contracts
+   */
+  async generateConsolidatedBlob(): Promise<ConsolidatedRegistry> {
+    const startTime = Date.now();
+    console.log('[ConsolidatedBlobManager] Starting consolidated blob generation...');
+
+    try {
+      // Get all contract IDs
+      const contractIds = await this.blobStorage.getAllContracts();
+      console.log(`[ConsolidatedBlobManager] Found ${contractIds.length} contracts to consolidate`);
+
+      // Fetch all contracts in parallel with controlled concurrency
+      const result = await this.blobStorage.getContracts(contractIds, 15); // Conservative concurrency
+      
+      if (result.failed.length > 0) {
+        console.warn(`[ConsolidatedBlobManager] Failed to fetch ${result.failed.length} contracts:`, 
+          result.failed.slice(0, 5).map(f => f.contractId));
+      }
+
+      // Build the contracts map
+      const contracts: Record<string, ContractMetadata> = {};
+      let totalSize = 0;
+
+      result.successful.forEach(({ contractId, metadata }) => {
+        contracts[contractId] = metadata;
+        // Estimate size (rough JSON size)
+        totalSize += JSON.stringify(metadata).length;
+      });
+
+      const generationTimeMs = Date.now() - startTime;
+      const consolidatedRegistry: ConsolidatedRegistry = {
+        version: ConsolidatedBlobManager.VERSION,
+        generatedAt: Date.now(),
+        contractCount: result.successful.length,
+        contracts,
+        metadata: {
+          totalSize,
+          compressionRatio: this.blobStorage['estimateCompressionRatio'](),
+          lastFullRebuild: Date.now(),
+          generationTimeMs
+        }
+      };
+
+      console.log(`[ConsolidatedBlobManager] Generated consolidated blob in ${generationTimeMs}ms with ${result.successful.length} contracts`);
+      return consolidatedRegistry;
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[ConsolidatedBlobManager] Failed to generate consolidated blob:', errorMessage);
+      throw new Error(`Failed to generate consolidated blob: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Load the consolidated blob from storage
+   */
+  async loadConsolidatedBlob(): Promise<ConsolidatedRegistry | null> {
+    try {
+      console.log('[ConsolidatedBlobManager] Loading consolidated blob...');
+      
+      const blobUrl = this.blobStorage['constructBlobUrl'](
+        this.blobStorage['config'].pathPrefix + ConsolidatedBlobManager.CONSOLIDATED_PATH
+      );
+      const response = await this.blobStorage['monitor'].fetch(blobUrl);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          console.log('[ConsolidatedBlobManager] No consolidated blob found');
+          return null;
+        }
+        throw new Error(`Failed to fetch consolidated blob: ${response.status}`);
+      }
+
+      const data = await response.text();
+
+      // Parse the JSON data
+      const consolidatedRegistry: ConsolidatedRegistry = JSON.parse(data);
+      
+      // Validate the structure
+      if (!consolidatedRegistry.contracts || typeof consolidatedRegistry.contracts !== 'object') {
+        throw new Error('Invalid consolidated blob format: missing contracts object');
+      }
+
+      console.log(`[ConsolidatedBlobManager] Loaded consolidated blob with ${consolidatedRegistry.contractCount} contracts (v${consolidatedRegistry.version})`);
+      return consolidatedRegistry;
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[ConsolidatedBlobManager] Failed to load consolidated blob:', errorMessage);
+      return null;
+    }
+  }
+
+  /**
+   * Save the consolidated blob to storage
+   */
+  async saveConsolidatedBlob(registry: ConsolidatedRegistry): Promise<void> {
+    try {
+      console.log(`[ConsolidatedBlobManager] Saving consolidated blob with ${registry.contractCount} contracts...`);
+      
+      const jsonData = JSON.stringify(registry, null, 0); // No pretty printing for size
+      const filePath = this.blobStorage['config'].pathPrefix + ConsolidatedBlobManager.CONSOLIDATED_PATH;
+      
+      await this.blobStorage['monitor'].put(filePath, jsonData, {
+        contentType: 'application/json',
+        access: 'public',
+        allowOverwrite: true
+      });
+      console.log(`[ConsolidatedBlobManager] Successfully saved consolidated blob (${Math.round(jsonData.length / 1024)}KB)`);
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('[ConsolidatedBlobManager] Failed to save consolidated blob:', errorMessage);
+      throw new Error(`Failed to save consolidated blob: ${errorMessage}`);
+    }
+  }
+
+  /**
+   * Check if consolidation is needed based on time elapsed or changes
+   */
+  async isConsolidationNeeded(): Promise<boolean> {
+    try {
+      const existing = await this.loadConsolidatedBlob();
+      
+      if (!existing) {
+        console.log('[ConsolidatedBlobManager] Consolidation needed: no existing blob');
+        return true;
+      }
+
+      // Check if it's been more than 24 hours
+      const hoursSinceLastBuild = (Date.now() - existing.metadata.lastFullRebuild) / (1000 * 60 * 60);
+      if (hoursSinceLastBuild >= 24) {
+        console.log(`[ConsolidatedBlobManager] Consolidation needed: ${Math.round(hoursSinceLastBuild)}h since last rebuild`);
+        return true;
+      }
+
+      // Check if contract count has changed significantly (>5% change)
+      const currentContractIds = await this.blobStorage.getAllContracts();
+      const countChangePercent = Math.abs(currentContractIds.length - existing.contractCount) / existing.contractCount;
+      
+      if (countChangePercent > 0.05) {
+        console.log(`[ConsolidatedBlobManager] Consolidation needed: ${Math.round(countChangePercent * 100)}% contract count change`);
+        return true;
+      }
+
+      console.log('[ConsolidatedBlobManager] Consolidation not needed');
+      return false;
+
+    } catch (error) {
+      console.warn('[ConsolidatedBlobManager] Error checking consolidation need, defaulting to true:', error);
+      return true;
+    }
+  }
+
+  /**
+   * Perform full consolidation - generate and save new blob
+   */
+  async consolidate(): Promise<{ success: boolean; contractCount: number; generationTimeMs: number; error?: string }> {
+    try {
+      const registry = await this.generateConsolidatedBlob();
+      await this.saveConsolidatedBlob(registry);
+      
+      return {
+        success: true,
+        contractCount: registry.contractCount,
+        generationTimeMs: registry.metadata.generationTimeMs
+      };
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return {
+        success: false,
+        contractCount: 0,
+        generationTimeMs: 0,
+        error: errorMessage
+      };
+    }
   }
 }

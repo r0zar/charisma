@@ -5,11 +5,13 @@ import { getContractRegistry } from '@/lib/contract-registry'
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
 
+  // Parse query parameters outside try block for catch block access
+  const { searchParams } = new URL(request.url)
+  const type = searchParams.get('type') || 'all'
+  const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
+  const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : undefined
+
   try {
-    const { searchParams } = new URL(request.url)
-    const type = searchParams.get('type') || 'all'
-    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined
-    const offset = searchParams.get('offset') ? parseInt(searchParams.get('offset')!) : undefined
 
     console.log(`📄 Fetching tokens: ${type}`)
 

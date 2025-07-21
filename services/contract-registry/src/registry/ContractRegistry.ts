@@ -373,8 +373,35 @@ export class ContractRegistry implements RegistryAPI {
 
   /**
    * Get fungible token contracts (SIP010 tokens)
+   * Uses consolidated blob for better performance when available
    */
   async getFungibleTokens(): Promise<ContractMetadata[]> {
+    try {
+      // Try to use consolidated blob first for better performance
+      const consolidatedManager = this.blobStorage.getConsolidatedBlobManager();
+      const consolidatedBlob = await consolidatedManager.loadConsolidatedBlob();
+      
+      if (consolidatedBlob) {
+        console.log(`[ContractRegistry] Using consolidated blob for getFungibleTokens (${consolidatedBlob.contractCount} contracts)`);
+        const tokens: ContractMetadata[] = [];
+        
+        // Filter tokens from consolidated blob
+        for (const [contractId, metadata] of Object.entries(consolidatedBlob.contracts)) {
+          const typedMetadata = metadata as ContractMetadata;
+          if (typedMetadata.contractType === 'token') {
+            tokens.push(typedMetadata);
+          }
+        }
+        
+        console.log(`[ContractRegistry] Found ${tokens.length} fungible tokens from consolidated blob`);
+        return tokens;
+      }
+    } catch (error) {
+      console.warn('[ContractRegistry] Failed to load consolidated blob, falling back to individual fetches:', error);
+    }
+
+    // Fallback to individual contract fetches
+    console.log('[ContractRegistry] Using fallback method for getFungibleTokens');
     const tokenIds = await this.getContractsByType('token');
     const result = await this.getContracts(tokenIds);
     return result.successful.map(item => item.metadata);
@@ -382,8 +409,35 @@ export class ContractRegistry implements RegistryAPI {
 
   /**
    * Get non-fungible token contracts (SIP009 NFTs)
+   * Uses consolidated blob for better performance when available
    */
   async getNonFungibleTokens(): Promise<ContractMetadata[]> {
+    try {
+      // Try to use consolidated blob first for better performance
+      const consolidatedManager = this.blobStorage.getConsolidatedBlobManager();
+      const consolidatedBlob = await consolidatedManager.loadConsolidatedBlob();
+      
+      if (consolidatedBlob) {
+        console.log(`[ContractRegistry] Using consolidated blob for getNonFungibleTokens (${consolidatedBlob.contractCount} contracts)`);
+        const nfts: ContractMetadata[] = [];
+        
+        // Filter NFTs from consolidated blob
+        for (const [contractId, metadata] of Object.entries(consolidatedBlob.contracts)) {
+          const typedMetadata = metadata as ContractMetadata;
+          if (typedMetadata.contractType === 'nft') {
+            nfts.push(typedMetadata);
+          }
+        }
+        
+        console.log(`[ContractRegistry] Found ${nfts.length} non-fungible tokens from consolidated blob`);
+        return nfts;
+      }
+    } catch (error) {
+      console.warn('[ContractRegistry] Failed to load consolidated blob, falling back to individual fetches:', error);
+    }
+
+    // Fallback to individual contract fetches
+    console.log('[ContractRegistry] Using fallback method for getNonFungibleTokens');
     const nftIds = await this.getContractsByType('nft');
     const result = await this.getContracts(nftIds);
     return result.successful.map(item => item.metadata);
@@ -966,6 +1020,13 @@ export class ContractRegistry implements RegistryAPI {
       console.warn('Failed to calculate analysis metrics:', error);
       return { totalTime: 0, averageTime: 0 };
     }
+  }
+
+  /**
+   * Get the blob storage instance for advanced operations
+   */
+  getBlobStorage(): BlobStorage {
+    return this.blobStorage;
   }
 
   /**

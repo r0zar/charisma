@@ -11,6 +11,7 @@ export type {
   BlockedContractInfo,
   SourceMetadata,
   ContractMetadata,
+  ConsolidatedRegistry,
   ContractAnalysis,
   ContractQuery,
   ContractUpdateRequest,

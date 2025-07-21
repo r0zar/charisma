@@ -404,7 +404,7 @@ export class KVBalanceStore implements BalanceStore {
   /**
    * Get addresses by discovery source
    */
-  async getAddressesBySource(source: 'token_holders' | 'whale_detection' | 'transaction_monitor' | 'manual'): Promise<string[]> {
+  async getAddressesBySource(source: 'token_holders' | 'whale_detection' | 'contract_addresses' | 'transaction_monitor' | 'manual'): Promise<string[]> {
     try {
       const allAddresses = await this.getAllAddresses();
       const sourceAddresses: string[] = [];

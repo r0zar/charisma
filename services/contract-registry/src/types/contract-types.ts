@@ -31,6 +31,20 @@ export interface SourceMetadata {
   transferHasExternalCalls: boolean; // Whether transfer function includes contract-call?
 }
 
+// Consolidated registry structure for bulk operations and backups
+export interface ConsolidatedRegistry {
+  version: string;
+  generatedAt: number;
+  contractCount: number;
+  contracts: Record<string, ContractMetadata>; // contractId -> metadata
+  metadata: {
+    totalSize: number;
+    compressionRatio: number;
+    lastFullRebuild: number;
+    generationTimeMs: number;
+  };
+}
+
 // Contract metadata - comprehensive information about a contract
 export interface ContractMetadata {
   // Basic identification
