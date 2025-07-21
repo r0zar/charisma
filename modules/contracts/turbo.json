@@ -1,0 +1,22 @@
+{
+  "extends": [
+    "//"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": [
+        "@repo/polyglot#build",
+        "@repo/typescript-config#build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
+    },
+    "dev": {
+      "dependsOn": [
+        "@repo/polyglot#build",
+        "@repo/typescript-config#build"
+      ]
+    }
+  }
+}
