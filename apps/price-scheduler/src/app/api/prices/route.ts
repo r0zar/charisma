@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PriceService, PriceOptions } from '@services/prices'
+import { PriceService } from '@services/prices'
+
+interface PriceOptions {
+  currency: string;
+  includeHistory: boolean;
+  days: number;
+}
 
 
 export async function GET(request: NextRequest) {
