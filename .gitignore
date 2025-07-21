@@ -11,9 +11,11 @@ dist-ssr
 server/dist
 public/dist
 *.tsbuildinfo
+.env*
 
 # test coverage
 coverage
+coverage-reports
 *.lcov
 
 # analytics
@@ -26,6 +28,5 @@ coverage
 # generated files
 **/src/generated/
 
-
-# coverage/cypress
-true/
+# specstory
+.specstory/
