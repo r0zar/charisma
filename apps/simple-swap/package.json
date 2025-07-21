@@ -33,6 +33,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@react-spring/web": "^10.0.1",
     "@repo/polyglot": "workspace:*",
+    "@repo/tokens": "workspace:*",
     "@repo/tx-monitor-client": "workspace:*",
     "@services/balances": "workspace:*",
     "@services/contract-registry": "workspace:*",

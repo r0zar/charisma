@@ -6,6 +6,7 @@
     "build": {
       "dependsOn": [
         "@repo/polyglot#build",
+        "@repo/tokens#build",
         "blaze-sdk#build",
         "@repo/tx-monitor-client#build",
         "@modules/discovery#build",
@@ -57,6 +58,7 @@
     "dev": {
       "dependsOn": [
         "@repo/polyglot#build",
+        "@repo/tokens#build",
         "blaze-sdk#build",
         "@repo/tx-monitor-client#build",
         "@modules/discovery#build",

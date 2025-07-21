@@ -3075,6 +3075,9 @@ importers:
 
   packages/tokens:
     dependencies:
+      '@modules/discovery':
+        specifier: workspace:*
+        version: link:../../modules/discovery
       '@swc/helpers':
         specifier: ^0.5.17
         version: 0.5.17

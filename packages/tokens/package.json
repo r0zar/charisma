@@ -42,6 +42,7 @@
     "vitest": "^3.1.3"
   },
   "dependencies": {
+    "@modules/discovery": "workspace:*",
     "@swc/helpers": "^0.5.17"
   }
 }

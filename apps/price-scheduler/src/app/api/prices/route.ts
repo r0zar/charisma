@@ -50,18 +50,10 @@ export async function GET(request: NextRequest) {
       }
     })
 
+    // Return empty results with 200 status instead of 404
+    // This allows clients to handle missing price data gracefully
     if (!prices || Object.keys(prices).length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'No price data found for the requested tokens',
-        tokens
-      }, { 
-        status: 404,
-        headers: {
-          'X-Response-Time': `${Date.now() - startTime}ms`,
-          'X-Token-Count': tokens.length.toString()
-        }
-      })
+      console.warn(`💰 No price data found for ${tokens.length} requested tokens`)
     }
 
     const result = {

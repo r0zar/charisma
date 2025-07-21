@@ -1,7 +1,13 @@
 import { listTokens } from "./token-cache-client";
+import { getHostUrl } from '@modules/discovery';
 
 const STXTOOLS_API_URL = 'https://api.stxtools.io/tokens?page=0&size=10000';
-const INTERNAL_API_URL = process.env.INTERNAL_PRICE_API_URL || 'https://invest.charisma.rocks/api/v1/prices';
+
+/** Get the appropriate prices endpoint for current environment */
+const getPricesApiUrl = (): string => {
+    // Use environment-aware URL discovery
+    return `${getHostUrl('invest')}/api/v1/prices`;
+};
 
 // Restore manual subnet contract mappings
 export const CHARISMA_SUBNET_CONTRACT = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1"
@@ -197,7 +203,7 @@ interface InternalPriceResponse {
  * Fetches token prices from our internal price API and converts to our format
  */
 async function fetchInternalPrices(): Promise<KraxelPriceData> {
-    const response = await fetch(`${INTERNAL_API_URL}?limit=100`);
+    const response = await fetch(`${getPricesApiUrl()}?limit=100`);
     if (!response.ok) {
         throw new Error(`Failed to fetch prices from Internal API: ${response.statusText}`);
     }

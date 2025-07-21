@@ -274,66 +274,11 @@ export async function getMultipleTokenMetadata(contractIds: string[]): Promise<R
 
 /**
  * Replacement for listPrices() from @repo/tokens
- * Fetches current prices from cached prices API and converts to KraxelPriceData format
+ * Uses the original working implementation from @repo/tokens
  */
 export async function listPrices(): Promise<KraxelPriceData> {
-  try {
-    // First get all tokens to know which prices to fetch
-    const tokens = await listTokens();
-    const tokenIds = tokens.map(token => token.contractId);
-
-    if (tokenIds.length === 0) {
-      console.warn('[listPrices] No tokens found to fetch prices for');
-      return {};
-    }
-
-    // Split into smaller batches to avoid URL length limits
-    const BATCH_SIZE = 20;
-    const kraxelPrices: KraxelPriceData = {};
-
-    console.log(`[listPrices] Fetching prices for ${tokenIds.length} tokens in batches of ${BATCH_SIZE}`);
-
-    // Get price-scheduler URL for prices API
-    const pricesUrl = getHostUrl('prices');
-
-    for (let i = 0; i < tokenIds.length; i += BATCH_SIZE) {
-      const batch = tokenIds.slice(i, i + BATCH_SIZE);
-
-      const response = await fetch(`${pricesUrl}/api/prices?tokens=${batch.map(encodeURIComponent).join(',')}&currency=usd`);
-
-      if (!response.ok) {
-        console.error(`[listPrices] Failed to fetch prices batch ${i / BATCH_SIZE + 1}: ${response.status} ${response.statusText}`);
-        continue;
-      }
-
-      const result = await response.json();
-
-      if (!result.success || !result.data) {
-        console.error(`[listPrices] Invalid prices response for batch ${i / BATCH_SIZE + 1}:`, result.error);
-        continue;
-      }
-
-      const { prices } = result.data;
-
-      // Merge prices into kraxelPrices
-      Object.entries(prices).forEach(([tokenId, priceData]: [string, any]) => {
-        if (priceData && typeof priceData.usd === 'number') {
-          kraxelPrices[tokenId] = priceData.usd;
-        }
-      });
-
-      // Small delay between batches to be respectful
-      if (i + BATCH_SIZE < tokenIds.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }
-
-    console.log(`[Contract Registry Adapter] Fetched ${Object.keys(kraxelPrices).length} token prices from cached API`);
-
-    return kraxelPrices;
-  } catch (error) {
-    console.error('[listPrices] Error fetching prices:', error);
-    return {};
-  }
+  // Import and use the original working listPrices from @repo/tokens
+  const { listPrices: originalListPrices } = await import('@repo/tokens');
+  return originalListPrices();
 }
 

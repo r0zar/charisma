@@ -54,15 +54,10 @@ export class LegacyPriceService {
   private async ensureInitialized(): Promise<void> {
     if (this.initialized) return;
 
-    // Create and configure engines
-    const oracleEngine = new OracleEngine();
-    const cpmmEngine = new CpmmEngine();
-    const virtualEngine = new VirtualEngine();
-
-    // Set up basic dependencies (providers would need to be set externally)
-    this.orchestrator.setOracleEngine(oracleEngine);
-    this.orchestrator.setCpmmEngine(cpmmEngine);
-    this.orchestrator.setVirtualEngine(virtualEngine);
+    // Use orchestrator's auto-initialization with default providers
+    await this.orchestrator.initializeWithDefaults({
+      blobToken: this.config.storage?.blobToken
+    });
 
     this.initialized = true;
   }
