@@ -331,5 +331,9 @@ export async function listPrices(): Promise<KraxelPriceData> {
     console.log(`[Contract Registry Adapter] Fetched ${Object.keys(kraxelPrices).length} token prices from cached API`);
     
     return kraxelPrices;
+  } catch (error) {
+    console.error('[listPrices] Error fetching prices:', error);
+    return {};
+  }
 }
 
