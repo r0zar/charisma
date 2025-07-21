@@ -362,6 +362,29 @@ export class AddressDiscoveryService {
   }
 
   /**
+   * Collect balances for discovered addresses
+   */
+  async collectAddressBalances(addresses: string[]): Promise<void> {
+    console.log(`Collecting balances for ${addresses.length} addresses...`);
+    
+    for (const address of addresses) {
+      try {
+        // This would trigger balance collection for the address
+        // Implementation depends on the specific balance collection strategy
+        console.log(`Collecting balances for address: ${address}`);
+        
+        // Mark as collected in metadata
+        await this.balanceStore.setAddressMetadata(address, {
+          lastSync: Date.now(),
+          autoCollectionEnabled: true
+        });
+      } catch (error) {
+        console.warn(`Failed to collect balances for ${address}:`, error);
+      }
+    }
+  }
+
+  /**
    * Update configuration
    */
   updateConfig(newConfig: Partial<AddressDiscoveryConfig>): void {

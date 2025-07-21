@@ -117,6 +117,7 @@ export interface AddressMetadata {
   // Auto-discovery metadata
   autoDiscovered?: boolean;
   discoverySource?: 'token_holders' | 'whale_detection' | 'contract_addresses' | 'transaction_monitor' | 'manual';
+  discoveredAt?: number;
   discoveryMetadata?: {
     tokenContract?: string;
     balanceAmount?: string;

@@ -181,14 +181,14 @@ export class ContractAddressScanner {
 
       const contracts = await searchContractsByTrait(traitName);
       
-      if (!contracts || !contracts.results) {
+      if (!contracts || !Array.isArray(contracts)) {
         return [];
       }
 
-      return contracts.results
-        .filter(contract => contract.tx_status === 'success')
+      return contracts
+        .filter((contract: any) => contract.tx_status === 'success')
         .slice(0, 20) // Limit per type
-        .map(contract => ({
+        .map((contract: any) => ({
           address: contract.contract_id,
           contractName: contract.contract_id.split('.')[1] || 'unknown',
           contractType: contractType as ContractAddressResult['contractType'],

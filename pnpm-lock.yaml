@@ -3137,6 +3137,9 @@ importers:
       '@modules/blob-monitor':
         specifier: workspace:*
         version: link:../../modules/blob-monitor
+      '@repo/polyglot':
+        specifier: workspace:*
+        version: link:../../packages/polyglot
       '@repo/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens

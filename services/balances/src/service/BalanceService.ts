@@ -58,7 +58,7 @@ export class BalanceService {
    * Check if an address is already known in the system
    */
   private async isAddressKnown(address: string): Promise<boolean> {
-    if (!this.currentStore instanceof KVBalanceStore) {
+    if (!(this.currentStore instanceof KVBalanceStore)) {
       return true; // Skip auto-discovery for non-KV stores
     }
 
@@ -579,7 +579,7 @@ export class BalanceService {
     autoDiscoveredCount: number;
     lastDiscoveryTime?: Date;
   }> {
-    if (!this.currentStore instanceof KVBalanceStore) {
+    if (!(this.currentStore instanceof KVBalanceStore)) {
       return {
         enabled: false,
         totalAddresses: 0,

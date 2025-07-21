@@ -4,9 +4,8 @@
 
 import type { BalanceStore } from '../types';
 import { 
-  getContractsByTrait, 
-  getAccountBalances,
-  searchContractsByTrait 
+  searchContractsByTrait, 
+  getAccountBalances
 } from '@repo/polyglot';
 
 export interface TokenHolderScanConfig {
