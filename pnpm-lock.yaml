@@ -2910,6 +2910,9 @@ importers:
 
   packages/dexterity:
     dependencies:
+      '@modules/discovery':
+        specifier: workspace:*
+        version: link:../../modules/discovery
       '@repo/polyglot':
         specifier: workspace:*
         version: link:../polyglot

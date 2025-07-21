@@ -732,13 +732,15 @@ export const buildSwapPostConditions = async (
  *                dex‑cache / dex‑api shims                    *
  ***************************************************************/
 
-/** Default public cache endpoint */
-const DEFAULT_DEX_CACHE_URL = 'https://invest.charisma.rocks/api/v1';
+import { getHostUrl } from '@modules/discovery';
+
+/** Get the appropriate dex-cache endpoint for current environment */
+const getDexCacheUrl = (): string => `${getHostUrl('invest')}/api/v1`;
 
 /**
  * Fetch vault inventory from Charisma dex‑cache.
  */
-export const fetchVaults = async (dexCacheUrl: string = DEFAULT_DEX_CACHE_URL): Promise<Vault[]> => {
+export const fetchVaults = async (dexCacheUrl: string = getDexCacheUrl()): Promise<Vault[]> => {
   const res: any = await fetch(`${dexCacheUrl}/vaults`);
   if (!res.ok) {
     const errBody = await res.json().catch(() => undefined);
@@ -755,7 +757,7 @@ export const fetchVaults = async (dexCacheUrl: string = DEFAULT_DEX_CACHE_URL): 
 /**
  * Convenience wrapper – populate Router straight from dex‑cache.
  */
-export const loadVaults = async (router: Router, dexCacheUrl: string = DEFAULT_DEX_CACHE_URL): Promise<Vault[]> => {
+export const loadVaults = async (router: Router, dexCacheUrl: string = getDexCacheUrl()): Promise<Vault[]> => {
   const vaults = await fetchVaults(dexCacheUrl);
   router.loadVaults(vaults);
   return vaults;
@@ -768,10 +770,10 @@ export const createRouter = async (cfg: Partial<RouterConfig> = {}) => {
 };
 
 /** Simple token list helper (used by frontends) */
-export const listTokens = async (dexCacheUrl: string = DEFAULT_DEX_CACHE_URL): Promise<Token[]> => {
+export const listTokens = async (dexCacheUrl: string = getDexCacheUrl()): Promise<Token[]> => {
   const res: any = await fetch(`${dexCacheUrl}/tokens`);
   if (!res.ok) {
-    const errBody = await res.json()
+    const errBody = await res.json().catch(() => undefined);
     throw new Error(errBody?.error ?? `dex-cache request failed (${res.status})`);
   }
   const json = await res.json();
@@ -781,13 +783,14 @@ export const listTokens = async (dexCacheUrl: string = DEFAULT_DEX_CACHE_URL): P
 };
 
 /*********  dex‑api quote endpoint  *********/
-const DEFAULT_DEX_API_URL = 'https://swap.charisma.rocks/api/v1';
+/** Get the appropriate dex-api endpoint for current environment */
+const getDexApiUrl = (): string => `${getHostUrl('swap')}/api/v1`;
 
 export const fetchQuote = async (
   from: string,
   to: string,
   amount: number,
-  dexApiUrl: string = DEFAULT_DEX_API_URL,
+  dexApiUrl: string = getDexApiUrl(),
 ) => {
   let attempts = 0;
   let lastError: any = null;

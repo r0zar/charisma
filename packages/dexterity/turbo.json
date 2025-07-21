@@ -4,6 +4,9 @@
   ],
   "tasks": {
     "build": {
+      "dependsOn": [
+        "@modules/discovery#build"
+      ],
       "outputs": [
         "dist/**"
       ]
