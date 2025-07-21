@@ -1,11 +1,24 @@
 {
-  "extends": [
-    "//"
-  ],
+  "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": [
-        "dist/**"
+      "dependsOn": [
+        "@modules/blob-monitor#build",
+        "@repo/polyglot#build"
+      ],
+      "env": [
+        "BLOB_READ_WRITE_TOKEN",
+        "BLOB_BASE_URL",
+        "KV_URL",
+        "KV_REST_API_URL",
+        "KV_REST_API_TOKEN",
+        "KV_REST_API_READ_ONLY_TOKEN"
+      ]
+    },
+    "dev": {
+      "dependsOn": [
+        "@modules/blob-monitor#build",
+        "@repo/polyglot#build"
       ]
     }
   }
