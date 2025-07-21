@@ -2,7 +2,7 @@
  * localStorage utilities for swap token preferences
  */
 
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 
 // LocalStorage keys for token preferences
 export const STORAGE_KEYS = {

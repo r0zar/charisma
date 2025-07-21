@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 import { Header } from "../../components/layout/header";
-import { listTokens as listMetadata } from '@repo/tokens';
+import { listTokens as listMetadata } from '@/lib/contract-registry-adapter';
 import type { TokenSummary } from "@/types/token-types";
 import { calculateMarketCap, findClosestPrice } from "@/lib/utils/token-utils";
 import TokensPageClient from "@/components/tokens/tokens-page-client";

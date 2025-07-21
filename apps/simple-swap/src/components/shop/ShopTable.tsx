@@ -70,7 +70,7 @@ import { useRouter } from 'next/navigation';
 import { getTokenBalance } from '@/app/actions';
 import { request } from '@stacks/connect';
 import { uintCV, noneCV, PostCondition, Pc } from '@stacks/transactions';
-import { getTokenMetadataCached } from '@repo/tokens';
+import { getTokenMetadataCached } from '@/lib/contract-registry-adapter';
 import { toast } from 'sonner';
 
 interface ShopTableProps {

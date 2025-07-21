@@ -4,7 +4,8 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { useSwapTokens } from './swap-tokens-context';
 import { useWallet } from './wallet-context';
 import type { LimitOrder } from '../lib/orders/types';
-import { getTokenMetadataCached, TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
+import { getTokenMetadataCached } from '@/lib/contract-registry-adapter';
 import { signedFetch } from 'blaze-sdk';
 import { usePrices } from './token-price-context';
 import { useBalances } from './wallet-balance-context';

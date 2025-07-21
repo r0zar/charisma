@@ -7,7 +7,7 @@ import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "../ui/dialog";
 import TokenLogo from "../TokenLogo";
 import { ClipboardList, Copy, Check, Zap, Trash2, Search, ExternalLink } from "lucide-react";
-import { getTokenMetadataCached, TokenCacheData } from "@repo/tokens";
+import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "../ui/tooltip";
 import { signedFetch } from "blaze-sdk";
@@ -16,6 +16,7 @@ import PremiumPagination, { type PaginationInfo } from "./premium-pagination";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { groupOrdersByStrategy, StrategyDisplayData } from "@/lib/orders/strategy-formatter";
 import { usePrices } from '@/contexts/token-price-context';
+import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import { StrategyCardFactory } from "./strategy-cards";
 import { truncateAddress } from "@/lib/address-utils";
 import { formatExecWindow, formatOrderStatusTime, getOrderTimestamps, getConditionIcon } from '@/lib/date-utils';
@@ -588,10 +589,54 @@ const PremiumOrderCard: React.FC<PremiumOrderCardProps> = ({
 export default function OrdersPanel() {
     const { address, connected } = useWallet();
     const { getPrice } = usePrices();
+    const { getToken, getTokenWithDiscovery } = useTokenMetadata();
     const [displayOrders, setDisplayOrders] = useState<DisplayOrder[]>([]);
     const tokenMetaCacheRef = useRef<Map<string, TokenCacheData>>(new Map());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    
+    // Track tokens we're currently discovering to avoid duplicate requests
+    const discoveringTokensRef = useRef<Set<string>>(new Set());
+
+    // Helper function to get token metadata with dynamic discovery
+    const getTokenWithFallback = useCallback(async (contractId: string): Promise<TokenCacheData | null> => {
+        // First check cache
+        const cached = tokenMetaCacheRef.current.get(contractId);
+        if (cached) {
+            return cached;
+        }
+
+        // Then check context
+        const contextToken = getToken(contractId);
+        if (contextToken) {
+            tokenMetaCacheRef.current.set(contractId, contextToken);
+            return contextToken;
+        }
+
+        // If not found and not already discovering, attempt discovery
+        if (!discoveringTokensRef.current.has(contractId)) {
+            discoveringTokensRef.current.add(contractId);
+            
+            try {
+                console.log(`[OrdersPanel] Token ${contractId} not found, attempting discovery...`);
+                const discoveredToken = await getTokenWithDiscovery(contractId);
+                
+                if (discoveredToken && discoveredToken.symbol !== 'UNKNOWN') {
+                    console.log(`[OrdersPanel] Successfully discovered token: ${contractId} (${discoveredToken.symbol})`);
+                    tokenMetaCacheRef.current.set(contractId, discoveredToken);
+                    return discoveredToken;
+                } else {
+                    console.warn(`[OrdersPanel] Discovery failed for token: ${contractId}`);
+                }
+            } catch (error) {
+                console.error(`[OrdersPanel] Error during token discovery for ${contractId}:`, error);
+            } finally {
+                discoveringTokensRef.current.delete(contractId);
+            }
+        }
+
+        return null;
+    }, [getToken, getTokenWithDiscovery]);
     const [confirmUuid, setConfirmUuid] = useState<string | null>(null);
     const [activeFilter, setActiveFilter] = useState<string>("all");
     const [searchQuery, setSearchQuery] = useState<string>("");
@@ -767,46 +812,98 @@ export default function OrdersPanel() {
                     return;
                 }
                 const newDisplayOrders: DisplayOrder[] = [];
-                const currentMetaCache = tokenMetaCacheRef.current;
 
+                // Process orders with async token discovery
                 for (const order of rawOrders) {
-                    let inputMeta = currentMetaCache.get(order.inputToken);
-                    if (!inputMeta) {
-                        inputMeta = await getTokenMetadataCached(order.inputToken);
-                        currentMetaCache.set(order.inputToken, inputMeta);
-                    }
-
-                    let outputMeta = currentMetaCache.get(order.outputToken);
-                    if (!outputMeta) {
-                        outputMeta = await getTokenMetadataCached(order.outputToken);
-                        currentMetaCache.set(order.outputToken, outputMeta);
-                    }
-
-                    let baseMeta: TokenCacheData | null = null;
-                    const baseId = (order as any).baseAsset ?? (order as any).base_asset ?? (order as any).baseAssetId ?? (order as any).base_asset_id;
-                    if (baseId && baseId !== 'USD') {
-                        baseMeta = currentMetaCache.get(baseId) || await getTokenMetadataCached(baseId);
-                        currentMetaCache.set(baseId, baseMeta);
-                    }
-
-                    // Fetch condition token meta (skip for wildcards and undefined)
-                    let conditionMeta: TokenCacheData | undefined;
-                    if (order.conditionToken && order.conditionToken !== '*') {
-                        conditionMeta = currentMetaCache.get(order.conditionToken);
-                        if (!conditionMeta) {
-                            conditionMeta = await getTokenMetadataCached(order.conditionToken);
-                            currentMetaCache.set(order.conditionToken, conditionMeta);
+                    try {
+                        // Get input token metadata with discovery fallback
+                        let inputMeta = await getTokenWithFallback(order.inputToken);
+                        if (!inputMeta) {
+                            console.warn(`[OrdersPanel] Failed to get metadata for input token: ${order.inputToken}`);
+                            // Create a placeholder token to prevent breaking the UI
+                            inputMeta = {
+                                type: 'token',
+                                contractId: order.inputToken,
+                                name: `Token ${order.inputToken.split('.')[1] || 'Unknown'}`,
+                                description: null,
+                                image: null,
+                                lastUpdated: Date.now(),
+                                decimals: 6,
+                                symbol: order.inputToken.split('.')[1] || 'UNKNOWN',
+                                token_uri: null,
+                                identifier: order.inputToken,
+                                total_supply: null,
+                                tokenAContract: null,
+                                tokenBContract: null,
+                                lpRebatePercent: null,
+                                externalPoolId: null,
+                                engineContractId: null,
+                                base: null,
+                                usdPrice: null,
+                                confidence: null,
+                                marketPrice: null,
+                                intrinsicValue: null,
+                                totalLiquidity: null
+                            };
                         }
-                    }
 
-                    newDisplayOrders.push({
-                        ...order,
-                        baseAsset: baseId ?? 'USD',
-                        inputTokenMeta: inputMeta,
-                        outputTokenMeta: outputMeta,
-                        conditionTokenMeta: conditionMeta,
-                        baseAssetMeta: baseMeta,
-                    });
+                        // Get output token metadata with discovery fallback
+                        let outputMeta = await getTokenWithFallback(order.outputToken);
+                        if (!outputMeta) {
+                            console.warn(`[OrdersPanel] Failed to get metadata for output token: ${order.outputToken}`);
+                            // Create a placeholder token to prevent breaking the UI
+                            outputMeta = {
+                                type: 'token',
+                                contractId: order.outputToken,
+                                name: `Token ${order.outputToken.split('.')[1] || 'Unknown'}`,
+                                description: null,
+                                image: null,
+                                lastUpdated: Date.now(),
+                                decimals: 6,
+                                symbol: order.outputToken.split('.')[1] || 'UNKNOWN',
+                                token_uri: null,
+                                identifier: order.outputToken,
+                                total_supply: null,
+                                tokenAContract: null,
+                                tokenBContract: null,
+                                lpRebatePercent: null,
+                                externalPoolId: null,
+                                engineContractId: null,
+                                base: null,
+                                usdPrice: null,
+                                confidence: null,
+                                marketPrice: null,
+                                intrinsicValue: null,
+                                totalLiquidity: null
+                            };
+                        }
+
+                        // Get base token metadata with discovery fallback
+                        let baseMeta: TokenCacheData | null = null;
+                        const baseId = (order as any).baseAsset ?? (order as any).base_asset ?? (order as any).baseAssetId ?? (order as any).base_asset_id;
+                        if (baseId && baseId !== 'USD') {
+                            baseMeta = await getTokenWithFallback(baseId);
+                        }
+
+                        // Get condition token metadata with discovery fallback (skip for wildcards and undefined)
+                        let conditionMeta: TokenCacheData | undefined;
+                        if (order.conditionToken && order.conditionToken !== '*') {
+                            conditionMeta = await getTokenWithFallback(order.conditionToken) || undefined;
+                        }
+
+                        newDisplayOrders.push({
+                            ...order,
+                            baseAsset: baseId ?? 'USD',
+                            inputTokenMeta: inputMeta,
+                            outputTokenMeta: outputMeta,
+                            conditionTokenMeta: conditionMeta,
+                            baseAssetMeta: baseMeta,
+                        });
+                        
+                    } catch (orderError) {
+                        console.error(`[OrdersPanel] Error processing order ${order.uuid}:`, orderError);
+                        // Skip this order if there's an error, don't break the whole list
+                    }
                 }
                 setDisplayOrders(newDisplayOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
             } else {
@@ -819,7 +916,7 @@ export default function OrdersPanel() {
             setLoading(false);
             setPaginationLoading(false);
         }
-    }, [address, connected, pagination.page, pagination.limit, activeFilter, searchQuery]);
+    }, [address, connected, pagination.page, pagination.limit, activeFilter, searchQuery, getTokenWithFallback]);
 
     // fetch once when wallet connects/address changes
     useEffect(() => {

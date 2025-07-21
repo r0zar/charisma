@@ -3,7 +3,7 @@
  * Dynamic resolution calculation for charts based on token precision
  */
 
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 
 export interface ChartPrecisionConfig {
     precision: number;

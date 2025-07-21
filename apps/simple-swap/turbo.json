@@ -5,12 +5,12 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@repo/tokens#build",
         "@repo/polyglot#build",
         "blaze-sdk#build",
         "@repo/tx-monitor-client#build",
         "@modules/discovery#build",
         "@services/prices#build",
+        "@services/contract-registry#build",
         "dexterity-sdk#build",
         "@charisma/notifier#build"
       ],
@@ -55,12 +55,12 @@
     },
     "dev": {
       "dependsOn": [
-        "@repo/tokens#build",
         "@repo/polyglot#build",
         "blaze-sdk#build",
         "@repo/tx-monitor-client#build",
         "@modules/discovery#build",
         "@services/prices#build",
+        "@services/contract-registry#build",
         "dexterity-sdk#build",
         "@charisma/notifier#build"
       ]

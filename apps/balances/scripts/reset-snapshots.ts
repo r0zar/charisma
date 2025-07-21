@@ -79,13 +79,10 @@ async function resetSnapshots() {
       console.log('\n🧪 Testing system with a new snapshot...')
       try {
         // Add some test balance data first
-        const testBalance = {
-          amount: '1000',
-          lastUpdated: Date.now()
-        }
+        const testBalanceAmount = '1000'
         
-        // Use the proper KV method
-        await kvStore.setBalance('SP1234TEST', 'SP5678.test-token', testBalance)
+        // Use the proper KV method - setBalance expects (address, contractId, balance)
+        await kvStore.setBalance('SP1234TEST', 'SP5678.test-token', testBalanceAmount)
         console.log('✅ Added test balance data')
 
         // Create a new snapshot
@@ -98,10 +95,14 @@ async function resetSnapshots() {
 
         // Check the updated index
         const newIndex = await scheduler.getSnapshotIndex()
-        console.log('📋 Updated index:', {
-          count: newIndex.count,
-          timestamps: newIndex.timestamps
-        })
+        if (newIndex) {
+          console.log('📋 Updated index:', {
+            count: newIndex.count,
+            timestamps: newIndex.timestamps
+          })
+        } else {
+          console.log('⚠️ No snapshot index found')
+        }
 
       } catch (error) {
         console.error('❌ Test snapshot failed:', error instanceof Error ? error.message : String(error))

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { KraxelPriceData } from '@repo/tokens';
+import { KraxelPriceData } from '@/lib/contract-registry-adapter';
 import { getPrices } from '../app/actions';
 
 interface TokenPriceContextType {

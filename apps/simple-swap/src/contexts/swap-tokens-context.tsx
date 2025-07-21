@@ -6,7 +6,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { saveSwapPreferences, loadBasicPreferences, loadTokenPreferences as loadTokenPreferencesFromStorage, clearTokenPreferences } from '../lib/swap-storage';
 import { listTokens as fetchAllTokensServerAction } from '../app/actions';
 import { formatTokenAmount, convertToMicroUnits } from '../lib/swap-utils';

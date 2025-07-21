@@ -115,20 +115,21 @@ export default function AnalyticsDashboard({ token, compareToken, preloadedAnaly
     };
   }, [preloadedAnalytics]);
 
-  // Mock liquidity and risk metrics (would be calculated from real market data)
-  const liquidityMetrics = useMemo((): LiquidityMetrics => ({
-    averageVolume: Math.random() * 1000000,
-    volumeChange24h: (Math.random() - 0.5) * 100,
-    liquidityScore: Math.random() * 100,
-    marketDepth: Math.random() * 500000
-  }), []);
+  // Liquidity metrics - currently not available from data sources
+  // Instead of showing fake data, we'll show proper error states
+  const liquidityMetrics = useMemo((): LiquidityMetrics | null => {
+    // TODO: Implement real liquidity data fetching
+    // For now, return null to show error state instead of fake data
+    return null;
+  }, []);
 
-  const riskMetrics = useMemo((): RiskMetrics => ({
-    valueAtRisk: Math.random() * 15,
-    downsideDeviation: Math.random() * 25,
-    betaCoefficient: 0.5 + Math.random() * 1.5,
-    informationRatio: (Math.random() - 0.5) * 2
-  }), []);
+  // Risk metrics - currently not available from data sources
+  // Instead of showing fake data, we'll show proper error states
+  const riskMetrics = useMemo((): RiskMetrics | null => {
+    // TODO: Implement real risk metrics calculation
+    // For now, return null to show error state instead of fake data
+    return null;
+  }, []);
 
   // Determine risk level based on metrics
   const getRiskLevel = (volatility: number, maxDrawdown: number): { level: string; color: string; icon: React.ComponentType<any> } => {
@@ -230,7 +231,9 @@ export default function AnalyticsDashboard({ token, compareToken, preloadedAnaly
             </div>
             <div className="flex justify-between">
               <span className="text-xs text-white/50">VaR (95%)</span>
-              <span className="text-xs font-mono text-orange-400">{riskMetrics.valueAtRisk.toFixed(1)}%</span>
+              <span className="text-xs font-mono text-white/40">
+                {riskMetrics ? `${riskMetrics.valueAtRisk.toFixed(1)}%` : 'N/A'}
+              </span>
             </div>
           </div>
         </div>
@@ -241,22 +244,29 @@ export default function AnalyticsDashboard({ token, compareToken, preloadedAnaly
             <Activity className="w-4 h-4 text-blue-400" />
             <div className="text-sm font-medium text-white/80">Liquidity</div>
           </div>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-xs text-white/50">Avg Volume</span>
-              <span className="text-xs font-mono text-white/70">${formatNumber(liquidityMetrics.averageVolume, 0)}</span>
+          {liquidityMetrics ? (
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-xs text-white/50">Avg Volume</span>
+                <span className="text-xs font-mono text-white/70">${formatNumber(liquidityMetrics.averageVolume, 0)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-white/50">Volume Δ</span>
+                <span className={`text-xs font-mono ${liquidityMetrics.volumeChange24h >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {formatPercentage(liquidityMetrics.volumeChange24h)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-xs text-white/50">Liquidity Score</span>
+                <span className="text-xs font-mono text-white/70">{liquidityMetrics.liquidityScore.toFixed(0)}/100</span>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-xs text-white/50">Volume Δ</span>
-              <span className={`text-xs font-mono ${liquidityMetrics.volumeChange24h >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {formatPercentage(liquidityMetrics.volumeChange24h)}
-              </span>
+          ) : (
+            <div className="text-center py-4">
+              <div className="text-xs text-white/40 mb-1">Data not available</div>
+              <div className="text-xs text-white/30">Liquidity metrics are not yet available for this token</div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-xs text-white/50">Liquidity Score</span>
-              <span className="text-xs font-mono text-white/70">{liquidityMetrics.liquidityScore.toFixed(0)}/100</span>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Market Statistics */}
@@ -274,12 +284,14 @@ export default function AnalyticsDashboard({ token, compareToken, preloadedAnaly
             </div>
             <div className="flex justify-between">
               <span className="text-xs text-white/50">Beta</span>
-              <span className="text-xs font-mono text-white/70">{riskMetrics.betaCoefficient.toFixed(2)}</span>
+              <span className="text-xs font-mono text-white/40">
+                {riskMetrics ? riskMetrics.betaCoefficient.toFixed(2) : 'N/A'}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-xs text-white/50">Info Ratio</span>
-              <span className={`text-xs font-mono ${riskMetrics.informationRatio >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                {riskMetrics.informationRatio.toFixed(2)}
+              <span className="text-xs font-mono text-white/40">
+                {riskMetrics ? riskMetrics.informationRatio.toFixed(2) : 'N/A'}
               </span>
             </div>
           </div>

@@ -5,7 +5,7 @@ import { processSingleBlazeIntentByPid } from "@/lib/blaze-intent-server"; // Ad
 import { callReadOnlyFunction, getAccountBalances, type AccountBalancesResponse } from "@repo/polyglot";
 import { principalCV } from "@stacks/transactions";
 import { loadVaults, Router, listTokens as listSwappableTokens } from 'dexterity-sdk'
-import { TokenCacheData, listTokens as listAllTokens, listPrices, type KraxelPriceData } from "@repo/tokens";
+import { TokenCacheData, listPrices, type KraxelPriceData, listTokens as listAllTokens, getTokenMetadataWithDiscovery } from "@/lib/contract-registry-adapter";
 // import { getPriceService } from "@/lib/price-service-setup"; // Removed - service not available
 
 // Configure Dexterity router
@@ -260,15 +260,74 @@ export async function checkBidderBalance(
 }
 
 /**
- * Server action to fetch token prices
+ * Server action to fetch token prices with rate limiting
  */
 export async function getPrices(): Promise<KraxelPriceData> {
     try {
+        console.log('[getPrices] Server action - fetching token prices with rate limiting');
         const prices = await listPrices();
+        console.log(`[getPrices] Server action - successfully fetched ${Object.keys(prices).length} prices`);
         return prices;
     } catch (error) {
-        console.error('Error fetching token prices:', error);
+        console.error('[getPrices] Server action error:', error);
+        
+        // Return empty object to prevent breaking the UI
         return {};
+    }
+}
+
+/**
+ * Server action to get token summaries with enhanced price data
+ * This handles all the complex price fetching with proper rate limiting
+ */
+export async function getTokenSummariesAction(): Promise<{
+    success: boolean;
+    tokens?: any[];
+    error?: string;
+}> {
+    try {
+        console.log('[getTokenSummariesAction] Fetching token summaries with rate-limited price data');
+        
+        // Step 1: Get token metadata (already rate-limited)
+        const metadataResult = await getTokenMetadataAction();
+        if (!metadataResult.success || !metadataResult.tokens) {
+            return {
+                success: false,
+                error: 'Failed to fetch token metadata'
+            };
+        }
+        
+        // Step 2: Get prices (rate-limited through our adapter)
+        const prices = await listPrices();
+        
+        // Step 3: Combine metadata with prices
+        const tokenSummaries = metadataResult.tokens.map(token => ({
+            ...token,
+            price: prices[token.contractId] || null,
+            change1h: null, // Will be enhanced later if needed
+            change24h: null,
+            change7d: null,
+            lastUpdated: Date.now(),
+            marketCap: null // Will be calculated if needed
+        }));
+        
+        // Filter out tokens without prices for now to reduce load
+        const tokensWithPrices = tokenSummaries.filter(token => token.price !== null);
+        
+        console.log(`[getTokenSummariesAction] Successfully processed ${tokensWithPrices.length} tokens with prices out of ${tokenSummaries.length} total`);
+        
+        return {
+            success: true,
+            tokens: tokensWithPrices
+        };
+        
+    } catch (error) {
+        console.error('[getTokenSummariesAction] Error:', error);
+        return {
+            success: false,
+            tokens: [],
+            error: error instanceof Error ? error.message : 'Unknown error'
+        };
     }
 }
 
@@ -355,6 +414,36 @@ export async function getAccountBalancesWithSubnet(
 }
 
 /**
+ * Server action to fetch all token metadata from contract-registry
+ * This runs server-side with access to environment variables
+ */
+export async function getTokenMetadataAction(): Promise<{
+    success: boolean;
+    tokens?: TokenCacheData[];
+    error?: string;
+}> {
+    try {
+        console.log('[getTokenMetadataAction] Fetching token metadata from contract-registry');
+        
+        const tokens = await listAllTokens();
+        
+        console.log(`[getTokenMetadataAction] Successfully fetched ${tokens.length} tokens from contract-registry`);
+        return {
+            success: true,
+            tokens
+        };
+        
+    } catch (error) {
+        console.error('[getTokenMetadataAction] Error:', error);
+        return {
+            success: false,
+            tokens: [],
+            error: error instanceof Error ? error.message : 'Unknown error fetching token metadata'
+        };
+    }
+}
+
+/**
  * Server action to get token prices using the unified price service
  * This runs server-side with access to environment variables like BLOB_READ_WRITE_TOKEN
  */
@@ -420,6 +509,43 @@ export async function getTokenPricesAction(tokenIds: string[]): Promise<{
             success: false,
             prices: {},
             error: error instanceof Error ? error.message : 'Unknown error'
+        };
+    }
+}
+
+/**
+ * Server action to discover and add missing tokens to the contract registry
+ * This will attempt to fetch token metadata from the blockchain and add it to our registry
+ */
+export async function discoverMissingTokenAction(contractId: string): Promise<{
+    success: boolean;
+    token?: TokenCacheData;
+    error?: string;
+}> {
+    try {
+        console.log(`[discoverMissingTokenAction] Attempting to discover token: ${contractId}`);
+        
+        const tokenData = await getTokenMetadataWithDiscovery(contractId);
+        
+        if (tokenData && tokenData.symbol !== 'UNKNOWN' && tokenData.name !== 'Unknown Token') {
+            console.log(`[discoverMissingTokenAction] Successfully discovered token: ${contractId} (${tokenData.symbol})`);
+            return {
+                success: true,
+                token: tokenData
+            };
+        } else {
+            console.warn(`[discoverMissingTokenAction] Token discovery failed for: ${contractId}`);
+            return {
+                success: false,
+                error: 'Token could not be discovered or does not exist on the blockchain'
+            };
+        }
+        
+    } catch (error) {
+        console.error(`[discoverMissingTokenAction] Error discovering token ${contractId}:`, error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : 'Unknown error during token discovery'
         };
     }
 }

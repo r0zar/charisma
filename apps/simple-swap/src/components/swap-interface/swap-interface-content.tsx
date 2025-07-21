@@ -10,7 +10,7 @@ import OrderButton from './order-button';
 import ReverseTokensButton from './reverse-tokens-button';
 import BalanceCheckDialog from './balance-check-dialog';
 import { DcaDialog } from "./dca-dialog";
-import { TokenCacheData } from "@repo/tokens";
+import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import { useSwapTokens } from "../../contexts/swap-tokens-context";
 import { useRouterTrading } from "../../hooks/useRouterTrading";
 import { useOrderConditions } from "../../contexts/order-conditions-context";

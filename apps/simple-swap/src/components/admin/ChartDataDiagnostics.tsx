@@ -18,7 +18,7 @@ import {
     Search
 } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 
 interface PriceDiagnostic {
     contractId: string;

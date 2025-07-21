@@ -30,10 +30,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { formatLocalDateTime, formatRelativeTime } from '@/lib/admin-config';
 import type { LimitOrder } from '@/lib/orders/types';
-import { getTokenMetadataCached, TokenCacheData, listPrices } from '@repo/tokens';
+import { TokenCacheData, getTokenMetadataCached } from '@/lib/contract-registry-adapter';
 import { classifyOrderType } from '@/lib/orders/classification';
 import PremiumPagination, { type PaginationInfo } from '../orders/premium-pagination';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { usePrices } from '@/contexts/token-price-context';
+import { useTokenMetadata } from '@/contexts/token-metadata-context';
 
 interface EnrichedOrder {
     id: string;
@@ -208,6 +210,7 @@ function convertToDisplayOrder(
 }
 
 async function fetchAndEnrichOrders(
+    priceData: Record<string, number>,
     page: number = 1,
     limit: number = 20,
     sortBy: 'createdAt' | 'status' = 'createdAt',
@@ -232,9 +235,8 @@ async function fetchAndEnrichOrders(
             params.append('search', searchQuery.trim());
         }
 
-        const [ordersResponse, priceData] = await Promise.all([
-            fetch(`/api/v1/orders?${params}`),
-            listPrices().catch(() => ({})) // Fallback to empty object if prices fail
+        const [ordersResponse] = await Promise.all([
+            fetch(`/api/v1/orders?${params}`)
         ]);
 
         const data = await ordersResponse.json();
@@ -441,6 +443,10 @@ export function OrdersTable() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const pathname = usePathname();
+    
+    // Use context data instead of direct server action calls
+    const { prices } = usePrices();
+    const { getToken } = useTokenMetadata();
 
     const [sortField, setSortField] = useState<string>('createdAt');
     const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -493,6 +499,7 @@ export function OrdersTable() {
 
         try {
             const result = await fetchAndEnrichOrders(
+                prices, // Use context prices instead of fetching again
                 pagination.page,
                 pagination.limit,
                 sortField as 'createdAt' | 'status',

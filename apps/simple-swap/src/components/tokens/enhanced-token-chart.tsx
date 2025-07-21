@@ -397,13 +397,15 @@ export default function EnhancedTokenChart({
                     value: point.value
                 }));
 
-                // Generate mock volume data for volume chart
+                // Volume data from real data (if available)
                 if (activeChartType === 'volume') {
-                    volumeData = processedData.map(point => ({
-                        time: point.time,
-                        value: Math.random() * 1000000, // Mock volume
-                        color: primaryColor + '60'
-                    }));
+                    volumeData = processedData
+                        .filter(point => point.volume != null && point.volume > 0)
+                        .map(point => ({
+                            time: point.time,
+                            value: point.volume,
+                            color: primaryColor + '60'
+                        }));
                 }
             }
 
@@ -416,15 +418,10 @@ export default function EnhancedTokenChart({
 
             // Set data to appropriate series
             if (activeChartType === 'candlestick' && seriesRef.current.candlestick) {
-                // Convert to candlestick format (mock OHLC from line data)
-                const candlestickData: CandlestickData[] = deduplicatedData.map(point => ({
-                    time: point.time,
-                    open: point.value * (0.99 + Math.random() * 0.02),
-                    high: point.value * (1.001 + Math.random() * 0.02),
-                    low: point.value * (0.99 + Math.random() * 0.02),
-                    close: point.value
-                }));
-                seriesRef.current.candlestick.setData(candlestickData);
+                // Note: Real OHLC data is not available, so we disable candlestick view
+                // Instead of showing fake data, we'll switch back to line chart
+                console.warn('Candlestick chart requires OHLC data which is not available. Switching to line chart.');
+                // Don't show candlestick data - it would be misleading
             } else if (seriesRef.current.line) {
                 seriesRef.current.line.setData(deduplicatedData);
             }

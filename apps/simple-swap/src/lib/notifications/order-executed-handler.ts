@@ -3,7 +3,7 @@ import { NotifierClient } from '@charisma/notifier';
 import type { UserNotificationSettings } from '@/types/notification-settings';
 import { LimitOrder } from '@/lib/orders/types'; // Assuming this path is correct for LimitOrder
 import type { Notification, NotificationChannel } from '@charisma/notifier';
-import { getTokenMetadataCached } from '@repo/tokens';
+import { getTokenMetadataCached } from '@/lib/contract-registry-adapter';
 
 // Format token amount using proper decimals from token metadata
 async function formatTokenAmount(contractId: string, amount: string): Promise<string> {

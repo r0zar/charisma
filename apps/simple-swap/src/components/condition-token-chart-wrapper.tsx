@@ -2,7 +2,7 @@
 import dynamic from 'next/dynamic';
 import React, { memo, useMemo, useCallback } from 'react';
 import { useDominantColor } from './utils/useDominantColor';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 
 const ConditionTokenChart = dynamic(() => import('./condition-token-chart'), { ssr: false });
 

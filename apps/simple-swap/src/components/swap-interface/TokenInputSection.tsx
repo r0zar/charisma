@@ -5,7 +5,7 @@ import TokenDropdown from '../TokenDropdown';
 import { ChevronDown } from 'lucide-react';
 import TokenLogo from '../TokenLogo';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { usePrices } from '@/contexts/token-price-context';
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { formatPriceUSD, hasValidPrice } from '@/lib/utils';

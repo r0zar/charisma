@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import TokenLogo from '../TokenLogo';
 import Image from 'next/image';
 import { Hop } from 'dexterity-sdk';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { Info, DollarSign } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { useRouterTrading } from '@/hooks/useRouterTrading';

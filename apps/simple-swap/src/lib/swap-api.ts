@@ -1,4 +1,4 @@
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 // ... existing imports ...
 
 export async function createTriggeredSwap({

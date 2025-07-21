@@ -8,7 +8,7 @@ import { getQuote, getRoutableTokens } from '../app/actions';
 import { buildSwapTransaction, loadVaults, Route, Router } from 'dexterity-sdk';
 import { request } from '@stacks/connect';
 import { TransactionResult } from '@stacks/connect/dist/types/methods';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { signTriggeredSwap } from 'blaze-sdk';
 import { uintCV, noneCV, Pc } from '@stacks/transactions';
 import { formatTokenAmount, convertToMicroUnits } from '../lib/swap-utils';

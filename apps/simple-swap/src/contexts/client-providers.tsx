@@ -5,9 +5,11 @@ import { WalletProvider } from '@/contexts/wallet-context';
 import { TokenPriceProvider } from '@/contexts/token-price-context';
 import { WalletBalanceProvider } from '@/contexts/wallet-balance-context';
 import { TokenMetadataProvider } from '@/contexts/token-metadata-context';
+import type { TokenCacheData } from '@/lib/contract-registry-adapter';
 
 interface ClientProvidersProps {
     children: React.ReactNode;
+    initialTokens?: TokenCacheData[];
 }
 
 // Global loading component for provider initialization
@@ -79,10 +81,10 @@ function GlobalLoadingSpinner() {
     );
 }
 
-function TokenAwareProviders({ children }: { children: React.ReactNode }) {
+function TokenAwareProviders({ children, initialTokens }: { children: React.ReactNode; initialTokens?: TokenCacheData[] }) {
     return (
         <TokenPriceProvider>
-            <TokenMetadataProvider>
+            <TokenMetadataProvider initialTokens={initialTokens}>
                 <WalletBalanceProvider>
                     {children}
                 </WalletBalanceProvider>
@@ -91,11 +93,11 @@ function TokenAwareProviders({ children }: { children: React.ReactNode }) {
     );
 }
 
-export function ClientProviders({ children }: ClientProvidersProps) {
+export function ClientProviders({ children, initialTokens }: ClientProvidersProps) {
     return (
         <Suspense fallback={<GlobalLoadingSpinner />}>
             <WalletProvider>
-                <TokenAwareProviders>
+                <TokenAwareProviders initialTokens={initialTokens}>
                     {children}
                 </TokenAwareProviders>
             </WalletProvider>

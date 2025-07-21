@@ -4,7 +4,7 @@
  * Client wrapper for the @services/contract-registry service
  */
 
-import { ContractRegistry, createDefaultConfig } from '@services/contract-registry';
+import { ContractRegistry, createDefaultConfig, type DiscoveryMethod } from '@services/contract-registry';
 
 let registryInstance: ContractRegistry | null = null;
 
@@ -180,8 +180,8 @@ function validateAndSanitizeStats(registryStats: any, blobStats: any) {
     console.warn('📊 Data quality issues detected:', issues);
     console.warn('Raw stats:', { 
       totalContracts, 
-      rawTypeSum: Object.values(registryStats.contractsByType || {}).reduce((s: number, c) => s + (c || 0), 0),
-      rawStatusSum: Object.values(registryStats.contractsByStatus || {}).reduce((s: number, c) => s + (c || 0), 0),
+      rawTypeSum: Object.values(registryStats.contractsByType || {}).reduce((s: number, c) => s + (typeof c === 'number' ? c : 0), 0),
+      rawStatusSum: Object.values(registryStats.contractsByStatus || {}).reduce((s: number, c) => s + (typeof c === 'number' ? c : 0), 0),
       rawCacheHitRate: registryStats.cacheHitRate
     });
   }

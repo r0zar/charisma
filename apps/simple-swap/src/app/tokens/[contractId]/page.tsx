@@ -1,7 +1,8 @@
 import React from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { listTokens as listMetadata, type TokenCacheData } from '@repo/tokens';
+import { type TokenCacheData } from '@/lib/contract-registry-adapter';
+import { listTokens as listMetadata } from '@/lib/contract-registry-adapter';
 import type { TokenSummary, PriceStats } from '@/types/token-types';
 import { calculateMarketCap, findClosestPrice } from '@/lib/utils/token-utils';
 import { PriceSeriesAPI, PriceSeriesStorage } from '@services/prices';
@@ -367,7 +368,7 @@ async function preloadPriceSeriesData(contractIds: string[]) {
                 const processData = (data: any[]) => data.map(entry => ({
                     time: Math.floor(entry.timestamp / 1000),
                     value: entry.usdPrice || entry.price || 0,
-                    volume: entry.volume || Math.random() * 1000000 // Mock volume if not available
+                    volume: entry.volume || null // Don't fake volume data - use null if not available
                 }));
 
                 const processed = {

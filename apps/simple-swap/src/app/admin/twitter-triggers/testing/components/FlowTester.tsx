@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import TokenDropdown from '@/components/TokenDropdown';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 
 interface FlowSimulationResult {
     tweetId: string;

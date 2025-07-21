@@ -19,14 +19,14 @@ async function checkKVMethods() {
     console.log('\n📋 Available methods:')
     const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(kvStore))
     methods.forEach(method => {
-      if (typeof kvStore[method] === 'function') {
+      if (typeof (kvStore as any)[method] === 'function') {
         console.log(`  - ${method}()`)
       }
     })
 
     console.log('\n📋 Available properties:')
     Object.keys(kvStore).forEach(prop => {
-      console.log(`  - ${prop}:`, typeof kvStore[prop])
+      console.log(`  - ${prop}:`, typeof (kvStore as any)[prop])
     })
 
   } catch (error) {

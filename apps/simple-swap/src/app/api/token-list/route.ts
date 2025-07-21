@@ -1,4 +1,4 @@
-import { listTokens } from '@repo/tokens';
+import { listTokens } from '@/lib/contract-registry-adapter';
 import { NextResponse } from 'next/server';
 
 interface TokenOption {

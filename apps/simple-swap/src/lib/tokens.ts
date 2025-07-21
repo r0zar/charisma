@@ -1,4 +1,4 @@
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 
 /**
  * Get the list of managed token IDs

@@ -2,7 +2,7 @@
 
 import React, { useCallback } from 'react';
 import { Share2, Repeat, Monitor, AlarmCheck } from 'lucide-react';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
 import Link from 'next/link';

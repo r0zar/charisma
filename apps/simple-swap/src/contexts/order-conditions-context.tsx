@@ -6,7 +6,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { signTriggeredSwap } from 'blaze-sdk';
 
 export type ConditionDirection = 'lt' | 'gt';

@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import Stripe from "stripe";
-import { getTokenMetadataCached, listPrices } from "@repo/tokens";
+import { listPrices, getTokenMetadataCached } from "@/lib/contract-registry-adapter";
 
 function getStripe() {
     if (!process.env.STRIPE_SECRET_KEY) {

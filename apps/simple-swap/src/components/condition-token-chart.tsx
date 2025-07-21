@@ -11,7 +11,7 @@ import {
     type IPriceLine,
     LineStyle,
 } from "lightweight-charts";
-import { TokenCacheData } from "@repo/tokens";
+import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import {
     calculateResilientRatioData,

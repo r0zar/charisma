@@ -1,4 +1,4 @@
-import { TokenCacheData } from "@repo/tokens";
+import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import { Bid } from "@/lib/otc/schema";
 
 // Base interface for all marketplace items

@@ -7,7 +7,7 @@ import { fetchNonce } from '@stacks/transactions';
 import { BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from '@/lib/constants';
 import { kv } from '@vercel/kv';
 import { TxMonitorClient } from '@repo/tx-monitor-client';
-import { getTokenMetadataCached } from '@repo/tokens';
+import { getTokenMetadataCached } from '@/lib/contract-registry-adapter';
 import { priceSeriesService } from '../charts/price-series-service';
 
 // Initialize tx-monitor client

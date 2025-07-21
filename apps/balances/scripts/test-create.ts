@@ -34,12 +34,11 @@ async function testSnapshotCreation() {
     }
 
     try {
-      // Store balance in KV
-      const balanceKey = `balance:${testAddress}:${testContract}`
-      await kvStore.set(balanceKey, JSON.stringify(testBalance))
+      // Store balance using proper KVBalanceStore method
+      await kvStore.setBalance(testAddress, testContract, testBalance.amount)
       console.log('✅ Test balance added')
     } catch (error) {
-      console.warn('⚠️  Failed to add test balance:', error.message)
+      console.warn('⚠️  Failed to add test balance:', error instanceof Error ? error.message : String(error))
     }
 
     // Test snapshot creation
@@ -74,7 +73,7 @@ async function testSnapshotCreation() {
             })
           }
         } catch (error) {
-          console.error('❌ Failed to retrieve created snapshot:', error.message)
+          console.error('❌ Failed to retrieve created snapshot:', error instanceof Error ? error.message : String(error))
         }
       }
 
@@ -85,11 +84,15 @@ async function testSnapshotCreation() {
     // Check updated index
     console.log('\n📋 Checking snapshot index after creation...')
     const index = await scheduler.getSnapshotIndex()
-    console.log('✅ Index updated:', {
-      count: index.count,
-      newest: new Date(index.newest),
-      timestamps: index.timestamps.slice(-3) // Last 3
-    })
+    if (index) {
+      console.log('✅ Index updated:', {
+        count: index.count,
+        newest: new Date(index.newest),
+        timestamps: index.timestamps.slice(-3) // Last 3
+      })
+    } else {
+      console.log('⚠️ No snapshot index found')
+    }
 
     console.log('\n✅ Snapshot creation test completed!')
 

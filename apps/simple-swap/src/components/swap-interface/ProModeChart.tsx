@@ -6,7 +6,7 @@ import {
     TrendingDown,
     Activity
 } from 'lucide-react';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import type { LimitOrder } from '../../lib/orders/types';
 import {
     createChart,

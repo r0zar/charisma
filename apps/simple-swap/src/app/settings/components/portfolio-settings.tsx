@@ -30,7 +30,7 @@ import {
 } from 'lucide-react';
 import { formatCompactNumber } from '@/lib/swap-utils';
 import TokenLogo from '@/components/TokenLogo';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { Label } from '@/components/ui/label';
 import BatchWalletImportDialog from '@/components/portfolio/BatchWalletImportDialog';
 

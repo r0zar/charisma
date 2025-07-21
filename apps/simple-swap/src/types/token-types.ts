@@ -1,4 +1,4 @@
-import type { TokenCacheData } from '@repo/tokens';
+import type { TokenCacheData } from '@/lib/contract-registry-adapter';
 
 export interface PriceStats {
     price: number | null;

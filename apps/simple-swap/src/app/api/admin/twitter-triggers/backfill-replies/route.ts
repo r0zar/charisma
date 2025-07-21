@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
                     }
                     
                     // Get token information for the reply message
-                    const { getTokenMetadataCached } = await import('@repo/tokens');
+                    const { getTokenMetadataCached } = await import('@/lib/contract-registry-adapter');
                     const outputTokenMeta = await getTokenMetadataCached(trigger.outputToken);
                     const tokenSymbol = outputTokenMeta.symbol || 'tokens';
                     

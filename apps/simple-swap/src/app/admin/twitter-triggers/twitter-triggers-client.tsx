@@ -5,7 +5,7 @@ import { TwitterIcon, Users, Zap, Settings, Loader2, CheckCircle, XCircle, Exter
 import Link from 'next/link';
 import { toast } from 'sonner';
 import TokenDropdown from '@/components/TokenDropdown';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { useWallet } from '@/contexts/wallet-context';
 import { request } from '@stacks/connect';
 import { tupleCV, stringAsciiCV, uintCV, principalCV, optionalCVOf, noneCV, signStructuredData, getAddressFromPrivateKey } from '@stacks/transactions';

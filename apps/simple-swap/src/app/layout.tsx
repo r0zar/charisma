@@ -4,6 +4,10 @@ import './globals.css';
 import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from '@/components/ui/sonner';
 import { ClientProviders } from '@/contexts/client-providers';
+import { listTokens, type TokenCacheData } from '@/lib/contract-registry-adapter';
+
+// Revalidate token metadata every 5 minutes (300 seconds)
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'Charisma Swap | Fast Decentralized Exchange on Stacks',
@@ -35,15 +39,26 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Fetch token metadata on the server side
+  let initialTokens: TokenCacheData[] = [];
+  try {
+    console.log('[RootLayout] Fetching token metadata for SSR...');
+    initialTokens = await listTokens();
+    console.log(`[RootLayout] Fetched ${initialTokens.length} tokens for SSR`);
+  } catch (error) {
+    console.error('[RootLayout] Failed to fetch tokens for SSR:', error);
+    // Continue without tokens - context will fetch them client-side as fallback
+  }
+
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen bg-background font-sans antialiased">
-        <ClientProviders>
+        <ClientProviders initialTokens={initialTokens}>
           {children}
           <Toaster />
         </ClientProviders>

@@ -5,7 +5,7 @@ import { connect } from "@stacks/connect";
 import type { AddressEntry } from "@stacks/connect/dist/types/methods";
 import { getAccountBalances } from '@repo/polyglot';
 import { AccountBalancesResponse } from '@repo/polyglot';
-import { KraxelPriceData, listPrices } from '@repo/tokens';
+import { KraxelPriceData, listPrices } from '@/lib/contract-registry-adapter';
 
 interface WalletContextType {
     connected: boolean;

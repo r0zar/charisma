@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import TokenLogo from "./TokenLogo";
-import { TokenCacheData } from "@repo/tokens";
+import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
 import { ChevronDown, Search, X, ArrowLeft } from 'lucide-react';

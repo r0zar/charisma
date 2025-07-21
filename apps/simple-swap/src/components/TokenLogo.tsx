@@ -1,4 +1,4 @@
-import { TokenCacheData } from "@repo/tokens";
+import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import React from "react";
 import { Flame } from "lucide-react";
 import { getIpfsUrl } from "@/lib/utils";

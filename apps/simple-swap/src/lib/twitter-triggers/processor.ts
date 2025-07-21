@@ -324,7 +324,7 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
                 const twitterReplyService = getTwitterReplyService();
 
                 // Get token info for the notification
-                const { getTokenMetadataCached } = await import('@repo/tokens');
+                const { getTokenMetadataCached } = await import('@/lib/contract-registry-adapter');
                 const outputTokenMeta = await getTokenMetadataCached(trigger.outputToken);
                 const tokenSymbol = outputTokenMeta.symbol || 'tokens';
 
@@ -340,7 +340,7 @@ async function processReplyForBNS(trigger: TwitterTrigger, reply: any): Promise<
                     console.log(`[Twitter Processor] Using actual output amount ${amountFormatted} ${tokenSymbol} from quote data`);
                 } else {
                     // Fallback to input amount if quote data is not available
-                    const { getTokenMetadataCached: getInputTokenMeta } = await import('@repo/tokens');
+                    const { getTokenMetadataCached: getInputTokenMeta } = await import('@/lib/contract-registry-adapter');
                     const inputTokenMeta = await getInputTokenMeta(trigger.inputToken);
                     const inputDecimals = inputTokenMeta.decimals || 6;
                     amountFormatted = (parseInt(trigger.amountIn) / Math.pow(10, inputDecimals)).toFixed(6).replace(/\.?0+$/, '');

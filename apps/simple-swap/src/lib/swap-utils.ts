@@ -1,5 +1,5 @@
 // Utility functions for swap logic
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 
 // Format numbers with k/M/B suffixes for compact display
 export function formatCompactNumber(num: number): string {

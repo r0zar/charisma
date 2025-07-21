@@ -1,4 +1,5 @@
-import { TokenCacheData, listTokens, getTokenMetadataCached } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
+import { listTokens, getTokenMetadataCached } from '@/lib/contract-registry-adapter';
 import { kv } from '@vercel/kv';
 import { getOffer } from '@/lib/otc/kv';
 import { ShopItem, PurchasableItem, OfferItem, OfferAsset, PerpFundingRequest } from '@/types/shop';

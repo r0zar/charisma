@@ -13,7 +13,7 @@ import ReverseTokensButton from './reverse-tokens-button';
 import ErrorAlert from './error-alert';
 import BalanceCheckDialog from './balance-check-dialog';
 import { DcaDialog } from "./dca-dialog";
-import { TokenCacheData } from "@repo/tokens";
+import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import { SwapTokensProvider, useSwapTokens } from "../../contexts/swap-tokens-context";
 import { useRouterTrading } from "../../hooks/useRouterTrading";
 import { toast } from '@/components/ui/sonner';

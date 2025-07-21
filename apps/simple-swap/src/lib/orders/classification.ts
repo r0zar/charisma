@@ -1,5 +1,5 @@
 import type { LimitOrder } from './types';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 
 // Enhanced DisplayOrder type with classification
 export interface ClassifiedOrder extends LimitOrder {

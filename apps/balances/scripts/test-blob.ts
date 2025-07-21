@@ -28,7 +28,7 @@ async function testBlobStorage() {
     const testTimestamp = Date.now()
     const testData = {
       timestamp: testTimestamp,
-      balances: { 'SP123...': { 'token1': { amount: '1000', lastUpdated: testTimestamp } } },
+      balances: { 'SP123...': { 'token1': { balance: '1000', lastUpdated: testTimestamp } } },
       totalAddresses: 1,
       totalContracts: 1,
       metadata: {
@@ -46,7 +46,7 @@ async function testBlobStorage() {
       await storage.storeSnapshot(testData)
       console.log('✅ Store successful')
     } catch (error) {
-      console.error('❌ Store failed:', error.message)
+      console.error('❌ Store failed:', error instanceof Error ? error.message : String(error))
       return
     }
 
@@ -66,7 +66,7 @@ async function testBlobStorage() {
         console.log('   Metadata keys:', Object.keys(retrieved.metadata))
       }
     } catch (error) {
-      console.error('❌ Retrieval failed:', error.message)
+      console.error('❌ Retrieval failed:', error instanceof Error ? error.message : String(error))
     }
 
     // Test metadata retrieval
@@ -75,7 +75,7 @@ async function testBlobStorage() {
       const metadata = await storage.getSnapshotMetadata(testTimestamp)
       console.log('✅ Metadata retrieval result:', metadata)
     } catch (error) {
-      console.error('❌ Metadata retrieval failed:', error.message)
+      console.error('❌ Metadata retrieval failed:', error instanceof Error ? error.message : String(error))
     }
 
     // Test storage stats
@@ -84,7 +84,7 @@ async function testBlobStorage() {
       const stats = await storage.getStorageStats()
       console.log('✅ Storage stats:', stats)
     } catch (error) {
-      console.warn('⚠️  Storage stats failed:', error.message)
+      console.warn('⚠️  Storage stats failed:', error instanceof Error ? error.message : String(error))
     }
 
     // Clean up
@@ -93,7 +93,7 @@ async function testBlobStorage() {
       await storage.deleteSnapshot(testTimestamp)
       console.log('✅ Cleanup successful')
     } catch (error) {
-      console.warn('⚠️  Cleanup failed:', error.message)
+      console.warn('⚠️  Cleanup failed:', error instanceof Error ? error.message : String(error))
     }
 
     console.log('\n✅ Blob Storage test completed!')

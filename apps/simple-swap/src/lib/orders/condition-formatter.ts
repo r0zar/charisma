@@ -1,5 +1,5 @@
 import { LimitOrder } from './types';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 
 export interface ConditionDisplayData {
     humanReadableText: string;

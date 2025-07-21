@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import TokenDropdown from '../TokenDropdown';
 import { ChevronDown, Info, DollarSign } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
-import { TokenCacheData } from '@repo/tokens';
+import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useOrderConditions } from '@/contexts/order-conditions-context';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';

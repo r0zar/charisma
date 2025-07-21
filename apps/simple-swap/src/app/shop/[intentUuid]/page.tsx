@@ -25,7 +25,7 @@ import {
     Timer
 } from "lucide-react";
 import Link from "next/link";
-import { getTokenMetadataCached } from "@repo/tokens";
+import { getTokenMetadataCached } from "@/lib/contract-registry-adapter";
 
 // Client component for creator info with BNS support
 import { CreatorInfo } from "./CreatorInfo";
