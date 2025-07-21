@@ -534,6 +534,96 @@ export async function resolveBnsNameToAddress(name: string): Promise<string | nu
 }
 
 /**
+ * Configuration for trait search functionality
+ */
+export interface TraitSearchConfig {
+  apiKey?: string;
+  debug?: boolean;
+}
+
+/**
+ * Search for contracts implementing a specific trait using the Hiro API
+ * @param trait The trait definition (ABI) to search for
+ * @param config Configuration including API key and debug options
+ * @param blacklist Array of contract IDs to exclude from results
+ * @param maxResults Optional maximum number of results to return (for faster testing)
+ * @returns A promise that resolves to an array of contracts implementing the trait
+ */
+export async function searchContractsByTrait(
+  trait: any,
+  config: TraitSearchConfig = {},
+  blacklist: string[] = [],
+  maxResults?: number
+): Promise<any[]> {
+  let allContracts: any[] = [];
+  let offset = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    try {
+      const path = `/extended/v1/contract/by_trait?trait_abi=${encodeURIComponent(JSON.stringify(trait))}&limit=50&offset=${offset}`;
+      const url = `https://api.hiro.so${path}`;
+
+      const headers: Record<string, string> = { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      
+      const apiKey = config.apiKey || "";
+      if (apiKey) headers['x-api-key'] = apiKey;
+
+      const response = await fetch(url, { headers });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+
+      const data = await response.json();
+      const results = data?.results || [];
+
+      if (results.length === 0) {
+        hasMore = false;
+      } else {
+        const filteredResults = results.filter(
+          (contract: any) => !blacklist.includes(contract.contract_id)
+        );
+        allContracts = [...allContracts, ...filteredResults];
+        offset += 50;
+        
+        // Check if we've reached the maximum results after adding new contracts
+        if (maxResults && allContracts.length >= maxResults) {
+          // Truncate to exact limit
+          allContracts = allContracts.slice(0, maxResults);
+          if (config.debug) {
+            console.debug(`Reached maxResults limit of ${maxResults}, stopping search`);
+          }
+          break;
+        }
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // 404 means we've reached the end of results - this is normal
+      if (errorMessage.includes('HTTP 404') || errorMessage.includes('cannot find contract')) {
+        if (config.debug) {
+          console.debug(`Reached end of results at offset ${offset}`);
+        }
+        hasMore = false;
+      } else {
+        // Log other errors as warnings
+        if (config.debug) {
+          console.warn(`Error fetching contracts at offset ${offset}: ${errorMessage}`);
+        }
+        hasMore = false;
+      }
+    }
+  }
+
+  return allContracts;
+}
+
+/**
  * Interface representing all exported functions from the polyglot package
  * This can be used for type definitions in editors and other tools
  */
@@ -565,4 +655,7 @@ export interface PolyglotAPI {
   getBnsNamesByAddress(address: string, blockchain?: 'bitcoin' | 'stacks'): Promise<string[]>;
   getPrimaryBnsName(address: string, blockchain?: 'bitcoin' | 'stacks'): Promise<string | null>;
   resolveBnsNameToAddress(name: string): Promise<string | null>;
+
+  // Trait search functions
+  searchContractsByTrait(trait: any, config?: TraitSearchConfig, blacklist?: string[], maxResults?: number): Promise<any[]>;
 }
