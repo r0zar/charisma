@@ -12,6 +12,7 @@ export function createDefaultConfig(serviceName: string): ContractRegistryConfig
     serviceName,
     enableAnalysis: true,
     enableDiscovery: true,
+    enableAutoDiscovery: true, // Enable auto-discovery by default
     blobStoragePrefix: 'contracts/',
     analysisTimeout: 30 * 1000, // 30 seconds
     blobStorage: {

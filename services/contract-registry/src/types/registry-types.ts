@@ -9,6 +9,7 @@ export interface RegistryConfig {
   serviceName: string;
   enableAnalysis: boolean;
   enableDiscovery: boolean;
+  enableAutoDiscovery?: boolean; // Auto-discover contracts when requested but not found
   blobStoragePrefix: string;
   analysisTimeout: number; // Analysis timeout in milliseconds
 }

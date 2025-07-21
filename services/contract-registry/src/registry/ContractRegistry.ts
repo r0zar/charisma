@@ -82,11 +82,27 @@ export class ContractRegistry implements RegistryAPI {
   // === Core Contract Operations ===
 
   /**
-   * Get contract metadata
+   * Get contract metadata (with auto-discovery if enabled)
    */
   async getContract(contractId: string): Promise<ContractMetadata | null> {
     try {
-      return await this.blobStorage.getContract(contractId);
+      // Set up auto-discovery callback if enabled
+      const autoDiscoveryCallback = this.config.enableAutoDiscovery 
+        ? async (contractId: string) => {
+            console.log(`🔍 Auto-discovering contract: ${contractId}`);
+            const addResult = await this.addContract(contractId);
+            if (addResult.success && addResult.metadata) {
+              console.log(`✅ Auto-discovery successful for ${contractId}`);
+              return addResult.metadata;
+            } else {
+              console.warn(`⚠️ Auto-discovery failed for ${contractId}: ${addResult.error}`);
+              return null;
+            }
+          }
+        : undefined;
+
+      // Use BlobStorage with auto-discovery callback
+      return await this.blobStorage.getContract(contractId, autoDiscoveryCallback);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error(`Failed to get contract ${contractId}:`, errorMessage);
@@ -356,14 +372,29 @@ export class ContractRegistry implements RegistryAPI {
   }
 
   /**
-   * Get multiple contracts by ID with optimized bulk retrieval
+   * Get multiple contracts by ID with optimized bulk retrieval (with auto-discovery)
    * Uses high-performance parallel processing optimized for Vercel Pro plan limits
    */
   async getContracts(contractIds: string[], maxConcurrency?: number): Promise<{
     successful: { contractId: string; metadata: ContractMetadata }[];
     failed: { contractId: string; error: string }[];
   }> {
-    return await this.blobStorage.getContracts(contractIds, maxConcurrency);
+    // Set up auto-discovery callback for BlobStorage if enabled
+    const autoDiscoveryCallback = this.config.enableAutoDiscovery 
+      ? async (contractId: string) => {
+          console.log(`🔍 Auto-discovering contract: ${contractId}`);
+          const addResult = await this.addContract(contractId);
+          if (addResult.success && addResult.metadata) {
+            console.log(`✅ Auto-discovery successful for ${contractId}`);
+            return addResult.metadata;
+          } else {
+            console.warn(`⚠️ Auto-discovery failed for ${contractId}: ${addResult.error}`);
+            return null;
+          }
+        }
+      : undefined;
+
+    return await this.blobStorage.getContracts(contractIds, maxConcurrency, autoDiscoveryCallback);
   }
 
   /**

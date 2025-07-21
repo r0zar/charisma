@@ -90,7 +90,10 @@ export class BlobStorage {
    * Retrieve contract metadata from blob storage
    * Optimized version using direct fetch (no HEAD operations to save costs)
    */
-  async getContract(contractId: string): Promise<ContractMetadata | null> {
+  async getContract(
+    contractId: string,
+    autoDiscoveryCallback?: (contractId: string) => Promise<ContractMetadata | null>
+  ): Promise<ContractMetadata | null> {
     const path = this.getContractPath(contractId);
 
     try {
@@ -101,6 +104,10 @@ export class BlobStorage {
 
       if (!response.ok) {
         if (response.status === 404) {
+          // Try auto-discovery if callback is provided
+          if (autoDiscoveryCallback) {
+            return await autoDiscoveryCallback(contractId);
+          }
           return null;
         }
         return null;
@@ -110,11 +117,14 @@ export class BlobStorage {
       const result = JSON.parse(jsonData) as ContractMetadata;
       return result;
     } catch (error) {
-      // If blob doesn't exist, return null rather than throwing
+      // If blob doesn't exist, try auto-discovery, then return null rather than throwing
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (errorMessage.includes('not found') ||
         errorMessage.includes('404') ||
         errorMessage.includes('does not exist')) {
+        if (autoDiscoveryCallback) {
+          return await autoDiscoveryCallback(contractId);
+        }
         return null;
       }
 
@@ -311,7 +321,11 @@ export class BlobStorage {
    * Optimized bulk contract retrieval with aggressive parallelization for Vercel Pro plan
    * Pro plan limits: 120 simple operations/second, so we default to 20 concurrent for solid throughput
    */
-  async getContracts(contractIds: string[], maxConcurrency: number = 20): Promise<{
+  async getContracts(
+    contractIds: string[], 
+    maxConcurrency: number = 20,
+    autoDiscoveryCallback?: (contractId: string) => Promise<ContractMetadata | null>
+  ): Promise<{
     successful: { contractId: string; metadata: ContractMetadata }[];
     failed: { contractId: string; error: string }[];
   }> {
@@ -327,12 +341,17 @@ export class BlobStorage {
       // Small batch: process all in parallel immediately
       const allPromises = contractIds.map(async (contractId) => {
         try {
-          const metadata = await this.getContract(contractId);
+          let metadata = await this.getContract(contractId);
           if (metadata) {
             return { success: true, contractId, metadata };
-          } else {
-            return { success: false, contractId, error: 'Contract not found' };
+          } else if (autoDiscoveryCallback) {
+            // Try auto-discovery
+            metadata = await autoDiscoveryCallback(contractId);
+            if (metadata) {
+              return { success: true, contractId, metadata };
+            }
           }
+          return { success: false, contractId, error: 'Contract not found' };
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : String(error);
           return { success: false, contractId, error: errorMessage };
@@ -363,7 +382,7 @@ export class BlobStorage {
 
       // Helper function to start a contract operation
       const startOperation = (contractId: string) => {
-        const promise = this.processSingleContract(contractId).then(result => {
+        const promise = this.processSingleContractWithAutoDiscovery(contractId, autoDiscoveryCallback).then(result => {
           results.set(contractId, result);
           inFlight.delete(contractId);
           return result;
@@ -476,6 +495,33 @@ export class BlobStorage {
       } else {
         return { success: false, contractId, error: 'Contract not found' };
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return { success: false, contractId, error: errorMessage };
+    }
+  }
+
+  private async processSingleContractWithAutoDiscovery(
+    contractId: string, 
+    autoDiscoveryCallback?: (contractId: string) => Promise<ContractMetadata | null>
+  ): Promise<{
+    success: boolean;
+    contractId: string;
+    metadata?: ContractMetadata;
+    error?: string
+  }> {
+    try {
+      let metadata = await this.getContract(contractId);
+      if (metadata) {
+        return { success: true, contractId, metadata };
+      } else if (autoDiscoveryCallback) {
+        // Try auto-discovery
+        metadata = await autoDiscoveryCallback(contractId);
+        if (metadata) {
+          return { success: true, contractId, metadata };
+        }
+      }
+      return { success: false, contractId, error: 'Contract not found' };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       return { success: false, contractId, error: errorMessage };
