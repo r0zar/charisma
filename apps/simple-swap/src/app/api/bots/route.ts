@@ -35,7 +35,11 @@ export async function GET(request: NextRequest) {
     // Sort by creation date (newest first)
     bots.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    return NextResponse.json({ bots });
+    return NextResponse.json({ bots }, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60'
+      }
+    });
 
   } catch (error) {
     console.error('Failed to fetch bots:', error);

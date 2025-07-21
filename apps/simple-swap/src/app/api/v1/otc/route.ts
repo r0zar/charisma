@@ -92,5 +92,9 @@ export async function GET(req: NextRequest) {
             { status: 404 }
         );
 
-    return NextResponse.json({ success: true, offer });
+    return NextResponse.json({ success: true, offer }, {
+        headers: {
+            'Cache-Control': 'public, max-age=120, stale-while-revalidate=300'
+        }
+    });
 }

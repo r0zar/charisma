@@ -44,11 +44,19 @@ export async function GET(req: Request) {
                     hasNextPage: result.hasNextPage,
                     hasPrevPage: result.hasPrevPage
                 }
+            }, {
+                headers: {
+                    'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30'
+                }
             });
         } else {
             // Return all orders (legacy behavior)
             const orders = await listOrders(owner);
-            return NextResponse.json({ status: 'success', data: orders });
+            return NextResponse.json({ status: 'success', data: orders }, {
+                headers: {
+                    'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30'
+                }
+            });
         }
     } catch (err) {
         console.error('Orders list error', err);

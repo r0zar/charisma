@@ -9,6 +9,10 @@ export async function GET(request: NextRequest) {
             contracts: allAnalyticsData,
             timestamp: Date.now(),
             success: true
+        }, {
+            headers: {
+                'Cache-Control': 'private, max-age=300, stale-while-revalidate=600'
+            }
         });
     } catch (error) {
         console.error("Error in energy analytics admin API:", error);

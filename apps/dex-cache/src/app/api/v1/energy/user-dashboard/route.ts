@@ -17,7 +17,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({
             maxCapacity,
             userEnergyDashboardData
-        } as { maxCapacity: number, userEnergyDashboardData: EnergyTokenDashboardData[] });
+        } as { maxCapacity: number, userEnergyDashboardData: EnergyTokenDashboardData[] }, {
+            headers: {
+                'Cache-Control': 'private, max-age=60, stale-while-revalidate=120'
+            }
+        });
     } catch (error) {
         console.error("Error in energy dashboard API:", error);
         return NextResponse.json(

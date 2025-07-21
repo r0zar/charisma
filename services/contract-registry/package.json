@@ -67,6 +67,7 @@
     "@modules/contracts": "workspace:*",
     "@repo/polyglot": "workspace:*",
     "@repo/tokens": "workspace:*",
+    "@stacks/transactions": "^7.1.0",
     "@swc/helpers": "^0.5.17",
     "@vercel/blob": "^0.24.1",
     "@vercel/kv": "^3.0.0"

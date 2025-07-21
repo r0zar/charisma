@@ -3195,6 +3195,9 @@ importers:
       '@repo/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
+      '@stacks/transactions':
+        specifier: ^7.1.0
+        version: 7.1.0
       '@swc/helpers':
         specifier: ^0.5.17
         version: 0.5.17

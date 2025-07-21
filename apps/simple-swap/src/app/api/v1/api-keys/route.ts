@@ -147,7 +147,9 @@ export async function GET(request: NextRequest) {
         apiKeys: sanitizedKeys
       };
 
-      return createSuccessResponse(response);
+      return createSuccessResponse(response, {
+        'Cache-Control': 'private, max-age=60'
+      });
 
     } catch (error) {
       console.error('Failed to list API keys:', error);

@@ -5,7 +5,11 @@ export async function GET(request: NextRequest) {
     try {
         const energyTokenMetadata = await getEnergyTokenMetadata();
         
-        return NextResponse.json(energyTokenMetadata);
+        return NextResponse.json(energyTokenMetadata, {
+            headers: {
+                'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600'
+            }
+        });
     } catch (error) {
         console.error("Error in energy token metadata API:", error);
         return NextResponse.json(
