@@ -21,6 +21,7 @@ export interface RootBlob {
   prices: Record<string, any>;
   'price-series': Record<string, any>;
   balances: Record<string, any>;
+  discovered: Record<string, any>;
   metadata: {
     totalSize: number;
     entryCount: number;
@@ -151,6 +152,7 @@ export class UnifiedBlobStorage {
       prices: {},
       'price-series': {},
       balances: {},
+      discovered: {},
       metadata: {
         totalSize: 0,
         entryCount: 0,
@@ -174,7 +176,8 @@ export class UnifiedBlobStorage {
       Object.keys(rootBlob.contracts || {}).length +
       Object.keys(rootBlob.prices || {}).length +
       Object.keys(rootBlob['price-series'] || {}).length +
-      Object.keys(rootBlob.balances || {}).length;
+      Object.keys(rootBlob.balances || {}).length +
+      Object.keys(rootBlob.discovered || {}).length;
 
     const content = JSON.stringify(rootBlob, null, 0);
 
@@ -204,12 +207,8 @@ export class UnifiedBlobStorage {
    * Store data at a specific path within the root blob
    * @param path - The path to store data at
    * @param data - The data to store
-   * @param options - Storage options
    */
-  async put<T>(path: string, data: T, options?: {
-    allowFullReplace?: boolean;  // Allow replacing entire sections (dangerous)
-    merge?: boolean;             // Merge with existing data instead of replace
-  }): Promise<void> {
+  async put<T>(path: string, data: T): Promise<void> {
     console.log(`Attempting to save data at path: ${path}`);
     
     const rootBlob = await this.getRootBlob();
@@ -647,6 +646,70 @@ export class UnifiedBlobStorage {
     v1Children['price-series'] = {
       type: 'directory',
       children: priceSeriesChildren
+    };
+
+    // Handle balances section
+    const balancesChildren: any = {};
+    
+    // Add balances blob file
+    try {
+      const balancesData = await this.get('balances');
+      if (balancesData && typeof balancesData === 'object') {
+        balancesChildren['balances-blob.json'] = {
+          type: 'file',
+          size: JSON.stringify(balancesData).length,
+          lastModified: new Date((balancesData as any).lastUpdated || Date.now()),
+          path: 'balances'
+        };
+
+        // Build subtree for balances
+        Object.assign(balancesChildren, buildSubtree(balancesData, 'balances'));
+      }
+    } catch (error) {
+      console.log('[UnifiedBlob] Balances data not available:', error);
+      balancesChildren['balances-blob.json'] = {
+        type: 'file',
+        size: 2,
+        lastModified: new Date(),
+        path: 'balances'
+      };
+    }
+
+    v1Children.balances = {
+      type: 'directory',
+      children: balancesChildren
+    };
+
+    // Handle discovered section
+    const discoveredChildren: any = {};
+    
+    // Add discovered blob file
+    try {
+      const discoveredData = await this.get('discovered');
+      if (discoveredData && typeof discoveredData === 'object') {
+        discoveredChildren['discovered-blob.json'] = {
+          type: 'file',
+          size: JSON.stringify(discoveredData).length,
+          lastModified: new Date((discoveredData as any).lastUpdated || Date.now()),
+          path: 'discovered'
+        };
+
+        // Build subtree for discovered data
+        Object.assign(discoveredChildren, buildSubtree(discoveredData, 'discovered'));
+      }
+    } catch (error) {
+      console.log('[UnifiedBlob] Discovered data not available:', error);
+      discoveredChildren['discovered-blob.json'] = {
+        type: 'file',
+        size: 2,
+        lastModified: new Date(),
+        path: 'discovered'
+      };
+    }
+
+    v1Children.discovered = {
+      type: 'directory',
+      children: discoveredChildren
     };
 
     // Create the main v1 folder

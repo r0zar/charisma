@@ -112,61 +112,38 @@ export async function GET() {
       });
     }
     
-    // Batch update all data
-    console.log(`[CharismaCron] Updating ${contractsUpdates.length} contracts and ${addressesUpdates.length} addresses...`);
+    console.log(`[CharismaCron] Processing ${contractsUpdates.length} contracts and ${addressesUpdates.length} addresses...`);
     
-    const allUpdates = [...contractsUpdates, ...addressesUpdates];
-    
-    if (allUpdates.length > 0) {
-      await unifiedBlobStorage.putBatch(allUpdates);
-    }
-    
-    // Get existing contracts and addresses blobs first
-    let contractsBlob: any = {};
-    let addressesBlob: any = {};
-    
-    try {
-      contractsBlob = await unifiedBlobStorage.get('contracts') || {};
-    } catch (error) {
-      console.log('[CharismaCron] No existing contracts blob, creating new one');
-      contractsBlob = {};
-    }
-    
-    try {
-      addressesBlob = await unifiedBlobStorage.get('addresses') || {};
-    } catch (error) {
-      console.log('[CharismaCron] No existing addresses blob, creating new one');
-      addressesBlob = {};
-    }
-    
-    // Update the main contracts blob
-    if (contractsUpdates.length > 0) {
-      contractsBlob.lastUpdated = new Date().toISOString();
-      contractsBlob.source = 'charisma-api-population';
-      contractsBlob.contractCount = (contractsBlob.contractCount || 0) + contractsUpdates.length;
+    // Store discovered data in the discovered section
+    if (contractsUpdates.length > 0 || addressesUpdates.length > 0) {
+      const discoveredData = {
+        lastUpdated: new Date().toISOString(),
+        source: 'charisma-vaults-harvester',
+        type: 'vault-data',
+        summary: {
+          contractsFound: contractsUpdates.length,
+          addressesFound: addressesUpdates.length,
+          totalVaultsProcessed: vaults.length
+        },
+        contracts: {},
+        addresses: {}
+      };
       
-      // Add each contract to the main blob
+      // Add discovered contracts
       for (const update of contractsUpdates) {
         const contractId = update.path.replace('contracts/', '');
-        contractsBlob[contractId] = update.data;
+        discoveredData.contracts[contractId] = update.data;
       }
       
-      await unifiedBlobStorage.put('contracts', contractsBlob);
-    }
-    
-    // Update the main addresses blob
-    if (addressesUpdates.length > 0) {
-      addressesBlob.lastUpdated = new Date().toISOString();
-      addressesBlob.source = 'charisma-api-population';
-      addressesBlob.addressCount = (addressesBlob.addressCount || 0) + addressesUpdates.length;
-      
-      // Add each address to the main blob
+      // Add discovered addresses
       for (const update of addressesUpdates) {
         const address = update.path.replace('addresses/', '');
-        addressesBlob[address] = update.data;
+        discoveredData.addresses[address] = update.data;
       }
       
-      await unifiedBlobStorage.put('addresses', addressesBlob);
+      // Store in discovered section
+      await unifiedBlobStorage.put('discovered/charisma-vaults', discoveredData);
+      console.log(`[CharismaCron] Stored discovered data: ${contractsUpdates.length} contracts, ${addressesUpdates.length} addresses`);
     }
     
     const processingTime = Date.now() - startTime;

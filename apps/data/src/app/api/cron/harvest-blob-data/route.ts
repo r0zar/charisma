@@ -186,14 +186,8 @@ export async function GET() {
     // Now harvest the valuable data into our unified structure
     const harvestUpdates = await processHarvestedData(harvestResults);
     
-    // Apply the harvested data
-    if (harvestUpdates.contracts.length > 0 || harvestUpdates.addresses.length > 0) {
-      const allUpdates = [...harvestUpdates.contracts, ...harvestUpdates.addresses];
-      await unifiedBlobStorage.putBatch(allUpdates);
-      
-      // Update main blobs
-      await updateMainBlobs(harvestUpdates);
-    }
+    // Store discovered data
+    await storeDiscoveredData(harvestUpdates, harvestResults);
     
     const processingTime = Date.now() - startTime;
     
@@ -545,59 +539,42 @@ async function processHarvestedData(harvestResults: any): Promise<{
 }
 
 /**
- * Update main contracts and addresses blobs
+ * Store discovered data in the discovered section
  */
-async function updateMainBlobs(harvestUpdates: any): Promise<void> {
-  // Update contracts blob
-  if (harvestUpdates.contracts.length > 0) {
-    let contractsBlob: any = {};
-    try {
-      contractsBlob = await unifiedBlobStorage.get('contracts') || {};
-    } catch (error) {
-      contractsBlob = {};
-    }
+async function storeDiscoveredData(harvestUpdates: any, harvestResults: any): Promise<void> {
+  if (harvestUpdates.contracts.length > 0 || harvestUpdates.addresses.length > 0) {
+    const discoveredData = {
+      lastUpdated: new Date().toISOString(),
+      source: 'blob-spider-harvester',
+      type: 'spider-crawl-data',
+      summary: {
+        contractsFound: harvestUpdates.contracts.length,
+        addressesFound: harvestUpdates.addresses.length,
+        blobsScanned: harvestResults.blobsScanned,
+        imageMetadataAnalyzed: harvestResults.dataFound.images.length
+      },
+      contracts: {},
+      addresses: {},
+      metadata: {
+        crawlResults: harvestResults
+      }
+    };
     
-    contractsBlob.lastUpdated = new Date().toISOString();
-    contractsBlob.source = `${contractsBlob.source || 'unknown'} + spider-harvest`;
-    
-    const existingContractCount = Object.keys(contractsBlob).filter(key => 
-      !['lastUpdated', 'source', 'contractCount'].includes(key)
-    ).length;
-    
-    contractsBlob.contractCount = existingContractCount + harvestUpdates.contracts.length;
-    
+    // Add discovered contracts
     for (const update of harvestUpdates.contracts) {
       const contractId = update.path.replace('contracts/', '');
-      contractsBlob[contractId] = update.data;
+      discoveredData.contracts[contractId] = update.data;
     }
     
-    await unifiedBlobStorage.put('contracts', contractsBlob);
-  }
-  
-  // Update addresses blob
-  if (harvestUpdates.addresses.length > 0) {
-    let addressesBlob: any = {};
-    try {
-      addressesBlob = await unifiedBlobStorage.get('addresses') || {};
-    } catch (error) {
-      addressesBlob = {};
-    }
-    
-    addressesBlob.lastUpdated = new Date().toISOString();
-    addressesBlob.source = `${addressesBlob.source || 'unknown'} + spider-harvest`;
-    
-    const existingAddressCount = Object.keys(addressesBlob).filter(key => 
-      !['lastUpdated', 'source', 'addressCount'].includes(key)
-    ).length;
-    
-    addressesBlob.addressCount = existingAddressCount + harvestUpdates.addresses.length;
-    
+    // Add discovered addresses
     for (const update of harvestUpdates.addresses) {
       const address = update.path.replace('addresses/', '');
-      addressesBlob[address] = update.data;
+      discoveredData.addresses[address] = update.data;
     }
     
-    await unifiedBlobStorage.put('addresses', addressesBlob);
+    // Store in discovered section
+    await unifiedBlobStorage.put('discovered/blob-spider', discoveredData);
+    console.log(`[BlobHarvester] Stored discovered data: ${harvestUpdates.contracts.length} contracts, ${harvestUpdates.addresses.length} addresses`);
   }
 }
 
