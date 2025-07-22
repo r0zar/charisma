@@ -20,6 +20,7 @@ export interface RootBlob {
   contracts: Record<string, any>;
   prices: Record<string, any>;
   'price-series': Record<string, any>;
+  balances: Record<string, any>;
   metadata: {
     totalSize: number;
     entryCount: number;
@@ -149,6 +150,7 @@ export class UnifiedBlobStorage {
       contracts: {},
       prices: {},
       'price-series': {},
+      balances: {},
       metadata: {
         totalSize: 0,
         entryCount: 0,
@@ -171,7 +173,8 @@ export class UnifiedBlobStorage {
       Object.keys(rootBlob.addresses || {}).length +
       Object.keys(rootBlob.contracts || {}).length +
       Object.keys(rootBlob.prices || {}).length +
-      Object.keys(rootBlob['price-series'] || {}).length;
+      Object.keys(rootBlob['price-series'] || {}).length +
+      Object.keys(rootBlob.balances || {}).length;
 
     const content = JSON.stringify(rootBlob, null, 0);
 
@@ -199,8 +202,14 @@ export class UnifiedBlobStorage {
 
   /**
    * Store data at a specific path within the root blob
+   * @param path - The path to store data at
+   * @param data - The data to store
+   * @param options - Storage options
    */
-  async put<T>(path: string, data: T): Promise<void> {
+  async put<T>(path: string, data: T, options?: {
+    allowFullReplace?: boolean;  // Allow replacing entire sections (dangerous)
+    merge?: boolean;             // Merge with existing data instead of replace
+  }): Promise<void> {
     console.log(`Attempting to save data at path: ${path}`);
     
     const rootBlob = await this.getRootBlob();
