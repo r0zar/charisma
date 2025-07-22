@@ -6,6 +6,7 @@ import { getAccountBalancesWithSubnet, getBalancesAction, getAddressBalancesActi
 import { formatTokenAmount } from '@/lib/swap-utils';
 import { useTokenMetadata } from './token-metadata-context';
 import type { BulkBalanceResponse } from '@/lib/cached-balance-client';
+import { getAddressBalances } from '@repo/tokens';
 
 interface WalletBalanceContextType {
   balances: Record<string, AccountBalancesResponse>;
@@ -48,6 +49,7 @@ export function WalletBalanceProvider({
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [watchedAddresses, setWatchedAddresses] = useState<string[]>([]);
   const [useBalanceService, setUseBalanceService] = useState(!!initialServiceBalances);
+  const [tryDataClient, setTryDataClient] = useState(true); // Simple flag to try data client
   
   const { tokens } = useTokenMetadata();
   
@@ -102,6 +104,51 @@ export function WalletBalanceProvider({
     setError(null);
 
     try {
+      // Try data client first if enabled (simple, clean integration)
+      if (tryDataClient) {
+        console.log('[WalletBalanceContext] Trying data client for balance refresh');
+        
+        try {
+          const dataClientBalances = await getAddressBalances(addressesToUpdate, { timeout: 8000, retries: 1 });
+          
+          // Convert to expected format (simple conversion)
+          const convertedBalances: Record<string, AccountBalancesResponse> = {};
+          Object.entries(dataClientBalances).forEach(([address, balanceData]) => {
+            const fungible_tokens: Record<string, any> = {};
+            Object.entries(balanceData.fungibleTokens).forEach(([contractId, tokenData]) => {
+              fungible_tokens[contractId] = {
+                balance: tokenData.balance,
+                total_sent: '0',
+                total_received: tokenData.balance,
+              };
+            });
+
+            convertedBalances[address] = {
+              stx: {
+                balance: balanceData.stxBalance,
+                total_sent: balanceData.metadata.stxTotalSent,
+                total_received: balanceData.metadata.stxTotalReceived,
+                lock_tx_id: '',
+                locked: balanceData.metadata.stxLocked,
+                lock_height: 0,
+                burnchain_lock_height: 0,
+                burnchain_unlock_height: 0
+              },
+              fungible_tokens,
+              non_fungible_tokens: {}
+            };
+          });
+          
+          setBalances(prevBalances => ({ ...prevBalances, ...convertedBalances }));
+          setLastUpdate(Date.now());
+          console.log(`[WalletBalanceContext] ✓ Data client success: ${Object.keys(convertedBalances).length} addresses`);
+          return; // Success - exit early
+        } catch (dataClientError) {
+          console.warn('[WalletBalanceContext] Data client failed, falling back:', dataClientError);
+          setTryDataClient(false); // Disable for this session
+        }
+      }
+      
       // Use balance service if enabled, otherwise fall back to original method
       if (useBalanceService) {
         console.log('[WalletBalanceContext] Using balance service for refresh');
@@ -318,6 +365,7 @@ export function WalletBalanceProvider({
       console.log(`[WalletBalanceContext] Processed ${Object.keys(processedBalances).length} addresses from initial service data`);
     }
   }, [initialServiceBalances]);
+
 
   // Set up polling for balance updates
   useEffect(() => {

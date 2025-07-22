@@ -50,14 +50,14 @@ export interface PriceData {
 
 /** API response wrapper for current prices */
 export interface PricesResponse {
-  status: 'success' | 'error';
-  data: PriceData[];
-  meta: {
-    timestamp: string;
-    processingTime: string;
-    total: number;
-    limit: number;
-  };
+  timestamp: number;
+  prices: Record<string, {
+    usdPrice: number;
+    source: string;
+    timestamp: number;
+  }>;
+  tokenCount: number;
+  source: string;
 }
 
 /** Time series data point */
@@ -288,11 +288,20 @@ export async function getCurrentPrices(
     config
   );
   
-  if (response.status !== 'success') {
-    throw new Error('Failed to fetch current prices');
-  }
+  // Convert response format to PriceData array
+  const priceData: PriceData[] = [];
+  Object.entries(response.prices).forEach(([tokenId, priceInfo]) => {
+    priceData.push({
+      tokenId,
+      symbol: tokenId.split('.').pop() || tokenId,
+      usdPrice: priceInfo.usdPrice,
+      confidence: 1.0, // API doesn't provide confidence
+      lastUpdated: new Date(priceInfo.timestamp).toISOString(),
+      source: priceInfo.source
+    });
+  });
 
-  return response.data;
+  return priceData;
 }
 
 /**
@@ -306,8 +315,20 @@ export async function getTokenPrice(
     throw new Error('Contract ID is required');
   }
 
-  const response = await makeRequest<{ price: PriceData }>(`/prices/current/${contractId}`, config);
-  return response.price;
+  const response = await makeRequest<{
+    usdPrice: number;
+    source: string;
+    timestamp: number;
+  }>(`/prices/current/${contractId}`, config);
+  
+  return {
+    tokenId: contractId,
+    symbol: contractId.split('.').pop() || contractId,
+    usdPrice: response.usdPrice,
+    confidence: 1.0, // API doesn't provide confidence
+    lastUpdated: new Date(response.timestamp).toISOString(),
+    source: response.source
+  };
 }
 
 /**

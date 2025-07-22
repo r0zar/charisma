@@ -25,10 +25,10 @@ const TEST_ADDRESSES = {
 };
 
 const TEST_TOKENS = {
-  STX: '.stx',
+  SBTC: 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token',
   CHARISMA: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token',
-  WELSH: 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token',
-  ALEX: 'SP102V8P0F7JX67ARQ77WEA3D3CFB5XW39REDT0AM.token-alex'
+  ARKADIKO: 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.arkadiko-token',
+  WELSH: 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token'
 };
 
 describe('Data Client Integration Tests', () => {
@@ -118,27 +118,27 @@ describe('Data Client Integration Tests', () => {
       console.log(`✓ Sample price: ${firstPrice.symbol} = $${firstPrice.usdPrice}`);
     }, 20000);
 
-    it('should get price for STX', async () => {
-      const price = await getTokenPrice(TEST_TOKENS.STX, testConfig);
+    it('should get price for SBTC', async () => {
+      const price = await getTokenPrice(TEST_TOKENS.SBTC, testConfig);
       
       expect(price).toBeDefined();
-      expect(price.tokenId).toBe(TEST_TOKENS.STX);
-      expect(price.symbol).toBe('STX');
+      expect(price.tokenId).toBe(TEST_TOKENS.SBTC);
+      expect(price.symbol).toBe('sbtc-token');
       expect(typeof price.usdPrice).toBe('number');
       expect(price.usdPrice).toBeGreaterThan(0);
       
-      console.log(`✓ STX price: $${price.usdPrice}`);
+      console.log(`✓ SBTC price: $${price.usdPrice}`);
     }, 20000);
 
     it('should get prices for multiple tokens', async () => {
-      const tokenIds = [TEST_TOKENS.STX, TEST_TOKENS.CHARISMA];
+      const tokenIds = [TEST_TOKENS.SBTC, TEST_TOKENS.CHARISMA];
       const prices = await getTokenPrices(tokenIds, testConfig);
       
       expect(Object.keys(prices).length).toBeGreaterThan(0);
       
-      if (prices[TEST_TOKENS.STX]) {
-        expect(prices[TEST_TOKENS.STX].symbol).toBe('STX');
-        expect(prices[TEST_TOKENS.STX].usdPrice).toBeGreaterThan(0);
+      if (prices[TEST_TOKENS.SBTC]) {
+        expect(prices[TEST_TOKENS.SBTC].symbol).toBe('sbtc-token');
+        expect(prices[TEST_TOKENS.SBTC].usdPrice).toBeGreaterThan(0);
       }
       
       console.log(`✓ Fetched prices for ${Object.keys(prices).length} tokens`);

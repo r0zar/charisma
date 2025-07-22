@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { KraxelPriceData } from '@/lib/contract-registry-adapter';
 import { getPrices } from '../app/actions';
+import { getCurrentPrices } from '@repo/tokens';
 
 interface TokenPriceContextType {
   prices: KraxelPriceData;
@@ -33,10 +34,36 @@ export function TokenPriceProvider({ children, refreshInterval = 30000 }: TokenP
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [tryDataClient, setTryDataClient] = useState(true); // Simple flag to try data client
 
   const refreshPrices = useCallback(async () => {
     try {
       setError(null);
+      
+      // Try data client first (simple, clean integration)
+      if (tryDataClient) {
+        console.log('[TokenPriceContext] Trying data client for price refresh');
+        try {
+          const priceArray = await getCurrentPrices(50, { timeout: 8000, retries: 1 });
+          
+          // Convert array to KraxelPriceData format (simple conversion)
+          const priceData: KraxelPriceData = {};
+          priceArray.forEach(price => {
+            priceData[price.tokenId] = price.usdPrice;
+          });
+          
+          setPrices(priceData);
+          setLastUpdate(Date.now());
+          console.log(`[TokenPriceContext] ✓ Data client success: ${Object.keys(priceData).length} prices`);
+          return; // Success - exit early
+        } catch (dataClientError) {
+          console.warn('[TokenPriceContext] Data client failed, falling back:', dataClientError);
+          setTryDataClient(false); // Disable for this session
+        }
+      }
+      
+      // Fallback to original method
+      console.log('[TokenPriceContext] Using original price fetching method');
       const priceData = await getPrices();
       setPrices(priceData);
       setLastUpdate(Date.now());
@@ -46,11 +73,12 @@ export function TokenPriceProvider({ children, refreshInterval = 30000 }: TokenP
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [tryDataClient]);
 
   const getPrice = useCallback((contractId: string): number | null => {
     return prices[contractId] || null;
   }, [prices]);
+
 
   // Initial load
   useEffect(() => {
