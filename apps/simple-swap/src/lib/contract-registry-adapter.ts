@@ -4,7 +4,6 @@
  */
 
 import { ContractRegistry, createDefaultConfig } from '@services/contract-registry';
-import { PriceSeriesAPI, PriceSeriesStorage } from '@services/prices';
 import { getHostUrl } from '@modules/discovery';
 import type { TokenCacheData, KraxelPriceData } from '@repo/tokens';
 
@@ -13,9 +12,6 @@ export type { TokenCacheData, KraxelPriceData };
 
 // Initialize contract registry
 let contractRegistry: ContractRegistry | null = null;
-
-// Initialize price series API
-let priceSeriesAPI: PriceSeriesAPI | null = null;
 
 function getContractRegistry(): ContractRegistry {
   if (!contractRegistry) {
@@ -33,24 +29,6 @@ function getContractRegistry(): ContractRegistry {
     console.log('[Contract Registry Adapter] Contract registry initialized successfully');
   }
   return contractRegistry;
-}
-
-function getPriceSeriesAPI(): PriceSeriesAPI {
-  if (!priceSeriesAPI) {
-    // Check if required environment variables are available
-    if (!process.env.BLOB_BASE_URL || !process.env.BLOB_READ_WRITE_TOKEN) {
-      throw new Error(`Price Series API configuration missing. Required environment variables:
-        - BLOB_BASE_URL: ${process.env.BLOB_BASE_URL ? '✓' : '✗'}
-        - BLOB_READ_WRITE_TOKEN: ${process.env.BLOB_READ_WRITE_TOKEN ? '✓' : '✗'}
-        
-        Please configure these in your .env.local file to use price series.`);
-    }
-
-    const storage = new PriceSeriesStorage(process.env.BLOB_READ_WRITE_TOKEN);
-    priceSeriesAPI = new PriceSeriesAPI(storage);
-    console.log('[Contract Registry Adapter] Price Series API initialized successfully');
-  }
-  return priceSeriesAPI;
 }
 
 /**
@@ -256,7 +234,6 @@ export async function getMultipleTokenMetadata(contractIds: string[]): Promise<R
         const tokenData = await getTokenMetadataCached(contractId);
         results[contractId] = tokenData;
       } catch (error) {
-        console.warn(`[getMultipleTokenMetadata] Failed to fetch metadata for ${contractId}:`, error.message);
         // Still add a default entry to avoid breaking downstream code
         results[contractId] = adaptTokenMetadata(contractId, null);
       }
