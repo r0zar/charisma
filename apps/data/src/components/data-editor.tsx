@@ -285,7 +285,6 @@ export function DataEditor({ path, data, onSave }: DataEditorProps) {
             lineNumbers: 'on',
             renderWhitespace: 'selection',
             folding: true,
-            bracketMatching: 'always',
             autoIndent: 'full',
             formatOnPaste: true,
             formatOnType: true,
