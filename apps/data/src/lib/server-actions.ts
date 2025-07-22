@@ -44,7 +44,7 @@ export async function saveData(path: string[], data: any): Promise<ActionResult>
     const pathStr = path.join('/');
     revalidatePath(`/api/v1/${pathStr}`);
     revalidateTag('tree'); // Tree structure may have changed
-    
+
     // Revalidate root if top-level data changed
     if (path.length === 1) {
       revalidatePath('/api/v1');
@@ -57,7 +57,7 @@ export async function saveData(path: string[], data: any): Promise<ActionResult>
 
   } catch (error) {
     console.error('Save data action error:', error);
-    
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to save data'
@@ -103,7 +103,7 @@ export async function bulkUpdate(updates: Array<{ path: string[]; data: any }>):
 
   } catch (error) {
     console.error('Bulk update error:', error);
-    
+
     return {
       success: false,
       data: {
@@ -120,9 +120,6 @@ export async function bulkUpdate(updates: Array<{ path: string[]; data: any }>):
  */
 export async function seedCharismaData(): Promise<ActionResult> {
   try {
-    const { seedCharismaData } = await import('../scripts/seed-charisma-data');
-    await seedCharismaData();
-
     // Revalidate all paths
     revalidateTag('tree');
     revalidatePath('/api/v1');
@@ -137,7 +134,7 @@ export async function seedCharismaData(): Promise<ActionResult> {
 
   } catch (error) {
     console.error('Seed Charisma data error:', error);
-    
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to seed Charisma data'
@@ -208,7 +205,7 @@ export async function seedSampleData(): Promise<ActionResult> {
     ];
 
     const result = await bulkUpdate(updates);
-    
+
     if (result.success) {
       return {
         success: true,
@@ -220,7 +217,7 @@ export async function seedSampleData(): Promise<ActionResult> {
 
   } catch (error) {
     console.error('Seed sample data error:', error);
-    
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to seed sample data'
@@ -234,7 +231,7 @@ export async function seedSampleData(): Promise<ActionResult> {
 export async function clearAllData(): Promise<ActionResult> {
   try {
     const emptyData = { addresses: {}, contracts: {}, prices: {} };
-    
+
     const updates = [
       { path: ['addresses'], data: {} },
       { path: ['contracts'], data: {} },
@@ -242,7 +239,7 @@ export async function clearAllData(): Promise<ActionResult> {
     ];
 
     const result = await bulkUpdate(updates);
-    
+
     return {
       success: result.success,
       data: { message: 'All data cleared successfully' },
@@ -251,7 +248,7 @@ export async function clearAllData(): Promise<ActionResult> {
 
   } catch (error) {
     console.error('Clear all data error:', error);
-    
+
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to clear data'
@@ -266,10 +263,10 @@ export async function validateAndSave(path: string[], jsonData: string): Promise
   try {
     // Parse JSON to validate it
     const data = JSON.parse(jsonData);
-    
+
     // Save using the regular save action
     return await saveData(path, data);
-    
+
   } catch (parseError) {
     return {
       success: false,
