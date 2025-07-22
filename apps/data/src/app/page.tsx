@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { TreeNavigator } from '@/components/tree-navigator';
-import { DataEditor } from '@/components/data-editor';
 import { Separator } from '@/components/ui/separator';
 
 export default function HomePage() {
@@ -13,29 +12,6 @@ export default function HomePage() {
   const handlePathSelect = (path: string, data: any) => {
     // Navigate to the path-based route
     router.push(`/${path}`);
-  };
-
-  const handleSeedCharisma = async () => {
-    setSeeding(true);
-    try {
-      const response = await fetch('/api/seed/charisma', {
-        method: 'POST',
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        alert('✅ Successfully seeded Charisma data!\n\nRefresh the tree to see all the new addresses and contracts.');
-        // Optionally reload the page or refresh tree
-        window.location.reload();
-      } else {
-        alert(`❌ Seeding failed: ${result.error}`);
-      }
-    } catch (error) {
-      alert(`❌ Seeding failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      setSeeding(false);
-    }
   };
 
   return (

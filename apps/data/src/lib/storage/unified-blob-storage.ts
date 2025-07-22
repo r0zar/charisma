@@ -21,6 +21,7 @@ export interface RootBlob {
   prices: Record<string, any>;
   'price-series': Record<string, any>;
   balances: Record<string, any>;
+  'balance-series': Record<string, any>;
   discovered: Record<string, any>;
   metadata: {
     totalSize: number;
@@ -152,6 +153,7 @@ export class UnifiedBlobStorage {
       prices: {},
       'price-series': {},
       balances: {},
+      'balance-series': {},
       discovered: {},
       metadata: {
         totalSize: 0,
@@ -177,6 +179,7 @@ export class UnifiedBlobStorage {
       Object.keys(rootBlob.prices || {}).length +
       Object.keys(rootBlob['price-series'] || {}).length +
       Object.keys(rootBlob.balances || {}).length +
+      Object.keys(rootBlob['balance-series'] || {}).length +
       Object.keys(rootBlob.discovered || {}).length;
 
     const content = JSON.stringify(rootBlob, null, 0);

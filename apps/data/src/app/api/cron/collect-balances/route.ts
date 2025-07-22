@@ -140,11 +140,20 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Collect balances for unified blob storage
+ * Collect balances for unified blob storage with balance series tracking
  */
 async function collectBalancesForUnifiedStorage(): Promise<void> {
   try {
     console.log('[UnifiedBalanceCollector] Starting balance collection for unified storage...');
+    
+    // Load previous balance data for comparison
+    let previousBalances: any = {};
+    try {
+      previousBalances = await unifiedBlobStorage.get('balances') || {};
+      console.log(`[UnifiedBalanceCollector] Loaded previous balances for ${Object.keys(previousBalances).filter(k => k.match(/^S[PTM]/) ).length} addresses`);
+    } catch (error) {
+      console.log('[UnifiedBalanceCollector] No previous balances found, starting fresh');
+    }
     
     // Get all known addresses from contracts and addresses sections
     let knownAddresses = new Set<string>();
@@ -183,6 +192,7 @@ async function collectBalancesForUnifiedStorage(): Promise<void> {
     // Limit to reasonable batch size to avoid timeouts
     const addressList = Array.from(knownAddresses).slice(0, 10);
     const balanceUpdates: Array<{ path: string; data: any }> = [];
+    const balanceChanges: Array<{ address: string; changes: any }> = [];
     
     // Collect balance data for each address
     for (const address of addressList) {
@@ -190,11 +200,12 @@ async function collectBalancesForUnifiedStorage(): Promise<void> {
         console.log(`[UnifiedBalanceCollector] Collecting balance for ${address}...`);
         
         const balanceData = await balanceService.getAddressBalances(address);
+        const currentTimestamp = new Date().toISOString();
         
         // Create balance entry for the unified storage
         const balanceEntry = {
           address,
-          lastUpdated: new Date().toISOString(),
+          lastUpdated: currentTimestamp,
           source: 'unified-balance-collector',
           stxBalance: balanceData.stx?.balance || '0',
           fungibleTokens: balanceData.fungible_tokens || {},
@@ -208,6 +219,42 @@ async function collectBalancesForUnifiedStorage(): Promise<void> {
             stxTotalReceived: balanceData.stx?.total_received || '0'
           }
         };
+        
+        // Check for balance changes against previous data
+        const previousBalance = previousBalances[address];
+        if (previousBalance && typeof previousBalance === 'object') {
+          const changes = detectBalanceChanges(previousBalance, balanceEntry);
+          if (changes.hasChanges) {
+            balanceChanges.push({
+              address,
+              changes: {
+                timestamp: currentTimestamp,
+                previousUpdate: previousBalance.lastUpdated,
+                stxChanges: changes.stxChanges,
+                tokenChanges: changes.tokenChanges,
+                nftChanges: changes.nftChanges,
+                summary: changes.summary
+              }
+            });
+            console.log(`[UnifiedBalanceCollector] 📊 Detected changes for ${address}: ${changes.summary}`);
+          }
+        } else {
+          // First time seeing this address
+          balanceChanges.push({
+            address,
+            changes: {
+              timestamp: currentTimestamp,
+              previousUpdate: null,
+              type: 'first_collection',
+              summary: 'Initial balance collection',
+              initialBalance: {
+                stx: balanceEntry.stxBalance,
+                tokenCount: balanceEntry.metadata.tokenCount,
+                nftCount: balanceEntry.metadata.nftCount
+              }
+            }
+          });
+        }
         
         balanceUpdates.push({
           path: `balances/${address}`,
@@ -225,6 +272,11 @@ async function collectBalancesForUnifiedStorage(): Promise<void> {
     if (balanceUpdates.length > 0) {
       await unifiedBlobStorage.putBatch(balanceUpdates);
       console.log(`[UnifiedBalanceCollector] Updated ${balanceUpdates.length} individual balance files`);
+    }
+    
+    // Store balance changes in balance-series
+    if (balanceChanges.length > 0) {
+      await storeBalanceChanges(balanceChanges);
     }
     
     // Update the main balances section: read, merge, write
@@ -276,6 +328,138 @@ async function collectBalancesForUnifiedStorage(): Promise<void> {
     
   } catch (error) {
     console.error('[UnifiedBalanceCollector] Error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Detect changes between previous and current balance data
+ */
+function detectBalanceChanges(previous: any, current: any): {
+  hasChanges: boolean;
+  stxChanges: any;
+  tokenChanges: any;
+  nftChanges: any;
+  summary: string;
+} {
+  const changes = {
+    hasChanges: false,
+    stxChanges: {},
+    tokenChanges: {},
+    nftChanges: {},
+    summary: ''
+  };
+  
+  const summaryParts: string[] = [];
+  
+  // Check STX balance changes
+  const prevStx = parseInt(previous.stxBalance || '0');
+  const currStx = parseInt(current.stxBalance || '0');
+  
+  if (prevStx !== currStx) {
+    changes.hasChanges = true;
+    changes.stxChanges = {
+      previous: prevStx.toString(),
+      current: currStx.toString(),
+      difference: (currStx - prevStx).toString(),
+      percentChange: prevStx > 0 ? ((currStx - prevStx) / prevStx * 100).toFixed(2) : null
+    };
+    
+    const stxDiff = (currStx - prevStx) / 1000000; // Convert to STX
+    summaryParts.push(`STX: ${stxDiff > 0 ? '+' : ''}${stxDiff.toFixed(2)}`);
+  }
+  
+  // Check fungible token changes
+  const prevTokens = previous.fungibleTokens || {};
+  const currTokens = current.fungibleTokens || {};
+  const allTokens = new Set([...Object.keys(prevTokens), ...Object.keys(currTokens)]);
+  
+  for (const tokenId of allTokens) {
+    const prevBalance = parseInt(prevTokens[tokenId]?.balance || '0');
+    const currBalance = parseInt(currTokens[tokenId]?.balance || '0');
+    
+    if (prevBalance !== currBalance) {
+      changes.hasChanges = true;
+      changes.tokenChanges[tokenId] = {
+        previous: prevBalance.toString(),
+        current: currBalance.toString(),
+        difference: (currBalance - prevBalance).toString()
+      };
+      
+      const tokenSymbol = tokenId.split('.').pop() || tokenId.slice(-10);
+      summaryParts.push(`${tokenSymbol}: ${currBalance - prevBalance > 0 ? '+' : ''}${currBalance - prevBalance}`);
+    }
+  }
+  
+  // Check NFT changes
+  const prevNfts = previous.nonFungibleTokens || {};
+  const currNfts = current.nonFungibleTokens || {};
+  const allNfts = new Set([...Object.keys(prevNfts), ...Object.keys(currNfts)]);
+  
+  for (const nftId of allNfts) {
+    const prevCount = parseInt(prevNfts[nftId]?.count || '0');
+    const currCount = parseInt(currNfts[nftId]?.count || '0');
+    
+    if (prevCount !== currCount) {
+      changes.hasChanges = true;
+      changes.nftChanges[nftId] = {
+        previous: prevCount.toString(),
+        current: currCount.toString(),
+        difference: (currCount - prevCount).toString()
+      };
+      
+      const nftName = nftId.split('::').pop() || nftId.slice(-15);
+      summaryParts.push(`${nftName} NFT: ${currCount - prevCount > 0 ? '+' : ''}${currCount - prevCount}`);
+    }
+  }
+  
+  changes.summary = summaryParts.length > 0 ? summaryParts.join(', ') : 'No significant changes';
+  
+  return changes;
+}
+
+/**
+ * Store balance changes in the balance-series section
+ */
+async function storeBalanceChanges(balanceChanges: Array<{ address: string; changes: any }>): Promise<void> {
+  try {
+    console.log(`[BalanceSeries] Storing ${balanceChanges.length} balance change records...`);
+    
+    // Group changes by timestamp (5-minute intervals for efficiency)
+    const timestamp = new Date();
+    const intervalKey = `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}-${String(timestamp.getDate()).padStart(2, '0')}_${String(Math.floor(timestamp.getHours())).padStart(2, '0')}-${String(Math.floor(timestamp.getMinutes() / 5) * 5).padStart(2, '0')}`;
+    
+    // Load existing balance series data for this interval
+    let seriesData: any = {};
+    try {
+      seriesData = await unifiedBlobStorage.get(`balance-series/${intervalKey}`) || {};
+    } catch (error) {
+      // No existing data for this interval
+      seriesData = {
+        timestamp: timestamp.toISOString(),
+        interval: intervalKey,
+        intervalStart: new Date(timestamp.getFullYear(), timestamp.getMonth(), timestamp.getDate(), Math.floor(timestamp.getHours()), Math.floor(timestamp.getMinutes() / 5) * 5).toISOString(),
+        source: 'unified-balance-collector',
+        changes: {}
+      };
+    }
+    
+    // Add new changes to the series data
+    for (const change of balanceChanges) {
+      seriesData.changes[change.address] = change.changes;
+    }
+    
+    // Update metadata
+    seriesData.lastUpdated = timestamp.toISOString();
+    seriesData.changeCount = Object.keys(seriesData.changes).length;
+    
+    // Store the series data
+    await unifiedBlobStorage.put(`balance-series/${intervalKey}`, seriesData);
+    
+    console.log(`[BalanceSeries] ✓ Stored balance changes for interval ${intervalKey} with ${balanceChanges.length} new changes`);
+    
+  } catch (error) {
+    console.error('[BalanceSeries] Error storing balance changes:', error);
     throw error;
   }
 }
