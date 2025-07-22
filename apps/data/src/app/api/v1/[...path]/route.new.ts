@@ -26,7 +26,6 @@ export const runtime = 'edge';
  * Each handler is focused on a single responsibility
  */
 class APIRoutes {
-  @smartCache({ debug: process.env.NODE_ENV === 'development' })
   static async handleGet(request: NextRequest, context: APIContext): Promise<NextResponse> {
     context.performance.addMark('handler-logic-start');
 
