@@ -65,7 +65,7 @@ class BalanceService {
   private async fetchFromStacksAPI(address: string): Promise<AddressBalance & { source: 'api' | 'fallback' }> {
     try {
       console.log(`Making API request to Stacks for ${address}...`);
-      
+
       const balances = await getAccountBalances(address, {
         unanchored: true,
         trim: true  // This removes tokenKey suffixes and merges duplicate balances
@@ -86,7 +86,7 @@ class BalanceService {
     } catch (error) {
       console.error(`Stacks API failed for ${address}:`, error);
       console.log(`Falling back to deterministic mock data for ${address}`);
-      
+
       // Generate deterministic fallback data
       return { ...this.generateFallbackData(address), source: 'fallback' as const };
     }
@@ -104,7 +104,9 @@ class BalanceService {
       stx: {
         balance: (seed * 10000 + 1000000).toString(),
         locked: (seed * 1000).toString(),
-        burn_block_height: 800000 + (seed % 100000)
+        burnchain_lock_height: 800000 + (seed % 100000),
+        total_sent: (seed * 500).toString(),
+        total_received: (seed * 1000).toString()
       },
       fungible_tokens: {
         'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token': {

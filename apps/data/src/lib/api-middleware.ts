@@ -29,8 +29,8 @@ export type APIHandler = (request: NextRequest, context: APIContext) => Promise<
  * Performance tracking utilities
  */
 class PerformanceTracker {
-  private startTime: number;
-  private marks: Map<string, number> = new Map();
+  startTime: number;
+  marks: Map<string, number> = new Map();
 
   constructor() {
     this.startTime = Date.now();
@@ -59,12 +59,12 @@ class PerformanceTracker {
  * Creates API middleware that handles common request parsing
  */
 export function withApiMiddleware(handler: APIHandler) {
-  return async function(
+  return async function (
     request: NextRequest,
     { params }: { params: Promise<{ path: string[] }> }
   ): Promise<NextResponse> {
     const performance = new PerformanceTracker();
-    
+
     try {
       // Parse params
       const { path } = await params;
@@ -114,7 +114,7 @@ export function withApiMiddleware(handler: APIHandler) {
       if (query.debug) {
         const totalTime = performance.getDuration();
         const marks = performance.getAllMarks();
-        
+
         response.headers.set('X-Response-Time', `${totalTime}ms`);
         response.headers.set('X-Performance-Marks', JSON.stringify(marks));
       }
@@ -123,7 +123,7 @@ export function withApiMiddleware(handler: APIHandler) {
 
     } catch (error) {
       console.error('API middleware error:', error);
-      
+
       // Return structured error response
       const errorResponse = {
         error: error instanceof Error ? error.message : 'Internal server error',
@@ -131,8 +131,8 @@ export function withApiMiddleware(handler: APIHandler) {
         duration: performance.getDuration()
       };
 
-      return NextResponse.json(errorResponse, { 
-        status: error instanceof APIError ? error.status : 500 
+      return NextResponse.json(errorResponse, {
+        status: error instanceof APIError ? error.status : 500
       });
     }
   };
@@ -144,12 +144,12 @@ export function withApiMiddleware(handler: APIHandler) {
 export function withValidation(
   validator: (context: APIContext) => ValidationResult
 ) {
-  return function(handler: APIHandler): APIHandler {
-    return async function(request: NextRequest, context: APIContext): Promise<NextResponse> {
+  return function (handler: APIHandler): APIHandler {
+    return async function (request: NextRequest, context: APIContext): Promise<NextResponse> {
       context.performance.addMark('validation-start');
-      
+
       const validation = validator(context);
-      
+
       context.performance.addMark('validation-complete');
 
       if (!validation.isValid) {
@@ -250,7 +250,7 @@ export class APIError extends Error {
  * Error handling middleware
  */
 export function withErrorHandling(handler: APIHandler): APIHandler {
-  return async function(request: NextRequest, context: APIContext): Promise<NextResponse> {
+  return async function (request: NextRequest, context: APIContext): Promise<NextResponse> {
     try {
       return await handler(request, context);
     } catch (error) {
