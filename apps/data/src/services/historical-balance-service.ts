@@ -47,7 +47,7 @@ class HistoricalBalanceService {
 
       // Get list of known addresses to track
       const knownAddresses = await this.getKnownAddresses();
-      
+
       if (knownAddresses.length === 0) {
         const error = 'No known addresses to track';
         console.warn(`[HistoricalBalanceService] ${error}`);
@@ -98,7 +98,7 @@ class HistoricalBalanceService {
     try {
       // Get current balance data from balance service
       const balanceData = await balanceService.getAddressBalances(address);
-      
+
       if (!balanceData) {
         throw new Error(`No balance data available for ${address}`);
       }
@@ -107,7 +107,7 @@ class HistoricalBalanceService {
       const balancePoint: HistoricalBalancePoint = {
         timestamp: Date.now(),
         stxBalance: balanceData.stx.balance,
-        stxLocked: balanceData.stx.locked,
+        stxLocked: balanceData.stx.locked || '0',
         fungibleTokens: {},
         nftCounts: {},
         source: 'balance-service'
@@ -153,15 +153,15 @@ class HistoricalBalanceService {
    */
   private async addBalanceToTimeframe(address: string, timeframe: string, balancePoint: HistoricalBalancePoint): Promise<void> {
     const blobKey = `${this.HISTORICAL_BLOB_PREFIX}/${address}/historical/${timeframe}`;
-    
+
     try {
       // Get existing historical data
       let historicalData: HistoricalBalanceData;
-      
+
       try {
         const existing = await blobStorageService.get(blobKey);
         historicalData = existing as HistoricalBalanceData;
-        
+
         // Validate structure
         if (!historicalData.balances || !Array.isArray(historicalData.balances)) {
           throw new Error('Invalid historical balance data structure');
@@ -191,7 +191,7 @@ class HistoricalBalanceService {
 
       // Save back to blob storage
       await blobStorageService.put(blobKey, historicalData);
-      
+
       console.log(`[HistoricalBalanceService] Added balance point for ${address} (${timeframe}) - ${historicalData.dataPoints} total points`);
 
     } catch (error) {
@@ -213,7 +213,7 @@ class HistoricalBalanceService {
       // Get last 12 points (1 hour) and use the latest as the hourly snapshot
       const lastHourPoints = fiveMinData.balances.slice(-12);
       const latestPoint = lastHourPoints[lastHourPoints.length - 1];
-      
+
       // Create hourly aggregate (use latest balances)
       const hourlyPoint: HistoricalBalancePoint = {
         timestamp: Math.floor(Date.now() / (1000 * 60 * 60)) * (1000 * 60 * 60), // Round to hour
@@ -246,7 +246,7 @@ class HistoricalBalanceService {
       // Get last 24 points (1 day) and use the latest as the daily snapshot
       const lastDayPoints = hourlyData.balances.slice(-24);
       const latestPoint = lastDayPoints[lastDayPoints.length - 1];
-      
+
       // Create daily aggregate (use latest balances)
       const dailyPoint: HistoricalBalancePoint = {
         timestamp: Math.floor(Date.now() / (1000 * 60 * 60 * 24)) * (1000 * 60 * 60 * 24), // Round to day
@@ -273,7 +273,7 @@ class HistoricalBalanceService {
     try {
       const blobKey = `${this.HISTORICAL_BLOB_PREFIX}/${address}/historical/${timeframe}`;
       const data = await blobStorageService.get(blobKey) as HistoricalBalanceData;
-      
+
       if (!data) {
         return null;
       }
@@ -301,20 +301,20 @@ class HistoricalBalanceService {
     try {
       // Try to get from known addresses blob first
       const knownAddressesData = await blobStorageService.get(this.KNOWN_ADDRESSES_BLOB);
-      
+
       if (knownAddressesData && Array.isArray(knownAddressesData)) {
         return knownAddressesData;
       }
-      
+
       // Fallback: try to get from root blob addresses
       const rootBlob = await blobStorageService.getRoot();
       if (rootBlob.addresses && typeof rootBlob.addresses === 'object') {
         const addresses = Object.keys(rootBlob.addresses);
         console.log(`[HistoricalBalanceService] Found ${addresses.length} addresses from root blob`);
-        
+
         // Cache these addresses for future use
         await this.updateKnownAddresses(addresses);
-        
+
         return addresses;
       }
 
@@ -324,13 +324,13 @@ class HistoricalBalanceService {
         'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G', // Welsh deployer
         'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR'  // USDA deployer
       ];
-      
+
       console.log(`[HistoricalBalanceService] Using default addresses for tracking: ${defaultAddresses.length}`);
       return defaultAddresses;
-      
+
     } catch (error) {
       console.error('[HistoricalBalanceService] Error getting known addresses:', error);
-      
+
       // Return minimal set for fallback
       return ['SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS'];
     }
@@ -354,10 +354,10 @@ class HistoricalBalanceService {
   async getAvailableAddresses(timeframe: string = '5m'): Promise<string[]> {
     try {
       const addresses: string[] = [];
-      
+
       // Try to get known addresses
       const knownAddresses = await this.getKnownAddresses();
-      
+
       for (const address of knownAddresses) {
         const historicalData = await this.getHistoricalBalances(address, timeframe);
         if (historicalData && historicalData.dataPoints > 0) {
