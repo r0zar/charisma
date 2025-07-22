@@ -70,7 +70,7 @@ export default function PathPage() {
   return (
     <div className="flex h-screen">
       {/* Left Pane - Tree Navigator */}
-      <div className="w-80 border-r border-border bg-card/50">
+      <div className="min-w-96 w-96 border-r border-border bg-card/50">
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-2">
             <div>

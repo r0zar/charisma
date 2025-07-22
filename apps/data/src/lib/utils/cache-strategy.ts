@@ -11,9 +11,9 @@ export interface CachePolicy {
 }
 
 /**
- * Cache policies optimized for different data types
+ * Production cache policies optimized for performance
  */
-export const CACHE_POLICIES = {
+const PRODUCTION_CACHE_POLICIES = {
   // High-frequency market data - 5min cache, 30min stale
   PRICES: {
     sMaxAge: 300,
@@ -63,6 +63,67 @@ export const CACHE_POLICIES = {
     browserCache: 300
   } as CachePolicy
 } as const;
+
+/**
+ * Development cache policies optimized for rapid iteration
+ */
+const DEVELOPMENT_CACHE_POLICIES = {
+  // High-frequency market data - 30sec cache, 2min stale
+  PRICES: {
+    sMaxAge: 30,
+    staleWhileRevalidate: 120,
+    browserCache: 10
+  } as CachePolicy,
+  
+  // Moderately dynamic wallet data - 1min cache, 3min stale
+  BALANCES: {
+    sMaxAge: 60,
+    staleWhileRevalidate: 180,
+    browserCache: 20
+  } as CachePolicy,
+  
+  // Relatively static on-chain data - 2min cache, 5min stale
+  CONTRACTS: {
+    sMaxAge: 120,
+    staleWhileRevalidate: 300,
+    browserCache: 30
+  } as CachePolicy,
+  
+  // Immutable transaction data - 5min cache, 10min stale
+  TRANSACTIONS: {
+    sMaxAge: 300,
+    staleWhileRevalidate: 600,
+    browserCache: 60
+  } as CachePolicy,
+  
+  // Root blob data - very short cache for development
+  ROOT: {
+    sMaxAge: 30,
+    staleWhileRevalidate: 120,
+    browserCache: 10
+  } as CachePolicy,
+  
+  // Real-time streaming data - no cache
+  STREAMING: {
+    sMaxAge: 0,
+    staleWhileRevalidate: 0,
+    browserCache: 0
+  } as CachePolicy,
+  
+  // Tree navigation data - very short cache for development
+  TREE: {
+    sMaxAge: 30,
+    staleWhileRevalidate: 120,
+    browserCache: 10
+  } as CachePolicy
+} as const;
+
+/**
+ * Environment-aware cache policies
+ */
+export const CACHE_POLICIES = process.env.NODE_ENV === 'development' 
+  ? DEVELOPMENT_CACHE_POLICIES 
+  : PRODUCTION_CACHE_POLICIES;
 
 /**
  * Determines cache policy based on API path
