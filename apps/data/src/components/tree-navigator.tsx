@@ -250,12 +250,20 @@ async function buildTreeFromV1Data(rootData: any): Promise<{ [key: string]: Tree
   // Add individual addresses if any exist
   if (rootData.addresses && typeof rootData.addresses === 'object') {
     Object.keys(rootData.addresses).forEach(address => {
-      addressesChildren[`${address}.json`] = {
-        type: 'file',
-        size: JSON.stringify(rootData.addresses[address]).length,
-        lastModified: new Date(rootData.lastUpdated),
-        path: `addresses/${address}`
-      };
+      // Skip metadata fields
+      if (address === 'lastUpdated' || address === 'source' || address === 'addressCount') {
+        return;
+      }
+      
+      // Only include actual Stacks addresses
+      if (address.match(/^S[PTM]/)) {
+        addressesChildren[`${address}.json`] = {
+          type: 'file',
+          size: JSON.stringify(rootData.addresses[address]).length,
+          lastModified: new Date(rootData.lastUpdated),
+          path: `addresses/${address}`
+        };
+      }
     });
   }
   
@@ -270,12 +278,21 @@ async function buildTreeFromV1Data(rootData: any): Promise<{ [key: string]: Tree
   // Add individual contracts if any exist
   if (rootData.contracts && typeof rootData.contracts === 'object') {
     Object.keys(rootData.contracts).forEach(contractId => {
-      contractsChildren[`${contractId}.json`] = {
-        type: 'file',
-        size: JSON.stringify(rootData.contracts[contractId]).length,
-        lastModified: new Date(rootData.lastUpdated),
-        path: `contracts/${contractId}`
-      };
+      // Skip metadata fields
+      if (contractId === 'lastUpdated' || contractId === 'source' || contractId === 'contractCount') {
+        return;
+      }
+      
+      // Only include actual contract IDs (contain a dot)
+      if (contractId.includes('.')) {
+        const contractName = contractId.split('.')[1] || contractId;
+        contractsChildren[`${contractName}.json`] = {
+          type: 'file',
+          size: JSON.stringify(rootData.contracts[contractId]).length,
+          lastModified: new Date(rootData.lastUpdated),
+          path: `contracts/${contractId}`
+        };
+      }
     });
   }
   
