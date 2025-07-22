@@ -450,14 +450,29 @@ export class Router {
   ): Token[][] {
     const out: Token[][] = [];
     const node = this.nodes.get(from);
-    if (!node) return out;
+    if (!node) {
+      if (this.config.debug && path.length === 0) {
+        console.log(`[router] findAllPaths: No node found for ${from}`);
+      }
+      return out;
+    }
 
     const nextPath = [...path, node.token];
 
     // Terminal condition – found target & visited at least one edge
-    if (from === to && nextPath.length >= 2) out.push(nextPath);
+    if (from === to && nextPath.length >= 2) {
+      if (this.config.debug) {
+        console.log(`[router] findAllPaths: Found path to target ${to}, length: ${nextPath.length}`);
+      }
+      out.push(nextPath);
+    }
 
-    if (nextPath.length > this.config.maxHops) return out;
+    if (nextPath.length > this.config.maxHops) {
+      if (this.config.debug && path.length === 0) {
+        console.log(`[router] findAllPaths: Max hops (${this.config.maxHops}) reached for ${from} -> ${to}`);
+      }
+      return out;
+    }
 
     // Group by target token so we evaluate each pool later
     const groups = new Map<string, GraphEdge[]>();
@@ -466,6 +481,10 @@ export class Router {
       if (!groups.has(tid)) groups.set(tid, []);
       groups.get(tid)!.push(e);
     });
+
+    if (this.config.debug && path.length === 0) {
+      console.log(`[router] findAllPaths: Node ${from} has ${node.edges.size} edges to ${groups.size} unique targets`);
+    }
 
     // DFS recurse per neighbour token, avoiding pool reuse
     groups.forEach((edges, tgt) => {
@@ -563,14 +582,23 @@ export class Router {
     // Clear stale cache entries periodically
     this.clearStaleCache();
 
+    if (this.config.debug) {
+      console.log(`[router] findBestRoute: Starting path search from ${from} to ${to}, amount: ${amount}`);
+    }
+
     // Find all possible paths
     const paths = this.findAllPaths(from, to);
-    if (!paths.length) return {
-      path: [],
-      hops: [],
-      amountIn: 0,
-      amountOut: 0
-    };
+    if (!paths.length) {
+      if (this.config.debug) {
+        console.log(`[router] findBestRoute: No paths found from ${from} to ${to}`);
+      }
+      return {
+        path: [],
+        hops: [],
+        amountIn: 0,
+        amountOut: 0
+      };
+    }
 
     if (this.config.debug) {
       console.log(`[router] found ${paths.length} paths from ${from} to ${to}`);

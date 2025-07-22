@@ -1,9 +1,10 @@
 {
-  "extends": ["//"],
+  "extends": [
+    "//"
+  ],
   "tasks": {
     "build": {
       "dependsOn": [
-        "@modules/blob-monitor#build",
         "@repo/polyglot#build"
       ],
       "env": [
@@ -17,7 +18,6 @@
     },
     "dev": {
       "dependsOn": [
-        "@modules/blob-monitor#build",
         "@repo/polyglot#build"
       ]
     }

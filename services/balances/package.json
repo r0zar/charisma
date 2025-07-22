@@ -40,7 +40,6 @@
     "test:e2e:all": "tsx scripts/tests/test-all-reads.ts"
   },
   "dependencies": {
-    "@modules/blob-monitor": "workspace:*",
     "@repo/polyglot": "workspace:*",
     "@repo/tokens": "workspace:*",
     "@swc/helpers": "^0.5.17",

@@ -40,7 +40,6 @@
     "test:quick": "vitest run --coverage"
   },
   "dependencies": {
-    "@modules/blob-monitor": "workspace:*",
     "@modules/contracts": "workspace:*",
     "@repo/polyglot": "workspace:*",
     "@repo/tokens": "workspace:*",

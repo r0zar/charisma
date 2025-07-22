@@ -1,22 +1,22 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { TokenCacheData } from '@/lib/contract-registry-adapter';
+import { CachedTokenMetadata } from '@/lib/cached-balance-client';
 import { getTokenMetadataAction, discoverMissingTokenAction } from '@/app/actions';
 
 interface TokenMetadataContextType {
-  tokens: Record<string, TokenCacheData>;
+  tokens: Record<string, CachedTokenMetadata>;
   isLoading: boolean;
   error: string | null;
   lastUpdate: number;
   refreshTokens: () => Promise<void>;
-  getToken: (contractId: string) => TokenCacheData | null;
+  getToken: (contractId: string) => CachedTokenMetadata | null;
   getTokenSymbol: (contractId: string) => string;
   getTokenName: (contractId: string) => string;
   getTokenImage: (contractId: string) => string | null;
   getTokenDecimals: (contractId: string) => number;
-  discoverMissingToken: (contractId: string) => Promise<TokenCacheData | null>;
-  getTokenWithDiscovery: (contractId: string) => Promise<TokenCacheData | null>;
+  discoverMissingToken: (contractId: string) => Promise<CachedTokenMetadata | null>;
+  getTokenWithDiscovery: (contractId: string) => Promise<CachedTokenMetadata | null>;
 }
 
 const TokenMetadataContext = createContext<TokenMetadataContextType | undefined>(undefined);
@@ -31,7 +31,7 @@ export function useTokenMetadata(): TokenMetadataContextType {
 
 interface TokenMetadataProviderProps {
   children: ReactNode;
-  initialTokens?: TokenCacheData[]; // SSR data to initialize context
+  initialTokens?: CachedTokenMetadata[]; // SSR data to initialize context
 }
 
 export function TokenMetadataProvider({ children, initialTokens }: TokenMetadataProviderProps) {
@@ -40,11 +40,11 @@ export function TokenMetadataProvider({ children, initialTokens }: TokenMetadata
   // Dynamic discovery is still available for missing tokens
 
   // Initialize with SSR data if available
-  const [tokens, setTokens] = useState<Record<string, TokenCacheData>>(() => {
+  const [tokens, setTokens] = useState<Record<string, CachedTokenMetadata>>(() => {
     if (initialTokens) {
       console.log(`[TokenMetadataProvider] Initializing with ${initialTokens.length} SSR tokens`);
-      const tokenRecord: Record<string, TokenCacheData> = {};
-      initialTokens.forEach((token: TokenCacheData) => {
+      const tokenRecord: Record<string, CachedTokenMetadata> = {};
+      initialTokens.forEach((token: CachedTokenMetadata) => {
         tokenRecord[token.contractId] = token;
       });
       
@@ -76,8 +76,8 @@ export function TokenMetadataProvider({ children, initialTokens }: TokenMetadata
       console.log(`[TokenMetadataContext] Loaded ${result.tokens.length} tokens into context`);
       
       // Convert array to record for easier access
-      const tokenRecord: Record<string, TokenCacheData> = {};
-      result.tokens.forEach((token: TokenCacheData) => {
+      const tokenRecord: Record<string, CachedTokenMetadata> = {};
+      result.tokens.forEach((token: CachedTokenMetadata) => {
         tokenRecord[token.contractId] = token;
       });
       
@@ -99,7 +99,7 @@ export function TokenMetadataProvider({ children, initialTokens }: TokenMetadata
     }
   }, []);
 
-  const getToken = useCallback((contractId: string): TokenCacheData | null => {
+  const getToken = useCallback((contractId: string): CachedTokenMetadata | null => {
     return tokens[contractId] || null;
   }, [tokens]);
 
@@ -115,7 +115,7 @@ export function TokenMetadataProvider({ children, initialTokens }: TokenMetadata
 
   const getTokenImage = useCallback((contractId: string): string | null => {
     const token = tokens[contractId];
-    return token?.image || null;
+    return token?.logo || null;
   }, [tokens]);
 
   const getTokenDecimals = useCallback((contractId: string): number => {
@@ -123,7 +123,7 @@ export function TokenMetadataProvider({ children, initialTokens }: TokenMetadata
     return token?.decimals || 6;
   }, [tokens]);
 
-  const discoverMissingToken = useCallback(async (contractId: string): Promise<TokenCacheData | null> => {
+  const discoverMissingToken = useCallback(async (contractId: string): Promise<CachedTokenMetadata | null> => {
     try {
       console.log(`[TokenMetadataProvider] Attempting to discover missing token: ${contractId}`);
       
@@ -152,7 +152,7 @@ export function TokenMetadataProvider({ children, initialTokens }: TokenMetadata
     }
   }, []);
 
-  const getTokenWithDiscovery = useCallback(async (contractId: string): Promise<TokenCacheData | null> => {
+  const getTokenWithDiscovery = useCallback(async (contractId: string): Promise<CachedTokenMetadata | null> => {
     // First try to get from existing tokens
     const existingToken = tokens[contractId];
     if (existingToken) {

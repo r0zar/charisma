@@ -5,7 +5,6 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@modules/blob-monitor#build",
         "@modules/discovery#build",
         "@repo/polyglot#build"
       ],
@@ -22,14 +21,12 @@
     },
     "dev": {
       "dependsOn": [
-        "@modules/blob-monitor#build",
         "@modules/discovery#build",
         "@repo/polyglot#build"
       ]
     },
     "lint": {
       "dependsOn": [
-        "@modules/blob-monitor#build",
         "@modules/discovery#build",
         "@repo/polyglot#build"
       ]

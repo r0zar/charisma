@@ -22,20 +22,20 @@ vi.mock('@vercel/kv', () => ({
     multi: vi.fn(),
     flushall: vi.fn(),
     info: vi.fn(),
-    
+
     // Set operations for IndexManager
     sadd: vi.fn(),
     srem: vi.fn(),
     smembers: vi.fn(),
     scard: vi.fn(),
     sismember: vi.fn(),
-    
+
     // Hash operations (if needed)
     hget: vi.fn(),
     hset: vi.fn(),
     hdel: vi.fn(),
     hgetall: vi.fn(),
-    
+
     // List operations (if needed)
     lpush: vi.fn(),
     rpush: vi.fn(),
@@ -45,65 +45,16 @@ vi.mock('@vercel/kv', () => ({
   }
 }));
 
-// Mock @modules/blob-monitor with comprehensive blob operations
-vi.mock('@modules/blob-monitor', () => ({
-  BlobMonitor: vi.fn().mockImplementation(() => ({
-    // Core blob operations
-    put: vi.fn().mockResolvedValue({ url: 'https://blob.vercel.com/test.json' }),
-    get: vi.fn(),
-    delete: vi.fn().mockResolvedValue(undefined),
-    head: vi.fn().mockResolvedValue({ 
-      url: 'https://blob.vercel.com/test.json',
-      size: 1024,
-      uploadedAt: new Date()
-    }),
-    fetch: vi.fn().mockResolvedValue(new Response('{"test": "data"}', {
-      status: 200,
-      headers: { 'content-type': 'application/json' }
-    })),
-    list: vi.fn().mockResolvedValue({ 
-      blobs: [],
-      hasMore: false,
-      cursor: null
-    }),
-    copy: vi.fn(),
-    
-    // Monitoring operations
-    getStats: vi.fn().mockReturnValue({
-      totalOperations: 0,
-      operationBreakdown: {},
-      cacheHitRate: 0,
-      averageResponseTime: 0,
-      totalCost: 0,
-      costBreakdown: {
-        storage: 0,
-        simpleOperations: 0,
-        advancedOperations: 0,
-        dataTransfer: 0,
-        fastOriginTransfer: 0,
-        total: 0
-      },
-      alerts: [],
-      uptime: Date.now(),
-      lastReset: Date.now()
-    }),
-    getRecentOperations: vi.fn().mockReturnValue([]),
-    getAlerts: vi.fn().mockReturnValue([]),
-    clearResolvedAlerts: vi.fn(),
-    resetStats: vi.fn()
-  }))
-}));
-
 // Mock @vercel/blob directly
 vi.mock('@vercel/blob', () => ({
   put: vi.fn().mockResolvedValue({ url: 'https://blob.vercel.com/test.json' }),
   del: vi.fn().mockResolvedValue(undefined),
-  head: vi.fn().mockResolvedValue({ 
+  head: vi.fn().mockResolvedValue({
     url: 'https://blob.vercel.com/test.json',
     size: 1024,
     uploadedAt: new Date()
   }),
-  list: vi.fn().mockResolvedValue({ 
+  list: vi.fn().mockResolvedValue({
     blobs: [],
     hasMore: false,
     cursor: null
@@ -178,17 +129,17 @@ process.env.HIRO_API_KEY = 'test-api-key';
 // Setup test environment
 beforeEach(() => {
   vi.clearAllMocks();
-  
+
   // Reset fetch mock
   (global.fetch as any).mockClear();
-  
+
   // Reset console mocks
   vi.mocked(console.warn).mockClear();
   vi.mocked(console.error).mockClear();
   vi.mocked(console.log).mockClear();
   vi.mocked(console.info).mockClear();
   vi.mocked(console.debug).mockClear();
-  
+
   // Reset timeout mocks
   vi.mocked(global.setTimeout).mockClear();
   vi.mocked(global.clearTimeout).mockClear();
@@ -221,7 +172,7 @@ export const mockUtils = {
       put: vi.fn().mockResolvedValue({ url: 'https://blob.vercel.com/test.json' }),
       get: vi.fn(),
       delete: vi.fn().mockResolvedValue(undefined),
-      head: vi.fn().mockResolvedValue({ 
+      head: vi.fn().mockResolvedValue({
         url: 'https://blob.vercel.com/test.json',
         size: 1024,
         uploadedAt: new Date()
@@ -230,10 +181,10 @@ export const mockUtils = {
         status: 200,
         headers: { 'content-type': 'application/json' }
       })),
-      list: vi.fn().mockResolvedValue({ 
-        blobs, 
-        hasMore: false, 
-        cursor: null 
+      list: vi.fn().mockResolvedValue({
+        blobs,
+        hasMore: false,
+        cursor: null
       }),
       copy: vi.fn(),
       getStats: vi.fn().mockReturnValue({
@@ -259,7 +210,7 @@ export const mockUtils = {
       clearResolvedAlerts: vi.fn(),
       resetStats: vi.fn()
     };
-    
+
     return mockInstance;
   },
 

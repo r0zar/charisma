@@ -5,7 +5,9 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@modules/blob-monitor#build",
+        "@repo/tokens#build",
+        "dexterity-sdk#build",
+        "@modules/discovery#build",
         "@services/contract-registry#build"
       ],
       "outputs": [
@@ -22,7 +24,9 @@
     },
     "dev": {
       "dependsOn": [
-        "@modules/blob-monitor#build",
+        "@repo/tokens#build",
+        "dexterity-sdk#build",
+        "@modules/discovery#build",
         "@services/contract-registry#build"
       ]
     }

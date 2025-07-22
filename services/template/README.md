@@ -18,7 +18,6 @@ A comprehensive template for creating new services in the Charisma ecosystem wit
 - **Test Utilities**: Helper functions for common testing patterns
 
 ### 📦 Built-in Dependencies
-- **Blob Storage**: `@modules/blob-monitor` for efficient data storage
 - **Key-Value Store**: `@vercel/kv` for fast caching and indexing
 - **Contract Analysis**: `@repo/polyglot` for blockchain contract interaction
 - **Token Registry**: `@repo/tokens` for token metadata and discovery
@@ -247,7 +246,6 @@ throw new ServiceError('Operation failed', 'OPERATION_FAILED');
 
 ### Workspace Dependencies
 The template includes common workspace packages:
-- `@modules/blob-monitor` - Blob storage with monitoring
 - `@modules/contracts` - Contract utilities
 - `@repo/polyglot` - Multi-chain contract interaction
 - `@repo/tokens` - Token registry and metadata

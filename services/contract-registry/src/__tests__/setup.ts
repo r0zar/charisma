@@ -59,54 +59,6 @@ if (!isIntegrationTest) {
     }
   }));
 
-  // Mock @modules/blob-monitor with comprehensive blob operations
-  vi.mock('@modules/blob-monitor', () => ({
-    BlobMonitor: vi.fn().mockImplementation(() => ({
-      // Core blob operations
-      put: vi.fn().mockResolvedValue({ url: 'https://blob.vercel.com/test.json' }),
-      get: vi.fn(),
-      delete: vi.fn().mockResolvedValue(undefined),
-      head: vi.fn().mockResolvedValue({
-        url: 'https://blob.vercel.com/test.json',
-        size: 1024,
-        uploadedAt: new Date()
-      }),
-      fetch: vi.fn().mockResolvedValue(new Response('{"test": "data"}', {
-        status: 200,
-        headers: { 'content-type': 'application/json', 'x-vercel-cache': 'HIT' }
-      })),
-      list: vi.fn().mockResolvedValue({
-        blobs: [],
-        hasMore: false,
-        cursor: null
-      }),
-      copy: vi.fn(),
-
-      // Monitoring operations
-      getStats: vi.fn().mockReturnValue({
-        totalOperations: 0,
-        operationBreakdown: {},
-        cacheHitRate: 0,
-        averageResponseTime: 0,
-        totalCost: 0,
-        costBreakdown: {
-          storage: 0,
-          simpleOperations: 0,
-          advancedOperations: 0,
-          dataTransfer: 0,
-          fastOriginTransfer: 0,
-          total: 0
-        },
-        alerts: [],
-        uptime: Date.now(),
-        lastReset: Date.now()
-      }),
-      getRecentOperations: vi.fn().mockReturnValue([]),
-      getAlerts: vi.fn().mockReturnValue([]),
-      clearResolvedAlerts: vi.fn(),
-      resetStats: vi.fn()
-    }))
-  }));
 
   // Mock @vercel/blob directly
   vi.mock('@vercel/blob', () => ({
@@ -227,75 +179,27 @@ export const mockUtils = {
    * Setup successful blob operations
    */
   setupBlobMocks: (blobs: any[] = [], contracts: Record<string, any> = {}) => {
-    const BlobMonitorMock = vi.mocked(require('@modules/blob-monitor').BlobMonitor);
+    const blobMock = vi.mocked(require('@vercel/blob'));
+    
+    blobMock.list.mockResolvedValue({ blobs, hasMore: false, cursor: null });
+    blobMock.head.mockResolvedValue({
+      url: 'https://blob.vercel.com/test.json',
+      size: 1024,
+      uploadedAt: new Date()
+    });
+    
+    // Mock fetch for contract data
+    (global.fetch as any).mockImplementation((url: string) => {
+      const contractId = Object.keys(contracts)[0];
+      const contractData = contracts[contractId] || { test: 'data' };
 
-    // Get the mock implementation that was created in the global setup
-    const mockInstance = BlobMonitorMock.prototype || BlobMonitorMock.mockImplementation.mock.calls[0]?.[0]() || {
-      put: vi.fn().mockResolvedValue({ url: 'https://blob.vercel.com/test.json' }),
-      get: vi.fn(),
-      delete: vi.fn().mockResolvedValue(undefined),
-      head: vi.fn().mockResolvedValue({
-        url: 'https://blob.vercel.com/test.json',
-        size: 1024,
-        uploadedAt: new Date()
-      }),
-      fetch: vi.fn().mockImplementation((url: string) => {
-        // Try to determine the contract ID from the URL
-        const contractId = Object.keys(contracts)[0];
-        const contractData = contracts[contractId] || { test: 'data' };
+      return Promise.resolve(new Response(JSON.stringify(contractData), {
+        status: 200,
+        headers: { 'content-type': 'application/json', 'x-vercel-cache': 'HIT' }
+      }));
+    });
 
-        return Promise.resolve(new Response(JSON.stringify(contractData), {
-          status: 200,
-          headers: { 'content-type': 'application/json', 'x-vercel-cache': 'HIT' }
-        }));
-      }),
-      list: vi.fn().mockResolvedValue({
-        blobs,
-        hasMore: false,
-        cursor: null
-      }),
-      copy: vi.fn(),
-      getStats: vi.fn().mockReturnValue({
-        totalOperations: 0,
-        operationBreakdown: {},
-        cacheHitRate: 0,
-        averageResponseTime: 0,
-        totalCost: 0,
-        costBreakdown: {
-          storage: 0,
-          simpleOperations: 0,
-          advancedOperations: 0,
-          dataTransfer: 0,
-          fastOriginTransfer: 0,
-          total: 0
-        },
-        alerts: [],
-        uptime: Date.now(),
-        lastReset: Date.now()
-      }),
-      getRecentOperations: vi.fn().mockReturnValue([]),
-      getAlerts: vi.fn().mockReturnValue([]),
-      clearResolvedAlerts: vi.fn(),
-      resetStats: vi.fn()
-    };
-
-    // Update the existing mock to return our custom blobs and contract data
-    if (mockInstance.list) {
-      mockInstance.list.mockResolvedValue({ blobs, hasMore: false, cursor: null });
-    }
-    if (mockInstance.fetch && contracts) {
-      mockInstance.fetch.mockImplementation((url: string) => {
-        const contractId = Object.keys(contracts)[0];
-        const contractData = contracts[contractId] || { test: 'data' };
-
-        return Promise.resolve(new Response(JSON.stringify(contractData), {
-          status: 200,
-          headers: { 'content-type': 'application/json', 'x-vercel-cache': 'HIT' }
-        }));
-      });
-    }
-
-    return mockInstance;
+    return blobMock;
   },
 
   /**

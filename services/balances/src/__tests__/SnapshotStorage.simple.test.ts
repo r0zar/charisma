@@ -5,20 +5,6 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-// Mock all external dependencies
-vi.mock('@modules/blob-monitor', () => ({
-  BlobMonitor: vi.fn().mockImplementation(() => ({
-    put: vi.fn().mockResolvedValue({ url: 'https://blob.example.com/snapshot.json.gz' }),
-    fetch: vi.fn().mockResolvedValue(new Response()),
-    head: vi.fn().mockResolvedValue({ size: '1000', uploadedAt: '2023-01-01' }),
-    delete: vi.fn().mockResolvedValue(undefined),
-    getStats: vi.fn().mockReturnValue({ totalOperations: 0, totalCost: 0 }),
-    getRecentOperations: vi.fn().mockReturnValue([]),
-    getAlerts: vi.fn().mockReturnValue([]),
-    clearResolvedAlerts: vi.fn(),
-    resetStats: vi.fn()
-  }))
-}));
 
 vi.mock('../utils/snapshot-utils', () => ({
   compressSnapshot: vi.fn().mockResolvedValue({

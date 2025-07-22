@@ -27,13 +27,6 @@ vi.mock('../storage/BalanceTimeSeriesStore', () => ({
   }))
 }));
 
-vi.mock('@modules/blob-monitor', () => ({
-  BlobMonitor: vi.fn().mockImplementation(() => ({
-    getStats: vi.fn().mockReturnValue({}),
-    getRecentOperations: vi.fn().mockReturnValue([]),
-    getAlerts: vi.fn().mockReturnValue([])
-  }))
-}));
 
 describe('BalanceSeriesAPI - Coverage Tests', () => {
   let api: BalanceSeriesAPI;

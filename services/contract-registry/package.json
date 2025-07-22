@@ -65,7 +65,6 @@
     "script:verify-consolidated-blob": "tsx scripts/verify-consolidated-blob.ts"
   },
   "dependencies": {
-    "@modules/blob-monitor": "workspace:*",
     "@modules/contracts": "workspace:*",
     "@modules/discovery": "workspace:*",
     "@repo/polyglot": "workspace:*",

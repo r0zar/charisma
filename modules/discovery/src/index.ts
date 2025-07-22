@@ -6,13 +6,29 @@
 import { HOSTS } from './hosts';
 
 export type HostName = keyof typeof HOSTS;
-export type Environment = 'development' | 'production';
+export type Environment = 'development' | 'production' | 'test';
 
 /**
  * Check if we're in development environment
  */
 export function isDevelopment(): boolean {
   return process.env.NODE_ENV === 'development';
+}
+
+/**
+ * Check if we're in test environment
+ */
+export function isTest(): boolean {
+  return process.env.NODE_ENV === 'test';
+}
+
+/**
+ * Auto-detect the current environment
+ */
+export function getEnvironment(): Environment {
+  if (isDevelopment()) return 'development';
+  if (isTest()) return 'test';
+  return 'production';
 }
 
 /**
@@ -27,7 +43,7 @@ export function getHostUrl(hostName: HostName, environment?: Environment): strin
     throw new Error(`Unknown host: ${hostName}`);
   }
 
-  const env = environment || (isDevelopment() ? 'development' : 'production');
+  const env = environment || getEnvironment();
   return host[env];
 }
 

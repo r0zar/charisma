@@ -2,11 +2,10 @@
  * BlobStorage - Simple blob storage wrapper for contract metadata
  * 
  * Stores contract metadata as individual JSON files in blob storage.
- * Uses @modules/blob-monitor for monitoring and size enforcement.
  * Optimized for the 512MB cache limit for free blob storage.
  */
 
-import { BlobMonitor } from '@modules/blob-monitor';
+import { put, head, list, del } from '@vercel/blob';
 import type { ContractMetadata, ConsolidatedRegistry } from '../types';
 
 export interface BlobStorageConfig {
@@ -33,14 +32,9 @@ export interface BlobStorageStats {
 }
 
 export class BlobStorage {
-  private monitor: BlobMonitor;
   private config: BlobStorageConfig;
 
   constructor(config: BlobStorageConfig) {
-    if (process.env.BLOB_BASE_URL === undefined) {
-      throw new Error('BLOB_BASE_URL environment variable is required for BlobStorage');
-    }
-    
     if (process.env.BLOB_READ_WRITE_TOKEN === undefined) {
       throw new Error('BLOB_READ_WRITE_TOKEN environment variable is required for BlobStorage');
     }
@@ -50,18 +44,6 @@ export class BlobStorage {
       ...config,
       pathPrefix: config.pathPrefix || 'contracts/'
     };
-
-    this.monitor = new BlobMonitor({
-      serviceName: this.config.serviceName,
-      enforcementLevel: this.config.enforcementLevel,
-      enableCostTracking: true,
-      enableCapacityTracking: true,
-      sizeThresholds: {
-        warning: 400 * 1024 * 1024,  // 400MB warning
-        error: 500 * 1024 * 1024,    // 500MB error  
-        critical: 512 * 1024 * 1024  // 512MB critical (cache limit)
-      }
-    });
   }
 
   /**
@@ -78,11 +60,10 @@ export class BlobStorage {
     const compressed = JSON.stringify(metadata, null, 0); // No pretty printing
 
     try {
-      await this.monitor.put(path, compressed, {
+      await put(path, compressed, {
         contentType: 'application/json',
         access: 'public', // Required for Vercel Blob storage
         addRandomSuffix: false, // Disable random suffix to ensure consistent URLs
-        allowOverwrite: true // Allow overwriting for testing
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -101,10 +82,18 @@ export class BlobStorage {
     const path = this.getContractPath(contractId);
 
     try {
-      // COST OPTIMIZATION: Construct blob URL directly to avoid HEAD operations
-      // HEAD operations cost money on Vercel, but fetches are free
-      const blobUrl = this.constructBlobUrl(path);
-      const response = await this.monitor.fetch(blobUrl);
+      // Use @vercel/blob head to check if contract exists
+      const blobResult = await head(path);
+      if (!blobResult) {
+        // Try auto-discovery if callback is provided
+        if (autoDiscoveryCallback) {
+          return await autoDiscoveryCallback(contractId);
+        }
+        return null;
+      }
+
+      // Fetch the blob content
+      const response = await fetch(blobResult.url);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -152,8 +141,16 @@ export class BlobStorage {
     const path = this.getContractPath(contractId);
 
     try {
-      const blobUrl = this.constructBlobUrl(path);
-      const response = await this.monitor.fetch(blobUrl);
+      const blobResult = await head(path);
+      if (!blobResult) {
+        const duration = performance.now() - startTime;
+        return {
+          contract: null,
+          metrics: { cacheHit: false, duration }
+        };
+      }
+
+      const response = await fetch(blobResult.url);
 
       const cacheHit = response.headers.get('x-vercel-cache') === 'HIT';
 
@@ -201,7 +198,7 @@ export class BlobStorage {
     const path = this.getContractPath(contractId);
 
     try {
-      const result = await this.monitor.head(path);
+      const result = await head(path);
       return !!result;
     } catch (error) {
       return false;
@@ -215,7 +212,7 @@ export class BlobStorage {
     const path = this.getContractPath(contractId);
 
     try {
-      await this.monitor.delete(path);
+      await del(path);
     } catch (error) {
       // Don't throw if blob doesn't exist
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -230,12 +227,12 @@ export class BlobStorage {
    */
   async listContracts(): Promise<string[]> {
     try {
-      const result = await this.monitor.list({
+      const result = await list({
         prefix: this.config.pathPrefix
       });
 
       return result.blobs
-        .map(blob => this.extractContractIdFromPath(blob.pathname))
+        .map((blob: any) => this.extractContractIdFromPath(blob.pathname))
         .filter(id => id !== null) as string[];
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -262,7 +259,7 @@ export class BlobStorage {
       const OVERSIZED_CONTRACT_THRESHOLD = 1024 * 1024 * 1024; // 1GB - practically problematic
 
       while (hasMore) {
-        const result = await this.monitor.list({
+        const result: any = await list({
           prefix: this.config.pathPrefix,
           limit: 1000, // Use the maximum limit for efficiency
           cursor
@@ -274,7 +271,7 @@ export class BlobStorage {
         // Update total size and track contract size metrics
         for (const blob of result.blobs) {
           totalSize += blob.size;
-          const contractId = this.extractContractIdFromPath(blob.pathname) || 'unknown';
+          const contractId = this.extractContractIdFromPath((blob as any).pathname) || 'unknown';
 
           // Track largest contract
           if (!largestContract || blob.size > largestContract.size) {
@@ -462,26 +459,6 @@ export class BlobStorage {
     return { successful, failed };
   }
 
-  /**
-   * Get monitoring statistics from BlobMonitor
-   */
-  getMonitoringStats() {
-    return this.monitor.getStats();
-  }
-
-  /**
-   * Get recent storage operations
-   */
-  getRecentOperations(limit: number = 10) {
-    return this.monitor.getRecentOperations(limit);
-  }
-
-  /**
-   * Get active alerts from monitoring
-   */
-  getAlerts() {
-    return this.monitor.getAlerts();
-  }
 
   /**
    * Process a single contract with error handling - used by sliding window algorithm
@@ -563,21 +540,6 @@ export class BlobStorage {
     return `${this.config.pathPrefix}${sanitized}.json`;
   }
 
-  /**
-   * Construct direct blob URL to avoid HEAD operations
-   * Requires BLOB_BASE_URL environment variable
-   */
-  private constructBlobUrl(path: string): string {
-    if (!process.env.BLOB_BASE_URL) {
-      throw new Error('BLOB_BASE_URL environment variable is required for direct blob access');
-    }
-
-    const baseUrl = process.env.BLOB_BASE_URL;
-    // Ensure baseUrl ends with / and path doesn't start with /
-    const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
-    const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
-    return `${normalizedBaseUrl}${normalizedPath}`;
-  }
 
   /**
    * Extract contract ID from blob path
@@ -732,12 +694,17 @@ export class ConsolidatedBlobManager {
     try {
       console.log('[ConsolidatedBlobManager] Loading consolidated blob...');
 
-      // Use the same URL construction pattern as the rest of the codebase
+      // Get the blob using head then fetch
       const filePath = this.blobStorage['config'].pathPrefix + ConsolidatedBlobManager.CONSOLIDATED_PATH;
-      const blobUrl = this.blobStorage['constructBlobUrl'](filePath);
-      console.log(`[ConsolidatedBlobManager] Fetching from URL: ${blobUrl}`);
+      console.log(`[ConsolidatedBlobManager] Fetching from path: ${filePath}`);
+      
+      const blobResult = await head(filePath);
+      if (!blobResult) {
+        console.log('[ConsolidatedBlobManager] No consolidated blob found');
+        return null;
+      }
 
-      const response = await this.blobStorage['monitor'].fetch(blobUrl);
+      const response = await fetch(blobResult.url);
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -782,11 +749,10 @@ export class ConsolidatedBlobManager {
       console.log(`[ConsolidatedBlobManager] Saving to path: ${filePath}`);
       console.log(`[ConsolidatedBlobManager] Data size: ${Math.round(jsonData.length / 1024)}KB`);
 
-      const result = await this.blobStorage['monitor'].put(filePath, jsonData, {
+      const result = await put(filePath, jsonData, {
         contentType: 'application/json',
         access: 'public',
         addRandomSuffix: false, // Disable random suffix for consistent URLs
-        allowOverwrite: true
       });
 
       console.log(`[ConsolidatedBlobManager] Save result URL: ${result.url}`);

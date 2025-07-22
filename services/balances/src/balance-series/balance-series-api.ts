@@ -3,10 +3,8 @@
  * Bulk time series requests for balance data with cache optimization
  */
 
-import { BlobMonitor } from '@modules/blob-monitor';
 import type {
   BalancePoint,
-  TimePeriod,
   BalanceSeriesRequest,
   BalanceSeriesResponse,
   BulkBalanceRequest,
@@ -24,19 +22,12 @@ import { BalanceService } from '../service/BalanceService';
 export class BalanceSeriesAPI {
   private currentStore: KVBalanceStore;
   private timeSeriesStore: BalanceTimeSeriesStore;
-  private blobMonitor: BlobMonitor;
   private balanceService: BalanceService;
-  
+
   constructor(balanceService?: BalanceService) {
     this.currentStore = new KVBalanceStore();
     this.timeSeriesStore = new BalanceTimeSeriesStore();
     this.balanceService = balanceService || new BalanceService();
-    this.blobMonitor = new BlobMonitor({
-      serviceName: 'balance-series-api',
-      enforcementLevel: 'warn',
-      enableCostTracking: true,
-      enableCapacityTracking: true
-    });
   }
 
   /**
@@ -50,7 +41,7 @@ export class BalanceSeriesAPI {
 
     try {
       const { addresses, contractIds, period, granularity = 'day', includeSnapshots = false, limit = 100 } = request;
-      
+
       // Validate inputs
       if (!addresses.length || !contractIds.length) {
         throw new Error('Addresses and contract IDs are required');
@@ -59,11 +50,11 @@ export class BalanceSeriesAPI {
       const timeRange = periodToTimeRange(period);
       const timeSeries: Record<string, Record<string, BalancePoint[]>> = {};
       const snapshots: Record<string, BalanceSnapshot[]> = {};
-      
+
       // Process each address
       for (const address of addresses) {
         timeSeries[address] = {};
-        
+
         // Get time series for each contract
         for (const contractId of contractIds) {
           try {
@@ -73,13 +64,13 @@ export class BalanceSeriesAPI {
               granularity: timeRange.granularity,
               limit
             });
-            
+
             timeSeries[address][contractId] = history;
-            
+
             // Count blobs accessed (estimate based on months)
             const months = getMonthRange(timeRange.from, timeRange.to);
             blobsAccessed += months.length;
-            
+
             // Assume cache hit if we got data quickly
             if (history.length > 0) {
               cacheHits++;
@@ -92,7 +83,7 @@ export class BalanceSeriesAPI {
             cacheMisses++;
           }
         }
-        
+
         // Get snapshots if requested
         if (includeSnapshots) {
           try {
@@ -102,7 +93,7 @@ export class BalanceSeriesAPI {
               timeRange.to
             );
             snapshots[address] = addressSnapshots;
-            
+
             // Count additional blobs for snapshots
             const years = Math.ceil((timeRange.to - timeRange.from) / (365 * 24 * 60 * 60 * 1000));
             blobsAccessed += years;
@@ -144,14 +135,14 @@ export class BalanceSeriesAPI {
 
     try {
       const { addresses, contractIds, includeZeroBalances = false } = request;
-      
+
       const results: Record<string, Record<string, string>> = {};
-      
+
       // Process each address
       for (const address of addresses) {
         try {
           const balances = await this.currentStore.getAddressBalances(address);
-          
+
           // Filter to requested contracts if specified
           if (contractIds) {
             const filtered: Record<string, string> = {};
@@ -176,7 +167,7 @@ export class BalanceSeriesAPI {
               results[address] = filtered;
             }
           }
-          
+
           cacheHits++;
         } catch (error) {
           console.warn(`Failed to get balances for ${address}:`, error);

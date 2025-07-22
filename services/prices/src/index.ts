@@ -1,37 +1,19 @@
-// === THREE-ENGINE ARCHITECTURE ===
-
-// Core types and interfaces
-export * from './shared/types';
-
-// Price series types
-export * from './price-series/price-series-storage';
-export * from './price-series/price-series-api';
+// === SIMPLIFIED ORACLE-ONLY ARCHITECTURE ===
 
 // Shared utilities
 export * from './shared/decimal-utils';
 
-// Three engines
-export { OracleEngine } from './engines/oracle-engine';
-export { CpmmEngine } from './engines/cpmm-engine';
-export { VirtualEngine } from './engines/virtual-engine';
+// Oracle Price Engine
+export * from './engines/oracle-price-engine';
 
-// LP token support for virtual engine
-export * from './engines/lp-token-calculator';
-export * from './engines/lp-dependency-graph';
-export * from './engines/lp-processing-queue';
+// Oracle adapters
+export * from './oracles';
 
-// Orchestrator (main interface)
-export { PriceServiceOrchestrator } from './orchestrator/price-service-orchestrator';
-
-// Price series (public API layer)
-export { PriceSeriesStorage } from './price-series/price-series-storage';
-export { PriceSeriesAPI } from './price-series/price-series-api';
-export { PriceUpdateScheduler } from './price-series/price-update-scheduler';
-
-// === ADAPTERS (for backward compatibility) ===
-
-// Legacy adapters that wrap the new three-engine architecture
-export * from './adapters';
-
-// Legacy type exports
-export type { VaultLiquidityProvider } from './engines/lp-token-calculator';
+// Price series (storage layer)
+export { SimpleBlobStorage } from './price-series/simple-blob-storage';
+export {
+    createBlobFromPriceResults,
+    appendPricesToBlob,
+    serializeBlobData,
+    deserializeBlobData
+} from './price-series/blob-builder';

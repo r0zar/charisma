@@ -1,9 +1,10 @@
 {
-  "extends": ["//"],
+  "extends": [
+    "//"
+  ],
   "tasks": {
     "build": {
       "dependsOn": [
-        "@modules/blob-monitor#build",
         "@repo/polyglot#build"
       ],
       "env": [
@@ -12,12 +13,12 @@
         "KV_URL",
         "KV_REST_API_URL",
         "KV_REST_API_TOKEN",
-        "KV_REST_API_READ_ONLY_TOKEN"
+        "KV_REST_API_READ_ONLY_TOKEN",
+        "HIRO_API_KEY"
       ]
     },
     "dev": {
       "dependsOn": [
-        "@modules/blob-monitor#build",
         "@repo/polyglot#build"
       ]
     }

@@ -23,26 +23,6 @@ vi.mock('@vercel/kv', () => ({
   }
 }));
 
-// Mock @modules/blob-monitor
-vi.mock('@modules/blob-monitor', () => ({
-  BlobMonitor: vi.fn().mockImplementation(() => ({
-    put: vi.fn(),
-    get: vi.fn(),
-    delete: vi.fn(),
-    head: vi.fn(),
-    fetch: vi.fn(),
-    getStats: vi.fn().mockReturnValue({
-      totalOperations: 0,
-      totalSize: 0,
-      costThisMonth: 0
-    }),
-    getRecentOperations: vi.fn().mockReturnValue([]),
-    getAlerts: vi.fn().mockReturnValue([]),
-    clearResolvedAlerts: vi.fn(),
-    resetStats: vi.fn()
-  }))
-}));
-
 // Mock @vercel/blob
 vi.mock('@vercel/blob', () => ({
   put: vi.fn(),

@@ -12,43 +12,20 @@ import {
   mockFactory
 } from '../fixtures/test-fixtures';
 
-// Create properly typed mock object factory
-const createMockBlobMonitor = () => ({
-  put: vi.fn(),
-  get: vi.fn(),
-  delete: vi.fn(),
-  head: vi.fn(),
-  fetch: vi.fn(),
-  list: vi.fn(),
-  copy: vi.fn(),
-  getStats: vi.fn(),
-  getRecentOperations: vi.fn(),
-  getAlerts: vi.fn(),
-  clearResolvedAlerts: vi.fn(),
-  resetStats: vi.fn()
-});
-
-// Mock BlobMonitor module
-vi.mock('@modules/blob-monitor', () => ({
-  BlobMonitor: vi.fn()
-}));
+// Mock @vercel/blob module
+vi.mock('@vercel/blob');
 
 describe('BlobStorage', () => {
   let blobStorage: BlobStorage;
-  let mockBlobMonitor: ReturnType<typeof createMockBlobMonitor>;
+  let mockBlob: any;
 
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Create fresh mock instance
-    mockBlobMonitor = createMockBlobMonitor();
-
-    // Setup constructor mock
-    const { BlobMonitor } = await import('@modules/blob-monitor');
-    vi.mocked(BlobMonitor).mockImplementation(() => mockBlobMonitor as any);
+    // Get mocked @vercel/blob functions
+    mockBlob = await import('@vercel/blob');
 
     // Set required environment variable for tests
-    process.env.BLOB_BASE_URL = 'https://test.blob.storage.vercel.app';
 
     // Setup default successful mock responses
     setupDefaultMockResponses();
@@ -62,35 +39,35 @@ describe('BlobStorage', () => {
 
   function setupDefaultMockResponses() {
     // Default successful responses
-    mockBlobMonitor.put.mockResolvedValue({
+    mockBlob.put.mockResolvedValue({
       url: 'https://blob.vercel.com/test.json'
     });
 
-    mockBlobMonitor.head.mockResolvedValue({
+    mockBlob.head.mockResolvedValue({
       url: 'https://blob.vercel.com/test.json',
       size: 1024,
       uploadedAt: new Date()
     });
 
-    mockBlobMonitor.fetch.mockResolvedValue(new Response('{"test": "data"}', {
+    mockBlob.fetch.mockResolvedValue(new Response('{"test": "data"}', {
       status: 200,
       headers: { 'content-type': 'application/json' }
     }));
 
-    mockBlobMonitor.delete.mockResolvedValue(undefined);
+    mockBlob.delete.mockResolvedValue(undefined);
 
-    mockBlobMonitor.list.mockResolvedValue({
+    mockBlob.list.mockResolvedValue({
       blobs: [],
       hasMore: false,
       cursor: null
     });
 
-    mockBlobMonitor.get.mockResolvedValue(null);
-    mockBlobMonitor.copy.mockResolvedValue(undefined);
-    mockBlobMonitor.clearResolvedAlerts.mockResolvedValue(undefined);
-    mockBlobMonitor.resetStats.mockResolvedValue(undefined);
+    mockBlob.get.mockResolvedValue(null);
+    mockBlob.copy.mockResolvedValue(undefined);
+    mockBlob.clearResolvedAlerts.mockResolvedValue(undefined);
+    mockBlob.resetStats.mockResolvedValue(undefined);
 
-    mockBlobMonitor.getStats.mockReturnValue({
+    mockBlob.getStats.mockReturnValue({
       totalOperations: 0,
       operationBreakdown: {},
       cacheHitRate: 0,
@@ -109,8 +86,8 @@ describe('BlobStorage', () => {
       lastReset: Date.now()
     });
 
-    mockBlobMonitor.getRecentOperations.mockReturnValue([]);
-    mockBlobMonitor.getAlerts.mockReturnValue([]);
+    mockBlob.getRecentOperations.mockReturnValue([]);
+    mockBlob.getAlerts.mockReturnValue([]);
   }
 
   describe('Configuration', () => {
@@ -150,7 +127,7 @@ describe('BlobStorage', () => {
 
       await blobStorage.putContract(SAMPLE_CONTRACT_IDS.SIP010_TOKEN, metadata);
 
-      expect(mockBlobMonitor.put).toHaveBeenCalledWith(
+      expect(mockBlob.put).toHaveBeenCalledWith(
         'test-contracts/SP6P4EJF0VG8V0RB3TQQKJBHDQKEF6NVRD1KZE3C.charisma-token.json',
         JSON.stringify(metadata, null, 0),
         {
@@ -168,7 +145,7 @@ describe('BlobStorage', () => {
 
       await blobStorage.putContract(contractId, metadata);
 
-      expect(mockBlobMonitor.put).toHaveBeenCalledWith(
+      expect(mockBlob.put).toHaveBeenCalledWith(
         'test-contracts/SP123.contract-with-dashes.json',
         expect.any(String),
         expect.any(Object)
@@ -177,7 +154,7 @@ describe('BlobStorage', () => {
 
     it('should throw error when blob storage fails', async () => {
       const metadata = createSampleContractMetadata(SAMPLE_CONTRACT_IDS.SIP010_TOKEN);
-      mockBlobMonitor.put.mockRejectedValueOnce(ERROR_SCENARIOS.NETWORK_ERROR);
+      mockBlob.put.mockRejectedValueOnce(ERROR_SCENARIOS.NETWORK_ERROR);
 
       await expect(
         blobStorage.putContract(SAMPLE_CONTRACT_IDS.SIP010_TOKEN, metadata)
@@ -189,7 +166,7 @@ describe('BlobStorage', () => {
 
       await blobStorage.putContract(SAMPLE_CONTRACT_IDS.SIP010_TOKEN, metadata);
 
-      const storedData = mockBlobMonitor.put.mock.calls[0][1];
+      const storedData = mockBlob.put.mock.calls[0][1];
       expect(storedData).not.toContain('\n  '); // No indentation in the stored JSON
       expect(storedData).toEqual(JSON.stringify(metadata, null, 0)); // Compact JSON
     });
@@ -207,13 +184,13 @@ describe('BlobStorage', () => {
     it('should retrieve contract metadata successfully', async () => {
       const metadata = createSampleContractMetadata(SAMPLE_CONTRACT_IDS.SIP010_TOKEN);
 
-      mockBlobMonitor.head.mockResolvedValueOnce({
+      mockBlob.head.mockResolvedValueOnce({
         url: 'https://blob.vercel.com/test.json',
         size: 1024,
         uploadedAt: new Date()
       });
 
-      mockBlobMonitor.fetch.mockResolvedValueOnce(new Response(
+      mockBlob.fetch.mockResolvedValueOnce(new Response(
         JSON.stringify(metadata),
         { status: 200, headers: { 'content-type': 'application/json' } }
       ));
@@ -221,13 +198,13 @@ describe('BlobStorage', () => {
       const result = await blobStorage.getContract(SAMPLE_CONTRACT_IDS.SIP010_TOKEN);
 
       expect(result).toEqual(metadata);
-      expect(mockBlobMonitor.fetch).toHaveBeenCalledWith(
+      expect(mockBlob.fetch).toHaveBeenCalledWith(
         'https://test.blob.storage.vercel.app/test-contracts/SP6P4EJF0VG8V0RB3TQQKJBHDQKEF6NVRD1KZE3C.charisma-token.json'
       );
     });
 
     it('should return null for non-existent contract', async () => {
-      mockBlobMonitor.fetch.mockResolvedValueOnce(new Response('', {
+      mockBlob.fetch.mockResolvedValueOnce(new Response('', {
         status: 404,
         statusText: 'Not Found'
       }));
@@ -240,7 +217,7 @@ describe('BlobStorage', () => {
     it('should return null when blob fetch fails with 404', async () => {
       const error = new Error('Blob not found');
       error.message = 'not found';
-      mockBlobMonitor.fetch.mockRejectedValueOnce(error);
+      mockBlob.fetch.mockRejectedValueOnce(error);
 
       const result = await blobStorage.getContract('SP123.missing');
 
@@ -248,10 +225,10 @@ describe('BlobStorage', () => {
     });
 
     it('should throw error for other fetch failures', async () => {
-      mockBlobMonitor.head.mockResolvedValueOnce({
+      mockBlob.head.mockResolvedValueOnce({
         url: 'https://blob.vercel.com/test.json'
       });
-      mockBlobMonitor.fetch.mockRejectedValueOnce(ERROR_SCENARIOS.NETWORK_ERROR);
+      mockBlob.fetch.mockRejectedValueOnce(ERROR_SCENARIOS.NETWORK_ERROR);
 
       await expect(
         blobStorage.getContract(SAMPLE_CONTRACT_IDS.SIP010_TOKEN)
@@ -259,11 +236,11 @@ describe('BlobStorage', () => {
     });
 
     it('should handle malformed JSON gracefully', async () => {
-      mockBlobMonitor.head.mockResolvedValueOnce({
+      mockBlob.head.mockResolvedValueOnce({
         url: 'https://blob.vercel.com/test.json'
       });
 
-      mockBlobMonitor.fetch.mockResolvedValueOnce(new Response(
+      mockBlob.fetch.mockResolvedValueOnce(new Response(
         '{"invalid": json}',
         { status: 200 }
       ));
@@ -282,7 +259,7 @@ describe('BlobStorage', () => {
       const contractIds = [SAMPLE_CONTRACT_IDS.SIP010_TOKEN, SAMPLE_CONTRACT_IDS.SIP009_NFT];
 
       // Mock fetch to return different data for each call
-      mockBlobMonitor.fetch
+      mockBlob.fetch
         .mockResolvedValueOnce(new Response(JSON.stringify(metadata1), { status: 200 }))
         .mockResolvedValueOnce(new Response(JSON.stringify(metadata2), { status: 200 }));
 
@@ -304,7 +281,7 @@ describe('BlobStorage', () => {
       const metadata = createSampleContractMetadata(SAMPLE_CONTRACT_IDS.SIP010_TOKEN);
       const contractIds = [SAMPLE_CONTRACT_IDS.SIP010_TOKEN, 'SP123.failing-contract'];
 
-      mockBlobMonitor.fetch
+      mockBlob.fetch
         .mockResolvedValueOnce(new Response(JSON.stringify(metadata), { status: 200 }))
         .mockRejectedValueOnce(ERROR_SCENARIOS.NETWORK_ERROR);
 
@@ -319,7 +296,7 @@ describe('BlobStorage', () => {
 
   describe('hasContract', () => {
     it('should return true for existing contract', async () => {
-      mockBlobMonitor.head.mockResolvedValueOnce({
+      mockBlob.head.mockResolvedValueOnce({
         url: 'https://blob.vercel.com/test.json'
       });
 
@@ -329,7 +306,7 @@ describe('BlobStorage', () => {
     });
 
     it('should return false for non-existent contract', async () => {
-      mockBlobMonitor.head.mockResolvedValueOnce(null);
+      mockBlob.head.mockResolvedValueOnce(null);
 
       const result = await blobStorage.hasContract('SP123.non-existent');
 
@@ -337,7 +314,7 @@ describe('BlobStorage', () => {
     });
 
     it('should return false when head operation fails', async () => {
-      mockBlobMonitor.head.mockRejectedValueOnce(ERROR_SCENARIOS.NETWORK_ERROR);
+      mockBlob.head.mockRejectedValueOnce(ERROR_SCENARIOS.NETWORK_ERROR);
 
       const result = await blobStorage.hasContract('SP123.error');
 
@@ -345,7 +322,7 @@ describe('BlobStorage', () => {
     });
 
     it('should cache head operation results', async () => {
-      mockBlobMonitor.head.mockResolvedValue({
+      mockBlob.head.mockResolvedValue({
         url: 'https://blob.vercel.com/test.json'
       });
 
@@ -354,7 +331,7 @@ describe('BlobStorage', () => {
       await blobStorage.hasContract(SAMPLE_CONTRACT_IDS.SIP010_TOKEN);
 
       // Should only call head once due to caching (if implemented)
-      expect(mockBlobMonitor.head).toHaveBeenCalledTimes(2); // Adjust based on actual implementation
+      expect(mockBlob.head).toHaveBeenCalledTimes(2); // Adjust based on actual implementation
     });
   });
 
@@ -362,7 +339,7 @@ describe('BlobStorage', () => {
     it('should remove contract successfully', async () => {
       await blobStorage.removeContract(SAMPLE_CONTRACT_IDS.SIP010_TOKEN);
 
-      expect(mockBlobMonitor.delete).toHaveBeenCalledWith(
+      expect(mockBlob.delete).toHaveBeenCalledWith(
         'test-contracts/SP6P4EJF0VG8V0RB3TQQKJBHDQKEF6NVRD1KZE3C.charisma-token.json'
       );
     });
@@ -370,7 +347,7 @@ describe('BlobStorage', () => {
     it('should not throw when removing non-existent contract', async () => {
       const error = new Error('Blob not found');
       error.message = 'not found';
-      mockBlobMonitor.delete.mockRejectedValueOnce(error);
+      mockBlob.delete.mockRejectedValueOnce(error);
 
       await expect(
         blobStorage.removeContract('SP123.non-existent')
@@ -378,7 +355,7 @@ describe('BlobStorage', () => {
     });
 
     it('should throw error for other removal failures', async () => {
-      mockBlobMonitor.delete.mockRejectedValueOnce(ERROR_SCENARIOS.NETWORK_ERROR);
+      mockBlob.delete.mockRejectedValueOnce(ERROR_SCENARIOS.NETWORK_ERROR);
 
       await expect(
         blobStorage.removeContract(SAMPLE_CONTRACT_IDS.SIP010_TOKEN)
@@ -387,7 +364,7 @@ describe('BlobStorage', () => {
 
     it('should handle permission errors gracefully', async () => {
       const permissionError = new Error('Permission denied');
-      mockBlobMonitor.delete.mockRejectedValueOnce(permissionError);
+      mockBlob.delete.mockRejectedValueOnce(permissionError);
 
       await expect(
         blobStorage.removeContract(SAMPLE_CONTRACT_IDS.SIP010_TOKEN)
@@ -403,7 +380,7 @@ describe('BlobStorage', () => {
         { pathname: 'test-contracts/SP789_contract3.json', size: 512, uploadedAt: new Date() }
       ];
 
-      mockBlobMonitor.list.mockResolvedValueOnce({
+      mockBlob.list.mockResolvedValueOnce({
         blobs: mockBlobs,
         hasMore: false,
         cursor: null
@@ -419,7 +396,7 @@ describe('BlobStorage', () => {
     });
 
     it('should return empty array when no contracts exist', async () => {
-      mockBlobMonitor.list.mockResolvedValueOnce({
+      mockBlob.list.mockResolvedValueOnce({
         blobs: [],
         hasMore: false,
         cursor: null
@@ -431,7 +408,7 @@ describe('BlobStorage', () => {
     });
 
     it('should throw error when list operation fails', async () => {
-      mockBlobMonitor.list.mockRejectedValueOnce(ERROR_SCENARIOS.NETWORK_ERROR);
+      mockBlob.list.mockRejectedValueOnce(ERROR_SCENARIOS.NETWORK_ERROR);
 
       await expect(blobStorage.listContracts()).rejects.toThrow('Failed to list contracts');
     });
@@ -445,7 +422,7 @@ describe('BlobStorage', () => {
         { pathname: 'test-contracts/SP789_contract3.json', size: 4096, uploadedAt: new Date() }
       ];
 
-      mockBlobMonitor.list.mockResolvedValueOnce({
+      mockBlob.list.mockResolvedValueOnce({
         blobs: mockBlobs,
         hasMore: false,
         cursor: null
@@ -467,7 +444,7 @@ describe('BlobStorage', () => {
     });
 
     it('should handle empty storage', async () => {
-      mockBlobMonitor.list.mockResolvedValueOnce({
+      mockBlob.list.mockResolvedValueOnce({
         blobs: [],
         hasMore: false,
         cursor: null
@@ -490,7 +467,7 @@ describe('BlobStorage', () => {
         { pathname: 'test-contracts/SP123_contract1.json', size: 1024, uploadedAt: new Date() }
       ];
 
-      mockBlobMonitor.list.mockResolvedValueOnce({
+      mockBlob.list.mockResolvedValueOnce({
         blobs: mockBlobs,
         hasMore: false,
         cursor: null
@@ -522,7 +499,7 @@ describe('BlobStorage', () => {
         SAMPLE_CONTRACT_IDS.SIP009_NFT
       ]);
       expect(result.failed).toEqual([]);
-      expect(mockBlobMonitor.put).toHaveBeenCalledTimes(2);
+      expect(mockBlob.put).toHaveBeenCalledTimes(2);
     });
 
     it('should handle partial failures in bulk operations', async () => {
@@ -531,7 +508,7 @@ describe('BlobStorage', () => {
         'SP123.failing-contract': createSampleContractMetadata('SP123.failing-contract')
       };
 
-      mockBlobMonitor.put
+      mockBlob.put
         .mockResolvedValueOnce({ url: 'success' })
         .mockRejectedValueOnce(ERROR_SCENARIOS.NETWORK_ERROR);
 
@@ -549,7 +526,7 @@ describe('BlobStorage', () => {
 
       expect(result.successful).toEqual([]);
       expect(result.failed).toEqual([]);
-      expect(mockBlobMonitor.put).not.toHaveBeenCalled();
+      expect(mockBlob.put).not.toHaveBeenCalled();
     });
 
     it('should validate all contracts before storing', async () => {
@@ -566,28 +543,6 @@ describe('BlobStorage', () => {
     });
   });
 
-  describe('Monitoring Integration', () => {
-    it('should provide monitoring statistics', () => {
-      const stats = blobStorage.getMonitoringStats();
-      expect(stats).toBeDefined();
-      expect(typeof stats.totalOperations).toBe('number');
-      expect(stats).toHaveProperty('cacheHitRate');
-      expect(stats).toHaveProperty('averageResponseTime');
-      expect(stats).toHaveProperty('totalCost');
-    });
-
-    it('should provide recent operations', () => {
-      const operations = blobStorage.getRecentOperations(5);
-      expect(Array.isArray(operations)).toBe(true);
-      expect(mockBlobMonitor.getRecentOperations).toHaveBeenCalledWith(5);
-    });
-
-    it('should provide alerts', () => {
-      const alerts = blobStorage.getAlerts();
-      expect(Array.isArray(alerts)).toBe(true);
-      expect(mockBlobMonitor.getAlerts).toHaveBeenCalled();
-    });
-  });
 
   describe('Path Sanitization', () => {
     it('should sanitize contract IDs with special characters', async () => {
@@ -595,7 +550,7 @@ describe('BlobStorage', () => {
 
       await blobStorage.putContract('SP123.contract-with-special#chars!', metadata);
 
-      expect(mockBlobMonitor.put).toHaveBeenCalledWith(
+      expect(mockBlob.put).toHaveBeenCalledWith(
         'test-contracts/SP123.contract-with-special_chars_.json',
         expect.any(String),
         expect.any(Object)
@@ -608,7 +563,7 @@ describe('BlobStorage', () => {
 
       await blobStorage.putContract(contractId, metadata);
 
-      expect(mockBlobMonitor.put).toHaveBeenCalledWith(
+      expect(mockBlob.put).toHaveBeenCalledWith(
         expect.stringContaining('test-contracts/SP123.contract-with-'),
         expect.any(String),
         expect.any(Object)
@@ -623,7 +578,7 @@ describe('BlobStorage', () => {
       await blobStorage.putContract(contractId, metadata);
 
       const expectedPath = `test-contracts/SP123.${longName}.json`;
-      expect(mockBlobMonitor.put).toHaveBeenCalledWith(
+      expect(mockBlob.put).toHaveBeenCalledWith(
         expectedPath,
         expect.any(String),
         expect.any(Object)
@@ -636,7 +591,7 @@ describe('BlobStorage', () => {
 
       await blobStorage.putContract(contractId, metadata);
 
-      expect(mockBlobMonitor.put).toHaveBeenCalledWith(
+      expect(mockBlob.put).toHaveBeenCalledWith(
         'test-contracts/SP123..json',
         expect.any(String),
         expect.any(Object)
@@ -656,7 +611,7 @@ describe('BlobStorage', () => {
       const duration = Date.now() - startTime;
 
       expect(duration).toBeLessThan(1000); // Should complete within 1 second
-      expect(mockBlobMonitor.put).toHaveBeenCalled();
+      expect(mockBlob.put).toHaveBeenCalled();
     });
 
     it('should handle concurrent operations efficiently', async () => {
@@ -670,7 +625,7 @@ describe('BlobStorage', () => {
       const duration = Date.now() - startTime;
 
       expect(duration).toBeLessThan(2000); // Should complete within 2 seconds
-      expect(mockBlobMonitor.put).toHaveBeenCalledTimes(10);
+      expect(mockBlob.put).toHaveBeenCalledTimes(10);
     });
 
     it('should handle many small operations efficiently', async () => {
@@ -683,14 +638,14 @@ describe('BlobStorage', () => {
       const duration = Date.now() - startTime;
 
       expect(duration).toBeLessThan(1000); // Should complete within 1 second
-      expect(mockBlobMonitor.head).toHaveBeenCalledTimes(50);
+      expect(mockBlob.head).toHaveBeenCalledTimes(50);
     });
   });
 
   describe('Error Handling', () => {
     it('should handle blob size limit errors', async () => {
       const metadata = createSampleContractMetadata(SAMPLE_CONTRACT_IDS.SIP010_TOKEN);
-      mockBlobMonitor.put.mockRejectedValueOnce(ERROR_SCENARIOS.BLOB_SIZE_ERROR);
+      mockBlob.put.mockRejectedValueOnce(ERROR_SCENARIOS.BLOB_SIZE_ERROR);
 
       await expect(
         blobStorage.putContract(SAMPLE_CONTRACT_IDS.SIP010_TOKEN, metadata)
@@ -699,7 +654,7 @@ describe('BlobStorage', () => {
 
     it('should handle timeout errors', async () => {
       const metadata = createSampleContractMetadata(SAMPLE_CONTRACT_IDS.SIP010_TOKEN);
-      mockBlobMonitor.put.mockRejectedValueOnce(ERROR_SCENARIOS.TIMEOUT_ERROR);
+      mockBlob.put.mockRejectedValueOnce(ERROR_SCENARIOS.TIMEOUT_ERROR);
 
       await expect(
         blobStorage.putContract(SAMPLE_CONTRACT_IDS.SIP010_TOKEN, metadata)
@@ -707,11 +662,11 @@ describe('BlobStorage', () => {
     });
 
     it('should handle invalid JSON response', async () => {
-      mockBlobMonitor.head.mockResolvedValueOnce({
+      mockBlob.head.mockResolvedValueOnce({
         url: 'https://blob.vercel.com/test.json'
       });
 
-      mockBlobMonitor.fetch.mockResolvedValueOnce(new Response(
+      mockBlob.fetch.mockResolvedValueOnce(new Response(
         '<html>Error page</html>',
         { status: 200, headers: { 'content-type': 'text/html' } }
       ));
@@ -722,7 +677,7 @@ describe('BlobStorage', () => {
     });
 
     it('should handle corrupted response data', async () => {
-      mockBlobMonitor.head.mockResolvedValueOnce({
+      mockBlob.head.mockResolvedValueOnce({
         url: 'https://blob.vercel.com/test.json'
       });
 
@@ -734,7 +689,7 @@ describe('BlobStorage', () => {
         }
       }), { status: 200 });
 
-      mockBlobMonitor.fetch.mockResolvedValueOnce(mockResponse);
+      mockBlob.fetch.mockResolvedValueOnce(mockResponse);
 
       await expect(
         blobStorage.getContract(SAMPLE_CONTRACT_IDS.SIP010_TOKEN)
@@ -749,7 +704,7 @@ describe('BlobStorage', () => {
 
       await blobStorage.putContract(contractId, metadata);
 
-      expect(mockBlobMonitor.put).toHaveBeenCalledWith(
+      expect(mockBlob.put).toHaveBeenCalledWith(
         'test-contracts/....json',
         expect.any(String),
         expect.any(Object)
@@ -772,7 +727,7 @@ describe('BlobStorage', () => {
         uploadedAt: new Date()
       }));
 
-      mockBlobMonitor.list.mockResolvedValueOnce({
+      mockBlob.list.mockResolvedValueOnce({
         blobs: manyBlobs,
         hasMore: false,
         cursor: null

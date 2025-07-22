@@ -1,7 +1,6 @@
 // Mock all the dependencies that cause import issues
 jest.mock('@services/balances', () => ({}))
 jest.mock('@vercel/kv', () => ({}))
-jest.mock('@modules/blob-monitor', () => ({}))
 
 import { getSnapshots, createSnapshot, CreateSnapshotRequest } from '@/lib/actions/snapshots'
 

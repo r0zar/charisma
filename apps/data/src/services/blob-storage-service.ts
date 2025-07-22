@@ -1,0 +1,414 @@
+import { put, head } from '@vercel/blob';
+
+export interface BlobMetadata {
+  path: string;
+  size: number;
+  lastModified: Date;
+  contentType: string;
+}
+
+export interface StreamChunk {
+  data: any;
+  offset: number;
+  hasMore: boolean;
+}
+
+export interface RootBlob {
+  version: string;
+  lastUpdated: string;
+  addresses: Record<string, any>;
+  contracts: Record<string, any>;
+  prices: Record<string, any>;
+  metadata: {
+    totalSize: number;
+    entryCount: number;
+    regions: string[];
+  };
+}
+
+/**
+ * Unified Blob Storage Service
+ * Consolidates blob operations with proper error handling and caching
+ */
+export class BlobStorageService {
+  private readonly ROOT_BLOB_PATH = 'v1/root.json';
+  private rootBlobCache: RootBlob | null = null;
+  private cacheTimestamp: number = 0;
+  private readonly CACHE_TTL = 5000; // 5 second cache for development
+
+  /**
+   * Gets the root blob with fallback to initialization
+   */
+  async getRootBlob(): Promise<RootBlob> {
+    const now = Date.now();
+
+    // Use cached version if valid
+    if (this.rootBlobCache && (now - this.cacheTimestamp) < this.CACHE_TTL) {
+      return this.rootBlobCache;
+    }
+
+    // Try to fetch existing root blob first
+    let rootBlob: RootBlob;
+    try {
+      rootBlob = await this.fetchRootBlob();
+      const entryCount = Object.keys(rootBlob.addresses).length + 
+                        Object.keys(rootBlob.contracts).length + 
+                        Object.keys(rootBlob.prices).length;
+      console.log(`Successfully fetched existing root blob with ${entryCount} entries`);
+    } catch (error) {
+      console.log('No existing root blob found, initializing new one:', error);
+      rootBlob = await this.initializeRootBlob();
+      // Save the initial blob to storage
+      await this.saveRootBlob(rootBlob);
+    }
+    
+    // Update cache
+    this.rootBlobCache = rootBlob;
+    this.cacheTimestamp = now;
+    
+    return rootBlob;
+  }
+
+  /**
+   * Fetch existing root blob from storage
+   */
+  private async fetchRootBlob(): Promise<RootBlob> {
+    try {
+      // First, check if the blob exists using head()
+      const blobInfo = await head(this.ROOT_BLOB_PATH);
+      
+      // If blob exists, fetch its content using the URL
+      const response = await fetch(blobInfo.url, {
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch blob content: ${response.status} ${response.statusText}`);
+      }
+
+      const rootBlob = await response.json() as RootBlob;
+      
+      // Validate the blob structure
+      if (!rootBlob.version || !rootBlob.addresses || !rootBlob.contracts || !rootBlob.prices) {
+        throw new Error('Invalid root blob structure');
+      }
+
+      return rootBlob;
+      
+    } catch (error) {
+      // If head() fails, the blob doesn't exist
+      if (error && typeof error === 'object' && 'message' in error) {
+        if ((error as any).message?.includes('not found') || (error as any).message?.includes('404')) {
+          throw new Error('Root blob not found');
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Initialize empty root blob
+   */
+  private async initializeRootBlob(): Promise<RootBlob> {
+    const rootBlob: RootBlob = {
+      version: '1.0.0',
+      lastUpdated: new Date().toISOString(),
+      addresses: {},
+      contracts: {},
+      prices: {},
+      metadata: {
+        totalSize: 0,
+        entryCount: 0,
+        regions: ['us-east-1']
+      }
+    };
+
+    return rootBlob;
+  }
+
+  /**
+   * Save root blob to storage
+   */
+  private async saveRootBlob(rootBlob: RootBlob): Promise<void> {
+    // Update metadata
+    rootBlob.lastUpdated = new Date().toISOString();
+    rootBlob.metadata.totalSize = JSON.stringify(rootBlob).length;
+    rootBlob.metadata.entryCount =
+      Object.keys(rootBlob.addresses).length +
+      Object.keys(rootBlob.contracts).length +
+      Object.keys(rootBlob.prices).length;
+
+    const content = JSON.stringify(rootBlob, null, 0);
+
+    await put(this.ROOT_BLOB_PATH, content, {
+      access: 'public',
+      contentType: 'application/json',
+      cacheControlMaxAge: 300,
+      addRandomSuffix: false,
+      allowOverwrite: true
+    });
+
+    // Update cache
+    this.rootBlobCache = rootBlob;
+    this.cacheTimestamp = Date.now();
+    
+    console.log(`Saved root blob (${rootBlob.metadata.entryCount} entries)`);
+  }
+
+  /**
+   * Store data at a specific path within the root blob
+   */
+  async put<T>(path: string, data: T): Promise<void> {
+    console.log(`Attempting to save data at path: ${path}`);
+    
+    // DON'T clear cache for single puts - use existing cached data if available
+    const rootBlob = await this.getRootBlob();
+    
+    // Log current state before modification
+    const beforeCount = Object.keys(rootBlob.addresses || {}).length + 
+                       Object.keys(rootBlob.contracts || {}).length + 
+                       Object.keys(rootBlob.prices || {}).length;
+    console.log(`Root blob before update: ${beforeCount} entries`);
+    
+    // Navigate to the nested path and set data
+    const pathParts = path.replace('.json', '').split('/');
+    let current: any = rootBlob;
+
+    // Navigate to parent
+    for (let i = 0; i < pathParts.length - 1; i++) {
+      const part = pathParts[i];
+      if (!(part in current)) {
+        current[part] = {};
+      }
+      current = current[part];
+    }
+
+    // Set the final value
+    const finalKey = pathParts[pathParts.length - 1];
+    current[finalKey] = data;
+
+    // Log state after modification
+    const afterCount = Object.keys(rootBlob.addresses || {}).length + 
+                      Object.keys(rootBlob.contracts || {}).length + 
+                      Object.keys(rootBlob.prices || {}).length;
+    console.log(`Root blob after update: ${afterCount} entries`);
+
+    // Save the updated root blob
+    await this.saveRootBlob(rootBlob);
+    console.log(`Successfully saved data at path: ${path}`);
+  }
+
+  /**
+   * Batch update multiple paths atomically
+   */
+  async putBatch(updates: Array<{ path: string; data: any }>): Promise<void> {
+    console.log(`Batch updating ${updates.length} paths...`);
+    
+    // Clear cache once before batch operation
+    this.clearCache();
+    const rootBlob = await this.getRootBlob();
+    
+    const beforeCount = Object.keys(rootBlob.addresses || {}).length + 
+                       Object.keys(rootBlob.contracts || {}).length + 
+                       Object.keys(rootBlob.prices || {}).length;
+    console.log(`Root blob before batch update: ${beforeCount} entries`);
+
+    // Apply all updates to the same root blob instance
+    for (const { path, data } of updates) {
+      console.log(`  - Applying update to path: ${path}`);
+      
+      const pathParts = path.replace('.json', '').split('/');
+      let current: any = rootBlob;
+
+      // Navigate to parent
+      for (let i = 0; i < pathParts.length - 1; i++) {
+        const part = pathParts[i];
+        if (!(part in current)) {
+          current[part] = {};
+        }
+        current = current[part];
+      }
+
+      // Set the final value
+      const finalKey = pathParts[pathParts.length - 1];
+      current[finalKey] = data;
+    }
+
+    const afterCount = Object.keys(rootBlob.addresses || {}).length + 
+                      Object.keys(rootBlob.contracts || {}).length + 
+                      Object.keys(rootBlob.prices || {}).length;
+    console.log(`Root blob after batch update: ${afterCount} entries`);
+
+    // Save once after all updates
+    await this.saveRootBlob(rootBlob);
+    console.log('Batch update completed successfully');
+  }
+
+  /**
+   * Retrieve data from a specific path within the root blob
+   */
+  async get<T = any>(path: string): Promise<T> {
+    const rootBlob = await this.getRootBlob();
+    
+    // Navigate to the nested path
+    const pathParts = path.replace('.json', '').split('/');
+    let current: any = rootBlob;
+
+    for (const part of pathParts) {
+      if (current && typeof current === 'object' && part in current) {
+        current = current[part];
+      } else {
+        throw new Error(`Data not found: ${path}`);
+      }
+    }
+
+    return current as T;
+  }
+
+  /**
+   * Get the complete root blob (for API endpoints)
+   */
+  async getRoot(): Promise<RootBlob> {
+    return this.getRootBlob();
+  }
+
+  /**
+   * Build navigation tree from root blob structure
+   */
+  async buildNavigationTree(): Promise<any> {
+    const rootBlob = await this.getRootBlob();
+    const tree: any = {};
+
+    const buildSubtree = (obj: any, currentPath: string = '') => {
+      const subtree: any = {};
+
+      if (typeof obj === 'object' && obj !== null) {
+        for (const [key, value] of Object.entries(obj)) {
+          const newPath = currentPath ? `${currentPath}/${key}` : key;
+
+          if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            const hasDirectData = Object.values(value).some(v =>
+              typeof v !== 'object' || Array.isArray(v)
+            );
+
+            if (hasDirectData) {
+              subtree[`${key}.json`] = {
+                type: 'file',
+                size: JSON.stringify(value).length,
+                lastModified: new Date(rootBlob.lastUpdated),
+                path: `${newPath}.json`
+              };
+            } else {
+              subtree[key] = {
+                type: 'directory',
+                children: buildSubtree(value, newPath)
+              };
+            }
+          }
+        }
+      }
+
+      return subtree;
+    };
+
+    tree.addresses = {
+      type: 'directory',
+      children: buildSubtree(rootBlob.addresses, 'addresses')
+    };
+
+    tree.contracts = {
+      type: 'directory',
+      children: buildSubtree(rootBlob.contracts, 'contracts')
+    };
+
+    // Handle prices with structured subdirectories
+    const pricesChildren: any = {};
+    
+    // Add current prices subdirectory
+    try {
+      const currentPrices = await this.get('prices/current');
+      if (currentPrices && typeof currentPrices === 'object') {
+        const currentChildren: any = {};
+        
+        // Add individual token files under current/
+        const prices = currentPrices.prices || currentPrices;
+        for (const [contractId, priceData] of Object.entries(prices)) {
+          const simpleName = this.getSimpleTokenName(contractId);
+          currentChildren[`${simpleName}.json`] = {
+            type: 'file',
+            size: JSON.stringify(priceData).length,
+            lastModified: new Date(currentPrices.timestamp || Date.now()),
+            path: `prices/current/${contractId}`
+          };
+        }
+        
+        pricesChildren.current = {
+          type: 'directory',
+          children: currentChildren
+        };
+      }
+    } catch (error) {
+      console.log('[BlobStorage] Current prices not available:', error);
+    }
+    
+    // Add placeholder for pairs (to be implemented)
+    pricesChildren.pairs = {
+      type: 'directory',
+      children: {}
+    };
+    
+    // Add placeholder for historical (to be implemented) 
+    pricesChildren.historical = {
+      type: 'directory',  
+      children: {}
+    };
+
+    tree.prices = {
+      type: 'directory',
+      children: pricesChildren
+    };
+
+    return tree;
+  }
+
+  /**
+   * Convert contract ID to simple token name for display
+   */
+  private getSimpleTokenName(contractId: string): string {
+    const parts = contractId.split('.');
+    if (parts.length === 2) {
+      const tokenName = parts[1];
+      // Try to extract readable name from common patterns
+      if (tokenName.includes('-token')) {
+        return tokenName.replace('-token', '').toUpperCase();
+      } else if (tokenName.includes('coin')) {
+        return tokenName.replace('coin', '').toUpperCase();
+      } else if (tokenName === 'arkadiko-token') {
+        return 'DIKO';
+      } else if (tokenName === 'alex-token') {
+        return 'ALEX';
+      } else if (tokenName === 'charisma-token') {
+        return 'CHA';
+      } else if (tokenName === 'welshcorgicoin-token') {
+        return 'WELSH';
+      } else if (tokenName === 'sbtc-token') {
+        return 'SBTC';
+      }
+      return tokenName.toUpperCase().slice(0, 10); // Max 10 chars
+    }
+    return contractId.slice(0, 10);
+  }
+
+  /**
+   * Clear the cache (for testing/debugging)
+   */
+  clearCache(): void {
+    this.rootBlobCache = null;
+    this.cacheTimestamp = 0;
+  }
+}
+
+// Export singleton instance
+export const blobStorageService = new BlobStorageService();

@@ -3,8 +3,6 @@
  * Handles conversion between atomic units and decimal representation
  */
 
-import type { TokenNode } from './types';
-
 /**
  * Convert atomic units to decimal representation
  * @param atomicValue - The value in atomic units (e.g., 1000000 microSTX)
@@ -16,15 +14,15 @@ export function convertAtomicToDecimal(atomicValue: number, decimals: number): n
         console.warn(`[DecimalUtils] Invalid conversion: atomicValue=${atomicValue}, decimals=${decimals}`);
         return 0;
     }
-    
+
     const divisor = Math.pow(10, decimals);
     const result = atomicValue / divisor;
-    
+
     if (!isFinite(result)) {
         console.warn(`[DecimalUtils] Conversion resulted in non-finite value: ${atomicValue} / 10^${decimals}`);
         return 0;
     }
-    
+
     return result;
 }
 
@@ -39,42 +37,16 @@ export function convertDecimalToAtomic(decimalValue: number, decimals: number): 
         console.warn(`[DecimalUtils] Invalid conversion: decimalValue=${decimalValue}, decimals=${decimals}`);
         return 0;
     }
-    
+
     const multiplier = Math.pow(10, decimals);
     const result = Math.round(decimalValue * multiplier);
-    
+
     if (!isFinite(result)) {
         console.warn(`[DecimalUtils] Conversion resulted in non-finite value: ${decimalValue} * 10^${decimals}`);
         return 0;
     }
-    
-    return result;
-}
 
-/**
- * Get token decimals from token nodes with fallback
- * @param tokenId - The token contract ID
- * @param tokenNodes - Map of token nodes from price graph
- * @returns Number of decimals, with fallback to 6
- */
-export function getTokenDecimals(tokenId: string, tokenNodes: Map<string, TokenNode>): number {
-    const node = tokenNodes.get(tokenId);
-    if (node?.decimals !== undefined && node.decimals >= 0 && node.decimals <= 18) {
-        return node.decimals;
-    }
-    
-    // Fallback logic for known tokens
-    if (tokenId === '.stx' || tokenId === 'stx') {
-        return 6; // STX has 6 decimals
-    }
-    
-    if (tokenId.includes('sbtc-token')) {
-        return 8; // sBTC has 8 decimals
-    }
-    
-    // Default fallback
-    console.warn(`[DecimalUtils] Using fallback decimals (6) for token: ${tokenId}`);
-    return 6;
+    return result;
 }
 
 /**
@@ -94,22 +66,22 @@ export function calculateDecimalAwareExchangeRate(
     if (!inputReserve || !outputReserve || inputReserve <= 0 || outputReserve <= 0) {
         return 0;
     }
-    
+
     const inputDecimal = convertAtomicToDecimal(inputReserve, inputDecimals);
     const outputDecimal = convertAtomicToDecimal(outputReserve, outputDecimals);
-    
+
     if (inputDecimal <= 0) {
         console.warn(`[DecimalUtils] Invalid input decimal: ${inputDecimal}`);
         return 0;
     }
-    
+
     const exchangeRate = outputDecimal / inputDecimal;
-    
+
     if (!isFinite(exchangeRate) || exchangeRate <= 0) {
         console.warn(`[DecimalUtils] Invalid exchange rate: ${exchangeRate}`);
         return 0;
     }
-    
+
     return exchangeRate;
 }
 
@@ -125,9 +97,9 @@ export function isValidDecimalConversion(atomicValue: number, decimals: number):
     // Fix: Handle floating-point decimals (8.0) by checking if it's a whole number
     const isIntegerCheck = decimals % 1 === 0;
     const decimalsRangeCheck = decimals >= 0 && decimals <= 18;
-    
+
     const isValid = isFiniteCheck && isPositive && isIntegerCheck && decimalsRangeCheck;
-    
+
     // Debug logging for failed validations (remove after fix is confirmed)
     if (!isValid) {
         console.warn(`[DecimalUtils] Validation failed for atomicValue=${atomicValue}, decimals=${decimals}:`);
@@ -136,6 +108,6 @@ export function isValidDecimalConversion(atomicValue: number, decimals: number):
         console.warn(`[DecimalUtils]   decimals % 1 === 0: ${isIntegerCheck} (was Number.isInteger: ${Number.isInteger(decimals)})`);
         console.warn(`[DecimalUtils]   decimals in range [0,18]: ${decimalsRangeCheck}`);
     }
-    
+
     return isValid;
 }

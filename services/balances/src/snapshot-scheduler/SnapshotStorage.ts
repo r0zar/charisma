@@ -2,7 +2,6 @@
  * Snapshot Storage - Optimized blob storage for balance snapshots
  */
 
-import { BlobMonitor } from '@modules/blob-monitor';
 import { kv } from '@vercel/kv';
 import { list } from '@vercel/blob';
 import type {
@@ -25,7 +24,6 @@ import {
 } from '../utils/snapshot-utils';
 
 export class SnapshotStorage {
-  private blobMonitor: BlobMonitor;
   private config: SnapshotStorageConfig;
   private urlRegistry: Map<string, string> = new Map(); // timestamp -> URL mapping
 
@@ -37,13 +35,6 @@ export class SnapshotStorage {
       enableMonitoring: true,
       ...config
     };
-
-    this.blobMonitor = new BlobMonitor({
-      serviceName: 'balance-snapshots',
-      enforcementLevel: 'warn',
-      enableCostTracking: true,
-      enableCapacityTracking: true
-    });
   }
 
   /**
@@ -173,40 +164,40 @@ export class SnapshotStorage {
       // Fallback: find the blob URL using the list API
       const key = generateSnapshotKey(timestamp);
       const prefix = key.replace('.json.gz', ''); // Remove extension to match prefix
-      
+
       try {
         const blobs = await list({ prefix });
-        const matchingBlob = blobs.blobs.find(blob => 
+        const matchingBlob = blobs.blobs.find(blob =>
           blob.pathname.includes(`${timestamp}.json`) && blob.pathname.includes('.gz')
         );
-        
+
         if (!matchingBlob) {
           console.log(`No blob found for snapshot ${timestamp} with prefix ${prefix}`);
           return null;
         }
-        
+
         console.log(`Found blob for snapshot ${timestamp}: ${matchingBlob.url}`);
-        
+
         // Cache the URL for future requests
         this.urlRegistry.set(timestamp.toString(), matchingBlob.url);
-        
+
         const response = await this.blobMonitor.fetch(matchingBlob.url);
-        
+
         if (!response.ok) {
           if (response.status === 404) {
             return null;
           }
           throw new SnapshotStorageError(`Failed to fetch snapshot: ${response.status}`);
         }
-        
+
         const compressedData = Buffer.from(await response.arrayBuffer());
         const snapshot = await decompressSnapshot(compressedData);
-        
+
         // Validate decompressed data
         if (!validateSnapshot(snapshot)) {
           throw new SnapshotStorageError('Invalid snapshot data retrieved from storage');
         }
-        
+
         return snapshot;
       } catch (listError) {
         console.error(`Failed to list blobs for snapshot ${timestamp}:`, listError);

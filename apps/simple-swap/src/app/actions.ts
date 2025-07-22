@@ -3,6 +3,7 @@
 import { kv } from "@vercel/kv";
 import { processSingleBlazeIntentByPid } from "@/lib/blaze-intent-server"; // Adjust path as needed
 import { callReadOnlyFunction, getAccountBalances, type AccountBalancesResponse } from "@repo/polyglot";
+import { cachedBalanceClient, cachedTokenMetadataClient, cachedPriceClient, type CachedBalanceResponse, type CachedTokenMetadata, type CachedPriceData } from "@/lib/cached-balance-client";
 import { principalCV } from "@stacks/transactions";
 import { loadVaults, Router, listTokens as listSwappableTokens } from 'dexterity-sdk'
 import { TokenCacheData, listPrices, type KraxelPriceData, listTokens as listAllTokens, getTokenMetadataWithDiscovery } from "@/lib/contract-registry-adapter";
@@ -190,46 +191,42 @@ export async function manuallyProcessBlazeIntentAction(pid: string): Promise<{ i
 
 
 /**
- * Get token balance for a contract
+ * Get token balance for a contract using cached data
  */
 export async function getTokenBalance(tokenContractId: string, holderPrincipal: string): Promise<number> {
     try {
-        const [contractAddress, contractName] = tokenContractId.split('.');
-        if (!contractAddress || !contractName) {
-            console.warn(`Invalid tokenContractId for getTokenBalance: ${tokenContractId}`);
-            return 0; // Original fallback
-        }
-        const result = await callReadOnlyFunction(
-            contractAddress,
-            contractName,
-            "get-balance",
-            [principalCV(holderPrincipal)]
-        );
-        return Number(result?.value || 0);
+        const balance = await cachedBalanceClient.getTokenBalance(holderPrincipal, tokenContractId);
+        return Number(balance);
     } catch (error) {
-        console.warn(`Failed to get balance for ${tokenContractId} of ${holderPrincipal}`);
-        return 0;
+        console.warn(`Failed to get cached balance for ${tokenContractId} of ${holderPrincipal}:`, error);
+        
+        // Fallback to direct contract call if cached data fails
+        try {
+            const [contractAddress, contractName] = tokenContractId.split('.');
+            if (!contractAddress || !contractName) {
+                console.warn(`Invalid tokenContractId for getTokenBalance: ${tokenContractId}`);
+                return 0;
+            }
+            const result = await callReadOnlyFunction(
+                contractAddress,
+                contractName,
+                "get-balance",
+                [principalCV(holderPrincipal)]
+            );
+            return Number(result?.value || 0);
+        } catch (fallbackError) {
+            console.warn(`Fallback balance fetch also failed for ${tokenContractId} of ${holderPrincipal}`);
+            return 0;
+        }
     }
 }
 
 /**
- * Get STX balance for an address
+ * Get STX balance for an address using cached data
  */
 export async function getStxBalance(address: string): Promise<number> {
     try {
-        const headers = new Headers({ 'Content-Type': 'application/json' }); // Content-Type might not be strictly necessary for a GET request but keeping for consistency
-        const apiKey = process.env.HIRO_API_KEY || "";
-        if (apiKey) headers.set('x-api-key', apiKey);
-        const response = await fetch(`https://api.hiro.so/extended/v1/address/${address}/stx`, {
-            headers: headers
-        });
-
-        if (!response.ok) {
-            throw new Error(`Failed to fetch STX balance: ${response.status}`);
-        }
-
-        const data: any = await response.json();
-        return Number(data.balance);
+        return await cachedBalanceClient.getStxBalance(address);
     } catch (error) {
         console.warn(`Failed to get STX balance for ${address}:`, error);
         return 0;
@@ -237,7 +234,7 @@ export async function getStxBalance(address: string): Promise<number> {
 }
 
 /**
- * Check if a bidder has sufficient balance for their bid
+ * Check if a bidder has sufficient balance for their bid using cached data
  */
 export async function checkBidderBalance(
     bidderAddress: string,
@@ -251,17 +248,20 @@ export async function checkBidderBalance(
     humanReadableRequired: number;
 }> {
     try {
-        const actualBalance = await getTokenBalance(tokenContractId, bidderAddress);
-        const sufficient = BigInt(actualBalance) >= BigInt(requiredAmount);
+        const balanceCheck = await cachedBalanceClient.hasSufficientBalance(
+            bidderAddress, 
+            tokenContractId, 
+            requiredAmount
+        );
 
         // Convert to human readable (assuming 6 decimals, but this should ideally get token info)
         const decimals = 6; // This could be improved by getting actual token decimals
-        const humanReadableBalance = actualBalance / Math.pow(10, decimals);
+        const humanReadableBalance = parseFloat(balanceCheck.actualBalance) / Math.pow(10, decimals);
         const humanReadableRequired = parseFloat(requiredAmount) / Math.pow(10, decimals);
 
         return {
-            sufficient,
-            actualBalance: actualBalance.toString(),
+            sufficient: balanceCheck.sufficient,
+            actualBalance: balanceCheck.actualBalance,
             requiredAmount,
             humanReadableBalance,
             humanReadableRequired
@@ -279,14 +279,27 @@ export async function checkBidderBalance(
 }
 
 /**
- * Server action to fetch token prices with rate limiting
+ * Server action to fetch token prices using cached data with fallback
  */
 export async function getPrices(): Promise<KraxelPriceData> {
     try {
-        console.log('[getPrices] Server action - fetching token prices with rate limiting');
-        const prices = await listPrices();
-        console.log(`[getPrices] Server action - successfully fetched ${Object.keys(prices).length} prices`);
-        return prices;
+        console.log('[getPrices] Server action - fetching cached token prices');
+        
+        // First try cached price data
+        const cachedPrices = await cachedPriceClient.getAllPricesInKraxelFormat();
+        
+        if (Object.keys(cachedPrices).length > 0) {
+            console.log(`[getPrices] Server action - successfully fetched ${Object.keys(cachedPrices).length} cached prices`);
+            return cachedPrices;
+        }
+        
+        console.log('[getPrices] Server action - no cached prices available, falling back to contract-registry');
+        
+        // Fallback to contract-registry
+        const fallbackPrices = await listPrices();
+        console.log(`[getPrices] Server action - successfully fetched ${Object.keys(fallbackPrices).length} fallback prices`);
+        return fallbackPrices;
+        
     } catch (error) {
         console.error('[getPrices] Server action error:', error);
         
@@ -296,7 +309,7 @@ export async function getPrices(): Promise<KraxelPriceData> {
 }
 
 /**
- * Server action to get token summaries with enhanced price data
+ * Server action to get token summaries with enhanced price data using cached metadata
  * This handles all the complex price fetching with proper rate limiting
  */
 export async function getTokenSummariesAction(): Promise<{
@@ -305,19 +318,19 @@ export async function getTokenSummariesAction(): Promise<{
     error?: string;
 }> {
     try {
-        console.log('[getTokenSummariesAction] Fetching token summaries with rate-limited price data');
+        console.log('[getTokenSummariesAction] Fetching token summaries with cached data and rate-limited price data');
         
-        // Step 1: Get token metadata (already rate-limited)
+        // Step 1: Get cached token metadata
         const metadataResult = await getTokenMetadataAction();
         if (!metadataResult.success || !metadataResult.tokens) {
             return {
                 success: false,
-                error: 'Failed to fetch token metadata'
+                error: 'Failed to fetch cached token metadata'
             };
         }
         
-        // Step 2: Get prices (rate-limited through our adapter)
-        const prices = await listPrices();
+        // Step 2: Get cached prices with fallback
+        const prices = await getPrices();
         
         // Step 3: Combine metadata with prices
         const tokenSummaries = metadataResult.tokens.map(token => ({
@@ -326,14 +339,14 @@ export async function getTokenSummariesAction(): Promise<{
             change1h: null, // Will be enhanced later if needed
             change24h: null,
             change7d: null,
-            lastUpdated: Date.now(),
+            lastUpdated: token.lastUpdated || Date.now(),
             marketCap: null // Will be calculated if needed
         }));
         
         // Filter out tokens without prices for now to reduce load
         const tokensWithPrices = tokenSummaries.filter(token => token.price !== null);
         
-        console.log(`[getTokenSummariesAction] Successfully processed ${tokensWithPrices.length} tokens with prices out of ${tokenSummaries.length} total`);
+        console.log(`[getTokenSummariesAction] Successfully processed ${tokensWithPrices.length} tokens with prices out of ${tokenSummaries.length} total (${metadataResult.tokens.length} from cache)`);
         
         return {
             success: true,
@@ -351,7 +364,7 @@ export async function getTokenSummariesAction(): Promise<{
 }
 
 /**
- * Server action to fetch account balances including subnet token balances
+ * Server action to fetch account balances using cached data with subnet token fallback
  * @param principal Stacks address or contract identifier
  * @param params Optional parameters
  */
@@ -364,7 +377,72 @@ export async function getAccountBalancesWithSubnet(
     }
 ): Promise<AccountBalancesResponse | null> {
     try {
-        // First, get the regular balance data
+        console.log(`[getAccountBalancesWithSubnet] Fetching cached balances for ${principal}`);
+        
+        // First, try to get cached balance data from our data app
+        const cachedBalances = await cachedBalanceClient.getAddressBalances(principal);
+        
+        if (cachedBalances) {
+            console.log(`[getAccountBalancesWithSubnet] Using cached data for ${principal}`);
+            
+            // Convert cached response to AccountBalancesResponse format
+            const accountBalances: AccountBalancesResponse = {
+                stx: cachedBalances.stx,
+                fungible_tokens: cachedBalances.fungible_tokens,
+                non_fungible_tokens: cachedBalances.non_fungible_tokens
+            };
+
+            // Get subnet tokens from cached data
+            const allTokens = await cachedTokenMetadataClient.getAllTokens();
+            const subnetTokens = allTokens.filter((token) => token.type === 'SUBNET');
+            
+            // Check if any subnet tokens are missing from cached data
+            const missingSubnetTokens = subnetTokens.filter(token => 
+                !accountBalances.fungible_tokens[token.contractId]
+            );
+            
+            if (missingSubnetTokens.length > 0) {
+                console.log(`[getAccountBalancesWithSubnet] Fetching ${missingSubnetTokens.length} missing subnet tokens`);
+                
+                // Fetch missing subnet balances
+                const subnetBalancePromises = missingSubnetTokens.map(async (token) => {
+                    try {
+                        const [contractAddress, contractName] = token.contractId.split('.');
+                        const result = await callReadOnlyFunction(
+                            contractAddress,
+                            contractName,
+                            'get-balance',
+                            [principalCV(principal)]
+                        );
+
+                        const balance = result?.value ? String(result.value) : '0';
+                        return { contractId: token.contractId, balance };
+                    } catch (error) {
+                        console.warn(`Failed to fetch subnet balance for ${token.contractId}:`, error);
+                        return { contractId: token.contractId, balance: '0' };
+                    }
+                });
+
+                const subnetBalances = await Promise.all(subnetBalancePromises);
+
+                // Add subnet balances to the result
+                subnetBalances.forEach(({ contractId, balance }) => {
+                    if (balance !== '0') {
+                        accountBalances.fungible_tokens[contractId] = {
+                            balance,
+                            total_sent: '0',
+                            total_received: balance,
+                        };
+                    }
+                });
+            }
+            
+            return accountBalances;
+        }
+
+        console.log(`[getAccountBalancesWithSubnet] Cached data not available, falling back to polyglot for ${principal}`);
+        
+        // Fallback to original polyglot implementation
         const balances = await getAccountBalances(principal, {
             unanchored: params?.unanchored ?? true,
             until_block: params?.until_block,
@@ -375,12 +453,27 @@ export async function getAccountBalancesWithSubnet(
             return null;
         }
 
-        // Get all subnet tokens
-        const allTokens = await listAllTokens();
-        const subnetTokens = allTokens.filter((token: TokenCacheData) => token.type === 'SUBNET');
+        // Get all subnet tokens from cached data with fallback
+        let subnetTokens: CachedTokenMetadata[] = [];
+        try {
+            const allTokens = await cachedTokenMetadataClient.getAllTokens();
+            subnetTokens = allTokens.filter((token) => token.type === 'SUBNET');
+        } catch (error) {
+            console.warn('[getAccountBalancesWithSubnet] Failed to get cached tokens, falling back to contract-registry');
+            const fallbackTokens = await listAllTokens();
+            subnetTokens = fallbackTokens.filter((token: TokenCacheData) => token.type === 'SUBNET').map(token => ({
+                contractId: token.contractId,
+                name: token.name,
+                symbol: token.symbol,
+                decimals: token.decimals,
+                totalSupply: token.totalSupply || '0',
+                type: token.type as CachedTokenMetadata['type'],
+                verified: token.verified,
+            }));
+        }
 
         // Fetch subnet balances in parallel
-        const subnetBalancePromises = subnetTokens.map(async (token: TokenCacheData) => {
+        const subnetBalancePromises = subnetTokens.map(async (token) => {
             try {
                 const [contractAddress, contractName] = token.contractId.split('.');
                 const result = await callReadOnlyFunction(
@@ -391,16 +484,10 @@ export async function getAccountBalancesWithSubnet(
                 );
 
                 const balance = result?.value ? String(result.value) : '0';
-                return {
-                    contractId: token.contractId,
-                    balance: balance,
-                };
+                return { contractId: token.contractId, balance };
             } catch (error) {
                 console.warn(`Failed to fetch subnet balance for ${token.contractId}:`, error);
-                return {
-                    contractId: token.contractId,
-                    balance: '0',
-                };
+                return { contractId: token.contractId, balance: '0' };
             }
         });
 
@@ -411,10 +498,10 @@ export async function getAccountBalancesWithSubnet(
             balances.fungible_tokens = {};
         }
 
-        subnetBalances.forEach(({ contractId, balance }: { contractId: string; balance: string }) => {
+        subnetBalances.forEach(({ contractId, balance }) => {
             if (balance !== '0') {
                 balances.fungible_tokens[contractId] = {
-                    balance: balance,
+                    balance,
                     total_sent: '0',
                     total_received: balance,
                 };
@@ -433,20 +520,59 @@ export async function getAccountBalancesWithSubnet(
 }
 
 /**
- * Server action to fetch all token metadata from contract-registry
- * This runs server-side with access to environment variables
+ * Server action to fetch all token metadata from cached data app
+ * This runs server-side with cached data for better performance
  */
 export async function getTokenMetadataAction(): Promise<{
     success: boolean;
-    tokens?: TokenCacheData[];
+    tokens?: CachedTokenMetadata[];
     error?: string;
 }> {
     try {
-        console.log('[getTokenMetadataAction] Fetching token metadata from contract-registry');
+        console.log('[getTokenMetadataAction] Fetching token metadata from cached data');
         
-        const tokens = await listAllTokens();
+        const tokens = await cachedTokenMetadataClient.getAllTokens();
         
-        console.log(`[getTokenMetadataAction] Successfully fetched ${tokens.length} tokens from contract-registry`);
+        if (tokens.length === 0) {
+            console.log('[getTokenMetadataAction] No cached tokens found, falling back to contract-registry');
+            
+            // Fallback to contract-registry if no cached data is available
+            try {
+                const fallbackTokens = await listAllTokens();
+                
+                // Convert TokenCacheData to CachedTokenMetadata format
+                const convertedTokens: CachedTokenMetadata[] = fallbackTokens.map(token => ({
+                    contractId: token.contractId,
+                    name: token.name,
+                    symbol: token.symbol,
+                    decimals: token.decimals,
+                    totalSupply: token.totalSupply || '0',
+                    type: token.type as CachedTokenMetadata['type'],
+                    logo: token.logo,
+                    description: token.description,
+                    website: token.website,
+                    coingeckoId: token.coingeckoId,
+                    tags: token.tags,
+                    verified: token.verified,
+                    lastUpdated: Date.now()
+                }));
+                
+                console.log(`[getTokenMetadataAction] Successfully fetched ${convertedTokens.length} tokens from fallback contract-registry`);
+                return {
+                    success: true,
+                    tokens: convertedTokens
+                };
+            } catch (fallbackError) {
+                console.error('[getTokenMetadataAction] Fallback error:', fallbackError);
+                return {
+                    success: false,
+                    tokens: [],
+                    error: fallbackError instanceof Error ? fallbackError.message : 'Unknown error fetching fallback token metadata'
+                };
+            }
+        }
+        
+        console.log(`[getTokenMetadataAction] Successfully fetched ${tokens.length} tokens from cache`);
         return {
             success: true,
             tokens
@@ -457,14 +583,14 @@ export async function getTokenMetadataAction(): Promise<{
         return {
             success: false,
             tokens: [],
-            error: error instanceof Error ? error.message : 'Unknown error fetching token metadata'
+            error: error instanceof Error ? error.message : 'Unknown error fetching cached token metadata'
         };
     }
 }
 
 /**
- * Server action to get token prices using the unified price service
- * This runs server-side with access to environment variables like BLOB_READ_WRITE_TOKEN
+ * Server action to get token prices using cached data with fallback
+ * This runs server-side with cached data for better performance
  */
 export async function getTokenPricesAction(tokenIds: string[]): Promise<{
     success: boolean;
@@ -485,7 +611,7 @@ export async function getTokenPricesAction(tokenIds: string[]): Promise<{
     error?: string;
 }> {
     try {
-        console.log(`[getTokenPricesAction] Fetching prices for ${tokenIds.length} tokens:`, tokenIds.slice(0, 5).map(id => id.split('.')[1] || id.slice(0, 20)));
+        console.log(`[getTokenPricesAction] Fetching cached prices for ${tokenIds.length} tokens`);
         
         // Add safety limit
         if (tokenIds.length > 50) {
@@ -493,14 +619,65 @@ export async function getTokenPricesAction(tokenIds: string[]): Promise<{
             tokenIds = tokenIds.slice(0, 50);
         }
         
-        // Fallback to basic token pricing since unified price service is not available
-        console.warn('[getTokenPricesAction] Using fallback pricing - unified price service not available');
+        // Get cached prices
+        const cachedPrices = await cachedPriceClient.getBulkPrices(tokenIds);
         
         const formattedPrices: Record<string, any> = {};
+        let cacheHits = 0;
         
-        // For now, return empty prices until service is restored
+        // Format cached prices
         tokenIds.forEach(tokenId => {
-            formattedPrices[tokenId] = {
+            const cachedPrice = cachedPrices[tokenId];
+            
+            if (cachedPrice && cachedPrice.usdPrice > 0) {
+                formattedPrices[tokenId] = {
+                    usdPrice: cachedPrice.usdPrice,
+                    change24h: cachedPrice.change24h,
+                    isLpToken: cachedPrice.isLpToken || false,
+                    intrinsicValue: cachedPrice.intrinsicValue,
+                    marketPrice: cachedPrice.marketPrice,
+                    confidence: cachedPrice.confidence || 1,
+                    lastUpdated: cachedPrice.lastUpdated || Date.now(),
+                    priceDeviation: cachedPrice.priceDeviation,
+                    isArbitrageOpportunity: cachedPrice.isArbitrageOpportunity || false,
+                    pathsUsed: cachedPrice.pathsUsed || 1,
+                    totalLiquidity: cachedPrice.totalLiquidity || 0,
+                    priceSource: cachedPrice.priceSource || 'market' as const,
+                };
+                cacheHits++;
+            } else {
+                // Return default structure for missing prices
+                formattedPrices[tokenId] = {
+                    usdPrice: 0,
+                    change24h: undefined,
+                    isLpToken: false,
+                    intrinsicValue: undefined,
+                    marketPrice: undefined,
+                    confidence: 0,
+                    lastUpdated: Date.now(),
+                    priceDeviation: undefined,
+                    isArbitrageOpportunity: false,
+                    pathsUsed: 0,
+                    totalLiquidity: 0,
+                    priceSource: 'unavailable' as any,
+                };
+            }
+        });
+        
+        console.log(`[getTokenPricesAction] Successfully fetched ${Object.keys(formattedPrices).length} prices (${cacheHits} from cache, ${tokenIds.length - cacheHits} fallback)`);
+        
+        return {
+            success: true,
+            prices: formattedPrices
+        };
+        
+    } catch (error) {
+        console.error('[getTokenPricesAction] Error:', error);
+        
+        // Fallback: return empty/default prices
+        const fallbackPrices: Record<string, any> = {};
+        tokenIds.forEach(tokenId => {
+            fallbackPrices[tokenId] = {
                 usdPrice: 0,
                 change24h: undefined,
                 isLpToken: false,
@@ -512,45 +689,171 @@ export async function getTokenPricesAction(tokenIds: string[]): Promise<{
                 isArbitrageOpportunity: false,
                 pathsUsed: 0,
                 totalLiquidity: 0,
-                priceSource: 'fallback' as const,
+                priceSource: 'error' as any,
             };
         });
         
-        console.log(`[getTokenPricesAction] Successfully fetched ${Object.keys(formattedPrices).length} prices`);
-        return {
-            success: true,
-            prices: formattedPrices
-        };
-        
-    } catch (error) {
-        console.error('[getTokenPricesAction] Error:', error);
         return {
             success: false,
-            prices: {},
+            prices: fallbackPrices,
             error: error instanceof Error ? error.message : 'Unknown error'
         };
     }
 }
 
 /**
- * Server action to discover and add missing tokens to the contract registry
- * This will attempt to fetch token metadata from the blockchain and add it to our registry
+ * Simple server action to get a single token price
  */
-export async function discoverMissingTokenAction(contractId: string): Promise<{
+export async function getTokenPriceAction(contractId: string): Promise<{
     success: boolean;
-    token?: TokenCacheData;
+    price?: number;
+    priceData?: CachedPriceData;
     error?: string;
 }> {
     try {
-        console.log(`[discoverMissingTokenAction] Attempting to discover token: ${contractId}`);
+        console.log(`[getTokenPriceAction] Fetching cached price for ${contractId}`);
         
+        const priceData = await cachedPriceClient.getTokenPrice(contractId);
+        
+        if (priceData && priceData.usdPrice > 0) {
+            return {
+                success: true,
+                price: priceData.usdPrice,
+                priceData
+            };
+        } else {
+            return {
+                success: false,
+                price: 0,
+                error: `Price not available for ${contractId}`
+            };
+        }
+        
+    } catch (error) {
+        console.error(`[getTokenPriceAction] Error fetching price for ${contractId}:`, error);
+        return {
+            success: false,
+            price: 0,
+            error: error instanceof Error ? error.message : 'Unknown error'
+        };
+    }
+}
+
+/**
+ * Server action to get STX price in USD
+ */
+export async function getStxPriceAction(): Promise<{
+    success: boolean;
+    price: number;
+    error?: string;
+}> {
+    try {
+        console.log('[getStxPriceAction] Fetching cached STX price');
+        
+        const stxPrice = await cachedPriceClient.getStxPrice();
+        
+        return {
+            success: true,
+            price: stxPrice
+        };
+        
+    } catch (error) {
+        console.error('[getStxPriceAction] Error:', error);
+        return {
+            success: false,
+            price: 0,
+            error: error instanceof Error ? error.message : 'Failed to fetch STX price'
+        };
+    }
+}
+
+/**
+ * Server action to check if price data is available for tokens
+ */
+export async function checkPriceAvailabilityAction(contractIds: string[]): Promise<{
+    success: boolean;
+    availability: Record<string, boolean>;
+    error?: string;
+}> {
+    try {
+        console.log(`[checkPriceAvailabilityAction] Checking price availability for ${contractIds.length} tokens`);
+        
+        const availability: Record<string, boolean> = {};
+        
+        await Promise.all(
+            contractIds.map(async (contractId) => {
+                availability[contractId] = await cachedPriceClient.hasPriceData(contractId);
+            })
+        );
+        
+        const availableCount = Object.values(availability).filter(Boolean).length;
+        console.log(`[checkPriceAvailabilityAction] ${availableCount}/${contractIds.length} tokens have price data`);
+        
+        return {
+            success: true,
+            availability
+        };
+        
+    } catch (error) {
+        console.error('[checkPriceAvailabilityAction] Error:', error);
+        return {
+            success: false,
+            availability: {},
+            error: error instanceof Error ? error.message : 'Unknown error'
+        };
+    }
+}
+
+/**
+ * Server action to discover and add missing tokens using cached data first, then fallback
+ * This will attempt to fetch token metadata from cache first, then blockchain discovery
+ */
+export async function discoverMissingTokenAction(contractId: string): Promise<{
+    success: boolean;
+    token?: CachedTokenMetadata;
+    error?: string;
+}> {
+    try {
+        console.log(`[discoverMissingTokenAction] Attempting to find token in cache: ${contractId}`);
+        
+        // First try to get from cache
+        const cachedToken = await cachedTokenMetadataClient.getTokenMetadata(contractId);
+        
+        if (cachedToken) {
+            console.log(`[discoverMissingTokenAction] Found token in cache: ${contractId} (${cachedToken.symbol})`);
+            return {
+                success: true,
+                token: cachedToken
+            };
+        }
+        
+        console.log(`[discoverMissingTokenAction] Token not in cache, attempting discovery: ${contractId}`);
+        
+        // Fallback to blockchain discovery
         const tokenData = await getTokenMetadataWithDiscovery(contractId);
         
         if (tokenData && tokenData.symbol !== 'UNKNOWN' && tokenData.name !== 'Unknown Token') {
+            // Convert to cached token format
+            const cachedTokenData: CachedTokenMetadata = {
+                contractId: tokenData.contractId,
+                name: tokenData.name,
+                symbol: tokenData.symbol,
+                decimals: tokenData.decimals,
+                totalSupply: tokenData.totalSupply || '0',
+                type: tokenData.type as CachedTokenMetadata['type'],
+                logo: tokenData.logo,
+                description: tokenData.description,
+                website: tokenData.website,
+                coingeckoId: tokenData.coingeckoId,
+                tags: tokenData.tags,
+                verified: tokenData.verified,
+                lastUpdated: Date.now()
+            };
+            
             console.log(`[discoverMissingTokenAction] Successfully discovered token: ${contractId} (${tokenData.symbol})`);
             return {
                 success: true,
-                token: tokenData
+                token: cachedTokenData
             };
         } else {
             console.warn(`[discoverMissingTokenAction] Token discovery failed for: ${contractId}`);
@@ -664,8 +967,8 @@ export async function getBalanceHistoryAction(
 }
 
 /**
- * Server action to get current balances for a single address
- * This is optimized for individual address balance lookups with auto-discovery
+ * Server action to get current balances for a single address using cached data
+ * This is optimized for individual address balance lookups with caching
  */
 export async function getAddressBalancesAction(
     address: string,
@@ -676,13 +979,41 @@ export async function getAddressBalancesAction(
     error?: string;
 }> {
     try {
-        console.log(`[getAddressBalancesAction] Fetching balances for address: ${address}`);
+        console.log(`[getAddressBalancesAction] Fetching cached balances for address: ${address}`);
         
+        // First try cached data
+        const fungibleTokens = await cachedBalanceClient.getFungibleTokenBalances(address, false);
+        
+        if (Object.keys(fungibleTokens).length > 0) {
+            // Convert to the expected format (balance values only)
+            const balances: Record<string, string> = {};
+            
+            if (contractIds && contractIds.length > 0) {
+                // Filter by requested contract IDs
+                contractIds.forEach(contractId => {
+                    balances[contractId] = fungibleTokens[contractId]?.balance || '0';
+                });
+            } else {
+                // Return all non-zero balances
+                Object.entries(fungibleTokens).forEach(([contractId, tokenData]) => {
+                    balances[contractId] = tokenData.balance;
+                });
+            }
+            
+            console.log(`[getAddressBalancesAction] Successfully fetched ${Object.keys(balances).length} cached token balances`);
+            return {
+                success: true,
+                balances
+            };
+        }
+        
+        console.log(`[getAddressBalancesAction] No cached data available, falling back to balance service for: ${address}`);
+        
+        // Fallback to balance service
         const balanceService = getBalanceService();
-        
         const balances = await balanceService.getBalances(address, contractIds);
         
-        console.log(`[getAddressBalancesAction] Successfully fetched ${Object.keys(balances).length} token balances`);
+        console.log(`[getAddressBalancesAction] Successfully fetched ${Object.keys(balances).length} token balances via service`);
         return {
             success: true,
             balances
