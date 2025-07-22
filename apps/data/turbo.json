@@ -5,6 +5,7 @@
   "tasks": {
     "build": {
       "dependsOn": [
+        "@services/prices#build",
         "@repo/tokens#build",
         "@services/contract-registry#build",
         "@repo/polyglot#build"
@@ -25,6 +26,7 @@
     },
     "dev": {
       "dependsOn": [
+        "@services/prices#build",
         "@repo/tokens#build",
         "@services/contract-registry#build",
         "@repo/polyglot#build"
