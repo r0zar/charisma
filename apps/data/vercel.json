@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/collect-prices",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/collect-balances",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

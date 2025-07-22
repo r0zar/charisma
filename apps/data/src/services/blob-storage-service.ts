@@ -318,6 +318,25 @@ export class BlobStorageService {
       children: buildSubtree(rootBlob.addresses, 'addresses')
     };
 
+    // Add balances directory with historical subdirectory
+    const balancesChildren: any = {};
+    
+    // Add historical balances subdirectory
+    balancesChildren.historical = {
+      type: 'directory',
+      children: {
+        // These will be populated dynamically as addresses get historical data
+        '5m': { type: 'directory', children: {} },
+        '1h': { type: 'directory', children: {} },
+        '1d': { type: 'directory', children: {} }
+      }
+    };
+    
+    tree.balances = {
+      type: 'directory',
+      children: balancesChildren
+    };
+
     tree.contracts = {
       type: 'directory',
       children: buildSubtree(rootBlob.contracts, 'contracts')
