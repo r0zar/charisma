@@ -478,30 +478,6 @@ export class UnifiedBlobStorage {
       return subtree;
     };
 
-    // Build addresses with enhanced structure including historical data
-    const addressesChildren: any = {};
-    
-    if (rootBlob.addresses && typeof rootBlob.addresses === 'object') {
-      for (const [address, addressData] of Object.entries(rootBlob.addresses)) {
-        const addressSubtree = buildSubtree(addressData, `addresses/${address}`);
-        
-        // Add historical subdirectory for each address
-        addressSubtree.historical = {
-          type: 'directory',
-          children: {
-            '5m': { type: 'directory', children: {} },
-            '1h': { type: 'directory', children: {} },
-            '1d': { type: 'directory', children: {} }
-          }
-        };
-        
-        addressesChildren[address] = {
-          type: 'directory',
-          children: addressSubtree
-        };
-      }
-    }
-
     // Build addresses section with its own blob file
     const addressesChildren: any = {};
     

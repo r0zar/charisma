@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ChevronDown, ChevronRight, File, Folder, Wallet, Code, TrendingUp } from 'lucide-react';
+import { ChevronDown, ChevronRight, File, Folder, Wallet, Code, TrendingUp, LineChart, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +32,8 @@ function getNodeIcon(name: string, type: 'file' | 'directory') {
     if (name === 'addresses') return Wallet;
     if (name === 'contracts') return Code;
     if (name === 'prices') return TrendingUp;
+    if (name === 'price-series') return LineChart;
+    if (name === 'metadata') return Info;
     return Folder;
   }
   return File;
@@ -42,6 +44,8 @@ function getNodeColor(name: string, type: 'file' | 'directory') {
     if (name === 'addresses') return 'text-blue-500';
     if (name === 'contracts') return 'text-purple-500';
     if (name === 'prices') return 'text-green-500';
+    if (name === 'price-series') return 'text-orange-500';
+    if (name === 'metadata') return 'text-gray-500';
     return 'text-muted-foreground';
   }
   return 'text-muted-foreground';
@@ -110,7 +114,22 @@ function TreeNodeComponent({
       // Load file data
       setLoading(true);
       try {
-        const response = await fetch(`/api/v1/${fullPath.replace('.json', '')}`);
+        let apiPath = fullPath.replace('.json', '');
+        
+        // Special handling for various files
+        if (fullPath === 'v1') {
+          apiPath = '';  // This will fetch /api/v1/ (the root)
+        } else if (fullPath.endsWith('-blob.json')) {
+          // For blob files, load the parent section data
+          const section = fullPath.replace('-blob.json', '').split('/').pop();
+          apiPath = section || '';
+        } else if (fullPath.includes('price-series/')) {
+          // For price-series files, the path already contains the correct contract ID
+          // Just use the stored path directly
+          apiPath = fullPath;
+        }
+        
+        const response = await fetch(`/api/v1/${apiPath}`);
         if (response.ok) {
           const data = await response.json();
           onSelect(fullPath, data);
@@ -153,7 +172,9 @@ function TreeNodeComponent({
         <span className="text-sm truncate flex-1">
           {node.type === 'directory' && name.match(/^S[PTM]/) 
             ? getAddressPreview(name)
-            : name.replace('.json', '')
+            : name === 'price-series' 
+              ? 'Price Series'
+              : name.replace('.json', '')
           }
         </span>
         
@@ -186,6 +207,149 @@ function TreeNodeComponent({
 }
 
 const STORAGE_KEY = 'tree-navigator-expanded-paths';
+
+async function buildTreeFromV1Data(rootData: any): Promise<{ [key: string]: TreeNode }> {
+  const tree: { [key: string]: TreeNode } = {};
+  
+  // Add the v1 metadata file directly at the top level
+  tree['v1'] = {
+    type: 'file',
+    size: JSON.stringify(rootData).length,
+    lastModified: new Date(rootData.lastUpdated || Date.now()),
+    path: ''
+  };
+  
+  // Helper function to get simple token name from contract ID
+  const getSimpleTokenName = (contractId: string): string => {
+    const parts = contractId.split('.');
+    if (parts.length === 2) {
+      const tokenName = parts[1];
+      if (tokenName.includes('-token')) {
+        return tokenName.replace('-token', '').toUpperCase();
+      } else if (tokenName.includes('coin')) {
+        return tokenName.replace('coin', '').toUpperCase();
+      } else if (tokenName === 'arkadiko-token') {
+        return 'DIKO';
+      } else if (tokenName === 'alex-token') {
+        return 'ALEX';
+      } else if (tokenName === 'charisma-token') {
+        return 'CHA';
+      } else if (tokenName === 'welshcorgicoin-token') {
+        return 'WELSH';
+      } else if (tokenName === 'sbtc-token') {
+        return 'SBTC';
+      }
+      return tokenName.toUpperCase().slice(0, 10);
+    }
+    return contractId.slice(0, 10);
+  };
+  
+  // Build addresses folder
+  const addressesChildren: { [key: string]: TreeNode } = {};
+  
+  // Add individual addresses if any exist
+  if (rootData.addresses && typeof rootData.addresses === 'object') {
+    Object.keys(rootData.addresses).forEach(address => {
+      addressesChildren[`${address}.json`] = {
+        type: 'file',
+        size: JSON.stringify(rootData.addresses[address]).length,
+        lastModified: new Date(rootData.lastUpdated),
+        path: `addresses/${address}`
+      };
+    });
+  }
+  
+  tree.addresses = {
+    type: 'directory',
+    children: addressesChildren
+  };
+  
+  // Build contracts folder
+  const contractsChildren: { [key: string]: TreeNode } = {};
+  
+  // Add individual contracts if any exist
+  if (rootData.contracts && typeof rootData.contracts === 'object') {
+    Object.keys(rootData.contracts).forEach(contractId => {
+      contractsChildren[`${contractId}.json`] = {
+        type: 'file',
+        size: JSON.stringify(rootData.contracts[contractId]).length,
+        lastModified: new Date(rootData.lastUpdated),
+        path: `contracts/${contractId}`
+      };
+    });
+  }
+  
+  tree.contracts = {
+    type: 'directory',
+    children: contractsChildren
+  };
+  
+  // Build prices folder
+  const pricesChildren: { [key: string]: TreeNode } = {};
+  
+  // Add individual token price files
+  if (rootData.prices && typeof rootData.prices === 'object') {
+    Object.entries(rootData.prices).forEach(([key, value]) => {
+      // Skip metadata fields
+      if (key === 'lastUpdated' || key === 'source' || key === 'tokenCount') {
+        return;
+      }
+      
+      if (typeof key === 'string' && key.includes('.') && value && typeof value === 'object') {
+        const simpleName = getSimpleTokenName(key);
+        pricesChildren[`${simpleName}.json`] = {
+          type: 'file',
+          size: JSON.stringify(value).length,
+          lastModified: new Date(rootData.prices.lastUpdated || rootData.lastUpdated),
+          path: `prices/${key}`
+        };
+      }
+    });
+  }
+  
+  tree.prices = {
+    type: 'directory',
+    children: pricesChildren
+  };
+  
+  // Build price-series folder
+  const priceSeriesChildren: { [key: string]: TreeNode } = {};
+  
+  // Add individual price series files
+  if (rootData['price-series'] && typeof rootData['price-series'] === 'object') {
+    Object.entries(rootData['price-series']).forEach(([key, value]) => {
+      // Skip metadata fields
+      if (key === 'lastUpdated' || key === 'source' || key === 'seriesCount') {
+        return;
+      }
+      
+      if (typeof key === 'string' && key.includes('.') && value && typeof value === 'object') {
+        const simpleName = getSimpleTokenName(key);
+        priceSeriesChildren[`${simpleName}-series.json`] = {
+          type: 'file',
+          size: JSON.stringify(value).length,
+          lastModified: new Date(rootData['price-series'].lastUpdated || rootData.lastUpdated),
+          path: `price-series/${key}`
+        };
+      }
+    });
+  }
+  
+  tree['price-series'] = {
+    type: 'directory',
+    children: priceSeriesChildren
+  };
+
+  // Add metadata as a direct file item
+  tree.metadata = {
+    type: 'file',
+    size: JSON.stringify(rootData.metadata || {}).length,
+    lastModified: new Date(rootData.lastUpdated),
+    path: 'metadata'
+  };
+  
+  return tree;
+}
 
 export function TreeNavigator({ onSelect, initialPath }: TreeNavigatorProps) {
   const [tree, setTree] = useState<{ [key: string]: TreeNode }>({});
@@ -255,13 +419,17 @@ export function TreeNavigator({ onSelect, initialPath }: TreeNavigatorProps) {
   const loadTree = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/tree');
+      // Use the unified blob storage to build the navigation tree
+      const response = await fetch('/api/v1');
       
       if (!response.ok) {
-        throw new Error('Failed to load tree structure');
+        throw new Error('Failed to load v1 data structure');
       }
       
-      const treeData = await response.json();
+      const rootData = await response.json();
+      
+      // Build a tree structure from the v1 data
+      const treeData = await buildTreeFromV1Data(rootData);
       setTree(treeData);
       setError(null);
     } catch (err) {
