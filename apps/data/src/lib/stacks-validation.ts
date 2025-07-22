@@ -10,6 +10,14 @@ export interface TokenPair {
   quote: string;
 }
 
+export interface ParsedApiPath {
+  type: 'addresses' | 'contracts' | 'prices';
+  address?: StacksAddress;
+  functionName?: string;
+  tokenPair?: TokenPair;
+  action?: string; // e.g., 'balances', 'transactions', 'current', 'history'
+}
+
 /**
  * Base58 alphabet (Modified for Stacks address compatibility - includes 0)
  */
