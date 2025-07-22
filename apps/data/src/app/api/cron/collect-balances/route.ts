@@ -156,7 +156,7 @@ async function collectBalancesForUnifiedStorage(): Promise<void> {
     }
     
     // Get all known addresses from contracts and addresses sections
-    let knownAddresses = new Set<string>();
+    const knownAddresses = new Set<string>();
     
     try {
       const contractsData = await unifiedBlobStorage.get('contracts');
@@ -177,7 +177,7 @@ async function collectBalancesForUnifiedStorage(): Promise<void> {
     try {
       const addressesData = await unifiedBlobStorage.get('addresses');
       if (addressesData && typeof addressesData === 'object') {
-        for (const [address, _] of Object.entries(addressesData)) {
+        for (const [address] of Object.entries(addressesData)) {
           if (address.match(/^S[PTM]/)) {
             knownAddresses.add(address);
           }
@@ -305,7 +305,7 @@ async function collectBalancesForUnifiedStorage(): Promise<void> {
     let totalStxBalance = 0;
     const tokenTypes = new Set<string>();
     
-    for (const [key, balance] of Object.entries(balancesBlob)) {
+    for (const [_key, balance] of Object.entries(balancesBlob)) {
       if (typeof balance === 'object' && balance && 'stxBalance' in balance) {
         const stxBal = parseInt((balance as any).stxBalance) || 0;
         totalStxBalance += stxBal;
@@ -321,8 +321,8 @@ async function collectBalancesForUnifiedStorage(): Promise<void> {
     balancesBlob.totalStxBalance = totalStxBalance.toString();
     balancesBlob.totalTokenTypes = tokenTypes.size;
     
-    // Write back with allowFullReplace flag
-    await unifiedBlobStorage.put('balances', balancesBlob, { allowFullReplace: true });
+    // Write back 
+    await unifiedBlobStorage.put('balances', balancesBlob);
     
     console.log(`[UnifiedBalanceCollector] Updated balances section with ${balanceUpdates.length} addresses, total STX: ${totalStxBalance}`);
     
@@ -344,9 +344,9 @@ function detectBalanceChanges(previous: any, current: any): {
 } {
   const changes = {
     hasChanges: false,
-    stxChanges: {},
-    tokenChanges: {},
-    nftChanges: {},
+    stxChanges: {} as any,
+    tokenChanges: {} as Record<string, any>,
+    nftChanges: {} as Record<string, any>,
     summary: ''
   };
   

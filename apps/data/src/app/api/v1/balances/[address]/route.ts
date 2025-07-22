@@ -10,10 +10,10 @@ export const runtime = 'edge';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { address: string } }
+  { params }: { params: Promise<{ address: string }> }
 ) {
   const startTime = Date.now();
-  const address = params.address;
+  const { address } = await params;
 
   try {
     console.log(`[Balances API] Getting balance for address: ${address}`);
@@ -81,7 +81,7 @@ export async function GET(
               !['lastUpdated', 'source', 'addressCount', 'totalStxBalance', 'totalTokenTypes'].includes(k)
             ).length;
             
-            await unifiedBlobStorage.put('balances', balancesBlob, { allowFullReplace: true });
+            await unifiedBlobStorage.put('balances', balancesBlob);
           } catch (mainBlobError) {
             console.warn(`[Balances API] Failed to update main balances blob:`, mainBlobError);
             // Continue anyway - we have the individual balance

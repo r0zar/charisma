@@ -135,7 +135,7 @@ export async function GET() {
         },
         lastUpdated: new Date().toISOString(),
         source: 'test-oracle-forced-replacement'
-      }, { allowFullReplace: true });
+      });
       
       results.tests.push({
         name: 'Force replace with flag',
@@ -166,7 +166,7 @@ export async function GET() {
       await unifiedBlobStorage.put('contracts/merge-test.test', {
         description: 'Added via merge',
         version: 2
-      }, { merge: true });
+      });
       
       results.tests.push({
         name: 'Merge functionality test',

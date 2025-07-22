@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, File, Folder, Wallet, Code, TrendingUp, LineChart, Info, Database } from 'lucide-react';
+import { File, Folder, Wallet, Code, TrendingUp, LineChart, Info, Database } from 'lucide-react';
 
 export function formatBytes(bytes: number): string {
   if (bytes === 0) return '0 B';

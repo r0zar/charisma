@@ -132,13 +132,13 @@ export async function GET() {
       // Add discovered contracts
       for (const update of contractsUpdates) {
         const contractId = update.path.replace('contracts/', '');
-        discoveredData.contracts[contractId] = update.data;
+        (discoveredData.contracts as Record<string, any>)[contractId] = update.data;
       }
       
       // Add discovered addresses
       for (const update of addressesUpdates) {
         const address = update.path.replace('addresses/', '');
-        discoveredData.addresses[address] = update.data;
+        (discoveredData.addresses as Record<string, any>)[address] = update.data;
       }
       
       // Store in discovered section

@@ -15,8 +15,8 @@ export async function GET() {
     console.log('[BlobHarvester] Starting comprehensive blob storage spider...');
     
     // List all blobs in storage (limit to avoid timeout)
-    const { blobs } = await list({ limit: 10 });
-    console.log(`[BlobHarvester] Found ${blobs.length} total blobs (limited to 50 for performance)`);
+    const { blobs } = await list({ limit: 500 });
+    console.log(`[BlobHarvester] Found ${blobs.length} total blobs (limited to 500 for performance)`);
     
     const harvestResults = {
       blobsScanned: 0,
@@ -52,16 +52,13 @@ export async function GET() {
         
         // Process both JSON-like files and images (for metadata analysis)
         const isJsonLike = blob.pathname.endsWith('.json') || 
-                          blob.contentType?.includes('application/json') ||
-                          blob.contentType?.includes('text/') ||
                           blob.pathname.includes('metadata') ||
                           blob.pathname.includes('data');
         
-        const isImage = blob.contentType?.includes('image/') ||
-                       blob.pathname.match(/\.(png|jpg|jpeg|gif|svg|webp)$/i);
+        const isImage = blob.pathname.match(/\.(png|jpg|jpeg|gif|svg|webp)$/i);
         
         if (!isJsonLike && !isImage) {
-          console.log(`[BlobHarvester] Skipping unsupported file: ${blob.pathname} (${blob.contentType})`);
+          console.log(`[BlobHarvester] Skipping unsupported file: ${blob.pathname}`);
           continue;
         }
         
@@ -108,7 +105,7 @@ export async function GET() {
             data: analysis.contracts,
             lastModified: blob.uploadedAt
           });
-          analysis.contracts.forEach(contract => {
+          analysis.contracts.forEach((contract: any) => {
             if (contract.contractId) harvestResults.patterns.contractIds.add(contract.contractId);
             if (contract.address) harvestResults.patterns.addresses.add(contract.address);
           });
@@ -120,7 +117,7 @@ export async function GET() {
             data: analysis.addresses,
             lastModified: blob.uploadedAt
           });
-          analysis.addresses.forEach(addr => {
+          analysis.addresses.forEach((addr: any) => {
             if (addr.address) harvestResults.patterns.addresses.add(addr.address);
           });
         }
@@ -131,7 +128,7 @@ export async function GET() {
             data: analysis.prices,
             lastModified: blob.uploadedAt
           });
-          analysis.prices.forEach(price => {
+          analysis.prices.forEach((price: any) => {
             if (price.symbol) harvestResults.patterns.symbols.add(price.symbol);
           });
         }
@@ -142,7 +139,7 @@ export async function GET() {
             data: analysis.tokens,
             lastModified: blob.uploadedAt
           });
-          analysis.tokens.forEach(token => {
+          analysis.tokens.forEach((token: any) => {
             if (token.contractId) harvestResults.patterns.contractIds.add(token.contractId);
             if (token.symbol) harvestResults.patterns.symbols.add(token.symbol);
           });
@@ -263,25 +260,25 @@ async function analyzeImageMetadata(blob: any, pathname: string): Promise<{
     source: 'image-analysis' as string
   };
 
-  // Helper functions
-  const isStacksAddress = (str: string) => /^S[PTM][0-9A-Z]{39}$/.test(str);
-  const isContractId = (str: string) => /^S[PTM][0-9A-Z]{39}\.[a-z0-9-_]+$/.test(str);
-  
-  // Analyze filename for patterns
+  // Analyze both filename and URL for patterns
   const filename = pathname.toLowerCase();
   
-  // Check if filename contains contract ID pattern
-  const contractIdMatch = pathname.match(/S[PTM][0-9A-Z]{39}\.[a-z0-9-_]+/i);
+  // Check if filename or URL contains contract ID pattern
+  const contractIdMatch = pathname.match(/S[PTM][0-9A-Z]{39}\.[a-z0-9-_]+/i) || 
+                          blob.url.match(/S[PTM][0-9A-Z]{39}\.[a-z0-9-_]+/i);
   if (contractIdMatch) {
     const contractId = contractIdMatch[0];
+    const foundLocation = pathname.match(/S[PTM][0-9A-Z]{39}\.[a-z0-9-_]+/i) ? 
+                         `filename:${pathname}` : `url:${blob.url}`;
+    
     result.contracts.push({
       contractId,
       address: contractId.split('.')[0],
       contractName: contractId.split('.')[1],
       associatedImage: blob.url,
       imageType: 'token-logo',
-      foundAt: `filename:${pathname}`,
-      source: 'image-filename-analysis'
+      foundAt: foundLocation,
+      source: 'image-analysis'
     });
     
     // Also add the address
@@ -289,20 +286,24 @@ async function analyzeImageMetadata(blob: any, pathname: string): Promise<{
       address: contractId.split('.')[0],
       associatedImage: blob.url,
       imageType: 'contract-logo',
-      foundAt: `filename:${pathname}`,
-      source: 'image-filename-analysis'
+      foundAt: foundLocation,
+      source: 'image-analysis'
     });
   }
   
-  // Check for standalone address patterns
-  const addressMatch = pathname.match(/S[PTM][0-9A-Z]{39}/);
+  // Check for standalone address patterns (in filename or URL)
+  const addressMatch = pathname.match(/S[PTM][0-9A-Z]{39}/) || 
+                       blob.url.match(/S[PTM][0-9A-Z]{39}/);
   if (addressMatch && !contractIdMatch) { // Only if we didn't already catch it in contract
+    const foundLocation = pathname.match(/S[PTM][0-9A-Z]{39}/) ? 
+                         `filename:${pathname}` : `url:${blob.url}`;
+    
     result.addresses.push({
       address: addressMatch[0],
       associatedImage: blob.url,
       imageType: 'address-logo',
-      foundAt: `filename:${pathname}`,
-      source: 'image-filename-analysis'
+      foundAt: foundLocation,
+      source: 'image-analysis'
     });
   }
   
@@ -542,7 +543,7 @@ async function processHarvestedData(harvestResults: any): Promise<{
  * Store discovered data in the discovered section
  */
 async function storeDiscoveredData(harvestUpdates: any, harvestResults: any): Promise<void> {
-  if (harvestUpdates.contracts.length > 0 || harvestUpdates.addresses.length > 0) {
+  if (harvestUpdates.contracts.length > 0 || harvestUpdates.addresses.length > 0 || harvestResults.dataFound.images.length > 0) {
     const discoveredData = {
       lastUpdated: new Date().toISOString(),
       source: 'blob-spider-harvester',
@@ -555,6 +556,7 @@ async function storeDiscoveredData(harvestUpdates: any, harvestResults: any): Pr
       },
       contracts: {},
       addresses: {},
+      images: [],
       metadata: {
         crawlResults: harvestResults
       }
@@ -563,18 +565,23 @@ async function storeDiscoveredData(harvestUpdates: any, harvestResults: any): Pr
     // Add discovered contracts
     for (const update of harvestUpdates.contracts) {
       const contractId = update.path.replace('contracts/', '');
-      discoveredData.contracts[contractId] = update.data;
+      (discoveredData.contracts as Record<string, any>)[contractId] = update.data;
     }
     
     // Add discovered addresses
     for (const update of harvestUpdates.addresses) {
       const address = update.path.replace('addresses/', '');
-      discoveredData.addresses[address] = update.data;
+      (discoveredData.addresses as Record<string, any>)[address] = update.data;
+    }
+    
+    // Add discovered images
+    for (const imageGroup of harvestResults.dataFound.images) {
+      (discoveredData.images as any[]).push(...imageGroup.data);
     }
     
     // Store in discovered section
     await unifiedBlobStorage.put('discovered/blob-spider', discoveredData);
-    console.log(`[BlobHarvester] Stored discovered data: ${harvestUpdates.contracts.length} contracts, ${harvestUpdates.addresses.length} addresses`);
+    console.log(`[BlobHarvester] Stored discovered data: ${harvestUpdates.contracts.length} contracts, ${harvestUpdates.addresses.length} addresses, ${discoveredData.images.length} images`);
   }
 }
 

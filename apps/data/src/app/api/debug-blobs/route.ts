@@ -13,7 +13,6 @@ export async function GET() {
     const blobInfo = blobs.map(blob => ({
       pathname: blob.pathname,
       size: blob.size,
-      contentType: blob.contentType,
       uploadedAt: blob.uploadedAt,
       url: blob.url.substring(0, 50) + '...' // Truncate URL for safety
     }));
