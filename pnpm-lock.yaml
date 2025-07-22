@@ -919,6 +919,9 @@ importers:
       '@services/balances':
         specifier: workspace:*
         version: link:../../services/balances
+      '@services/prices':
+        specifier: workspace:*
+        version: link:../../services/prices
       '@stacks/connect':
         specifier: 8.1.9
         version: 8.1.9

@@ -27,7 +27,7 @@ export interface HistoricalBalanceData {
  * Service for collecting and managing historical balance data
  */
 class HistoricalBalanceService {
-  private readonly HISTORICAL_BLOB_PREFIX = 'balances/historical';
+  private readonly HISTORICAL_BLOB_PREFIX = 'addresses';
   private readonly KNOWN_ADDRESSES_BLOB = 'balances/known-addresses';
   private readonly MAX_5MIN_POINTS = 288; // 24 hours of 5min data
   private readonly MAX_1HOUR_POINTS = 168; // 7 days of 1hour data  
@@ -152,7 +152,7 @@ class HistoricalBalanceService {
    * Add balance point to specific timeframe
    */
   private async addBalanceToTimeframe(address: string, timeframe: string, balancePoint: HistoricalBalancePoint): Promise<void> {
-    const blobKey = `${this.HISTORICAL_BLOB_PREFIX}/${timeframe}/${address}`;
+    const blobKey = `${this.HISTORICAL_BLOB_PREFIX}/${address}/historical/${timeframe}`;
     
     try {
       // Get existing historical data
@@ -271,7 +271,7 @@ class HistoricalBalanceService {
    */
   async getHistoricalBalances(address: string, timeframe: string, limit?: number): Promise<HistoricalBalanceData | null> {
     try {
-      const blobKey = `${this.HISTORICAL_BLOB_PREFIX}/${timeframe}/${address}`;
+      const blobKey = `${this.HISTORICAL_BLOB_PREFIX}/${address}/historical/${timeframe}`;
       const data = await blobStorageService.get(blobKey) as HistoricalBalanceData;
       
       if (!data) {

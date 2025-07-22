@@ -12,6 +12,8 @@ export const runtime = 'edge';
  * - timeframe: 5m, 1h, 1d (default: 5m)
  * - limit: max number of data points (default: 100)
  * - addresses: comma-separated list of addresses for bulk fetch
+ * 
+ * Note: Historical balance data is now stored at addresses/<address>/historical/<timeframe>
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
@@ -106,6 +108,10 @@ export async function GET(request: NextRequest) {
         availableAddresses,
         addressCount: availableAddresses.length,
         statistics: stats,
+        dataStructure: {
+          note: 'Historical balance data is stored at addresses/<address>/historical/<timeframe>',
+          treePath: 'addresses → [address] → historical → [timeframe]'
+        },
         usage: {
           examples: [
             `/api/v1/balances/historical?address=SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS&timeframe=5m&limit=50`,

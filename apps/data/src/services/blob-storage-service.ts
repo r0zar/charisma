@@ -313,28 +313,33 @@ export class BlobStorageService {
       return subtree;
     };
 
+    // Build addresses with enhanced structure including historical data
+    const addressesChildren: any = {};
+    
+    if (rootBlob.addresses && typeof rootBlob.addresses === 'object') {
+      for (const [address, addressData] of Object.entries(rootBlob.addresses)) {
+        const addressSubtree = buildSubtree(addressData, `addresses/${address}`);
+        
+        // Add historical subdirectory for each address
+        addressSubtree.historical = {
+          type: 'directory',
+          children: {
+            '5m': { type: 'directory', children: {} },
+            '1h': { type: 'directory', children: {} },
+            '1d': { type: 'directory', children: {} }
+          }
+        };
+        
+        addressesChildren[address] = {
+          type: 'directory',
+          children: addressSubtree
+        };
+      }
+    }
+
     tree.addresses = {
       type: 'directory',
-      children: buildSubtree(rootBlob.addresses, 'addresses')
-    };
-
-    // Add balances directory with historical subdirectory
-    const balancesChildren: any = {};
-    
-    // Add historical balances subdirectory
-    balancesChildren.historical = {
-      type: 'directory',
-      children: {
-        // These will be populated dynamically as addresses get historical data
-        '5m': { type: 'directory', children: {} },
-        '1h': { type: 'directory', children: {} },
-        '1d': { type: 'directory', children: {} }
-      }
-    };
-    
-    tree.balances = {
-      type: 'directory',
-      children: balancesChildren
+      children: addressesChildren
     };
 
     tree.contracts = {
