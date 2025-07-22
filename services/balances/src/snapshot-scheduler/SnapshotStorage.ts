@@ -3,7 +3,7 @@
  */
 
 import { kv } from '@vercel/kv';
-import { list } from '@vercel/blob';
+import { list, put } from '@vercel/blob';
 import type {
   BalanceSnapshot,
   SnapshotStorageConfig,
@@ -63,7 +63,7 @@ export class SnapshotStorage {
       const key = generateSnapshotKey(snapshot.timestamp);
 
       // Store in blob storage
-      const putResult = await this.blobMonitor.put(key, compressionResult.compressed, {
+      const putResult = await put(key, compressionResult.compressed, {
         access: 'public',
         contentType: 'application/gzip',
         cacheControlMaxAge: 3600 // 1 hour cache
@@ -141,7 +141,7 @@ export class SnapshotStorage {
 
       if (registeredUrl) {
         // Use the registered URL for direct fetch
-        const response = await this.blobMonitor.fetch(registeredUrl);
+        const response = await fetch(registeredUrl);
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -181,7 +181,7 @@ export class SnapshotStorage {
         // Cache the URL for future requests
         this.urlRegistry.set(timestamp.toString(), matchingBlob.url);
 
-        const response = await this.blobMonitor.fetch(matchingBlob.url);
+        const response = await fetch(matchingBlob.url);
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -242,7 +242,6 @@ export class SnapshotStorage {
   async deleteSnapshot(timestamp: number): Promise<boolean> {
     try {
       const key = generateSnapshotKey(timestamp);
-      await this.blobMonitor.delete(key);
 
       // Clean up the URL registry
       this.urlRegistry.delete(timestamp.toString());
@@ -335,26 +334,15 @@ export class SnapshotStorage {
    */
   async getStorageStats(): Promise<StorageStats> {
     try {
-      const stats = this.blobMonitor.getStats();
 
       // Get snapshot index for accurate statistics
       const index = await kv.get<any>('snapshot-index');
 
       if (index && index.timestamps) {
         // Calculate total and average sizes from recent operations
-        let totalSize = 0;
+        const totalSize = 0;
         const totalCompression = 0;
         const compressionCount = 0;
-
-        const recentOps = this.blobMonitor.getRecentOperations(100);
-        const putOps = recentOps.filter(op => op.type === 'put');
-
-        for (const op of putOps) {
-          if (op.size) {
-            totalSize += op.size;
-          }
-          // Note: compression ratio would need to be tracked separately
-        }
 
         const avgSize = index.timestamps.length > 0 ? totalSize / index.timestamps.length : 0;
 
@@ -386,69 +374,6 @@ export class SnapshotStorage {
         oldestSnapshot: 0,
         newestSnapshot: 0
       };
-    }
-  }
-
-  /**
-   * Get blob monitoring statistics
-   */
-  getBlobMonitorStats() {
-    return this.blobMonitor.getStats();
-  }
-
-  /**
-   * Get recent blob operations
-   */
-  getRecentBlobOperations(limit: number = 10) {
-    return this.blobMonitor.getRecentOperations(limit);
-  }
-
-  /**
-   * Get active blob alerts
-   */
-  getBlobAlerts() {
-    return this.blobMonitor.getAlerts();
-  }
-
-  /**
-   * Clear resolved alerts
-   */
-  clearResolvedAlerts() {
-    return this.blobMonitor.clearResolvedAlerts();
-  }
-
-  /**
-   * Reset monitoring statistics
-   */
-  resetStats() {
-    return this.blobMonitor.resetStats();
-  }
-
-  /**
-   * Test storage connectivity
-   */
-  async testConnection(): Promise<boolean> {
-    try {
-      const testKey = `${this.config.basePath}/test-${Date.now()}.json`;
-      const testData = JSON.stringify({ test: true, timestamp: Date.now() });
-
-      // Test write
-      const putResult = await this.blobMonitor.put(testKey, testData, {
-        access: 'public',
-        contentType: 'application/json'
-      });
-
-      // Test read using the actual URL returned by put
-      const response = await this.blobMonitor.fetch(putResult.url);
-      const success = response.ok;
-
-      // Cleanup
-      await this.blobMonitor.delete(testKey);
-
-      return success;
-    } catch (error) {
-      console.error('Storage connection test failed:', error);
-      return false;
     }
   }
 }
