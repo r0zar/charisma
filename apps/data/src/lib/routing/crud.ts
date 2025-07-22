@@ -3,7 +3,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { blobStorageService } from '../storage/blob-storage-service';
+import { unifiedBlobStorage } from '../storage/unified-blob-storage';
 import { getCachePolicy, generateCacheHeaders } from '../utils/cache-strategy';
 import type { CrudOperation, RouteContext } from './types';
 
@@ -18,7 +18,7 @@ export const defaultCrudOperations: CrudOperation = {
     context.performance.addMark('crud-get-start');
     
     try {
-      const data = await blobStorageService.get(blobPath);
+      const data = await unifiedBlobStorage.get(blobPath);
       
       // Generate appropriate cache headers based on path
       const cachePolicy = getCachePolicy(context.path);
@@ -60,7 +60,7 @@ export const defaultCrudOperations: CrudOperation = {
     
     // Check if data already exists
     try {
-      await blobStorageService.get(blobPath);
+      await unifiedBlobStorage.get(blobPath);
       return NextResponse.json(
         {
           error: 'Data already exists at path',
@@ -73,7 +73,7 @@ export const defaultCrudOperations: CrudOperation = {
       // Expected - data doesn't exist, we can create it
     }
     
-    await blobStorageService.put(blobPath, data);
+    await unifiedBlobStorage.put(blobPath, data);
     
     context.performance.addMark('crud-post-complete');
     
@@ -91,7 +91,7 @@ export const defaultCrudOperations: CrudOperation = {
   async put(blobPath: string, data: any, context: RouteContext): Promise<NextResponse> {
     context.performance.addMark('crud-put-start');
     
-    await blobStorageService.put(blobPath, data);
+    await unifiedBlobStorage.put(blobPath, data);
     
     context.performance.addMark('crud-put-complete');
     
@@ -110,7 +110,7 @@ export const defaultCrudOperations: CrudOperation = {
     context.performance.addMark('crud-delete-start');
     
     try {
-      await blobStorageService.delete(blobPath);
+      await unifiedBlobStorage.delete(blobPath);
       
       context.performance.addMark('crud-delete-complete');
       

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { blobStorageService } from '@/lib/storage/blob-storage-service';
+import { unifiedBlobStorage } from '@/lib/storage/unified-blob-storage';
 
 export const runtime = 'edge';
 
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     console.log('[RebuildBlob] Starting complete blob rebuild...');
 
     // Get current blob to preserve addresses and contracts
-    const currentBlob = await blobStorageService.getRootBlob();
+    const currentBlob = await unifiedBlobStorage.getRoot();
     
     // Create a completely fresh root blob structure
     const freshBlob = {
@@ -32,13 +32,13 @@ export async function GET(request: NextRequest) {
     };
     
     // Save the completely rebuilt structure
-    await blobStorageService.saveRootBlob(freshBlob);
+    await unifiedBlobStorage.put('', freshBlob);
     
     // Clear cache
     // @ts-ignore - accessing private property for cache clearing
-    blobStorageService.rootBlobCache = null;
+    unifiedBlobStorage.clearCache();
     // @ts-ignore - accessing private property for cache clearing  
-    blobStorageService.cacheTimestamp = 0;
+    // Cache already cleared above
     
     console.log('[RebuildBlob] Successfully rebuilt blob structure');
     

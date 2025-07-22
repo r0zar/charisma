@@ -1,60 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unifiedBlobStorage } from '@/lib/storage/unified-blob-storage';
 
 export const runtime = 'edge';
 
 /**
- * GET /api/v1/prices/pairs - Get price pair data
- * 
- * This endpoint will handle price pairs (e.g., CHA/STX, WELSH/USDA, etc.)
- * Currently a placeholder - to be implemented based on your requirements
+ * GET /api/v1/prices/pairs - Get trading pair data
  */
 export async function GET(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
-    console.log('[Price Pairs API] Getting price pairs data');
-
-    // TODO: Implement price pairs logic here
-    // This could include:
-    // - Trading pairs data
-    // - Relative price ratios
-    // - Arbitrage opportunities
-    // - Cross-rate calculations
-
-    const pairsData = {
-      message: 'Price pairs endpoint - to be implemented',
-      timestamp: new Date().toISOString(),
-      // Example structure:
-      pairs: {
-        'CHA/STX': {
-          baseToken: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token',
-          quoteToken: 'STX',
-          price: 0, // CHA price in STX
-          volume24h: 0,
-          change24h: 0,
-          lastUpdated: Date.now()
-        },
-        'WELSH/USDA': {
-          baseToken: 'SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token',
-          quoteToken: 'SP2C2YFP12AJZB4MABJBAJ55XECVS7E4PMMZ89YZR.usda-token',
-          price: 0,
-          volume24h: 0,
-          change24h: 0,
-          lastUpdated: Date.now()
-        }
+    const url = new URL(request.url);
+    const forceRefresh = url.searchParams.get('refresh') === 'true';
+    
+    console.log(`[Pairs] Getting pairs data (refresh: ${forceRefresh})`);
+    
+    // Get pairs data from blob storage
+    const pricesBlob = await unifiedBlobStorage.get('prices');
+    let pairsData = null;
+    
+    if (pricesBlob && typeof pricesBlob === 'object') {
+      pairsData = (pricesBlob as any).pairs;
+    }
+    
+    // If no pairs data exists or is empty object, create proper structure
+    if (!pairsData || (typeof pairsData === 'object' && Object.keys(pairsData).length === 0)) {
+      pairsData = {
+        timestamp: Date.now(),
+        pairs: {},
+        pairCount: 0,
+        source: 'empty-structure'
+      };
+      
+      // Store the empty structure back to blob
+      if (pricesBlob) {
+        (pricesBlob as any).pairs = pairsData;
+        await unifiedBlobStorage.put('prices', pricesBlob);
       }
-    };
-
+    }
+    
+    const processingTime = Date.now() - startTime;
+    console.log(`[Pairs] Returned ${pairsData.pairCount || 0} pairs in ${processingTime}ms`);
+    
     return NextResponse.json(pairsData);
-
+    
   } catch (error) {
-    console.error('[Price Pairs API] Error:', error);
-
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch price pairs',
-        message: error instanceof Error ? error.message : 'Unknown error',
-        timestamp: new Date().toISOString()
-      },
-      { status: 500 }
-    );
+    console.error('[Pairs] Error:', error);
+    
+    return NextResponse.json({
+      error: 'Failed to get pairs data',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: Date.now()
+    }, { status: 500 });
   }
 }

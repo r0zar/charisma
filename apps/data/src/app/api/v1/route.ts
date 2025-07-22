@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { blobStorageService } from '@/lib/storage/blob-storage-service';
+import { unifiedBlobStorage } from '@/lib/storage/unified-blob-storage';
 import { generateCacheHeaders, getCachePolicy } from '@/lib/utils/cache-strategy';
 
 export const runtime = 'edge';
@@ -9,7 +9,7 @@ export const runtime = 'edge';
  */
 export async function GET() {
   try {
-    const rootBlob = await blobStorageService.getRootBlob();
+    const rootBlob = await unifiedBlobStorage.getRoot();
     
     const cacheHeaders = generateCacheHeaders(getCachePolicy('root'), {
       deploymentId: process.env.VERCEL_DEPLOYMENT_ID

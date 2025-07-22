@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { blobStorageService } from '@/lib/storage/blob-storage-service';
+import { unifiedBlobStorage } from '@/lib/storage/unified-blob-storage';
 import { CACHE_POLICIES, generateCacheHeaders } from '@/lib/utils/cache-strategy';
 
 export const runtime = 'edge';
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     const prefix = url.searchParams.get('prefix') || '';
     const debug = url.searchParams.get('debug') === 'true';
     
-    const tree = await blobStorageService.buildNavigationTree();
+    const tree = await unifiedBlobStorage.buildNavigationTree();
     
     // Filter tree by prefix if provided
     let filteredTree = tree;

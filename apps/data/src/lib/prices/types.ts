@@ -109,11 +109,22 @@ export interface OraclePriceResult {
 }
 
 // Historical service types
-export interface HistoricalPriceData {
+export interface HistoricalPricePoint {
   timestamp: number;
   usdPrice: number;
+  change24h?: number;
+  volume24h?: number;
+  marketCap?: number;
   source: string;
   confidence: number;
+}
+
+export interface HistoricalPriceData {
+  tokenId: string;
+  prices: HistoricalPricePoint[];
+  lastUpdated: number;
+  dataPoints: number;
+  timeframe: string;
 }
 
 export interface CollectionResult {
