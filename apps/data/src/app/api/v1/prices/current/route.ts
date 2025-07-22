@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { oraclePriceService } from '@/services/oracle-price-service';
-import { blobStorageService } from '@/services/blob-storage-service';
-import { generateCacheHeaders } from '@/lib/cache-strategy';
+import { oraclePriceService } from '@/lib/prices';
+import { blobStorageService } from '@/lib/storage/blob-storage-service';
+import { generateCacheHeaders } from '@/lib/utils/cache-strategy';
 
 export const runtime = 'edge';
 
@@ -128,6 +128,51 @@ export async function GET(request: NextRequest) {
         timestamp: new Date().toISOString()
       },
       { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/v1/prices/current/[field] - Delete specific field from current prices
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const url = new URL(request.url);
+    const pathParts = url.pathname.split('/').filter(Boolean);
+    
+    // Extract the field to delete (last part after prices/current)
+    const fieldToDelete = pathParts[pathParts.length - 1];
+    
+    if (!fieldToDelete || fieldToDelete === 'current') {
+      return NextResponse.json(
+        { error: 'Cannot delete entire current prices data. Specify a field to delete.' },
+        { status: 400 }
+      );
+    }
+
+    console.log(`[Current Prices DELETE] Deleting field: ${fieldToDelete}`);
+
+    // Delete the specific field from prices/current
+    const deletePath = `prices/current/${fieldToDelete}`;
+    await blobStorageService.delete(deletePath);
+
+    return NextResponse.json({
+      success: true,
+      message: `Successfully deleted field: ${fieldToDelete}`,
+      path: deletePath,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('[Current Prices DELETE] Error:', error);
+    
+    return NextResponse.json(
+      {
+        error: 'Failed to delete field',
+        message: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
+      },
+      { status: error instanceof Error && error.message.includes('not found') ? 404 : 500 }
     );
   }
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { historicalBalanceService } from '@/services/historical-balance-service';
-import { generateCacheHeaders } from '@/lib/cache-strategy';
+import { historicalBalanceService } from '@/lib/balances/historical-balance-service';
+import { generateCacheHeaders } from '@/lib/utils/cache-strategy';
 
 export const runtime = 'edge';
 

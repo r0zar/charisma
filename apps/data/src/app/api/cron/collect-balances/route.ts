@@ -1,5 +1,5 @@
+import { historicalBalanceService } from '@/lib/balances/historical-balance-service';
 import { NextRequest, NextResponse } from 'next/server';
-import { historicalBalanceService } from '@/services/historical-balance-service';
 
 export const runtime = 'edge';
 
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     // Verify cron authentication
     const authHeader = request.headers.get('Authorization');
     const cronSecret = process.env.CRON_SECRET || 'dev-cron-secret';
-    
+
     if (authHeader !== `Bearer ${cronSecret}`) {
       console.warn('[Balance Collection Cron] Unauthorized request');
       return NextResponse.json(
@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
 
     // Collect current balances and add to historical data
     const result = await historicalBalanceService.collectCurrentBalances();
-    
+
     const processingTime = Date.now() - startTime;
-    
+
     // Get collection statistics
     const stats = await historicalBalanceService.getStats();
 
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const secret = url.searchParams.get('secret');
     const cronSecret = process.env.CRON_SECRET || 'dev-cron-secret';
-    
+
     if (secret !== cronSecret) {
       return NextResponse.json(
         { error: 'Secret required for manual trigger' },
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('[Balance Collection Cron] Manual trigger error:', error);
-    
+
     return NextResponse.json(
       {
         error: 'Manual trigger failed',

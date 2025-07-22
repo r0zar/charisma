@@ -7,8 +7,7 @@ import { cachedBalanceClient, cachedTokenMetadataClient, cachedPriceClient, type
 import { principalCV } from "@stacks/transactions";
 import { loadVaults, Router, listTokens as listSwappableTokens } from 'dexterity-sdk'
 import { TokenCacheData, listPrices, type KraxelPriceData, listTokens as listAllTokens, getTokenMetadataWithDiscovery } from "@/lib/contract-registry-adapter";
-import { BalanceService } from "@services/balances";
-import type { BulkBalanceRequest, BulkBalanceResponse, BalanceSeriesRequest, BalanceSeriesResponse, TimePeriod } from "@services/balances/src/types";
+import type { BulkBalanceRequest, BulkBalanceResponse, BalanceSeriesRequest, BalanceSeriesResponse, TimePeriod } from "@/lib/cached-balance-client";
 // import { getPriceService } from "@/lib/price-service-setup"; // Removed - service not available
 
 // Configure Dexterity router
@@ -22,22 +21,8 @@ const router = new Router({
     routerContractId: `${routerAddress}.${routerName}`,
 });
 
-// Initialize Balance Service for server-side balance operations
-let balanceService: BalanceService | null = null;
-
-function getBalanceService(): BalanceService {
-    if (!balanceService) {
-        balanceService = new BalanceService(undefined, undefined, {
-            enableAutoDiscovery: true,
-            discoveryConfig: {
-                minTokenBalance: '1000000', // 1 token with 6 decimals
-                enableAutoCollection: true,
-            }
-        });
-        console.log('✅ BalanceService initialized with auto-discovery enabled');
-    }
-    return balanceService;
-}
+// Use the cached balance client for server-side balance operations
+// This client talks to the data app's balance service
 
 let vaultsLoaded = false;
 
@@ -884,17 +869,22 @@ export async function getBalancesAction(
     try {
         console.log(`[getBalancesAction] Fetching balances for ${addresses.length} addresses and ${contractIds?.length || 'all'} contracts`);
         
-        const balanceService = getBalanceService();
+        // Use cachedBalanceClient to get individual balances for each address
+        const data: Record<string, CachedBalanceResponse> = {};
         
-        const request: BulkBalanceRequest = {
-            addresses,
-            contractIds,
-            includeZeroBalances
+        for (const address of addresses) {
+            const balanceData = await cachedBalanceClient.getAddressBalances(address);
+            if (balanceData) {
+                data[address] = balanceData;
+            }
+        }
+        
+        const response: BulkBalanceResponse = {
+            success: true,
+            data
         };
         
-        const response = await balanceService.getBulkBalances(request);
-        
-        console.log(`[getBalancesAction] Successfully fetched balances - ${response.metadata?.executionTime}ms execution time`);
+        console.log(`[getBalancesAction] Successfully fetched balances for ${Object.keys(data).length} addresses`);
         return response;
         
     } catch (error) {
@@ -926,7 +916,7 @@ export async function getBalanceHistoryAction(
     try {
         console.log(`[getBalanceHistoryAction] Fetching balance history for ${address} - ${contractId} over ${period}`);
         
-        const balanceService = getBalanceService();
+        // Historical balance functionality would need to be implemented in the data app
         
         const request: BalanceSeriesRequest = {
             addresses: [address],
@@ -1007,13 +997,12 @@ export async function getAddressBalancesAction(
             };
         }
         
-        console.log(`[getAddressBalancesAction] No cached data available, falling back to balance service for: ${address}`);
+        console.log(`[getAddressBalancesAction] No cached data available, fallback not implemented yet for: ${address}`);
         
-        // Fallback to balance service
-        const balanceService = getBalanceService();
-        const balances = await balanceService.getBalances(address, contractIds);
+        // Return empty balances for now since external service is being removed
+        const balances = {};
         
-        console.log(`[getAddressBalancesAction] Successfully fetched ${Object.keys(balances).length} token balances via service`);
+        console.log(`[getAddressBalancesAction] Returning empty balances (service migration in progress)`);
         return {
             success: true,
             balances

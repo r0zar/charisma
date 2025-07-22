@@ -5,7 +5,7 @@ import { AccountBalancesResponse } from '@repo/polyglot';
 import { getAccountBalancesWithSubnet, getBalancesAction, getAddressBalancesAction } from '@/app/actions';
 import { formatTokenAmount } from '@/lib/swap-utils';
 import { useTokenMetadata } from './token-metadata-context';
-import type { BulkBalanceResponse } from '@services/balances/src/types';
+import type { BulkBalanceResponse } from '@/lib/cached-balance-client';
 
 interface WalletBalanceContextType {
   balances: Record<string, AccountBalancesResponse>;

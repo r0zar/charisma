@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { oraclePriceService } from '@/services/oracle-price-service';
-import { blobStorageService } from '@/services/blob-storage-service';
-import { generateCacheHeaders } from '@/lib/cache-strategy';
+import { oraclePriceService } from '@/lib/prices';
+import { blobStorageService } from '@/lib/storage/blob-storage-service';
+import { generateCacheHeaders } from '@/lib/utils/cache-strategy';
 
 export const runtime = 'edge';
 

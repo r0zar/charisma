@@ -5,7 +5,6 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@services/prices#build",
         "blaze-sdk#build",
         "dexterity-sdk#build"
       ],
@@ -29,7 +28,6 @@
     },
     "dev": {
       "dependsOn": [
-        "@services/prices#build",
         "blaze-sdk#build",
         "dexterity-sdk#build"
       ]

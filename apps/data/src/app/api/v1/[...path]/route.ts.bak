@@ -1,0 +1,312 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { parseApiPath, generateBlobPath } from '@/lib/contracts/stacks-validation';
+import { blobStorageService } from '@/lib/storage/blob-storage-service';
+import { balanceService } from '@/lib/balances/balance-service';
+import {
+  getCachePolicy,
+  generateCacheHeaders,
+  generateDebugHeaders,
+  EdgeOptimizer
+} from '@/lib/utils/cache-strategy';
+
+export const runtime = 'edge';
+
+/**
+ * GET /api/v1/[...path] - Retrieve blockchain data
+ * 
+ * Examples:
+ * - /api/v1/addresses/SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9/balances
+ * - /api/v1/contracts/SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.token/get-balance
+ * - /api/v1/prices/STX-USDA/current
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) {
+  const startTime = Date.now();
+
+  try {
+    const { path } = await params;
+    const url = new URL(request.url);
+
+    // Handle root path - return root blob directly
+    if (!path || path.length === 0) {
+      const rootBlob = await blobStorageService.getRootBlob();
+
+      const cacheHeaders = generateCacheHeaders(getCachePolicy('root'), {
+        deploymentId: process.env.VERCEL_DEPLOYMENT_ID
+      });
+
+      const processingTime = Date.now() - startTime;
+      cacheHeaders.set('X-Response-Time', `${processingTime}ms`);
+      cacheHeaders.set('X-Data-Type', 'root-blob');
+
+      return NextResponse.json(rootBlob, { headers: cacheHeaders });
+    }
+
+    // Check for streaming parameters
+    const stream = url.searchParams.get('stream') === 'true';
+    const offset = parseInt(url.searchParams.get('offset') || '0', 10);
+    const limit = parseInt(url.searchParams.get('limit') || '1000', 10);
+    const debug = url.searchParams.get('debug') === 'true';
+
+    // Parse the API path first to check for special endpoints
+    const parsed = parseApiPath(path);
+    
+    // Handle address balance requests using balance service (prioritize over direct blob)
+    if (parsed?.type === 'addresses' && parsed.address && parsed.action === 'balances') {
+      try {
+        const balanceData = await balanceService.getAddressBalances(parsed.address.address);
+
+        const cachePolicy = getCachePolicy(['addresses']);
+        const cacheHeaders = generateCacheHeaders(cachePolicy, {
+          deploymentId: process.env.VERCEL_DEPLOYMENT_ID
+        });
+
+        const processingTime = Date.now() - startTime;
+        cacheHeaders.set('X-Response-Time', `${processingTime}ms`);
+        cacheHeaders.set('X-Data-Source', 'balance-service');
+
+        return NextResponse.json(balanceData, { headers: cacheHeaders });
+
+      } catch (error) {
+        console.error(`Balance service failed for ${parsed.address.address}:`, error);
+        return NextResponse.json(
+          {
+            error: 'Failed to get balance data',
+            address: parsed.address.address,
+            timestamp: new Date().toISOString()
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Try to get data directly from blob storage using the path
+    const directPath = path.join('/');
+    
+    try {
+      // First try to get data directly from the blob path
+      const data = await blobStorageService.get(directPath);
+      
+      const cacheHeaders = generateCacheHeaders(getCachePolicy(path, stream), {
+        deploymentId: process.env.VERCEL_DEPLOYMENT_ID
+      });
+
+      const processingTime = Date.now() - startTime;
+      cacheHeaders.set('X-Response-Time', `${processingTime}ms`);
+      cacheHeaders.set('X-Data-Type', 'direct-blob');
+
+      return NextResponse.json(data, { headers: cacheHeaders });
+      
+    } catch (directError) {
+      // If direct path fails, try the parsed API path approach
+      console.log(`Direct path ${directPath} failed, trying parsed approach:`, directError);
+    }
+
+    // Use already parsed API path for fallback processing
+    if (!parsed) {
+      return NextResponse.json(
+        { error: 'Invalid API path format and no direct data found' },
+        { status: 404 }
+      );
+    }
+
+    // Generate blob storage path
+    const blobPath = generateBlobPath(parsed);
+    if (!blobPath) {
+      return NextResponse.json(
+        { error: 'Could not determine storage path' },
+        { status: 400 }
+      );
+    }
+
+    // Get appropriate cache policy for other requests
+    const cachePolicy = getCachePolicy(path, stream);
+
+    // Retrieve data from blob storage for non-address requests
+    const data = await blobStorageService.get(blobPath);
+
+    // Optimize response for Edge Network
+    const optimizedData = EdgeOptimizer.optimizeResponse(data, cachePolicy);
+    const responseSize = JSON.stringify(optimizedData).length;
+
+    // Generate optimized cache headers
+    const cacheHeaders = generateCacheHeaders(cachePolicy, {
+      geoSpecific: parsed.type === 'prices', // Geo-specific for price data
+      country: request.headers.get('x-vercel-ip-country') || undefined,
+      deploymentId: process.env.VERCEL_DEPLOYMENT_ID
+    });
+
+    // Add debug headers if requested
+    if (debug) {
+      const debugHeaders = generateDebugHeaders(cachePolicy, path.join('/'));
+      debugHeaders.forEach((value, key) => cacheHeaders.set(key, value));
+    }
+
+    // Add streaming headers if applicable
+    if (stream && typeof data === 'object' && 'hasMore' in data) {
+      cacheHeaders.set('X-Has-More', data.hasMore.toString());
+      cacheHeaders.set('X-Offset', data.offset.toString());
+    }
+
+    // Add performance headers
+    const processingTime = Date.now() - startTime;
+    cacheHeaders.set('X-Response-Time', `${processingTime}ms`);
+    cacheHeaders.set('X-Response-Size', responseSize.toString());
+
+    // Verify response is cacheable
+    const status = 200;
+    const isCacheable = EdgeOptimizer.isCacheableResponse(cacheHeaders, status, responseSize);
+    if (!isCacheable) {
+      console.warn(`Non-cacheable response: ${path.join('/')}, size: ${responseSize}`);
+    }
+
+    return NextResponse.json(optimizedData, {
+      status,
+      headers: cacheHeaders
+    });
+
+  } catch (error) {
+    console.error('API GET error:', error);
+
+    const { path: errorPath } = await params;
+
+    if (error instanceof Error) {
+      if (error.message.includes('not found')) {
+        // 404 responses are also cacheable with short cache times
+        const notFoundHeaders = generateCacheHeaders({
+          sMaxAge: 60, // 1 minute cache for 404s
+          staleWhileRevalidate: 300,
+          browserCache: 30
+        });
+
+        return NextResponse.json(
+          {
+            error: 'Data not found',
+            path: errorPath.join('/'),
+            timestamp: new Date().toISOString()
+          },
+          { status: 404, headers: notFoundHeaders }
+        );
+      }
+
+      return NextResponse.json(
+        {
+          error: error.message,
+          path: errorPath.join('/'),
+          timestamp: new Date().toISOString()
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        path: errorPath.join('/'),
+        timestamp: new Date().toISOString()
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PUT /api/v1/[...path] - Update blockchain data
+ */
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) {
+  try {
+    const { path } = await params;
+    const body = await request.json();
+
+    // Parse the API path
+    const parsed = parseApiPath(path);
+    if (!parsed) {
+      return NextResponse.json(
+        { error: 'Invalid API path format' },
+        { status: 400 }
+      );
+    }
+
+    // Generate blob storage path
+    const blobPath = generateBlobPath(parsed);
+    if (!blobPath) {
+      return NextResponse.json(
+        { error: 'Could not determine storage path' },
+        { status: 400 }
+      );
+    }
+
+    // Store the data in blob storage
+    await blobStorageService.put(blobPath, body);
+
+    return NextResponse.json({ success: true });
+
+  } catch (error) {
+    console.error('API PUT error:', error);
+
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/v1/[...path] - Delete blockchain data
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ path: string[] }> }
+) {
+  try {
+    const { path } = await params;
+
+    // Don't allow deleting root path
+    if (!path || path.length === 0) {
+      return NextResponse.json(
+        { error: 'Cannot delete root blob' },
+        { status: 400 }
+      );
+    }
+
+    // Use the path directly for deletion (no parsing required)
+    const deletePath = path.join('/');
+    
+    // Delete the specific path from the unified blob storage
+    await blobStorageService.delete(deletePath);
+    
+    return NextResponse.json({ 
+      success: true, 
+      message: `Successfully deleted data at path: ${path.join('/')}`,
+      path: path.join('/'),
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('API DELETE error:', error);
+
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

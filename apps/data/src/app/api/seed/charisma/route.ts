@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { seedCharismaData } from '@/lib/server-actions';
+import { seedCharismaData } from '@/lib/utils/server-actions';
 
 export const runtime = 'nodejs'; // Need Node.js runtime for dynamic imports
 

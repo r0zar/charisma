@@ -621,6 +621,36 @@ export class CachedPriceClient {
   }
 }
 
+// Additional types for compatibility with external balance service
+export interface BulkBalanceRequest {
+  addresses: string[];
+  contractIds?: string[];
+  includeZeroBalances?: boolean;
+}
+
+export interface BulkBalanceResponse {
+  success: boolean;
+  data: Record<string, CachedBalanceResponse>;
+  error?: string;
+}
+
+export type TimePeriod = '1h' | '24h' | '7d' | '30d' | '90d' | '1y';
+
+export interface BalanceSeriesRequest {
+  addresses: string[];
+  contractIds?: string[];
+  period: TimePeriod;
+  granularity?: 'hour' | 'day' | 'week';
+}
+
+export interface BalanceSeriesResponse {
+  success: boolean;
+  data: {
+    timeSeries: Record<string, any>;
+  };
+  error?: string;
+}
+
 // Export singleton instances
 export const cachedBalanceClient = new CachedBalanceClient();
 export const cachedTokenMetadataClient = new CachedTokenMetadataClient();

@@ -16,6 +16,7 @@ interface TreeNode {
 
 interface TreeNavigatorProps {
   onSelect: (path: string, data: any) => void;
+  initialPath?: string | null;
 }
 
 function formatBytes(bytes: number): string {
@@ -51,24 +52,42 @@ function TreeNodeComponent({
   node,
   level,
   fullPath,
-  onSelect
+  onSelect,
+  expandedPaths,
+  setExpandedPaths,
+  selectedPath
 }: {
   name: string;
   node: TreeNode;
   level: number;
   fullPath: string;
   onSelect: (path: string, data: any) => void;
+  expandedPaths: Set<string>;
+  setExpandedPaths: (paths: Set<string>) => void;
+  selectedPath: string | null;
 }) {
-  const [expanded, setExpanded] = useState(level < 2);
+  // Check if this path should be expanded from localStorage state
+  const expanded = expandedPaths.has(fullPath);
+  const isSelected = selectedPath === fullPath;
   const [loading, setLoading] = useState(false);
   
   const Icon = getNodeIcon(name, node.type);
   const iconColor = getNodeColor(name, node.type);
   
+  const toggleExpanded = () => {
+    const newExpandedPaths = new Set(expandedPaths);
+    if (expanded) {
+      newExpandedPaths.delete(fullPath);
+    } else {
+      newExpandedPaths.add(fullPath);
+    }
+    setExpandedPaths(newExpandedPaths);
+  };
+
   const handleClick = async () => {
     if (node.type === 'directory') {
-      // Always toggle expansion for directories
-      setExpanded(!expanded);
+      // Toggle expansion for directories
+      toggleExpanded();
       
       // Try to load the actual JSON data at this directory level
       setLoading(true);
@@ -117,6 +136,8 @@ function TreeNodeComponent({
       <div
         className={`flex items-center gap-2 p-2 hover:bg-muted/50 rounded-md cursor-pointer ${
           loading ? 'opacity-50' : ''
+        } ${
+          isSelected ? 'bg-primary/10 border-l-2 border-primary' : ''
         }`}
         style={{ paddingLeft: `${(level * 16) + 8}px` }}
         onClick={handleClick}
@@ -153,6 +174,9 @@ function TreeNodeComponent({
               level={level + 1}
               fullPath={`${fullPath}/${childName}`}
               onSelect={onSelect}
+              expandedPaths={expandedPaths}
+              setExpandedPaths={setExpandedPaths}
+              selectedPath={selectedPath}
             />
           ))}
         </div>
@@ -161,10 +185,68 @@ function TreeNodeComponent({
   );
 }
 
-export function TreeNavigator({ onSelect }: TreeNavigatorProps) {
+const STORAGE_KEY = 'tree-navigator-expanded-paths';
+
+export function TreeNavigator({ onSelect, initialPath }: TreeNavigatorProps) {
   const [tree, setTree] = useState<{ [key: string]: TreeNode }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedPaths, setExpandedPathsState] = useState<Set<string>>(new Set());
+  const [selectedPath, setSelectedPath] = useState<string | null>(null);
+
+  // Load expanded paths from localStorage and handle initial path
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      let storedPaths = new Set<string>();
+      
+      if (stored) {
+        const pathsArray = JSON.parse(stored);
+        storedPaths = new Set(pathsArray);
+      } else {
+        // Default expanded paths for first visit
+        storedPaths = new Set(['addresses', 'contracts', 'prices']);
+      }
+      
+      // If we have an initial path from URL, expand its parent paths
+      if (initialPath) {
+        setSelectedPath(initialPath);
+        const pathSegments = initialPath.split('/');
+        let currentPath = '';
+        
+        // Expand all parent directories for the initial path
+        for (let i = 0; i < pathSegments.length; i++) {
+          currentPath = i === 0 ? pathSegments[i] : `${currentPath}/${pathSegments[i]}`;
+          storedPaths.add(currentPath);
+        }
+      }
+      
+      setExpandedPathsState(storedPaths);
+    } catch (error) {
+      console.error('Failed to load tree state from localStorage:', error);
+      // Fallback to default expansion
+      const fallbackPaths = new Set(['addresses', 'contracts', 'prices']);
+      if (initialPath) {
+        const pathSegments = initialPath.split('/');
+        let currentPath = '';
+        for (let i = 0; i < pathSegments.length; i++) {
+          currentPath = i === 0 ? pathSegments[i] : `${currentPath}/${pathSegments[i]}`;
+          fallbackPaths.add(currentPath);
+        }
+      }
+      setExpandedPathsState(fallbackPaths);
+    }
+  }, [initialPath]);
+
+  // Save expanded paths to localStorage whenever they change
+  const setExpandedPaths = (paths: Set<string>) => {
+    setExpandedPathsState(paths);
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(paths)));
+    } catch (error) {
+      console.error('Failed to save tree state to localStorage:', error);
+    }
+  };
   
   useEffect(() => {
     loadTree();
@@ -192,6 +274,40 @@ export function TreeNavigator({ onSelect }: TreeNavigatorProps) {
   
   const handleRefresh = () => {
     loadTree();
+  };
+
+  const collapseAll = () => {
+    setExpandedPaths(new Set());
+  };
+
+  const expandAll = () => {
+    const allPaths = new Set<string>();
+    
+    const collectPaths = (obj: { [key: string]: TreeNode }, currentPath: string = '') => {
+      Object.entries(obj).forEach(([name, node]) => {
+        const fullPath = currentPath ? `${currentPath}/${name}` : name;
+        if (node.type === 'directory') {
+          allPaths.add(fullPath);
+          if (node.children) {
+            collectPaths(node.children, fullPath);
+          }
+        }
+      });
+    };
+    
+    collectPaths(tree);
+    setExpandedPaths(allPaths);
+  };
+
+  // Debug function to export/import tree state
+  const exportTreeState = () => {
+    const state = Array.from(expandedPaths);
+    console.log('Current tree state:', state);
+    return state;
+  };
+
+  const importTreeState = (state: string[]) => {
+    setExpandedPaths(new Set(state));
   };
   
   if (loading) {
@@ -236,7 +352,7 @@ export function TreeNavigator({ onSelect }: TreeNavigatorProps) {
   
   return (
     <div className="h-full flex flex-col">
-      <div className="p-2 border-b border-border">
+      <div className="p-2 border-b border-border space-y-1">
         <Button 
           variant="ghost" 
           size="sm" 
@@ -245,6 +361,29 @@ export function TreeNavigator({ onSelect }: TreeNavigatorProps) {
         >
           Refresh Tree
         </Button>
+        <div className="flex gap-1">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={expandAll}
+            className="flex-1 text-xs"
+          >
+            Expand All
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={collapseAll}
+            className="flex-1 text-xs"
+          >
+            Collapse All
+          </Button>
+        </div>
+        {expandedPaths.size > 0 && (
+          <div className="text-xs text-muted-foreground text-center">
+            {expandedPaths.size} paths expanded
+          </div>
+        )}
       </div>
       
       <ScrollArea className="flex-1">
@@ -257,6 +396,9 @@ export function TreeNavigator({ onSelect }: TreeNavigatorProps) {
               level={0}
               fullPath={name}
               onSelect={onSelect}
+              expandedPaths={expandedPaths}
+              setExpandedPaths={setExpandedPaths}
+              selectedPath={selectedPath}
             />
           ))}
         </div>

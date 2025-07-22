@@ -9,7 +9,9 @@
     "paths": {
       "@/*": ["./src/*"],
       "@services/contract-registry": ["../../services/contract-registry/src/index.ts"],
-      "@services/contract-registry/*": ["../../services/contract-registry/src/*"]
+      "@services/contract-registry/*": ["../../services/contract-registry/src/*"],
+      "@modules/discovery": ["../../modules/discovery/src/index.ts"],
+      "@modules/discovery/*": ["../../modules/discovery/src/*"]
     },
     "types": ["jest", "@testing-library/jest-dom"]
   },

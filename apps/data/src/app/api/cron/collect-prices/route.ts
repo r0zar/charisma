@@ -1,5 +1,5 @@
+import { historicalPriceService } from '@/lib/prices';
 import { NextRequest, NextResponse } from 'next/server';
-import { historicalPriceService } from '@/services/historical-price-service';
 
 export const runtime = 'edge';
 
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     // Verify cron authentication
     const authHeader = request.headers.get('Authorization');
     const cronSecret = process.env.CRON_SECRET || 'dev-cron-secret';
-    
+
     if (authHeader !== `Bearer ${cronSecret}`) {
       console.warn('[Price Collection Cron] Unauthorized request');
       return NextResponse.json(
@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
 
     // Collect current prices and add to historical data
     const result = await historicalPriceService.collectCurrentPrices();
-    
+
     const processingTime = Date.now() - startTime;
-    
+
     // Get collection statistics
     const stats = await historicalPriceService.getStats();
 
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
     const url = new URL(request.url);
     const secret = url.searchParams.get('secret');
     const cronSecret = process.env.CRON_SECRET || 'dev-cron-secret';
-    
+
     if (secret !== cronSecret) {
       return NextResponse.json(
         { error: 'Secret required for manual trigger' },
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('[Price Collection Cron] Manual trigger error:', error);
-    
+
     return NextResponse.json(
       {
         error: 'Manual trigger failed',

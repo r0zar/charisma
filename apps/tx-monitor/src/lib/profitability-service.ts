@@ -3,7 +3,6 @@
  * Calculates actual P&L based on entry prices and current/historical prices
  */
 
-import { PriceSeriesAPI, PriceSeriesStorage, TimeSeriesEntry } from '@services/prices';
 
 import { ActivityItem } from './activity-types';
 import {
@@ -15,63 +14,8 @@ import {
   HistoricalPricePoint,
   TimeRange
 } from './profitability-types';
-import { listTokens, listPrices, type TokenCacheData } from '@repo/tokens';
+import { listPrices } from '@repo/tokens';
 import { getHostUrl } from '@modules/discovery';
-
-const priceSeriesService = new PriceSeriesAPI(new PriceSeriesStorage());
-
-// Token mapping cache
-let tokenMappingCache: Record<string, string> | null = null;
-let tokenMappingCacheTimestamp = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-/**
- * Get dynamic symbol-to-contract mapping using @repo/tokens
- */
-async function getTokenMapping(): Promise<Record<string, string>> {
-  const now = Date.now();
-
-  // Return cached mapping if still fresh
-  if (tokenMappingCache && (now - tokenMappingCacheTimestamp) < CACHE_DURATION) {
-    return tokenMappingCache;
-  }
-
-  try {
-    console.log('[getTokenMapping] Fetching fresh token mappings from @repo/tokens');
-    const tokens = await listTokens();
-
-    const mapping: Record<string, string> = {};
-
-    for (const token of tokens) {
-      if (token.symbol && token.contractId) {
-        mapping[token.symbol] = token.contractId;
-      }
-    }
-
-    // Cache the mapping
-    tokenMappingCache = mapping;
-    tokenMappingCacheTimestamp = now;
-
-    console.log(`[getTokenMapping] Cached mappings for ${Object.keys(mapping).length} tokens`);
-    return mapping;
-  } catch (error) {
-    console.error('[getTokenMapping] Error fetching token mappings:', error);
-
-    // Return cached mapping if available, even if expired
-    if (tokenMappingCache) {
-      console.warn('[getTokenMapping] Using expired cache due to fetch error');
-      return tokenMappingCache;
-    }
-
-    // Fallback to minimal mapping if no cache available
-    console.warn('[getTokenMapping] Using minimal fallback mapping');
-    return {
-      'CHA': 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token',
-      'aeUSDC': 'SP3Y2ZSH8P7D50B0VBTSX11S7XSG24M1VB9YFQA4K.token-aeusdc',
-      'STX': '.stx'
-    };
-  }
-}
 
 /**
  * Calculate profitability for a completed trade activity
@@ -665,51 +609,7 @@ async function getHistoricalPriceData(
   startTimestamp: number,
   endTimestamp: number
 ): Promise<HistoricalPricePoint[][]> {
-  try {
-    if (!inputContractId || !outputContractId) {
-      console.warn(`[getHistoricalPriceData] Missing contract IDs, falling back to price store`);
-      return await getHistoricalDataFromPriceStore(inputContractId, outputContractId, startTimestamp, endTimestamp);
-    }
-
-    // Convert timestamps to seconds for the API
-    const fromSeconds = Math.floor(startTimestamp / 1000);
-    const toSeconds = Math.floor(endTimestamp / 1000);
-
-    const data = await priceSeriesService.getBulkPriceSeries({
-      tokenIds: [inputContractId, outputContractId],
-      timeframe: '1d',
-      limit: 1000,
-      endTime: toSeconds
-    });
-
-    // Convert API response to our format
-    const inputData = data.data?.[inputContractId] || [];
-    const outputData = data.data?.[outputContractId] || [];
-
-    if (!data.data) {
-      console.warn(`[getHistoricalPriceData] No data returned for ${inputContractId} or ${outputContractId}`);
-      return [[], []];
-    }
-
-    const inputHistory: HistoricalPricePoint[] = inputData.map((point: TimeSeriesEntry) => ({
-      timestamp: point.timestamp * 1000, // Convert back to milliseconds
-      price: point.usdPrice,
-      source: 'price-series-bulk'
-    }));
-
-    const outputHistory: HistoricalPricePoint[] = outputData.map((point: TimeSeriesEntry) => ({
-      timestamp: point.timestamp * 1000, // Convert back to milliseconds
-      price: point.usdPrice,
-      source: 'price-series-bulk'
-    }));
-
-    console.log(`[getHistoricalPriceData] Retrieved ${inputHistory.length} points for ${inputContractId}, ${outputHistory.length} points for ${outputContractId}`);
-
-    return [inputHistory, outputHistory];
-  } catch (error) {
-    console.warn(`[getHistoricalPriceData] Error calling price-series/bulk API:`, error);
-    return await getHistoricalDataFromPriceStore(inputContractId, outputContractId, startTimestamp, endTimestamp);
-  }
+  return {} as any; // Placeholder for actual implementation
 }
 
 /**

@@ -10,8 +10,6 @@
         "blaze-sdk#build",
         "@repo/tx-monitor-client#build",
         "@modules/discovery#build",
-        "@services/balances#build",
-        "@services/prices#build",
         "@services/contract-registry#build",
         "dexterity-sdk#build",
         "@charisma/notifier#build"
@@ -62,8 +60,6 @@
         "blaze-sdk#build",
         "@repo/tx-monitor-client#build",
         "@modules/discovery#build",
-        "@services/balances#build",
-        "@services/prices#build",
         "@services/contract-registry#build",
         "dexterity-sdk#build",
         "@charisma/notifier#build"

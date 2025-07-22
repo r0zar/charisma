@@ -5,10 +5,10 @@
   "tasks": {
     "build": {
       "dependsOn": [
-        "@services/prices#build",
         "@repo/tokens#build",
         "@services/contract-registry#build",
-        "@repo/polyglot#build"
+        "@repo/polyglot#build",
+        "@modules/discovery#build"
       ],
       "outputs": [
         ".next/**",
@@ -26,10 +26,10 @@
     },
     "dev": {
       "dependsOn": [
-        "@services/prices#build",
         "@repo/tokens#build",
         "@services/contract-registry#build",
-        "@repo/polyglot#build"
+        "@repo/polyglot#build",
+        "@modules/discovery#build"
       ]
     }
   }

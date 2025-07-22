@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { blobStorageService } from '@/services/blob-storage-service';
-import { CACHE_POLICIES, generateCacheHeaders } from '@/lib/cache-strategy';
+import { blobStorageService } from '@/lib/storage/blob-storage-service';
+import { CACHE_POLICIES, generateCacheHeaders } from '@/lib/utils/cache-strategy';
 
 export const runtime = 'edge';
 

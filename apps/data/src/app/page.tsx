@@ -1,16 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { TreeNavigator } from '@/components/tree-navigator';
 import { DataEditor } from '@/components/data-editor';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Database, Loader2 } from 'lucide-react';
 
 export default function HomePage() {
-  const [selectedPath, setSelectedPath] = useState<string | null>(null);
-  const [selectedData, setSelectedData] = useState<any>(null);
+  const router = useRouter();
   const [seeding, setSeeding] = useState(false);
+
+  const handlePathSelect = (path: string, data: any) => {
+    // Navigate to the path-based route
+    router.push(`/${path}`);
+  };
 
   const handleSeedCharisma = async () => {
     setSeeding(true);
@@ -18,9 +21,9 @@ export default function HomePage() {
       const response = await fetch('/api/seed/charisma', {
         method: 'POST',
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         alert('✅ Successfully seeded Charisma data!\n\nRefresh the tree to see all the new addresses and contracts.');
         // Optionally reload the page or refresh tree
@@ -48,57 +51,27 @@ export default function HomePage() {
               </p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSeedCharisma}
-            disabled={seeding}
-            className="w-full mt-2"
-          >
-            {seeding ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Seeding...
-              </>
-            ) : (
-              <>
-                <Database className="h-4 w-4 mr-2" />
-                Seed Charisma Data
-              </>
-            )}
-          </Button>
         </div>
         <TreeNavigator
-          onSelect={(path, data) => {
-            setSelectedPath(path);
-            setSelectedData(data);
-          }}
+          onSelect={handlePathSelect}
+          initialPath={null}
         />
       </div>
-      
+
       <Separator orientation="vertical" />
-      
+
       {/* Right Pane - Data Editor */}
       <div className="flex-1 flex flex-col">
         <div className="p-4 border-b border-border">
-          <h2 className="text-lg font-semibold">
-            {selectedPath ? `Editing: ${selectedPath}` : 'Select Data to Edit'}
-          </h2>
-          {selectedPath && (
-            <p className="text-sm text-muted-foreground">
-              {selectedPath}
-            </p>
-          )}
+          <h2 className="text-lg font-semibold">Select Data to Edit</h2>
+          <p className="text-sm text-muted-foreground">
+            Choose a path from the tree to view and edit data
+          </p>
         </div>
-        <div className="flex-1">
-          <DataEditor
-            path={selectedPath}
-            data={selectedData}
-            onSave={(path, data) => {
-              // Handle save logic
-              console.log('Saving:', path, data);
-            }}
-          />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-muted-foreground text-center">
+            Select a path from the tree navigator to view and edit data
+          </p>
         </div>
       </div>
     </div>

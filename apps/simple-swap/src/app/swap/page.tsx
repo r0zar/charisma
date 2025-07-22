@@ -2,7 +2,7 @@ import React from 'react';
 import { Metadata } from 'next';
 import { listTokens, getBalancesAction } from '../actions';
 import SwapPageClient from './swap-page-client';
-import type { BulkBalanceResponse } from '@services/balances/src/types';
+import type { BulkBalanceResponse } from '@/lib/cached-balance-client';
 
 type Props = {
     searchParams: { [key: string]: string | string[] | undefined }
