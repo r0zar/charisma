@@ -87,7 +87,7 @@ export class RouteResolver {
     const useCrud = !handler || !handler.overrideCrud;
 
     return {
-      handler,
+      handler: handler || undefined,
       blobPath,
       pathParams,
       useCrud

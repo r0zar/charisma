@@ -57,7 +57,7 @@ class RouteHandlerRegistry implements RouteRegistry {
       
       // For now, manually register known handlers
       // In production, this would use a build-time discovery process
-      const knownHandlers = [
+      const knownHandlers: string[] = [
         // 'src/lib/routes/prices/current/handler.ts'  // Temporarily disabled
       ];
       

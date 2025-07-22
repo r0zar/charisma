@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { blobStorageService } from '@/lib/storage/blob-storage-service';
+import { unifiedBlobStorage } from '@/lib/storage/unified-blob-storage';
 
 export const runtime = 'edge';
 
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     console.log('[BuildProperPrices] Building correct prices structure...');
 
     // Get current root blob
-    const rootBlob = await blobStorageService.getRootBlob();
+    const rootBlob = await unifiedBlobStorage.getRootBlob();
     
     // Create the proper prices folder structure
     rootBlob.prices = {
@@ -41,14 +41,16 @@ export async function GET(request: NextRequest) {
     // Update root blob metadata
     rootBlob.lastUpdated = new Date().toISOString();
     
-    // Save the clean structure
-    await blobStorageService.saveRootBlob(rootBlob);
+    // Save the clean structure by putting the entire root structure
+    await unifiedBlobStorage.putBatch([
+      { path: 'addresses', data: rootBlob.addresses },
+      { path: 'contracts', data: rootBlob.contracts },
+      { path: 'prices', data: rootBlob.prices },
+      { path: 'price-series', data: rootBlob['price-series'] }
+    ]);
     
-    // Nuclear cache clear
-    // @ts-ignore - accessing private property for cache clearing
-    blobStorageService.rootBlobCache = null;
-    // @ts-ignore - accessing private property for cache clearing  
-    blobStorageService.cacheTimestamp = 0;
+    // Clear cache
+    unifiedBlobStorage.clearCache();
     
     console.log('[BuildProperPrices] Built proper prices structure');
     

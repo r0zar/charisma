@@ -19,6 +19,7 @@ export interface RootBlob {
   addresses: Record<string, any>;
   contracts: Record<string, any>;
   prices: Record<string, any>;
+  'price-series': Record<string, any>;
   metadata: {
     totalSize: number;
     entryCount: number;
@@ -80,6 +81,8 @@ export class UnifiedBlobStorage {
             this.validateBlobStructure(rootBlob);
             this.updateCache(rootBlob, now);
             return rootBlob;
+          } else if (response.status === 403) {
+            console.log('Access denied to blob, may need reinitialization');
           }
         }
       } catch (listError) {
@@ -97,6 +100,8 @@ export class UnifiedBlobStorage {
           this.validateBlobStructure(rootBlob);
           this.updateCache(rootBlob, now);
           return rootBlob;
+        } else if (response.status === 403) {
+          console.log('Access denied to blob via head, may need reinitialization');
         }
       } catch (headError) {
         console.log('Head approach failed:', headError);
@@ -143,6 +148,7 @@ export class UnifiedBlobStorage {
       addresses: {},
       contracts: {},
       prices: {},
+      'price-series': {},
       metadata: {
         totalSize: 0,
         entryCount: 0,
@@ -162,9 +168,10 @@ export class UnifiedBlobStorage {
     rootBlob.lastUpdated = new Date().toISOString();
     rootBlob.metadata.totalSize = JSON.stringify(rootBlob).length;
     rootBlob.metadata.entryCount =
-      Object.keys(rootBlob.addresses).length +
-      Object.keys(rootBlob.contracts).length +
-      Object.keys(rootBlob.prices).length;
+      Object.keys(rootBlob.addresses || {}).length +
+      Object.keys(rootBlob.contracts || {}).length +
+      Object.keys(rootBlob.prices || {}).length +
+      Object.keys(rootBlob['price-series'] || {}).length;
 
     const content = JSON.stringify(rootBlob, null, 0);
 
@@ -201,7 +208,8 @@ export class UnifiedBlobStorage {
     // Log current state before modification
     const beforeCount = Object.keys(rootBlob.addresses || {}).length + 
                        Object.keys(rootBlob.contracts || {}).length + 
-                       Object.keys(rootBlob.prices || {}).length;
+                       Object.keys(rootBlob.prices || {}).length +
+                       Object.keys(rootBlob['price-series'] || {}).length;
     console.log(`Root blob before update: ${beforeCount} entries`);
     
     // Navigate to the nested path and set data
@@ -224,7 +232,8 @@ export class UnifiedBlobStorage {
     // Log state after modification
     const afterCount = Object.keys(rootBlob.addresses || {}).length + 
                       Object.keys(rootBlob.contracts || {}).length + 
-                      Object.keys(rootBlob.prices || {}).length;
+                      Object.keys(rootBlob.prices || {}).length +
+                      Object.keys(rootBlob['price-series'] || {}).length;
     console.log(`Root blob after update: ${afterCount} entries`);
 
     // Save the updated root blob
@@ -244,7 +253,8 @@ export class UnifiedBlobStorage {
     
     const beforeCount = Object.keys(rootBlob.addresses || {}).length + 
                        Object.keys(rootBlob.contracts || {}).length + 
-                       Object.keys(rootBlob.prices || {}).length;
+                       Object.keys(rootBlob.prices || {}).length +
+                       Object.keys(rootBlob['price-series'] || {}).length;
     console.log(`Root blob before batch update: ${beforeCount} entries`);
 
     // Apply all updates to the same root blob instance
@@ -270,7 +280,8 @@ export class UnifiedBlobStorage {
 
     const afterCount = Object.keys(rootBlob.addresses || {}).length + 
                       Object.keys(rootBlob.contracts || {}).length + 
-                      Object.keys(rootBlob.prices || {}).length;
+                      Object.keys(rootBlob.prices || {}).length +
+                      Object.keys(rootBlob['price-series'] || {}).length;
     console.log(`Root blob after batch update: ${afterCount} entries`);
 
     // Save once after all updates
@@ -419,6 +430,22 @@ export class UnifiedBlobStorage {
     const rootBlob = await this.getRootBlob();
     const tree: any = {};
 
+    // Add v1 root blob as a folder with its own structure
+    const v1Children: any = {};
+    
+    // Add the root blob metadata file
+    v1Children['v1-root.json'] = {
+      type: 'file',
+      size: JSON.stringify(rootBlob).length,
+      lastModified: new Date(rootBlob.lastUpdated),
+      path: 'v1',
+      metadata: {
+        version: rootBlob.version,
+        totalSize: rootBlob.metadata.totalSize,
+        entryCount: rootBlob.metadata.entryCount
+      }
+    };
+
     const buildSubtree = (obj: any, currentPath: string = '') => {
       const subtree: any = {};
 
@@ -475,128 +502,172 @@ export class UnifiedBlobStorage {
       }
     }
 
-    tree.addresses = {
+    // Build addresses section with its own blob file
+    const addressesChildren: any = {};
+    
+    // Add addresses blob file
+    try {
+      addressesChildren['addresses-blob.json'] = {
+        type: 'file',
+        size: JSON.stringify(rootBlob.addresses).length,
+        lastModified: new Date(rootBlob.lastUpdated),
+        path: 'addresses'
+      };
+    } catch (error) {
+      console.log('[UnifiedBlob] Addresses blob unavailable');
+    }
+    
+    // Add individual address entries
+    if (rootBlob.addresses && typeof rootBlob.addresses === 'object') {
+      for (const [address, addressData] of Object.entries(rootBlob.addresses)) {
+        const addressSubtree = buildSubtree(addressData, `addresses/${address}`);
+        
+        // Add historical subdirectory for each address
+        addressSubtree.historical = {
+          type: 'directory',
+          children: {
+            '5m': { type: 'directory', children: {} },
+            '1h': { type: 'directory', children: {} },
+            '1d': { type: 'directory', children: {} }
+          }
+        };
+        
+        addressesChildren[address] = {
+          type: 'directory',
+          children: addressSubtree
+        };
+      }
+    }
+
+    v1Children.addresses = {
       type: 'directory',
       children: addressesChildren
     };
 
-    tree.contracts = {
+    // Build contracts section with its own blob file
+    const contractsChildren: any = {};
+    
+    // Add contracts blob file
+    try {
+      contractsChildren['contracts-blob.json'] = {
+        type: 'file',
+        size: JSON.stringify(rootBlob.contracts).length,
+        lastModified: new Date(rootBlob.lastUpdated),
+        path: 'contracts'
+      };
+    } catch (error) {
+      console.log('[UnifiedBlob] Contracts blob unavailable');
+    }
+    
+    // Add individual contract entries
+    Object.assign(contractsChildren, buildSubtree(rootBlob.contracts, 'contracts'));
+
+    v1Children.contracts = {
       type: 'directory',
-      children: buildSubtree(rootBlob.contracts, 'contracts')
+      children: contractsChildren
     };
 
-    // Handle prices with structured subdirectories
+    // Handle prices with simplified token-based structure
     const pricesChildren: any = {};
     
-    // Add current prices subdirectory
+    // Add prices blob file
     try {
-      const currentPrices = await this.get('prices/current');
-      if (currentPrices && typeof currentPrices === 'object') {
-        const currentChildren: any = {};
-        
-        // Add individual token files under current/
-        const prices = (currentPrices as any).prices || currentPrices;
-        for (const [contractId, priceData] of Object.entries(prices)) {
-          const simpleName = this.getSimpleTokenName(contractId);
-          currentChildren[`${simpleName}.json`] = {
-            type: 'file',
-            size: JSON.stringify(priceData).length,
-            lastModified: new Date((currentPrices as any).timestamp || Date.now()),
-            path: `prices/current/${contractId}`
-          };
-        }
-        
-        pricesChildren.current = {
-          type: 'directory',
-          children: currentChildren
-        };
-      }
-    } catch (error) {
-      console.log('[UnifiedBlob] Current prices not available:', error);
-    }
-    
-    // Add pairs subdirectory
-    try {
-      const pairsData = await this.get('prices/pairs');
-      if (pairsData && typeof pairsData === 'object') {
-        const pairsChildren: any = {};
-        
-        // Add pairs.json file showing the data
-        pairsChildren['pairs.json'] = {
+      const pricesData = await this.get('prices');
+      if (pricesData && typeof pricesData === 'object') {
+        pricesChildren['prices-blob.json'] = {
           type: 'file',
-          size: JSON.stringify(pairsData).length,
-          lastModified: new Date((pairsData as any).timestamp || Date.now()),
-          path: 'prices/pairs'
+          size: JSON.stringify(pricesData).length,
+          lastModified: new Date((pricesData as any).lastUpdated || Date.now()),
+          path: 'prices'
         };
-        
-        pricesChildren.pairs = {
-          type: 'directory',
-          children: pairsChildren
-        };
-      }
-    } catch (error) {
-      console.log('[UnifiedBlob] Pairs data not available:', error);
-      pricesChildren.pairs = {
-        type: 'directory',
-        children: {}
-      };
-    }
-    
-    // Add historical subdirectory
-    try {
-      const historicalData = await this.get('prices/historical');
-      if (historicalData && typeof historicalData === 'object') {
-        const historicalChildren: any = {};
-        
-        // Add historical.json file showing the data
-        historicalChildren['historical.json'] = {
-          type: 'file',
-          size: JSON.stringify(historicalData).length,
-          lastModified: new Date((historicalData as any).timestamp || Date.now()),
-          path: 'prices/historical'
-        };
-        
-        // Add timeframe directories if they exist
-        const timeframes = (historicalData as any).timeframes;
-        if (timeframes && typeof timeframes === 'object') {
-          for (const [timeframe, data] of Object.entries(timeframes)) {
-            if (data && typeof data === 'object' && Object.keys(data).length > 0) {
-              historicalChildren[timeframe] = {
-                type: 'directory',
-                children: {
-                  [`${timeframe}.json`]: {
-                    type: 'file',
-                    size: JSON.stringify(data).length,
-                    lastModified: new Date((historicalData as any).timestamp || Date.now()),
-                    path: `prices/historical/timeframes/${timeframe}`
-                  }
-                }
-              };
-            } else {
-              historicalChildren[timeframe] = {
-                type: 'directory',
-                children: {}
-              };
-            }
+
+        // Look for token data in the prices object
+        for (const [key, value] of Object.entries(pricesData)) {
+          // Skip metadata fields
+          if (key === 'lastUpdated' || key === 'source' || key === 'timestamp') {
+            continue;
+          }
+          
+          // If this looks like a contract ID (contains a dot), treat it as a token
+          if (typeof key === 'string' && key.includes('.') && value && typeof value === 'object') {
+            const simpleName = this.getSimpleTokenName(key);
+            pricesChildren[`${simpleName}.json`] = {
+              type: 'file',
+              size: JSON.stringify(value).length,
+              lastModified: new Date((pricesData as any).lastUpdated || Date.now()),
+              path: `prices/${key}`,
+              contractId: key  // Store the full contract ID for reference
+            };
           }
         }
-        
-        pricesChildren.historical = {
-          type: 'directory',
-          children: historicalChildren
-        };
       }
     } catch (error) {
-      console.log('[UnifiedBlob] Historical data not available:', error);
-      pricesChildren.historical = {
-        type: 'directory',
-        children: {}
+      console.log('[UnifiedBlob] Prices data not available:', error);
+      pricesChildren['prices-blob.json'] = {
+        type: 'file',
+        size: 2,
+        lastModified: new Date(),
+        path: 'prices'
       };
     }
 
-    tree.prices = {
+    v1Children.prices = {
       type: 'directory',
       children: pricesChildren
+    };
+
+    // Handle price-series with token-based historical data
+    const priceSeriesChildren: any = {};
+    
+    // Add price-series blob file
+    try {
+      const priceSeriesData = await this.get('price-series');
+      if (priceSeriesData && typeof priceSeriesData === 'object') {
+        priceSeriesChildren['price-series-blob.json'] = {
+          type: 'file',
+          size: JSON.stringify(priceSeriesData).length,
+          lastModified: new Date((priceSeriesData as any).lastUpdated || Date.now()),
+          path: 'price-series'
+        };
+
+        // Look for token data in the price-series object
+        for (const [key, value] of Object.entries(priceSeriesData)) {
+          // Skip metadata fields
+          if (key === 'lastUpdated' || key === 'source' || key === 'timestamp') {
+            continue;
+          }
+          
+          // If this looks like a contract ID (contains a dot), treat it as a token series
+          if (typeof key === 'string' && key.includes('.') && value && typeof value === 'object') {
+            const simpleName = this.getSimpleTokenName(key);
+            priceSeriesChildren[`${simpleName}-series.json`] = {
+              type: 'file',
+              size: JSON.stringify(value).length,
+              lastModified: new Date((priceSeriesData as any).lastUpdated || Date.now()),
+              path: `price-series/${key}`
+            };
+          }
+        }
+      }
+    } catch (error) {
+      console.log('[UnifiedBlob] Price-series data not available:', error);
+      priceSeriesChildren['price-series-blob.json'] = {
+        type: 'file',
+        size: 2,
+        lastModified: new Date(),
+        path: 'price-series'
+      };
+    }
+
+    v1Children['price-series'] = {
+      type: 'directory',
+      children: priceSeriesChildren
+    };
+
+    // Create the main v1 folder
+    tree.v1 = {
+      type: 'directory',
+      children: v1Children
     };
 
     return tree;

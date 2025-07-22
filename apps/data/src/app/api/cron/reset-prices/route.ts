@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { blobStorageService } from '@/lib/storage/blob-storage-service';
+import { unifiedBlobStorage } from '@/lib/storage/unified-blob-storage';
 
 export const runtime = 'edge';
 
@@ -12,20 +12,20 @@ export async function GET(request: NextRequest) {
     console.log('[ResetPrices] Starting prices data structure reset...');
 
     // Get current root blob
-    const rootBlob = await blobStorageService.getRootBlob();
+    const rootBlob = await unifiedBlobStorage.getRootBlob();
     
     // Log current structure for debugging
     if (rootBlob.prices) {
       console.log('[ResetPrices] Current prices keys:', Object.keys(rootBlob.prices));
     }
     
-    // Reset prices to clean structure
-    rootBlob.prices = {
-      current: {}  // Clean starting point for current prices
-    };
+    // Clear cache to ensure fresh data
+    unifiedBlobStorage.clearCache();
     
-    // Save the updated root blob
-    await blobStorageService.saveRootBlob(rootBlob);
+    // Reset prices to clean structure using the public API
+    await unifiedBlobStorage.put('prices', {
+      current: {}  // Clean starting point for current prices
+    });
     
     console.log('[ResetPrices] Successfully reset prices structure');
     

@@ -27,7 +27,7 @@ class BalanceService {
       const cached = await blobStorageService.get<CachedBalance>(blobPath);
 
       // Check if cached data is still valid
-      if (cached.cachedAt) {
+      if (cached && typeof cached === 'object' && 'cachedAt' in cached && cached.cachedAt) {
         const cacheAge = now - new Date(cached.cachedAt).getTime();
         if (cacheAge < this.BALANCE_TTL) {
           console.log(`Using cached balance data for ${address} (age: ${Math.round(cacheAge / 1000)}s)`);

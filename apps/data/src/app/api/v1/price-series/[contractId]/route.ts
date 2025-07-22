@@ -5,9 +5,7 @@ import { generateCacheHeaders } from '@/lib/utils/cache-strategy';
 export const runtime = 'edge';
 
 /**
- * GET /api/v1/prices/[contractId] - Get individual token data from simplified structure
- * 
- * Returns complete token data including current price, historical data, and metadata
+ * GET /api/v1/price-series/[contractId] - Get historical price series for a token
  */
 export async function GET(
   request: NextRequest,
@@ -18,51 +16,52 @@ export async function GET(
   try {
     const { contractId } = await params;
     
-    console.log(`[Token API] Getting token data for ${contractId}`);
+    console.log(`[PriceSeries API] Getting price series for ${contractId}`);
 
-    // Try to get token data from unified blob storage
+    // Try to get price series data from unified blob storage
     try {
-      const tokenData = await unifiedBlobStorage.get(`prices/${contractId}`);
+      const seriesData = await unifiedBlobStorage.get(`price-series/${contractId}`);
       
-      if (tokenData && typeof tokenData === 'object') {
+      if (seriesData && typeof seriesData === 'object') {
         // Generate cache headers for successful response
         const cacheHeaders = generateCacheHeaders(
-          { sMaxAge: 300, staleWhileRevalidate: 900, browserCache: 60 },
+          { sMaxAge: 600, staleWhileRevalidate: 1800, browserCache: 120 }, // Longer cache for historical data
           { deploymentId: process.env.VERCEL_DEPLOYMENT_ID }
         );
 
         const processingTime = Date.now() - startTime;
         cacheHeaders.set('X-Response-Time', `${processingTime}ms`);
-        cacheHeaders.set('X-Data-Source', 'unified-blob');
-        cacheHeaders.set('X-Token-Id', contractId);
+        cacheHeaders.set('X-Data-Source', 'unified-blob-series');
+        cacheHeaders.set('X-Contract-Id', contractId);
+        cacheHeaders.set('X-Data-Points', String((seriesData as any).dataPoints?.length || 0));
 
-        console.log(`[Token API] Returning token data for ${contractId} in ${processingTime}ms`);
+        console.log(`[PriceSeries API] Returning series data for ${contractId} in ${processingTime}ms`);
 
-        return NextResponse.json(tokenData, { headers: cacheHeaders });
+        return NextResponse.json(seriesData, { headers: cacheHeaders });
       }
     } catch (error) {
-      console.log(`[Token API] Token data not found for ${contractId}:`, error);
+      console.log(`[PriceSeries API] Series data not found for ${contractId}:`, error);
     }
 
-    // Token not found
+    // Series not found
     return NextResponse.json(
       {
-        error: 'Token not found',
+        error: 'Price series not found',
         contractId,
-        message: 'No token data found in blob storage',
+        message: 'No price series data found in blob storage',
         timestamp: new Date().toISOString()
       },
       { status: 404 }
     );
 
   } catch (error) {
-    console.error('[Token API] Unexpected error:', error);
+    console.error('[PriceSeries API] Unexpected error:', error);
 
     const { contractId } = await params;
 
     return NextResponse.json(
       {
-        error: 'Failed to fetch token data',
+        error: 'Failed to fetch price series',
         contractId,
         message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()

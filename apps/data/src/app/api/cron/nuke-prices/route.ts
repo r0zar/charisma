@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { blobStorageService } from '@/lib/storage/blob-storage-service';
+import { unifiedBlobStorage } from '@/lib/storage/unified-blob-storage';
 
 export const runtime = 'edge';
 
@@ -12,30 +12,25 @@ export async function GET(request: NextRequest) {
     console.log('[NukePrices] Starting nuclear prices reset...');
 
     // Get current blob
-    const currentBlob = await blobStorageService.getRootBlob();
+    const currentBlob = await unifiedBlobStorage.getRootBlob();
     
     // Log what we're removing
     if (currentBlob.prices) {
       console.log('[NukePrices] Removing nested structure:', JSON.stringify(currentBlob.prices, null, 2).substring(0, 200) + '...');
     }
     
-    // Completely delete the prices property and recreate it
-    delete currentBlob.prices;
-    
-    // Create a completely fresh prices structure
+    // Completely reset the prices property
     currentBlob.prices = {};
     
     // Update metadata
     currentBlob.lastUpdated = new Date().toISOString();
     
     // Save the updated structure
-    await blobStorageService.saveRootBlob(currentBlob);
+    // Save the reset structure  
+    await unifiedBlobStorage.put('prices', currentBlob.prices);
     
-    // Nuclear cache clear
-    // @ts-ignore - accessing private property for cache clearing
-    blobStorageService.rootBlobCache = null;
-    // @ts-ignore - accessing private property for cache clearing  
-    blobStorageService.cacheTimestamp = 0;
+    // Clear cache
+    unifiedBlobStorage.clearCache();
     
     console.log('[NukePrices] Nuclear reset complete');
     

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { oraclePriceService } from '@/lib/prices';
-import { blobStorageService } from '@/lib/storage/blob-storage-service';
+import { simplePriceService } from '@/lib/prices/simple-price-service';
+import { unifiedBlobStorage } from '@/lib/storage/unified-blob-storage';
 import { generateCacheHeaders } from '@/lib/utils/cache-strategy';
 
 export const runtime = 'edge';
@@ -39,7 +39,7 @@ export async function GET(
     // Step 1: Try blob storage first (unless forced refresh)
     if (!forceRefresh) {
       try {
-        const blobData = await blobStorageService.get(PRICES_BLOB_PATH);
+        const blobData = await unifiedBlobStorage.get(PRICES_BLOB_PATH);
         
         if (blobData && typeof blobData === 'object') {
           const prices = blobData.prices || blobData;
@@ -65,7 +65,7 @@ export async function GET(
       try {
         console.log(`[Current Price API] Fetching ${tokenId} from oracle service...`);
         
-        const freshPriceData = await oraclePriceService.getTokenPrice(tokenId);
+        const freshPriceData = await simplePriceService.getPrice(tokenId);
         
         if (freshPriceData) {
           priceData = freshPriceData;
@@ -76,7 +76,7 @@ export async function GET(
             // Get existing blob data
             let existingBlobData: any = {};
             try {
-              existingBlobData = await blobStorageService.get(PRICES_BLOB_PATH) || {};
+              existingBlobData = await unifiedBlobStorage.get(PRICES_BLOB_PATH) || {};
             } catch (error) {
               // Ignore errors, start with empty data
             }
@@ -99,7 +99,7 @@ export async function GET(
             };
 
             // Save to blob (don't wait)
-            blobStorageService.put(PRICES_BLOB_PATH, blobData).catch(error => {
+            unifiedBlobStorage.put(PRICES_BLOB_PATH, blobData).catch(error => {
               console.warn(`[Current Price API] Failed to update blob storage for ${tokenId}:`, error);
             });
 
@@ -113,7 +113,7 @@ export async function GET(
         
         // Fallback: try to return stale blob data if available
         try {
-          const staleData = await blobStorageService.get(PRICES_BLOB_PATH);
+          const staleData = await unifiedBlobStorage.get(PRICES_BLOB_PATH);
           if (staleData && typeof staleData === 'object') {
             const stalePrices = staleData.prices || staleData;
             if (stalePrices[tokenId]) {

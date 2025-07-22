@@ -5,6 +5,10 @@
 // Core components
 export { routingEngine } from './engine';
 export { routeRegistry } from './registry';
+
+// Import for internal use
+import { routingEngine } from './engine';
+import { routeRegistry } from './registry';
 export { RouteResolver, PathValidator, createRouteContext } from './resolver';
 export { defaultCrudOperations, validateRequestData } from './crud';
 
@@ -16,6 +20,14 @@ export {
   errorHandlingMiddleware,
   rateLimitMiddleware,
   authMiddleware
+} from './middleware';
+
+// Import middleware for internal use
+import {
+  loggingMiddleware,
+  corsMiddleware,
+  performanceMiddleware,
+  errorHandlingMiddleware
 } from './middleware';
 
 // Types

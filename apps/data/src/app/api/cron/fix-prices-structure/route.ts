@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { blobStorageService } from '@/lib/storage/blob-storage-service';
+import { unifiedBlobStorage } from '@/lib/storage/unified-blob-storage';
 
 export const runtime = 'edge';
 
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     console.log('[FixPricesStructure] Starting prices structure fix...');
 
     // Get current root blob
-    const rootBlob = await blobStorageService.getRootBlob();
+    const rootBlob = await unifiedBlobStorage.getRootBlob();
     
     // Check current prices structure
     const currentPrices = rootBlob.prices || {};
@@ -48,14 +48,13 @@ export async function GET(request: NextRequest) {
     rootBlob.prices = newPricesStructure;
     rootBlob.lastUpdated = new Date().toISOString();
     
-    // Save the updated structure
-    await blobStorageService.saveRootBlob(rootBlob);
+    // Save the updated structure using batch update
+    await unifiedBlobStorage.putBatch([
+      { path: 'prices', data: newPricesStructure }
+    ]);
     
     // Clear cache
-    // @ts-ignore - accessing private property for cache clearing
-    blobStorageService.rootBlobCache = null;
-    // @ts-ignore - accessing private property for cache clearing  
-    blobStorageService.cacheTimestamp = 0;
+    unifiedBlobStorage.clearCache();
     
     console.log('[FixPricesStructure] Successfully restructured prices');
     

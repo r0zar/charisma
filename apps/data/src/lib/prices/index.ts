@@ -7,3 +7,6 @@ export * from './types';
 
 // Adapters
 export * from './adapters';
+
+// Services
+export { simplePriceService } from './simple-price-service';
