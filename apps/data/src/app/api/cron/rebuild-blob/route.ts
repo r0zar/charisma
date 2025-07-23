@@ -5,11 +5,25 @@ export const runtime = 'edge';
 
 /**
  * Completely rebuild the blob structure from scratch
- * GET /api/cron/rebuild-blob
+ * GET /api/cron/rebuild-blob?confirm=REBUILD_BLOB_STRUCTURE
+ * DANGEROUS: Requires explicit confirmation parameter
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log('[RebuildBlob] Starting complete blob rebuild...');
+    // SAFETY CHECK: Require explicit confirmation
+    const url = new URL(request.url);
+    const confirm = url.searchParams.get('confirm');
+    
+    if (confirm !== 'REBUILD_BLOB_STRUCTURE') {
+      return NextResponse.json({
+        error: 'SAFETY PROTECTION ACTIVE',
+        message: 'This endpoint rebuilds blob structure and may cause data loss',
+        required: 'Add ?confirm=REBUILD_BLOB_STRUCTURE to proceed',
+        warning: 'This action may reset price and balance series data'
+      }, { status: 400 });
+    }
+    
+    console.log('[RebuildBlob] CONFIRMED DESTRUCTIVE ACTION - Starting complete blob rebuild...');
 
     // Get current blob to preserve addresses and contracts
     const currentBlob = await unifiedBlobStorage.getRoot();

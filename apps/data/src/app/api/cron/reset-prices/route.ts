@@ -5,11 +5,25 @@ export const runtime = 'edge';
 
 /**
  * Reset corrupted prices data structure
- * GET /api/cron/reset-prices
+ * GET /api/cron/reset-prices?confirm=RESET_PRICE_STRUCTURE
+ * DANGEROUS: Requires explicit confirmation parameter
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log('[ResetPrices] Starting prices data structure reset...');
+    // SAFETY CHECK: Require explicit confirmation
+    const url = new URL(request.url);
+    const confirm = url.searchParams.get('confirm');
+    
+    if (confirm !== 'RESET_PRICE_STRUCTURE') {
+      return NextResponse.json({
+        error: 'SAFETY PROTECTION ACTIVE',
+        message: 'This endpoint resets all price data structure',
+        required: 'Add ?confirm=RESET_PRICE_STRUCTURE to proceed',
+        warning: 'This action will clear all existing price data'
+      }, { status: 400 });
+    }
+    
+    console.log('[ResetPrices] CONFIRMED DESTRUCTIVE ACTION - Starting prices data structure reset...');
 
     // Get current root blob
     const rootBlob = await unifiedBlobStorage.getRootBlob();

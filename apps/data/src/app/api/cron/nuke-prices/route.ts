@@ -5,11 +5,25 @@ export const runtime = 'edge';
 
 /**
  * Nuclear option: completely remove and recreate prices section
- * GET /api/cron/nuke-prices
+ * GET /api/cron/nuke-prices?confirm=DESTROY_ALL_PRICE_DATA
+ * DANGEROUS: Requires explicit confirmation parameter
  */
 export async function GET(request: NextRequest) {
   try {
-    console.log('[NukePrices] Starting nuclear prices reset...');
+    // SAFETY CHECK: Require explicit confirmation
+    const url = new URL(request.url);
+    const confirm = url.searchParams.get('confirm');
+    
+    if (confirm !== 'DESTROY_ALL_PRICE_DATA') {
+      return NextResponse.json({
+        error: 'SAFETY PROTECTION ACTIVE',
+        message: 'This endpoint permanently destroys all price data',
+        required: 'Add ?confirm=DESTROY_ALL_PRICE_DATA to proceed',
+        warning: 'This action cannot be undone'
+      }, { status: 400 });
+    }
+    
+    console.log('[NukePrices] CONFIRMED DESTRUCTIVE ACTION - Starting nuclear prices reset...');
 
     // Get current blob
     const currentBlob = await unifiedBlobStorage.getRootBlob();

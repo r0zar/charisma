@@ -110,13 +110,13 @@ export class UnifiedBlobStorage {
         console.log('Head approach failed:', headError);
       }
 
-      // All approaches failed - initialize new blob
-      console.log('No existing root blob found, initializing new one');
-      rootBlob = await this.initializeRootBlob();
+      // All approaches failed - DO NOT reinitialize, throw error instead
+      console.error('CRITICAL: All blob access approaches failed. Manual intervention required.');
+      throw new Error('Blob access denied - requires manual investigation. Data preservation mode active.');
       
     } catch (error) {
-      console.log('Error during blob fetch, initializing new one:', error);
-      rootBlob = await this.initializeRootBlob();
+      console.error('CRITICAL: Error during blob fetch. Data preservation mode active.');
+      throw new Error(`Blob fetch error - requires manual investigation: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
     
     // Update cache and return
