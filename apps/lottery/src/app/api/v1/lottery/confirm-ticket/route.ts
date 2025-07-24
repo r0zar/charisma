@@ -3,6 +3,7 @@ import { blobStorage } from '@/lib/blob-storage'
 import { ticketService } from '@/lib/ticket-service'
 import { createTxMonitorClient } from '@repo/tx-monitor-client'
 import { getTransactionEvents, getTransactionDetails } from '@repo/polyglot'
+import { getHostUrl } from '@modules/discovery'
 
 export interface TicketConfirmationRequest {
   ticketId: string
@@ -27,9 +28,9 @@ const STONE_CONTRACT_ADDRESS = 'SPQ5CEHETP8K4Q2FSNNK9ANMPAVBSA9NN86YSN59'
 const STONE_CONTRACT_NAME = 'stone-bonding-curve'
 const BURN_ADDRESS = 'SP000000000000000000002Q6VF78'
 
-// Create tx-monitor client with proper configuration
+// Create tx-monitor client with proper configuration using service discovery
 const txMonitorClient = createTxMonitorClient({
-  baseUrl: process.env.TX_MONITOR_BASE_URL || 'http://localhost:3012',
+  baseUrl: getHostUrl('tx-monitor'),
   timeout: 30000,
   retryAttempts: 3,
   retryDelay: 2000
