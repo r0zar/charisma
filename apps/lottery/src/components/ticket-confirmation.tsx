@@ -1,0 +1,195 @@
+'use client'
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Loader2, ExternalLink, CheckCircle2 } from 'lucide-react'
+import { LotteryTicket } from '@/types/lottery'
+import { request } from '@stacks/connect'
+import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network'
+import {
+  uintCV,
+  standardPrincipalCV,
+  Pc,
+  PostConditionMode,
+  noneCV
+} from '@stacks/transactions'
+
+interface TicketConfirmationProps {
+  ticket: LotteryTicket
+  onConfirmationUpdate: (ticketId: string, status: 'confirming' | 'confirmed' | 'failed') => void
+}
+
+const STONE_CONTRACT_ADDRESS = 'SPQ5CEHETP8K4Q2FSNNK9ANMPAVBSA9NN86YSN59'
+const STONE_CONTRACT_NAME = 'stone-bonding-curve'
+const BURN_ADDRESS = 'SP000000000000000000002Q6VF78' // Standard burn address
+const NETWORK = process.env.NODE_ENV === 'production' ? STACKS_MAINNET : STACKS_TESTNET
+
+export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfirmationProps) {
+  const [isConfirming, setIsConfirming] = useState(false)
+  const [txId, setTxId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleBurnTokens = async () => {
+    try {
+      setIsConfirming(true)
+      setError(null)
+      onConfirmationUpdate(ticket.id, 'confirming')
+
+      const burnAmount = ticket.purchasePrice * 1000000 // Convert to microSTONE (6 decimals)
+
+      // Use Pc.principal syntax for post conditions
+      const postConditions = [
+        Pc.principal(ticket.walletAddress)
+          .willSendEq(burnAmount)
+          .ft(`${STONE_CONTRACT_ADDRESS}.${STONE_CONTRACT_NAME}`, 'STONE')
+      ]
+
+      console.log(`Burning ${burnAmount} microSTONE from ${ticket.walletAddress} to ${BURN_ADDRESS}`)
+      const contractCallOptions = {
+        contract: `${STONE_CONTRACT_ADDRESS}.${STONE_CONTRACT_NAME}` as `${string}.${string}`,
+        functionName: 'transfer',
+        functionArgs: [
+          uintCV(burnAmount),
+          standardPrincipalCV(ticket.walletAddress),
+          standardPrincipalCV(BURN_ADDRESS),
+          noneCV() // memo field
+        ],
+        postConditions,
+        // PostConditionMode: 'deny'
+      }
+
+      const result = await request('stx_callContract', contractCallOptions)
+
+      if (result.txid) {
+        console.log('Transaction submitted:', result.txid)
+        setTxId(result.txid)
+
+        try {
+          // Send the transaction ID to the backend for verification
+          const response = await fetch('/api/v1/lottery/confirm-ticket', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              ticketId: ticket.id,
+              transactionId: result.txid,
+              walletAddress: ticket.walletAddress,
+              expectedAmount: ticket.purchasePrice
+            }),
+          })
+
+          const apiResult = await response.json()
+
+          if (apiResult.success) {
+            onConfirmationUpdate(ticket.id, 'confirmed')
+          } else {
+            throw new Error(apiResult.error || 'Failed to confirm ticket')
+          }
+        } catch (error) {
+          console.error('Confirmation API error:', error)
+          setError(error instanceof Error ? error.message : 'Failed to confirm ticket')
+          onConfirmationUpdate(ticket.id, 'failed')
+        }
+      } else {
+        throw new Error('Transaction was cancelled or failed')
+      }
+
+    } catch (error) {
+      console.error('Burn transaction error:', error)
+      setError(error instanceof Error ? error.message : 'Failed to initiate transaction')
+      setIsConfirming(false)
+      onConfirmationUpdate(ticket.id, 'failed')
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending': return 'bg-yellow-100 text-yellow-800'
+      case 'confirmed': return 'bg-green-100 text-green-800'
+      case 'cancelled': return 'bg-red-100 text-red-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  return (
+    <Card className="w-full">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="text-lg">Ticket #{ticket.id.slice(-8)}</CardTitle>
+            <CardDescription>
+              Numbers: {ticket.numbers.join(', ')} • {ticket.purchasePrice} STONE
+            </CardDescription>
+          </div>
+          <Badge className={getStatusColor(ticket.status)}>
+            {ticket.status}
+          </Badge>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {ticket.status === 'pending' && (
+          <div className="space-y-3">
+            <div className="text-sm text-muted-foreground">
+              This ticket needs to be confirmed by transferring {ticket.purchasePrice} STONE tokens to the burn address.
+            </div>
+
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            {txId && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Transaction submitted:</span>
+                  <code className="text-xs bg-blue-100 px-1 py-0.5 rounded">
+                    {txId.slice(0, 8)}...{txId.slice(-8)}
+                  </code>
+                </div>
+                <div className="text-xs text-blue-600 mt-1">
+                  Waiting for blockchain confirmation...
+                </div>
+              </div>
+            )}
+
+            <Button
+              onClick={handleBurnTokens}
+              disabled={isConfirming}
+              className="w-full"
+            >
+              {isConfirming ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Confirming...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
+                  Transfer {ticket.purchasePrice} STONE
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+        {ticket.status === 'confirmed' && ticket.transactionId && (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+            <div className="flex items-center gap-2 text-sm text-green-700">
+              <CheckCircle2 className="h-4 w-4" />
+              <span>Confirmed via transaction:</span>
+              <code className="text-xs bg-green-100 px-1 py-0.5 rounded">
+                {ticket.transactionId.slice(0, 8)}...{ticket.transactionId.slice(-8)}
+              </code>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}

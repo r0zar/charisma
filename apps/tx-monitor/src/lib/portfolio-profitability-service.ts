@@ -6,7 +6,7 @@
 import { ActivityItem } from './activity-types';
 import { getUserActivityTimeline } from './activity-storage';
 import { calculateTradeProfitability } from './profitability-service';
-import { getTokenMetadataCached } from '@repo/tokens';
+import { getTokenMetadataCached, listPrices } from '@repo/tokens';
 import {
   PortfolioProfitabilityData,
   PortfolioProfitabilityMetrics,
@@ -73,28 +73,18 @@ async function getCurrentPortfolioData(userAddress: string): Promise<{
     const balanceData: BalanceResponse = await balanceResponse.json();
     console.log(`[PORTFOLIO] Retrieved ${Object.keys(balanceData.balances).length} balance entries`);
 
-    // Fetch all current prices
-    const priceResponse = await fetch(`${charismaPartyUrl}/parties/prices/main`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+    // Fetch all current prices using @packages/tokens
+    const priceData = await listPrices({
+      strategy: 'fallback',
+      sources: { stxtools: true, internal: true }
     });
-
-    if (!priceResponse.ok) {
-      console.warn(`[PORTFOLIO] Failed to fetch prices: ${priceResponse.status} ${priceResponse.statusText}`);
-      const errorText = await priceResponse.text();
-      console.warn(`[PORTFOLIO] Price response error:`, errorText);
-      return null;
-    }
-
-    const priceData: PriceResponse = await priceResponse.json();
-    console.log(`[PORTFOLIO] Retrieved ${priceData.prices?.length || 0} price entries`);
+    
+    console.log(`[PORTFOLIO] Retrieved ${Object.keys(priceData).length} price entries from @packages/tokens`);
 
     // Create price lookup map
     const priceMap = new Map<string, number>();
-    for (const priceUpdate of priceData.prices) {
-      priceMap.set(priceUpdate.contractId, priceUpdate.price);
+    for (const [contractId, price] of Object.entries(priceData)) {
+      priceMap.set(contractId, price);
     }
 
     // Calculate portfolio value from normalized balance format
@@ -106,7 +96,19 @@ async function getCurrentPortfolioData(userAddress: string): Promise<{
         continue;
       }
 
-      const price = priceMap.get(contractId) || 0;
+      let price = priceMap.get(contractId) || 0;
+      
+      // Handle STX special case
+      if (price === 0 && (contractId === 'STX' || contractId === '.stx')) {
+        price = priceMap.get('.stx') || priceMap.get('stx') || 0;
+      }
+      
+      // Fallback for stablecoins
+      if (price === 0 && (contractId.includes('usdc') || contractId.includes('USDC') ||
+          contractId.includes('usdt') || contractId.includes('USDT') ||
+          contractId.includes('dai') || contractId.includes('DAI'))) {
+        price = 1.0;
+      }
       const value = formattedBalance * price;
 
       totalValue += value;

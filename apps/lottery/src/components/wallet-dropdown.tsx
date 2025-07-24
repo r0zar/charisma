@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Settings, LogOut, User, Menu, BarChart3, Dice6, Home, Wallet, Palette } from "lucide-react"
+import { Settings, LogOut, User, Menu, Dice6, Home, Wallet, Palette } from "lucide-react"
 import { useWallet } from "@/contexts"
 import { Button } from "@/components/ui/button"
 import { Drawer, DrawerContent, DrawerTrigger, DrawerTitle } from "@/components/ui/drawer"
@@ -23,11 +23,6 @@ function MenuContent({ onClose }: { onClose?: () => void }) {
   }
 
   const menuItems = [
-    {
-      icon: BarChart3,
-      title: "Analytics",
-      href: "/analytics",
-    },
     {
       icon: Dice6,
       title: "Lottery",

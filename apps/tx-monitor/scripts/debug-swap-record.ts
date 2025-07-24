@@ -89,12 +89,6 @@ async function debugSwapRecord() {
       await logger.info(`📋 Metadata: ${JSON.stringify(swap.metadata, null, 2)}`);
     }
 
-    // Test price API call for both tokens
-    await logger.info('\n🔍 Testing price API calls...');
-
-    await testPriceApi(swap.inputToken);
-    await testPriceApi(swap.outputToken);
-
     await logger.success('✅ Swap record debug completed');
 
   } catch (error) {
@@ -105,52 +99,6 @@ async function debugSwapRecord() {
     }
 
     throw error;
-  }
-}
-
-async function testPriceApi(tokenId: string) {
-  try {
-    await logger.info(`🔍 Testing charisma-party price API for token: ${tokenId}`);
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-    const pricesUrl = `${process.env.NEXT_PUBLIC_CHARISMA_PARTY_URL || 'https://party.charisma.rocks'}/party/prices?tokens=${encodeURIComponent(tokenId)}`;
-
-    await logger.info(`📊 API URL: ${pricesUrl}`);
-
-    const response = await fetch(pricesUrl, {
-      signal: controller.signal,
-      headers: {
-        'Accept': 'application/json',
-      }
-    });
-
-    clearTimeout(timeoutId);
-
-    await logger.info(`📊 Price API Response Status: ${response.status}`);
-
-    if (response.ok) {
-      const data = await response.json();
-      await logger.info(`📊 Price Response: ${JSON.stringify(data, null, 2)}`);
-
-      if (data.prices && Array.isArray(data.prices) && data.prices.length > 0) {
-        const priceUpdate = data.prices.find((p: any) => p.contractId === tokenId);
-        if (priceUpdate) {
-          await logger.success(`✅ Found price for ${tokenId}: $${priceUpdate.price}`);
-        } else {
-          await logger.warn(`⚠️ No price found for ${tokenId} in response`);
-        }
-      } else {
-        await logger.warn(`⚠️ No prices array in response`);
-      }
-    } else {
-      const errorText = await response.text();
-      await logger.warn(`⚠️ Price API Error: ${errorText}`);
-    }
-
-  } catch (error) {
-    await logger.error(`❌ Charisma-party price API call failed for ${tokenId}: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 

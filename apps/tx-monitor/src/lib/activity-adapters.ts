@@ -5,6 +5,7 @@
 
 import { ActivityItem, ActivityType, ActivityStatus, TokenInfo } from './activity-types';
 import { kv } from '@vercel/kv';
+import { listPrices } from '@repo/tokens';
 
 /**
  * Helper to normalize timestamps to Unix milliseconds
@@ -21,43 +22,50 @@ function normalizeTimestamp(timestamp: string | number): number {
 }
 
 /**
- * Capture price snapshot for a token using charisma-party prices API
+ * Capture price snapshot for a token using @packages/tokens
  */
 async function captureTokenPriceSnapshot(tokenId: string): Promise<TokenInfo['priceSnapshot'] | undefined> {
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-
-    // Use charisma-party prices API
-    const pricesUrl = `${process.env.NEXT_PUBLIC_CHARISMA_PARTY_URL || 'https://party.charisma.rocks'}/party/prices?tokens=${encodeURIComponent(tokenId)}`;
-
-    const response = await fetch(pricesUrl, {
-      signal: controller.signal,
-      headers: {
-        'Accept': 'application/json',
-      }
+    // Use @packages/tokens to get current prices
+    const priceData = await listPrices({
+      strategy: 'fallback',
+      sources: { stxtools: true, internal: true },
+      timeout: 5000
     });
 
-    clearTimeout(timeoutId);
+    const price = priceData[tokenId];
+    if (typeof price === 'number' && price > 0) {
+      return {
+        price,
+        timestamp: Date.now(),
+        source: 'packages-tokens'
+      };
+    }
 
-    if (response.ok) {
-      const data = await response.json();
-
-      // charisma-party returns: { prices: [{ contractId, price, timestamp, source }] }
-      if (data.prices && Array.isArray(data.prices) && data.prices.length > 0) {
-        const priceUpdate = data.prices.find((p: any) => p.contractId === tokenId);
-
-        if (priceUpdate && typeof priceUpdate.price === 'number') {
-          return {
-            price: priceUpdate.price,
-            timestamp: priceUpdate.timestamp || Date.now(),
-            source: priceUpdate.source || 'charisma-party'
-          };
-        }
+    // Handle STX special case
+    if (tokenId === 'STX' || tokenId === '.stx') {
+      const stxPrice = priceData['.stx'] || priceData['stx'];
+      if (typeof stxPrice === 'number' && stxPrice > 0) {
+        return {
+          price: stxPrice,
+          timestamp: Date.now(),
+          source: 'packages-tokens'
+        };
       }
     }
 
-    console.warn(`[TX-MONITOR] Could not fetch price for token ${tokenId} from charisma-party`);
+    // Fallback for stablecoins
+    if (tokenId.includes('usdc') || tokenId.includes('USDC') ||
+        tokenId.includes('usdt') || tokenId.includes('USDT') ||
+        tokenId.includes('dai') || tokenId.includes('DAI')) {
+      return {
+        price: 1.0,
+        timestamp: Date.now(),
+        source: 'stablecoin-fallback'
+      };
+    }
+
+    console.warn(`[TX-MONITOR] Could not fetch price for token ${tokenId} from @packages/tokens`);
     return undefined;
   } catch (error) {
     console.error(`[TX-MONITOR] Error fetching price snapshot for ${tokenId}:`, error);

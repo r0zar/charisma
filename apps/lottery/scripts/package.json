@@ -1,0 +1,15 @@
+{
+  "name": "lottery-test-scripts",
+  "version": "1.0.0",
+  "description": "Test scripts for the lottery system",
+  "scripts": {
+    "test:full": "npx tsx test-full-flow.ts",
+    "test:quick": "npx tsx quick-test.ts",
+    "test:dev": "npm run test:quick"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "tsx": "^4.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

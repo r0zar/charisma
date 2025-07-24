@@ -15,9 +15,6 @@ export function Header() {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-6">
-          <Link href="/analytics" className="text-sm hover:text-foreground/80">
-            Analytics
-          </Link>
           <Link href="/lottery" className="text-sm hover:text-foreground/80">
             Lottery
           </Link>

@@ -56,10 +56,10 @@ export default function HomePage() {
                   <ChevronRight className="h-5 w-5 ml-2" />
                 </Button>
               </Link>
-              <Link href="/analytics">
+              <Link href="/settings">
                 <Button variant="outline" size="lg" className="text-lg px-10 py-6 border-2 hover:bg-primary/5 transition-all duration-300">
                   <TrendingUp className="h-5 w-5 mr-2" />
-                  View Analytics
+                  View Settings
                 </Button>
               </Link>
             </div>
