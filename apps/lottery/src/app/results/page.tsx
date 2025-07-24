@@ -12,11 +12,11 @@ async function getLatestWinningNumbers() {
   try {
     const response = await fetch('/api/v1/lottery/latest-result')
     const result = await response.json()
-    
+
     if (!response.ok || !result.success) {
       throw new Error(result.error || 'Failed to fetch latest results')
     }
-    
+
     return result.data
   } catch (error) {
     console.error('Failed to get latest winning numbers:', error)
@@ -28,11 +28,11 @@ async function getPastDraws() {
   try {
     const response = await fetch('/api/v1/lottery/results?limit=10')
     const result = await response.json()
-    
+
     if (!response.ok || !result.success) {
       throw new Error(result.error || 'Failed to fetch past draws')
     }
-    
+
     return result.data
   } catch (error) {
     console.error('Failed to get past draws:', error)
@@ -44,12 +44,12 @@ async function getWinningTickets(drawId: string) {
   try {
     const response = await fetch(`/api/v1/lottery/results/${drawId}/tickets`)
     const result = await response.json()
-    
+
     if (!response.ok || !result.success) {
       // If the endpoint doesn't exist, return empty array
       return []
     }
-    
+
     return result.data || []
   } catch (error) {
     console.error('Failed to get winning tickets:', error)
@@ -69,7 +69,7 @@ export default function ResultsPage() {
   const [mounted, setMounted] = useState(false)
   const [winningTickets, setWinningTickets] = useState<Record<string, any[]>>({})
   const [expandedDraws, setExpandedDraws] = useState<Set<string>>(new Set())
-  
+
   // Get lottery format
   const lotteryFormat = getLotteryFormat()
 
@@ -97,7 +97,7 @@ export default function ResultsPage() {
 
   const loadWinningTickets = async (drawId: string) => {
     if (winningTickets[drawId]) return // Already loaded
-    
+
     try {
       const tickets = await getWinningTickets(drawId)
       setWinningTickets(prev => ({ ...prev, [drawId]: tickets }))
@@ -253,9 +253,9 @@ export default function ResultsPage() {
                                 Draw #{draw.id.split('-').pop()}
                               </CardTitle>
                               <CardDescription>
-                                {new Date(draw.drawDate).toLocaleDateString()} at {new Date(draw.drawDate).toLocaleTimeString([], { 
-                                  hour: '2-digit', 
-                                  minute: '2-digit' 
+                                {new Date(draw.drawDate).toLocaleDateString()} at {new Date(draw.drawDate).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
                                 })} • {draw.totalTicketsSold} tickets sold
                               </CardDescription>
                             </div>
@@ -271,12 +271,12 @@ export default function ResultsPage() {
                               size="sm"
                               onClick={() => toggleExpandDraw(draw.id)}
                             >
-                              {expandedDraws.has(draw.id) ? 'Hide Details' : 'View Details'}
+                              {expandedDraws.has(draw.id) ? 'Hide Details' : 'Prize Details'}
                             </Button>
                           </div>
                         </div>
                       </CardHeader>
-                      
+
                       <CardContent className="pt-0">
                         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                           {/* Winning Numbers or Format Info */}
@@ -304,7 +304,7 @@ export default function ResultsPage() {
                               </div>
                             )}
                           </div>
-                          
+
                           {/* Prize Information */}
                           <div>
                             <div className="text-sm font-medium text-muted-foreground mb-2">Prize</div>
@@ -333,7 +333,7 @@ export default function ResultsPage() {
                               )}
                             </div>
                           </div>
-                          
+
                           {/* Winner Summary */}
                           <div>
                             <div className="text-sm font-medium text-muted-foreground mb-2">Winner Status</div>
@@ -357,7 +357,7 @@ export default function ResultsPage() {
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Expanded Details - Winner Addresses */}
                         {expandedDraws.has(draw.id) && (
                           <div className="mt-6 pt-4 border-t border-border/40">
@@ -409,7 +409,7 @@ export default function ResultsPage() {
                     </Card>
                   ))
                 )}
-                
+
                 <div className="text-center pt-4">
                   <Button variant="outline" onClick={handleRetry}>
                     Refresh Results

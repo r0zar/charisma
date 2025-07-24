@@ -2,9 +2,13 @@
 
 import Link from "next/link"
 import { WalletDropdown } from "@/components/wallet-dropdown"
-import { Dice1Icon, Dices } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useWallet } from "@/contexts"
+import { Dice1Icon, Dices, Wallet } from "lucide-react"
 
 export function Header() {
+  const { walletState, connectWallet } = useWallet()
+
   return (
     <header className="border-b border-border bg-background shadow-sm">
       <div className="container mx-auto px-4 h-14 flex items-center justify-between">
@@ -23,8 +27,15 @@ export function Header() {
           </Link>
         </nav>
 
-        {/* Wallet (serves as unified mobile menu) */}
-        <WalletDropdown />
+        {/* Wallet - conditional rendering */}
+        {walletState.connected ? (
+          <WalletDropdown />
+        ) : (
+          <Button onClick={connectWallet} className="flex items-center gap-2">
+            <Wallet className="h-4 w-4" />
+            Connect Wallet
+          </Button>
+        )}
       </div>
     </header>
   )
