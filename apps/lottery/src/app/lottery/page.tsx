@@ -24,134 +24,15 @@ import Link from "next/link"
 import { Footer } from "@/components/footer"
 import { TicketConfirmation } from "@/components/ticket-confirmation"
 import { BulkTicketConfirmation } from "@/components/bulk-ticket-confirmation"
+import { JackpotSection } from "@/components/lottery/jackpot-section"
+import { PurchaseControls } from "@/components/lottery/purchase-controls"
+import { ConfirmationDialog } from "@/components/lottery/confirmation-dialog"
 
-// Lottery ball component
-function LotteryBall({ number, isSelected, onClick, isWinning = false }: {
-  number: number
-  isSelected?: boolean
-  onClick?: () => void
-  isWinning?: boolean
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={!onClick}
-      className={`
-        w-12 h-12 rounded-full border-2 font-bold text-sm transition-all
-        flex items-center justify-center
-        ${isSelected
-          ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-110'
-          : isWinning
-            ? 'bg-yellow-500 text-white border-yellow-400 shadow-lg'
-            : 'bg-background border-border hover:bg-accent hover:border-primary/50 hover:scale-105'
-        }
-        ${onClick ? 'cursor-pointer' : 'cursor-default'}
-      `}
-    >
-      {number}
-    </button>
-  )
-}
 
-// Number selection grid component
-function NumberGrid({ selectedNumbers, onNumberToggle, maxNumbers = 6 }: {
-  selectedNumbers: number[]
-  onNumberToggle: (number: number) => void
-  maxNumbers?: number
-}) {
-  return (
-    <div className="grid grid-cols-7 gap-3 p-4">
-      {Array.from({ length: 49 }, (_, i) => i + 1).map((number) => (
-        <LotteryBall
-          key={number}
-          number={number}
-          isSelected={selectedNumbers.includes(number)}
-          onClick={() => {
-            if (selectedNumbers.includes(number)) {
-              onNumberToggle(number)
-            } else if (selectedNumbers.length < maxNumbers) {
-              onNumberToggle(number)
-            }
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-// Countdown component
-function DrawCountdown({ targetDate }: { targetDate: Date }) {
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date().getTime()
-      const distance = targetDate.getTime() - now
-
-      if (distance > 0) {
-        setTimeLeft({
-          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-          seconds: Math.floor((distance % (1000 * 60)) / 1000)
-        })
-      }
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [targetDate])
-
-  return (
-    <div className="flex justify-center gap-4">
-      {Object.entries(timeLeft).map(([unit, value]) => (
-        <div key={unit} className="text-center">
-          <div className="bg-primary text-primary-foreground rounded-lg p-3 font-bold text-2xl min-w-[60px]">
-            {value.toString().padStart(2, '0')}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1 capitalize">
-            {unit}
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
 
 // Constants
 const mockTicketPrice = 5 // 5 STONE
 
-// Lottery data functions
-async function getCurrentJackpot(): Promise<number> {
-  try {
-    const response = await fetch('/api/v1/lottery/jackpot')
-    const result = await response.json()
-    
-    if (!response.ok || !result.success) {
-      throw new Error(result.error || 'Failed to fetch jackpot')
-    }
-    
-    return result.data.jackpot
-  } catch (error) {
-    console.error('Failed to get current jackpot:', error)
-    throw new Error('Current jackpot data not available. Please connect to the blockchain lottery contract to fetch the current jackpot amount.')
-  }
-}
-
-async function getNextDrawTime(): Promise<string> {
-  try {
-    const response = await fetch('/api/v1/lottery/draw-time')
-    const result = await response.json()
-    
-    if (!response.ok || !result.success) {
-      throw new Error(result.error || 'Failed to fetch draw time')
-    }
-    
-    return result.data.nextDrawDate
-  } catch (error) {
-    console.error('Failed to get next draw time:', error)
-    throw new Error('Next draw time not available. Please connect to the blockchain lottery contract to fetch the next draw schedule.')
-  }
-}
 
 async function getLatestWinningNumbers() {
   try {
@@ -396,134 +277,6 @@ async function getUserTickets(walletAddress: string) {
   }
 }
 
-// Jackpot Section Component
-function JackpotSection() {
-  const [jackpotError, setJackpotError] = useState<string | null>(null)
-  const [drawTimeError, setDrawTimeError] = useState<string | null>(null)
-  const [jackpot, setJackpot] = useState<number | null>(null)
-  const [nextDrawDate, setNextDrawDate] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  const fetchData = async () => {
-    setLoading(true)
-    setJackpotError(null)
-    setDrawTimeError(null)
-
-    try {
-      const jackpotAmount = await getCurrentJackpot()
-      setJackpot(jackpotAmount)
-    } catch (err) {
-      setJackpotError(err instanceof Error ? err.message : 'Failed to fetch jackpot amount')
-    }
-
-    try {
-      const drawTime = await getNextDrawTime()
-      setNextDrawDate(drawTime)
-    } catch (err) {
-      setDrawTimeError(err instanceof Error ? err.message : 'Failed to fetch next draw time')
-    }
-
-    setLoading(false)
-  }
-
-  useEffect(() => {
-    fetchData()
-  }, [])
-
-  const handleRetry = () => {
-    fetchData()
-  }
-
-  if (loading) {
-    return (
-      <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 glow-primary relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 animate-pulse"></div>
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-accent to-primary animate-pulse"></div>
-        
-        <CardContent className="text-center py-8 relative z-10">
-          <div className="space-y-4">
-            <Badge variant="default" className="text-lg py-2 px-4 glow-secondary">
-              <Trophy className="h-5 w-5 mr-2" />
-              Loading Jackpot
-            </Badge>
-            <div className="text-5xl font-bold text-primary font-vegas-numbers">
-              Loading...
-            </div>
-            <div className="text-muted-foreground">
-              Fetching lottery data...
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (jackpotError || drawTimeError) {
-    return (
-      <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-destructive/20 glow-primary relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 animate-pulse"></div>
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-accent to-primary animate-pulse"></div>
-        
-        <CardContent className="text-center py-8 relative z-10">
-          <div className="space-y-4">
-            <Badge variant="destructive" className="text-lg py-2 px-4">
-              <Trophy className="h-5 w-5 mr-2" />
-              Jackpot Unavailable
-            </Badge>
-            
-            {jackpotError && (
-              <div className="text-muted-foreground text-sm mb-2">
-                {jackpotError}
-              </div>
-            )}
-            
-            <div className="text-3xl font-bold text-destructive font-vegas-numbers">
-              Unable to Load Jackpot
-            </div>
-            
-            {drawTimeError && (
-              <>
-                <div className="text-muted-foreground">
-                  Next draw time:
-                </div>
-                <div className="text-muted-foreground text-sm">
-                  {drawTimeError}
-                </div>
-              </>
-            )}
-            
-            <Button variant="outline" onClick={handleRetry} className="mt-4">
-              Retry Connection
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  return (
-    <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20 glow-primary relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 animate-pulse"></div>
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-accent to-primary animate-pulse"></div>
-      
-      <CardContent className="text-center py-8 relative z-10">
-        <div className="space-y-4">
-          <Badge variant="default" className="text-lg py-2 px-4 glow-secondary">
-            <Trophy className="h-5 w-5 mr-2" />
-            Current Jackpot
-          </Badge>
-          <div className="text-5xl font-bold text-primary font-vegas-numbers">
-            {jackpot?.toLocaleString()} STONE
-          </div>
-          <div className="text-muted-foreground">
-            Next draw in:
-          </div>
-          {nextDrawDate && <DrawCountdown targetDate={new Date(nextDrawDate)} />}
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
 
 // My Tickets Section Component
 function MyTicketsSection() {
@@ -896,6 +649,11 @@ export default function LotteryPage() {
   const [purchaseError, setPurchaseError] = useState<string | null>(null)
   const [isPurchasing, setIsPurchasing] = useState(false)
   const [bulkMode, setBulkMode] = useState(false)
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    isOpen: boolean
+    tickets: any[]
+    isBulk: boolean
+  }>({ isOpen: false, tickets: [], isBulk: false })
 
   useEffect(() => {
     setMounted(true)
@@ -953,8 +711,14 @@ export default function LotteryPage() {
           throw new Error(result.error || 'Failed to purchase bulk tickets')
         }
         
-        // Switch to My Tickets tab to show confirmation UI
-        setActiveTab("my-tickets")
+        // Open confirmation dialog with bulk tickets
+        if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+          setConfirmationDialog({
+            isOpen: true,
+            tickets: result.data,
+            isBulk: true
+          })
+        }
         
         // Reset bulk quantity
         setBulkQuantity(1)
@@ -983,8 +747,14 @@ export default function LotteryPage() {
           throw new Error(result.error || 'Failed to purchase ticket')
         }
         
-        // Switch to My Tickets tab to show confirmation UI
-        setActiveTab("my-tickets")
+        // Open confirmation dialog with single ticket
+        if (result.data) {
+          setConfirmationDialog({
+            isOpen: true,
+            tickets: [result.data],
+            isBulk: false
+          })
+        }
         
         // Clear selected numbers
         setSelectedNumbers([])
@@ -1089,229 +859,22 @@ export default function LotteryPage() {
 
           {/* Play Tab */}
           <TabsContent value="play" className="space-y-6">
-
             <div className="max-w-2xl mx-auto">
-              {!bulkMode ? (
-                /* Single Ticket Mode */
-                <Card>
-                  <CardHeader className="text-center">
-                    <CardTitle className="flex items-center justify-center gap-2">
-                      <Target className="h-5 w-5" />
-                      Select Your Numbers
-                    </CardTitle>
-                    <CardDescription>
-                      Choose 6 numbers from 1 to 49. Each ticket costs {mockTicketPrice} STONE tokens.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Selected Numbers Display */}
-                    <div className="text-center space-y-4">
-                      <div className="text-sm font-medium text-muted-foreground">
-                        Selected Numbers ({selectedNumbers.length}/6)
-                      </div>
-                      <div className="flex justify-center gap-2 flex-wrap">
-                        {Array.from({ length: 6 }, (_, i) => (
-                          <div
-                            key={i}
-                            className={`
-                              w-12 h-12 rounded-full border-2 font-bold text-sm
-                              flex items-center justify-center
-                              ${selectedNumbers[i]
-                                ? 'bg-primary text-primary-foreground border-primary'
-                                : 'bg-muted border-muted-foreground/20 text-muted-foreground'
-                              }
-                            `}
-                          >
-                            {selectedNumbers[i] || '?'}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Number Grid */}
-                    <NumberGrid
-                      selectedNumbers={selectedNumbers}
-                      onNumberToggle={handleNumberToggle}
-                    />
-
-                    <Separator />
-
-                    {/* Action Buttons */}
-                    <div className="text-center space-y-4">
-                      <div className="text-sm font-medium text-muted-foreground">
-                        Quick Actions
-                      </div>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        <Button
-                          variant="outline"
-                          onClick={handleQuickPick}
-                          className="flex items-center gap-2"
-                        >
-                          <Zap className="h-4 w-4" />
-                          Quick Pick
-                        </Button>
-                        <Button
-                          variant="outline"
-                          onClick={handleClearSelection}
-                          disabled={selectedNumbers.length === 0}
-                        >
-                          Clear Selection
-                        </Button>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Purchase Error Display */}
-                    {purchaseError && (
-                      <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
-                        {purchaseError}
-                      </div>
-                    )}
-
-                    {/* Purchase Button */}
-                    <div className="flex justify-center">
-                      <Button
-                        onClick={handlePurchaseTicket}
-                        disabled={selectedNumbers.length !== 6 || isPurchasing || !walletState.connected}
-                        size="lg"
-                        className="flex items-center gap-2"
-                      >
-                        {isPurchasing ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Purchasing...
-                          </>
-                        ) : (
-                          <>
-                            <Wallet className="h-4 w-4" />
-                            {walletState.connected ? `Buy Ticket (${mockTicketPrice} STONE)` : 'Connect Wallet'}
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : (
-                /* Bulk Purchase Mode */
-                <Card>
-                  <CardHeader className="text-center">
-                    <CardTitle className="flex items-center justify-center gap-2">
-                      <Package className="h-5 w-5" />
-                      Bulk Purchase
-                    </CardTitle>
-                    <CardDescription>
-                      Purchase multiple tickets with random numbers. Each ticket costs {mockTicketPrice} STONE tokens.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Quantity Input */}
-                    <div className="text-center space-y-4">
-                      <div className="text-sm font-medium text-muted-foreground">
-                        Number of Tickets
-                      </div>
-                      <div className="flex justify-center items-center gap-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setBulkQuantity(Math.max(1, bulkQuantity - 1))}
-                          disabled={bulkQuantity <= 1}
-                        >
-                          -
-                        </Button>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            value={bulkQuantity}
-                            onChange={(e) => handleBulkQuantityChange(e.target.value)}
-                            className="w-20 px-3 py-2 text-center border border-border rounded-md bg-background"
-                            min="1"
-                            max="10000"
-                          />
-                        </div>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setBulkQuantity(Math.min(10000, bulkQuantity + 1))}
-                          disabled={bulkQuantity >= 10000}
-                        >
-                          +
-                        </Button>
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Quick Amount Buttons */}
-                    <div className="text-center space-y-4">
-                      <div className="text-sm font-medium text-muted-foreground">
-                        Quick Select
-                      </div>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {[10, 50, 100, 500, 1000].map((amount) => (
-                          <Button
-                            key={amount}
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setBulkQuantity(amount)}
-                            className="flex items-center gap-1"
-                          >
-                            <Hash className="h-3 w-3" />
-                            {amount}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    {/* Cost Summary */}
-                    <div className="bg-muted/50 rounded-lg p-4 text-center space-y-2">
-                      <div className="text-sm text-muted-foreground">Total Cost</div>
-                      <div className="text-2xl font-bold text-primary">
-                        {(bulkQuantity * mockTicketPrice).toLocaleString()} STONE
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {bulkQuantity.toLocaleString()} tickets × {mockTicketPrice} STONE each
-                      </div>
-                    </div>
-
-                    {/* Purchase Error Display */}
-                    {purchaseError && (
-                      <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
-                        {purchaseError}
-                      </div>
-                    )}
-
-                    {/* Purchase Button */}
-                    <div className="flex justify-center">
-                      <Button
-                        onClick={handlePurchaseTicket}
-                        disabled={!walletState.connected || isPurchasing}
-                        size="lg"
-                        className="flex items-center gap-2"
-                      >
-                        {isPurchasing ? (
-                          <>
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Purchasing...
-                          </>
-                        ) : (
-                          <>
-                            <Package className="h-4 w-4" />
-                            {walletState.connected 
-                              ? `Buy ${bulkQuantity.toLocaleString()} Tickets` 
-                              : 'Connect Wallet'
-                            }
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              <PurchaseControls
+                selectedNumbers={selectedNumbers}
+                onNumberToggle={handleNumberToggle}
+                onQuickPick={handleQuickPick}
+                onClearSelection={handleClearSelection}
+                bulkMode={bulkMode}
+                bulkQuantity={bulkQuantity}
+                onBulkQuantityChange={handleBulkQuantityChange}
+                setBulkQuantity={setBulkQuantity}
+                onPurchase={handlePurchaseTicket}
+                isPurchasing={isPurchasing}
+                purchaseError={purchaseError}
+                walletConnected={walletState.connected}
+                onConnectWallet={connectWallet}
+              />
             </div>
           </TabsContent>
 
@@ -1327,6 +890,16 @@ export default function LotteryPage() {
 
         </Tabs>
       </div>
+
+      <ConfirmationDialog
+        isOpen={confirmationDialog.isOpen}
+        tickets={confirmationDialog.tickets}
+        isBulk={confirmationDialog.isBulk}
+        onOpenChange={(isOpen) => setConfirmationDialog(prev => ({ ...prev, isOpen }))}
+        onConfirmationUpdate={(ticketIds, status) => {
+          // Handle confirmation update - dialog will close automatically on confirmed
+        }}
+      />
 
       <Footer />
     </div>
