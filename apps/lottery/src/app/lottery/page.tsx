@@ -23,7 +23,7 @@ import { getLotteryFormat } from "@/types/lottery"
 
 
 // Constants
-const mockTicketPrice = 5 // 5 STONE
+const mockTicketPrice = 100 // 100 STONE
 
 
 
@@ -81,8 +81,8 @@ export default function LotteryPage() {
     setPurchaseError(null)
     
     try {
-      if (bulkMode) {
-        // Bulk purchase
+      if (lotteryFormat === 'simple' || bulkMode) {
+        // Simple format always uses bulk API, traditional format uses bulk when bulkMode is true
         const response = await fetch('/api/v1/lottery/purchase-bulk', {
           method: 'POST',
           headers: {
@@ -97,10 +97,10 @@ export default function LotteryPage() {
         const result = await response.json()
         
         if (!response.ok || !result.success) {
-          throw new Error(result.error || 'Failed to purchase bulk tickets')
+          throw new Error(result.error || 'Failed to purchase tickets')
         }
         
-        // Open confirmation dialog with bulk tickets
+        // Open confirmation dialog with tickets
         if (result.data && Array.isArray(result.data) && result.data.length > 0) {
           setConfirmationDialog({
             isOpen: true,
@@ -109,11 +109,11 @@ export default function LotteryPage() {
           })
         }
         
-        // Reset bulk quantity
+        // Reset quantity
         setBulkQuantity(1)
       } else {
-        // Single ticket purchase
-        if (lotteryFormat === 'traditional' && selectedNumbers.length !== 6) {
+        // Traditional format single ticket purchase
+        if (selectedNumbers.length !== 6) {
           // Don't proceed if not exactly 6 numbers selected for traditional format
           return
         }
@@ -125,7 +125,7 @@ export default function LotteryPage() {
           },
           body: JSON.stringify({
             walletAddress: walletState.address,
-            numbers: lotteryFormat === 'traditional' ? selectedNumbers : [] // Empty array for simple format
+            numbers: selectedNumbers
           })
         })
         
@@ -144,10 +144,8 @@ export default function LotteryPage() {
           })
         }
         
-        // Clear selected numbers for traditional format
-        if (lotteryFormat === 'traditional') {
-          setSelectedNumbers([])
-        }
+        // Clear selected numbers
+        setSelectedNumbers([])
       }
     } catch (error) {
       console.error('Purchase error:', error)
@@ -236,37 +234,12 @@ export default function LotteryPage() {
           </>
         ) : (
           <>
-            {/* Purchase Mode Toggle for Simple Format */}
-            <div className="flex justify-center mb-6">
-              <div className="bg-muted text-muted-foreground inline-flex h-10 w-fit items-center justify-center rounded-lg p-1">
-                <button
-                  onClick={() => setBulkMode(false)}
-                  className={`inline-flex items-center justify-center gap-2 rounded-md border border-transparent px-3 py-2 text-sm font-medium whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
-                    !bulkMode ? "bg-background text-foreground shadow-sm" : ""
-                  }`}
-                >
-                  <Target className="h-4 w-4" />
-                  Single Ticket
-                </button>
-                <button
-                  onClick={() => setBulkMode(true)}
-                  className={`inline-flex items-center justify-center gap-2 rounded-md border border-transparent px-3 py-2 text-sm font-medium whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 ${
-                    bulkMode ? "bg-background text-foreground shadow-sm" : ""
-                  }`}
-                >
-                  <Package className="h-4 w-4" />
-                  Bulk Purchase
-                </button>
-              </div>
-            </div>
-
-            {/* Simple Lottery Play Section */}
+            {/* Simple Lottery Play Section - No toggle needed */}
             <div className="max-w-2xl mx-auto">
               <SimplePurchaseControls
-                bulkMode={bulkMode}
-                bulkQuantity={bulkQuantity}
-                onBulkQuantityChange={handleBulkQuantityChange}
-                setBulkQuantity={setBulkQuantity}
+                quantity={bulkQuantity}
+                onQuantityChange={handleBulkQuantityChange}
+                setQuantity={setBulkQuantity}
                 onPurchase={handlePurchaseTicket}
                 isPurchasing={isPurchasing}
                 purchaseError={purchaseError}

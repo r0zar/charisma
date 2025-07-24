@@ -1,4 +1,4 @@
-import { LotteryConfig, DEFAULT_LOTTERY_CONFIG } from '@/types/lottery'
+import { LotteryConfig, DEFAULT_LOTTERY_CONFIG, PhysicalJackpot } from '@/types/lottery'
 import { blobStorage } from './blob-storage'
 
 export class LotteryConfigService {
@@ -56,7 +56,7 @@ export class LotteryConfigService {
     }
   }
 
-  async getCurrentJackpot(): Promise<number> {
+  async getCurrentJackpot(): Promise<PhysicalJackpot> {
     const config = await this.getConfig()
     return config.currentJackpot
   }

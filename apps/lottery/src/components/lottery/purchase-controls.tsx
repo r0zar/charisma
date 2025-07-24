@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator'
 import { Zap, Wallet, Package, Hash, Loader2 } from 'lucide-react'
 import { NumberGrid } from './number-grid'
 
-const TICKET_PRICE = 5 // STONE per ticket
+const TICKET_PRICE = 100 // STONE per ticket
 
 interface PurchaseControlsProps {
   // Single ticket mode props
@@ -253,7 +253,7 @@ export function PurchaseControls({
         <div className="flex justify-center">
           <Button
             onClick={handlePurchaseClick}
-            disabled={!walletConnected || isPurchasing}
+            disabled={isPurchasing}
             size="lg"
             className="flex items-center gap-2"
           >

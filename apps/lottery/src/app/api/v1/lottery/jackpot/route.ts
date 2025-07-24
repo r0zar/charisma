@@ -8,8 +8,7 @@ export async function GET() {
     return NextResponse.json({
       success: true,
       data: {
-        jackpot,
-        currency: 'STONE'
+        jackpot
       }
     })
   } catch (error) {

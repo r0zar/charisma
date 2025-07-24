@@ -1,5 +1,12 @@
 export type LotteryFormat = 'traditional' | 'simple'
 
+export interface PhysicalJackpot {
+  title: string;              // Name/description of the physical item
+  imageUrl: string;           // URL to image of the item
+  linkUrl: string;            // URL to view more details about the item
+  estimatedValue?: number;    // Optional estimated value in STONE for reference
+}
+
 export interface LotteryConfig {
   // Lottery format
   format: LotteryFormat;      // "traditional" (6 numbers) or "simple" (random winner)
@@ -14,7 +21,7 @@ export interface LotteryConfig {
   nextDrawDate: string;       // ISO timestamp
   
   // Jackpot settings
-  currentJackpot: number;     // in STONE tokens
+  currentJackpot: PhysicalJackpot; // Physical item details
   
   // Admin metadata
   lastModified: string;       // ISO timestamp
@@ -27,7 +34,7 @@ export interface LotteryDraw {
   id: string;                    // unique draw identifier
   drawDate: string;              // ISO timestamp when draw occurred
   winningNumbers: number[];      // the winning numbers (sorted)
-  jackpotAmount: number;         // jackpot amount for this draw
+  jackpotAmount: PhysicalJackpot; // jackpot item for this draw
   totalTicketsSold: number;      // number of tickets sold
   winners: WinnerInfo[];         // winner details by tier
   status: 'pending' | 'completed' | 'cancelled';
@@ -87,12 +94,17 @@ export function getLotteryFormat(): LotteryFormat {
 
 export const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   format: getLotteryFormat(),
-  ticketPrice: 5,
+  ticketPrice: 100,
   numbersToSelect: getLotteryFormat() === 'traditional' ? 6 : 0, 
   maxNumber: getLotteryFormat() === 'traditional' ? 49 : 0,
   drawFrequency: "twice_weekly",
   nextDrawDate: "2025-01-26T20:00:00Z", // Next Saturday 8 PM
-  currentJackpot: 125000000, // 125M STONE
+  currentJackpot: {
+    title: "Rare Collectible NFT",
+    imageUrl: "https://via.placeholder.com/400x300?text=Jackpot+Prize",
+    linkUrl: "https://example.com/nft-details",
+    estimatedValue: 125000000 // 125M STONE equivalent
+  },
   lastModified: new Date().toISOString(),
   version: 1,
   isActive: true
