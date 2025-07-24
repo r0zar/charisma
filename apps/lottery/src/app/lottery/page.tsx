@@ -198,10 +198,10 @@ function SimplifiedPurchase() {
         <CardHeader className="text-center">
           <CardTitle className="flex items-center justify-center gap-2">
             <Ticket className="h-5 w-5" />
-            Buy Tickets
+            Burn STONE for Tickets
           </CardTitle>
           <CardDescription>
-            Each ticket costs {TICKET_PRICE} STONE. More tickets = better odds!
+            Burn {TICKET_PRICE} STONE per ticket to enter the lottery. More tickets = better odds!
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -261,10 +261,11 @@ function SimplifiedPurchase() {
 
           {/* Cost Summary */}
           <div className="bg-muted/50 rounded-lg p-4 text-center space-y-2">
-            <div className="text-sm text-muted-foreground">Total cost</div>
+            <div className="text-sm text-muted-foreground">STONE to burn</div>
             <div className="text-2xl font-bold text-primary">
               {(quantity * TICKET_PRICE).toLocaleString()} STONE
             </div>
+            <div className="text-xs text-muted-foreground">Tokens will be permanently burned</div>
           </div>
 
           {/* Purchase Error Display */}
@@ -285,13 +286,13 @@ function SimplifiedPurchase() {
               {isPurchasing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Purchasing...
+                  Burning STONE...
                 </>
               ) : (
                 <>
                   <Ticket className="h-4 w-4" />
                   {walletState.connected 
-                    ? `Buy ${quantity.toLocaleString()} ticket${quantity !== 1 ? 's' : ''}` 
+                    ? `Burn for ${quantity.toLocaleString()} ticket${quantity !== 1 ? 's' : ''}` 
                     : 'Connect Wallet'
                   }
                 </>
