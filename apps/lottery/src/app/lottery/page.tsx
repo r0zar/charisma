@@ -27,6 +27,7 @@ import { BulkTicketConfirmation } from "@/components/bulk-ticket-confirmation"
 import { JackpotSection } from "@/components/lottery/jackpot-section"
 import { PurchaseControls } from "@/components/lottery/purchase-controls"
 import { ConfirmationDialog } from "@/components/lottery/confirmation-dialog"
+import { TicketsTable } from "@/components/lottery/tickets-table"
 
 
 
@@ -379,30 +380,6 @@ function MyTicketsSection() {
     }
   }
 
-  // Group tickets by purchase batch (same wallet, similar timestamp)
-  const groupTicketsByBatch = (tickets: any[]) => {
-    const groups: any[][] = []
-    const processed = new Set<string>()
-    
-    tickets.forEach(ticket => {
-      if (processed.has(ticket.id)) return
-      
-      // Find tickets purchased within the same minute (bulk purchase)
-      const purchaseTime = new Date(ticket.purchaseDate).getTime()
-      const batchTickets = tickets.filter(t => {
-        const tTime = new Date(t.purchaseDate).getTime()
-        return Math.abs(tTime - purchaseTime) < 60000 && // Within 1 minute
-               t.walletAddress === ticket.walletAddress &&
-               t.status === ticket.status &&
-               !processed.has(t.id)
-      })
-      
-      batchTickets.forEach(t => processed.add(t.id))
-      groups.push(batchTickets)
-    })
-    
-    return groups
-  }
 
   if (!walletState.connected) {
     return (
@@ -540,52 +517,11 @@ function MyTicketsSection() {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Show pending tickets grouped by batch with bulk confirmation UI */}
-              {groupTicketsByBatch(filteredTickets.filter(ticket => ticket.status === 'pending')).map((ticketGroup: any[], groupIndex: number) => {
-                if (ticketGroup.length === 1) {
-                  // Single ticket - use individual confirmation
-                  return (
-                    <TicketConfirmation
-                      key={ticketGroup[0].id}
-                      ticket={ticketGroup[0]}
-                      onConfirmationUpdate={handleConfirmationUpdate}
-                    />
-                  )
-                } else {
-                  // Multiple tickets - use bulk confirmation
-                  return (
-                    <BulkTicketConfirmation
-                      key={`bulk-${groupIndex}`}
-                      tickets={ticketGroup}
-                      onConfirmationUpdate={handleBulkConfirmationUpdate}
-                    />
-                  )
-                }
-              })}
-              
-              {/* Show other tickets grouped as well */}
-              {groupTicketsByBatch(filteredTickets.filter(ticket => ticket.status !== 'pending')).map((ticketGroup: any[], groupIndex: number) => {
-                if (ticketGroup.length === 1) {
-                  // Single ticket - show with full confirmation component for status checking
-                  const ticket = ticketGroup[0]
-                  return (
-                    <TicketConfirmation
-                      key={ticket.id}
-                      ticket={ticket}
-                      onConfirmationUpdate={handleConfirmationUpdate}
-                    />
-                  )
-                } else {
-                  // Multiple tickets - show bulk confirmation component
-                  return (
-                    <BulkTicketConfirmation
-                      key={`bulk-other-${groupIndex}`}
-                      tickets={ticketGroup}
-                      onConfirmationUpdate={handleBulkConfirmationUpdate}
-                    />
-                  )
-                }
-              })}
+              <TicketsTable
+                tickets={filteredTickets}
+                onConfirmationUpdate={handleConfirmationUpdate}
+                onBulkConfirmationUpdate={handleBulkConfirmationUpdate}
+              />
               
               <div className="text-center pt-4">
                 <Button variant="outline" onClick={handleRetry}>
