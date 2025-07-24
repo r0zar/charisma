@@ -28,6 +28,9 @@ export default function AdminPage() {
   const [config, setConfig] = useState<LotteryConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [drawLoading, setDrawLoading] = useState(false)
+  const [dryRunLoading, setDryRunLoading] = useState(false)
+  const [exportLoading, setExportLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [adminKey, setAdminKey] = useState("")
@@ -187,7 +190,7 @@ export default function AdminPage() {
   }
 
   const triggerDraw = async () => {
-    setSaving(true)
+    setDrawLoading(true)
     setError(null)
     setSuccess(null)
     
@@ -208,12 +211,12 @@ export default function AdminPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to trigger draw')
     } finally {
-      setSaving(false)
+      setDrawLoading(false)
     }
   }
 
   const triggerDryRun = async () => {
-    setSaving(true)
+    setDryRunLoading(true)
     setError(null)
     setSuccess(null)
     
@@ -241,12 +244,12 @@ export default function AdminPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to run dry run test')
     } finally {
-      setSaving(false)
+      setDryRunLoading(false)
     }
   }
 
   const exportTickets = async () => {
-    setSaving(true)
+    setExportLoading(true)
     setError(null)
     setSuccess(null)
     
@@ -328,7 +331,7 @@ export default function AdminPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to export tickets')
     } finally {
-      setSaving(false)
+      setExportLoading(false)
     }
   }
 
@@ -487,14 +490,14 @@ export default function AdminPage() {
             <div className="space-y-3">
               <Button 
                 onClick={triggerDraw} 
-                disabled={saving || !config?.isActive}
+                disabled={drawLoading || !config?.isActive}
                 className="w-full"
                 variant="default"
               >
-                {saving ? (
+                {drawLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Processing...
+                    Processing Draw...
                   </>
                 ) : (
                   <>
@@ -506,14 +509,14 @@ export default function AdminPage() {
               
               <Button 
                 onClick={triggerDryRun} 
-                disabled={saving || !config?.isActive}
+                disabled={dryRunLoading || !config?.isActive}
                 className="w-full"
                 variant="outline"
               >
-                {saving ? (
+                {dryRunLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Processing...
+                    Running Test...
                   </>
                 ) : (
                   <>
@@ -525,11 +528,11 @@ export default function AdminPage() {
               
               <Button 
                 onClick={exportTickets} 
-                disabled={saving}
+                disabled={exportLoading}
                 className="w-full"
                 variant="secondary"
               >
-                {saving ? (
+                {exportLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                     Exporting...
@@ -636,7 +639,7 @@ export default function AdminPage() {
               )}
               <div className="space-y-2">
                 <div className="font-medium">{jackpotForm.title || 'Prize Title'}</div>
-                {jackpotForm.estimatedValue > 0 && (
+                {jackpotForm.estimatedValue && jackpotForm.estimatedValue > 0 && (
                   <div className="text-sm text-muted-foreground">
                     Est. ${(jackpotForm.estimatedValue / 1000).toLocaleString()} USD
                   </div>

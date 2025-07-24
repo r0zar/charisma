@@ -23,10 +23,7 @@ export function Header() {
             Lottery
           </Link>
           <Link href="/results" className="text-sm hover:text-foreground/80">
-            Results
-          </Link>
-          <Link href="/admin" className="text-sm hover:text-foreground/80 text-orange-600">
-            Admin
+            Winners
           </Link>
         </nav>
 
