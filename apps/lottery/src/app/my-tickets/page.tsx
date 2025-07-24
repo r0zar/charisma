@@ -374,9 +374,7 @@ export default function MyTicketsPage() {
                     <SimpleTicketsTable
                       tickets={filteredTickets}
                       onConfirmationUpdate={handleConfirmationUpdate}
-                      onBulkConfirmationUpdate={handleBulkConfirmationUpdate}
                       onTicketCancelled={handleTicketCancelled}
-                      onBulkTicketsCancelled={handleBulkTicketsCancelled}
                     />
                   )}
                   
