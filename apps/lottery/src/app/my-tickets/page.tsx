@@ -135,6 +135,30 @@ export default function MyTicketsPage() {
     }
   }
 
+  const handleTicketCancelled = (ticketId: string) => {
+    // Update the ticket status to 'cancelled' in local state
+    setTickets(prev => prev.map(ticket => 
+      ticket.id === ticketId 
+        ? { ...ticket, status: 'cancelled' }
+        : ticket
+    ))
+    
+    // Refresh tickets to get latest data
+    fetchTickets()
+  }
+
+  const handleBulkTicketsCancelled = (ticketIds: string[]) => {
+    // Update all ticket statuses to 'cancelled' in local state
+    setTickets(prev => prev.map(ticket => 
+      ticketIds.includes(ticket.id)
+        ? { ...ticket, status: 'cancelled' }
+        : ticket
+    ))
+    
+    // Refresh tickets to get latest data
+    fetchTickets()
+  }
+
   if (!mounted) {
     return <div className="p-8">Loading...</div>
   }
@@ -343,12 +367,16 @@ export default function MyTicketsPage() {
                       tickets={filteredTickets}
                       onConfirmationUpdate={handleConfirmationUpdate}
                       onBulkConfirmationUpdate={handleBulkConfirmationUpdate}
+                      onTicketCancelled={handleTicketCancelled}
+                      onBulkTicketsCancelled={handleBulkTicketsCancelled}
                     />
                   ) : (
                     <SimpleTicketsTable
                       tickets={filteredTickets}
                       onConfirmationUpdate={handleConfirmationUpdate}
                       onBulkConfirmationUpdate={handleBulkConfirmationUpdate}
+                      onTicketCancelled={handleTicketCancelled}
+                      onBulkTicketsCancelled={handleBulkTicketsCancelled}
                     />
                   )}
                   

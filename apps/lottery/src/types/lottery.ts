@@ -68,6 +68,7 @@ export interface LotteryTicket {
   status: 'pending' | 'confirmed' | 'cancelled' | 'archived';
   drawResult?: string;          // link to completed draw (for archived tickets)
   confirmedAt?: string;         // ISO timestamp when confirmed
+  cancelledAt?: string;         // ISO timestamp when cancelled
   blockHeight?: number;         // block height when confirmed
   blockTime?: number;           // block time when confirmed
   isWinner?: boolean;           // for simple format - indicates if this ticket won

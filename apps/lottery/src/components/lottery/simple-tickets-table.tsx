@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Loader2, ExternalLink, CheckCircle2, ChevronDown, ChevronRight, Trophy } from 'lucide-react'
+import { Loader2, ExternalLink, CheckCircle2, ChevronDown, ChevronRight, Trophy, X } from 'lucide-react'
 import { LotteryTicket } from '@/types/lottery'
 import { request } from '@stacks/connect'
 import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network'
@@ -18,6 +18,8 @@ interface SimpleTicketsTableProps {
   tickets: LotteryTicket[]
   onConfirmationUpdate: (ticketId: string, status: 'confirming' | 'confirmed' | 'failed') => void
   onBulkConfirmationUpdate: (ticketIds: string[], status: 'confirming' | 'confirmed' | 'failed') => void
+  onTicketCancelled?: (ticketId: string) => void
+  onBulkTicketsCancelled?: (ticketIds: string[]) => void
 }
 
 const STONE_CONTRACT_ADDRESS = 'SPQ5CEHETP8K4Q2FSNNK9ANMPAVBSA9NN86YSN59'
@@ -62,13 +64,15 @@ const getStatusColor = (status: string) => {
 interface IndividualTicketRowProps {
   ticket: LotteryTicket
   onConfirmationUpdate: (ticketId: string, status: 'confirming' | 'confirmed' | 'failed') => void
+  onTicketCancelled?: (ticketId: string) => void
 }
 
-function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketRowProps) {
+function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }: IndividualTicketRowProps) {
   const [isConfirming, setIsConfirming] = useState(false)
   const [txId, setTxId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isCheckingStatus, setIsCheckingStatus] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
 
   const pollForConfirmation = async (transactionId: string) => {
     const maxAttempts = 24 // 2 minutes total (24 * 5 seconds)
@@ -165,6 +169,39 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
     }
   }
 
+  const handleCancelTicket = async () => {
+    if (!onTicketCancelled) return
+    
+    setIsCancelling(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/v1/lottery/cancel-tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: ticket.walletAddress,
+          ticketIds: [ticket.id]
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        onTicketCancelled(ticket.id)
+      } else {
+        setError(result.error || 'Failed to cancel ticket')
+      }
+    } catch (error) {
+      console.error('Cancel ticket error:', error)
+      setError(error instanceof Error ? error.message : 'Failed to cancel ticket')
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
   const handleBurnTokens = async () => {
     try {
       setIsConfirming(true)
@@ -248,7 +285,7 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
             <>
               <Button
                 onClick={handleBurnTokens}
-                disabled={isConfirming}
+                disabled={isConfirming || isCancelling}
                 
                 className="h-7 text-xs px-2"
               >
@@ -264,11 +301,31 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
                   </>
                 )}
               </Button>
+
+              <Button
+                onClick={handleCancelTicket}
+                disabled={isConfirming || isCancelling}
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2"
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Cancel
+                  </>
+                ) : (
+                  <>
+                    <X className="h-3 w-3 mr-1" />
+                    Cancel
+                  </>
+                )}
+              </Button>
               
               {txId && (
                 <Button
                   onClick={handleCheckStatus}
-                  disabled={isCheckingStatus || isConfirming}
+                  disabled={isCheckingStatus || isConfirming || isCancelling}
                   variant="outline"
                   
                   className="px-2 h-7"
@@ -334,14 +391,16 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
 interface BulkTicketRowProps {
   tickets: LotteryTicket[]
   onBulkConfirmationUpdate: (ticketIds: string[], status: 'confirming' | 'confirmed' | 'failed') => void
+  onBulkTicketsCancelled?: (ticketIds: string[]) => void
 }
 
-function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps) {
+function BulkTicketRow({ tickets, onBulkConfirmationUpdate, onBulkTicketsCancelled }: BulkTicketRowProps) {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isConfirming, setIsConfirming] = useState(false)
   const [txId, setTxId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isCheckingStatus, setIsCheckingStatus] = useState(false)
+  const [isCancelling, setIsCancelling] = useState(false)
 
   const totalAmount = tickets.reduce((sum, ticket) => sum + ticket.purchasePrice, 0)
   const ticketIds = tickets.map(t => t.id)
@@ -453,6 +512,39 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
     }
   }
 
+  const handleBulkCancelTickets = async () => {
+    if (!onBulkTicketsCancelled) return
+    
+    setIsCancelling(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/v1/lottery/cancel-tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          walletAddress: tickets[0].walletAddress,
+          ticketIds: ticketIds
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        onBulkTicketsCancelled(ticketIds)
+      } else {
+        setError(result.error || 'Failed to cancel tickets')
+      }
+    } catch (error) {
+      console.error('Bulk cancel tickets error:', error)
+      setError(error instanceof Error ? error.message : 'Failed to cancel tickets')
+    } finally {
+      setIsCancelling(false)
+    }
+  }
+
   const handleBulkBurnTokens = async () => {
     try {
       setIsConfirming(true)
@@ -555,7 +647,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
             <>
               <Button
                 onClick={handleBulkBurnTokens}
-                disabled={isConfirming}
+                disabled={isConfirming || isCancelling}
                 
                 className="h-7 text-xs px-2"
               >
@@ -571,11 +663,31 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
                   </>
                 )}
               </Button>
+
+              <Button
+                onClick={handleBulkCancelTickets}
+                disabled={isConfirming || isCancelling}
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2"
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Cancel All
+                  </>
+                ) : (
+                  <>
+                    <X className="h-3 w-3 mr-1" />
+                    Cancel All
+                  </>
+                )}
+              </Button>
               
               {txId && (
                 <Button
                   onClick={handleCheckBulkStatus}
-                  disabled={isCheckingStatus || isConfirming}
+                  disabled={isCheckingStatus || isConfirming || isCancelling}
                   variant="outline"
                   
                   className="px-2 h-7"
@@ -664,7 +776,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
   )
 }
 
-export function SimpleTicketsTable({ tickets, onConfirmationUpdate, onBulkConfirmationUpdate }: SimpleTicketsTableProps) {
+export function SimpleTicketsTable({ tickets, onConfirmationUpdate, onBulkConfirmationUpdate, onTicketCancelled, onBulkTicketsCancelled }: SimpleTicketsTableProps) {
   if (tickets.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -695,6 +807,7 @@ export function SimpleTicketsTable({ tickets, onConfirmationUpdate, onBulkConfir
                 key={ticketGroup[0].id}
                 ticket={ticketGroup[0]}
                 onConfirmationUpdate={onConfirmationUpdate}
+                onTicketCancelled={onTicketCancelled}
               />
             )
           } else {
@@ -704,6 +817,7 @@ export function SimpleTicketsTable({ tickets, onConfirmationUpdate, onBulkConfir
                 key={`bulk-${groupIndex}`}
                 tickets={ticketGroup}
                 onBulkConfirmationUpdate={onBulkConfirmationUpdate}
+                onBulkTicketsCancelled={onBulkTicketsCancelled}
               />
             )
           }
