@@ -78,8 +78,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const drawRequest: DrawRequest = await request.json()
+    const requestBody = await request.json()
+    const isDryRun = requestBody.dryRun === true
+    const drawRequest: DrawRequest = requestBody
+    
     console.log('Draw request received:', drawRequest)
+    console.log('Dry run mode:', isDryRun)
 
     // Get current lottery configuration
     const config = await lotteryConfigService.getConfig()
@@ -132,46 +136,53 @@ export async function POST(request: NextRequest) {
       updatedAt: new Date().toISOString()
     }
 
-    // Save to blob storage
-    await blobStorage.saveLotteryDraw(draw)
-    
-    // ARCHIVE: Mark all tickets for this draw as archived
-    console.log(`Archiving ${tickets.length} tickets for completed draw ${nextDrawId}`)
-    for (const ticket of tickets) {
-      try {
-        const archivedTicket = {
-          ...ticket,
-          status: 'archived' as const,
-          drawResult: drawId // Link to the completed draw
+    if (!isDryRun) {
+      // Save to blob storage (only for real draws)
+      await blobStorage.saveLotteryDraw(draw)
+      
+      // ARCHIVE: Mark all tickets for this draw as archived (only for real draws)
+      console.log(`Archiving ${tickets.length} tickets for completed draw ${nextDrawId}`)
+      for (const ticket of tickets) {
+        try {
+          const archivedTicket = {
+            ...ticket,
+            status: 'archived' as const,
+            drawResult: drawId // Link to the completed draw
+          }
+          await blobStorage.saveLotteryTicket(archivedTicket)
+          console.log(`Archived ticket ${ticket.id}`)
+        } catch (error) {
+          console.error(`Failed to archive ticket ${ticket.id}:`, error)
+          // Continue with other tickets even if one fails
         }
-        await blobStorage.saveLotteryTicket(archivedTicket)
-        console.log(`Archived ticket ${ticket.id}`)
-      } catch (error) {
-        console.error(`Failed to archive ticket ${ticket.id}:`, error)
-        // Continue with other tickets even if one fails
       }
-    }
-    
-    // Update lottery config - for physical jackpots, we typically don't auto-reset
-    const hasJackpotWinner = winners.some(w => w.tier === 1 && w.winnerCount > 0)
-    
-    // For physical jackpots, we keep the same prize unless manually updated
-    // The estimated value can stay the same or be updated by admin
-    if (hasJackpotWinner) {
-      console.log(`Physical jackpot "${config.currentJackpot.title}" has been won!`)
-      // Note: Admin should manually set a new physical jackpot for the next draw
+      
+      // Update lottery config - for physical jackpots, we typically don't auto-reset
+      const hasJackpotWinner = winners.some(w => w.tier === 1 && w.winnerCount > 0)
+      
+      // For physical jackpots, we keep the same prize unless manually updated
+      // The estimated value can stay the same or be updated by admin
+      if (hasJackpotWinner) {
+        console.log(`Physical jackpot "${config.currentJackpot.title}" has been won!`)
+        // Note: Admin should manually set a new physical jackpot for the next draw
+      }
+    } else {
+      console.log('DRY RUN: Skipping data persistence and ticket archiving')
     }
 
-    console.log('Draw completed successfully:', draw)
+    const hasJackpotWinner = winners.some(w => w.tier === 1 && w.winnerCount > 0)
+    
+    console.log(`${isDryRun ? 'DRY RUN' : 'Draw'} completed successfully:`, draw)
     console.log(`Jackpot winner: ${hasJackpotWinner ? 'YES' : 'NO'}`)
-    console.log(`Tickets archived: ${tickets.length}`)
+    console.log(`Tickets ${isDryRun ? 'processed' : 'archived'}: ${tickets.length}`)
     
     return NextResponse.json({
       success: true,
       data: draw,
       metadata: {
+        isDryRun,
         ticketsProcessed: tickets.length,
-        ticketsArchived: tickets.length,
+        ticketsArchived: isDryRun ? 0 : tickets.length,
         guaranteedWinner: !drawRequest.winningNumbers,
         jackpotWinner: hasJackpotWinner,
         currentJackpot: config.currentJackpot.title

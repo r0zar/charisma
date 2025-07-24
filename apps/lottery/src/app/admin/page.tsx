@@ -43,7 +43,7 @@ export default function AdminPage() {
   const [configForm, setConfigForm] = useState({
     ticketPrice: 100,
     format: 'simple' as LotteryFormat,
-    drawFrequency: 'twice_weekly',
+    nextDrawDate: '',
     isActive: true
   })
 
@@ -110,7 +110,7 @@ export default function AdminPage() {
         setConfigForm({
           ticketPrice: result.data.ticketPrice,
           format: result.data.format,
-          drawFrequency: result.data.drawFrequency,
+          nextDrawDate: result.data.nextDrawDate ? new Date(result.data.nextDrawDate).toISOString().slice(0, 16) : '',
           isActive: result.data.isActive
         })
       }
@@ -158,13 +158,19 @@ export default function AdminPage() {
     setSuccess(null)
     
     try {
+      // Convert datetime-local to ISO string
+      const configData = {
+        ...configForm,
+        nextDrawDate: configForm.nextDrawDate ? new Date(configForm.nextDrawDate).toISOString() : undefined
+      }
+      
       const response = await fetch('/api/admin/lottery-config', {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'x-admin-key': adminKey
         },
-        body: JSON.stringify(configForm)
+        body: JSON.stringify(configData)
       })
       
       if (!response.ok) {
@@ -201,6 +207,126 @@ export default function AdminPage() {
       setSuccess('Lottery draw triggered successfully!')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to trigger draw')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const triggerDryRun = async () => {
+    setSaving(true)
+    setError(null)
+    setSuccess(null)
+    
+    try {
+      const response = await fetch('/api/admin/lottery-draw', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminKey
+        },
+        body: JSON.stringify({ dryRun: true })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to run dry run test')
+      }
+      
+      const result = await response.json()
+      
+      if (result.data) {
+        setSuccess(`Dry run completed! ${result.data.totalTicketsSold} tickets processed, ${result.data.winners?.length || 0} winner(s) would be selected.`)
+      } else {
+        setSuccess('Dry run test completed successfully!')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to run dry run test')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const exportTickets = async () => {
+    setSaving(true)
+    setError(null)
+    setSuccess(null)
+    
+    try {
+      const response = await fetch('/api/admin/lottery-tickets', {
+        headers: {
+          'x-admin-key': adminKey
+        }
+      })
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch tickets for export')
+      }
+      
+      const result = await response.json()
+      const allTickets = result.data || []
+      
+      // Filter to only active tickets (pending or confirmed, not archived)
+      const tickets = allTickets.filter((ticket: any) => 
+        ticket.status === 'pending' || ticket.status === 'confirmed'
+      )
+      
+      if (tickets.length === 0) {
+        setError('No active tickets available for export')
+        return
+      }
+
+      // Create different export formats
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-')
+      
+      // Format 1: Simple list (one ticket per line)
+      const simpleList = tickets.map((ticket: any) => 
+        `${ticket.id.slice(-6)} - ${ticket.walletAddress}`
+      ).join('\n')
+      
+      // Format 2: CSV format
+      const csvData = [
+        'Ticket ID,Wallet Address,Purchase Date,Status,Full Ticket ID',
+        ...tickets.map((ticket: any) => 
+          `${ticket.id.slice(-6)},${ticket.walletAddress},${ticket.purchaseDate},${ticket.status},${ticket.id}`
+        )
+      ].join('\n')
+      
+      // Format 3: JSON format for advanced picker apps
+      const jsonData = JSON.stringify({
+        exportDate: new Date().toISOString(),
+        totalTickets: tickets.length,
+        format: 'lottery-export-v1',
+        tickets: tickets.map((ticket: any) => ({
+          shortId: ticket.id.slice(-6),
+          fullId: ticket.id,
+          walletAddress: ticket.walletAddress,
+          purchaseDate: ticket.purchaseDate,
+          status: ticket.status
+        }))
+      }, null, 2)
+
+      // Create and download files
+      const downloads = [
+        { data: simpleList, filename: `lottery-tickets-simple-${timestamp}.txt`, type: 'text/plain' },
+        { data: csvData, filename: `lottery-tickets-${timestamp}.csv`, type: 'text/csv' },
+        { data: jsonData, filename: `lottery-tickets-${timestamp}.json`, type: 'application/json' }
+      ]
+
+      downloads.forEach(({ data, filename, type }) => {
+        const blob = new Blob([data], { type })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      })
+
+      setSuccess(`Successfully exported ${tickets.length} tickets in 3 formats (TXT, CSV, JSON)`)
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to export tickets')
     } finally {
       setSaving(false)
     }
@@ -327,11 +453,6 @@ export default function AdminPage() {
             </div>
             
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Draw Frequency</span>
-              <span>{config?.drawFrequency?.replace('_', ' ')}</span>
-            </div>
-            
-            <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Next Draw</span>
               <span className="text-sm">
                 {config?.nextDrawDate ? new Date(config.nextDrawDate).toLocaleString() : 'Not set'}
@@ -363,24 +484,64 @@ export default function AdminPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button 
-              onClick={triggerDraw} 
-              disabled={saving || !config?.isActive}
-              className="w-full"
-              variant="default"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4 mr-2" />
-                  Trigger Draw Now
-                </>
-              )}
-            </Button>
+            <div className="space-y-3">
+              <Button 
+                onClick={triggerDraw} 
+                disabled={saving || !config?.isActive}
+                className="w-full"
+                variant="default"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-4 w-4 mr-2" />
+                    Trigger Draw Now
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                onClick={triggerDryRun} 
+                disabled={saving || !config?.isActive}
+                className="w-full"
+                variant="outline"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Dry Run Test Draw
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                onClick={exportTickets} 
+                disabled={saving}
+                className="w-full"
+                variant="secondary"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Exporting...
+                  </>
+                ) : (
+                  <>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Export for External Draw
+                  </>
+                )}
+              </Button>
+            </div>
             
             <Button 
               onClick={fetchConfig}
@@ -549,20 +710,17 @@ export default function AdminPage() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="draw-frequency">Draw Frequency</Label>
-                <Select 
-                  value={configForm.drawFrequency} 
-                  onValueChange={(value) => setConfigForm(prev => ({ ...prev, drawFrequency: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="daily">Daily</SelectItem>
-                    <SelectItem value="weekly">Weekly</SelectItem>
-                    <SelectItem value="twice_weekly">Twice Weekly</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="next-draw-date">Next Draw Date & Time</Label>
+                <Input
+                  id="next-draw-date"
+                  type="datetime-local"
+                  value={configForm.nextDrawDate}
+                  onChange={(e) => setConfigForm(prev => ({ ...prev, nextDrawDate: e.target.value }))}
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+                <div className="text-xs text-muted-foreground">
+                  Set when the next lottery draw should occur
+                </div>
               </div>
 
               <div className="space-y-2">
