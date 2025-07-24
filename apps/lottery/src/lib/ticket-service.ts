@@ -29,17 +29,26 @@ export class TicketService {
         throw new Error('Lottery is currently inactive')
       }
 
-      // Validate numbers
-      if (request.numbers.length !== config.numbersToSelect) {
-        throw new Error(`Must select exactly ${config.numbersToSelect} numbers`)
-      }
+      // Handle different lottery formats
+      if (config.format === 'traditional') {
+        // Traditional format - validate numbers
+        if (request.numbers.length !== config.numbersToSelect) {
+          throw new Error(`Must select exactly ${config.numbersToSelect} numbers`)
+        }
 
-      if (request.numbers.some(n => n < 1 || n > config.maxNumber)) {
-        throw new Error(`Numbers must be between 1 and ${config.maxNumber}`)
-      }
+        if (request.numbers.some(n => n < 1 || n > config.maxNumber)) {
+          throw new Error(`Numbers must be between 1 and ${config.maxNumber}`)
+        }
 
-      if (new Set(request.numbers).size !== request.numbers.length) {
-        throw new Error('Cannot select duplicate numbers')
+        if (new Set(request.numbers).size !== request.numbers.length) {
+          throw new Error('Cannot select duplicate numbers')
+        }
+      } else if (config.format === 'simple') {
+        // Simple format - no number validation needed, tickets are just entries
+        // Numbers array should be empty for simple format
+        if (request.numbers.length > 0) {
+          console.warn('Simple format tickets should have empty numbers array, ignoring provided numbers')
+        }
       }
 
       // Determine which draw this ticket is for
@@ -50,7 +59,7 @@ export class TicketService {
         id: this.generateTicketId(),
         drawId,
         walletAddress: request.walletAddress,
-        numbers: [...request.numbers].sort((a, b) => a - b),
+        numbers: config.format === 'traditional' ? [...request.numbers].sort((a, b) => a - b) : [], // Empty for simple format
         purchaseDate: new Date().toISOString(),
         purchasePrice: config.ticketPrice,
         status: 'pending', // Starts as pending until blockchain confirmation
@@ -85,13 +94,15 @@ export class TicketService {
       const tickets: LotteryTicket[] = []
       const purchaseDate = new Date().toISOString()
 
-      // Generate multiple tickets with random numbers
+      // Generate multiple tickets
       for (let i = 0; i < request.quantity; i++) {
         const ticket: LotteryTicket = {
           id: this.generateTicketId(),
           drawId,
           walletAddress: request.walletAddress,
-          numbers: this.generateRandomNumbers(config.maxNumber, config.numbersToSelect),
+          numbers: config.format === 'traditional' 
+            ? this.generateRandomNumbers(config.maxNumber, config.numbersToSelect)
+            : [], // Empty array for simple format
           purchaseDate,
           purchasePrice: config.ticketPrice,
           status: 'pending', // Starts as pending until blockchain confirmation

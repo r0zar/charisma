@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ticketService } from '@/lib/ticket-service'
-import { TicketPurchaseRequest } from '@/types/lottery'
+import { TicketPurchaseRequest, getLotteryFormat } from '@/types/lottery'
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +20,13 @@ export async function POST(request: NextRequest) {
         { error: 'Numbers array is required' },
         { status: 400 }
       )
+    }
+
+    // Format-specific validation
+    const lotteryFormat = getLotteryFormat()
+    if (lotteryFormat === 'simple' && purchaseRequest.numbers.length > 0) {
+      console.warn('Simple format ticket purchase included numbers, ignoring them')
+      purchaseRequest.numbers = [] // Clear numbers for simple format
     }
 
     // Purchase the ticket

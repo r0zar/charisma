@@ -18,6 +18,12 @@ export function Header() {
           <Link href="/lottery" className="text-sm hover:text-foreground/80">
             Lottery
           </Link>
+          <Link href="/my-tickets" className="text-sm hover:text-foreground/80">
+            My Tickets
+          </Link>
+          <Link href="/results" className="text-sm hover:text-foreground/80">
+            Results
+          </Link>
           <Link href="/settings" className="text-sm hover:text-foreground/80">
             Settings
           </Link>

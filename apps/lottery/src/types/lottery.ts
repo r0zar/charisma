@@ -1,8 +1,13 @@
+export type LotteryFormat = 'traditional' | 'simple'
+
 export interface LotteryConfig {
+  // Lottery format
+  format: LotteryFormat;      // "traditional" (6 numbers) or "simple" (random winner)
+  
   // Basic lottery rules
   ticketPrice: number;        // 5 (STONE tokens)
-  numbersToSelect: number;    // 6 
-  maxNumber: number;          // 49 (numbers 1-49)
+  numbersToSelect: number;    // 6 (traditional) or 0 (simple)
+  maxNumber: number;          // 49 (traditional) or 0 (simple)
   
   // Draw scheduling
   drawFrequency: string;      // "twice_weekly" | "weekly" | "daily"
@@ -49,7 +54,7 @@ export interface LotteryTicket {
   id: string;                   // unique ticket identifier
   drawId: string;               // which draw this ticket is for
   walletAddress: string;        // purchaser's wallet address
-  numbers: number[];            // selected numbers (sorted)
+  numbers: number[];            // selected numbers (sorted) - empty for simple format
   purchaseDate: string;         // ISO timestamp when purchased
   purchasePrice: number;        // amount paid in STONE
   transactionId?: string;       // blockchain transaction ID
@@ -58,11 +63,12 @@ export interface LotteryTicket {
   confirmedAt?: string;         // ISO timestamp when confirmed
   blockHeight?: number;         // block height when confirmed
   blockTime?: number;           // block time when confirmed
+  isWinner?: boolean;           // for simple format - indicates if this ticket won
 }
 
 export interface TicketPurchaseRequest {
   walletAddress: string;
-  numbers: number[];
+  numbers: number[];            // empty array for simple format
   quantity?: number;            // for bulk purchases (default 1)
   drawId?: string;              // specific draw (defaults to next draw)
 }
@@ -73,10 +79,17 @@ export interface BulkTicketPurchaseRequest {
   drawId?: string;              // specific draw (defaults to next draw)
 }
 
+// Get lottery format from environment variable (defaults to simple)
+export function getLotteryFormat(): LotteryFormat {
+  const format = process.env.LOTTERY_FORMAT || 'simple'
+  return format === 'traditional' ? 'traditional' : 'simple'
+}
+
 export const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
+  format: getLotteryFormat(),
   ticketPrice: 5,
-  numbersToSelect: 6, 
-  maxNumber: 49,
+  numbersToSelect: getLotteryFormat() === 'traditional' ? 6 : 0, 
+  maxNumber: getLotteryFormat() === 'traditional' ? 49 : 0,
   drawFrequency: "twice_weekly",
   nextDrawDate: "2025-01-26T20:00:00Z", // Next Saturday 8 PM
   currentJackpot: 125000000, // 125M STONE
