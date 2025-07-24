@@ -51,27 +51,32 @@ export default function AdminPage() {
     const savedKey = localStorage.getItem('admin-key')
     if (savedKey) {
       setAdminKey(savedKey)
-      setIsAuthenticated(true)
-      fetchConfig()
+      // Don't auto-authenticate, let user verify the key first
     }
   }, [])
 
   const handleAuthentication = async () => {
     try {
+      console.log('Attempting authentication with key:', adminKey.substring(0, 10) + '...')
       const response = await fetch('/api/admin/lottery-config', {
         headers: {
-          'Authorization': `Bearer ${adminKey}`
+          'x-admin-key': adminKey
         }
       })
       
+      console.log('Auth response status:', response.status)
       if (response.ok) {
+        console.log('Authentication successful')
         setIsAuthenticated(true)
         localStorage.setItem('admin-key', adminKey)
         fetchConfig()
       } else {
-        setError('Invalid admin key')
+        const errorData = await response.text()
+        console.log('Auth failed:', errorData)
+        setError(`Invalid admin key (${response.status})`)
       }
     } catch (err) {
+      console.error('Authentication error:', err)
       setError('Authentication failed')
     }
   }
@@ -81,17 +86,22 @@ export default function AdminPage() {
     setError(null)
     
     try {
+      console.log('Fetching config with key:', adminKey.substring(0, 10) + '...')
       const response = await fetch('/api/admin/lottery-config', {
         headers: {
-          'Authorization': `Bearer ${adminKey}`
+          'x-admin-key': adminKey
         }
       })
       
+      console.log('Config fetch response status:', response.status)
       if (!response.ok) {
-        throw new Error('Failed to fetch config')
+        const errorText = await response.text()
+        console.log('Config fetch error:', errorText)
+        throw new Error(`Failed to fetch config (${response.status}): ${errorText}`)
       }
       
       const result = await response.json()
+      console.log('Config fetch result:', result)
       setConfig(result.data)
       
       // Populate forms
@@ -105,6 +115,7 @@ export default function AdminPage() {
         })
       }
     } catch (err) {
+      console.error('Config fetch error:', err)
       setError(err instanceof Error ? err.message : 'Failed to load config')
     } finally {
       setLoading(false)
@@ -121,7 +132,7 @@ export default function AdminPage() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminKey}`
+          'x-admin-key': adminKey
         },
         body: JSON.stringify({
           currentJackpot: jackpotForm
@@ -151,7 +162,7 @@ export default function AdminPage() {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminKey}`
+          'x-admin-key': adminKey
         },
         body: JSON.stringify(configForm)
       })
@@ -179,7 +190,7 @@ export default function AdminPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${adminKey}`
+          'x-admin-key': adminKey
         }
       })
       
@@ -227,9 +238,22 @@ export default function AdminPage() {
               </div>
             )}
             
-            <Button onClick={handleAuthentication} className="w-full">
-              Access Admin Panel
-            </Button>
+            <div className="space-y-2">
+              <Button onClick={handleAuthentication} className="w-full">
+                Access Admin Panel
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  localStorage.removeItem('admin-key')
+                  setAdminKey('')
+                  setError(null)
+                }} 
+                className="w-full text-xs"
+              >
+                Clear Saved Key
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
