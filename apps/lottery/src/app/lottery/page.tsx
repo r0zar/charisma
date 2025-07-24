@@ -897,7 +897,11 @@ export default function LotteryPage() {
         isBulk={confirmationDialog.isBulk}
         onOpenChange={(isOpen) => setConfirmationDialog(prev => ({ ...prev, isOpen }))}
         onConfirmationUpdate={(ticketIds, status) => {
-          // Handle confirmation update - dialog will close automatically on confirmed
+          // Handle confirmation update - dialog will show success state on confirmed
+        }}
+        onViewTickets={() => {
+          // Switch to My Tickets tab
+          setActiveTab('tickets')
         }}
       />
 
