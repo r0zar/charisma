@@ -566,57 +566,17 @@ function MyTicketsSection() {
               {/* Show other tickets grouped as well */}
               {groupTicketsByBatch(filteredTickets.filter(ticket => ticket.status !== 'pending')).map((ticketGroup: any[], groupIndex: number) => {
                 if (ticketGroup.length === 1) {
-                  // Single ticket - show individual compact view
+                  // Single ticket - show with full confirmation component for status checking
                   const ticket = ticketGroup[0]
                   return (
-                    <Card key={ticket.id} className="p-4">
-                      <div className="grid grid-cols-12 gap-4 items-center">
-                        <div className="col-span-2">
-                          <div className="font-mono text-sm">#{ticket.id.split('-').pop()}</div>
-                          {ticket.drawResult && (
-                            <div className="text-xs text-muted-foreground">
-                              Draw #{ticket.drawResult.split('-').pop()}
-                            </div>
-                          )}
-                        </div>
-                        <div className="col-span-4">
-                          <div className="flex gap-1">
-                            {ticket.numbers.map((number: number, index: number) => (
-                              <div
-                                key={index}
-                                className="w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center"
-                              >
-                                {number}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        <div className="col-span-2">
-                          <div className="text-sm">{new Date(ticket.purchaseDate).toLocaleDateString()}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {new Date(ticket.purchaseDate).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
-                        <div className="col-span-2">
-                          <Badge 
-                            variant={
-                              ticket.status === 'confirmed' ? 'default' : 
-                              ticket.status === 'archived' ? 'outline' : 'destructive'
-                            }
-                            className="text-xs"
-                          >
-                            {ticket.status}
-                          </Badge>
-                        </div>
-                        <div className="col-span-2">
-                          <div className="text-sm font-medium">{ticket.purchasePrice} STONE</div>
-                        </div>
-                      </div>
-                    </Card>
+                    <TicketConfirmation
+                      key={ticket.id}
+                      ticket={ticket}
+                      onConfirmationUpdate={handleConfirmationUpdate}
+                    />
                   )
                 } else {
-                  // Multiple tickets - show bulk summary
-                  const totalAmount = ticketGroup.reduce((sum, t) => sum + t.purchasePrice, 0)
+                  // Multiple tickets - show bulk confirmation component
                   return (
                     <BulkTicketConfirmation
                       key={`bulk-other-${groupIndex}`}

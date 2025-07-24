@@ -29,6 +29,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
   const [txId, setTxId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false)
 
   // Calculate total amount needed
   const totalAmount = tickets.reduce((sum, ticket) => sum + ticket.purchasePrice, 0)
@@ -94,6 +95,55 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
     poll()
   }
 
+  const handleCheckBulkStatus = async () => {
+    if (!txId) {
+      setError('No transaction ID available to check')
+      return
+    }
+
+    setIsCheckingStatus(true)
+    setError(null)
+
+    try {
+      console.log(`Manually checking bulk status for transaction ${txId}`)
+      
+      const confirmPromises = tickets.map(ticket =>
+        fetch('/api/v1/lottery/confirm-ticket', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ticketId: ticket.id,
+            transactionId: txId,
+            walletAddress: ticket.walletAddress,
+            expectedAmount: ticket.purchasePrice
+          }),
+        })
+      )
+
+      const responses = await Promise.all(confirmPromises)
+      const results = await Promise.all(responses.map(r => r.json()))
+
+      const allSuccessful = results.every(r => r.success)
+
+      if (allSuccessful) {
+        console.log('Manual bulk status check: All tickets confirmed!')
+        onConfirmationUpdate(ticketIds, 'confirmed')
+      } else {
+        const failedTickets = results.filter(r => !r.success)
+        const errorMsg = `Bulk status check failed: ${failedTickets.map(r => r.error).join(', ')}`
+        console.log(errorMsg)
+        setError(errorMsg)
+      }
+    } catch (error) {
+      console.error('Manual bulk status check error:', error)
+      setError(`Bulk status check failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsCheckingStatus(false)
+    }
+  }
+
   const handleBulkBurnTokens = async () => {
     try {
       setIsConfirming(true)
@@ -152,31 +202,31 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
 
   return (
     <Card className="w-full">
-      <CardHeader>
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1"
+              className="p-0.5 h-6 w-6"
             >
               {isExpanded ? (
-                <ChevronDown className="h-4 w-4" />
+                <ChevronDown className="h-3 w-3" />
               ) : (
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-3 w-3" />
               )}
             </Button>
             <div>
-              <CardTitle className="text-lg">
+              <CardTitle className="text-base">
                 Bulk Purchase - {tickets.length} tickets
               </CardTitle>
-              <CardDescription>
-                Total: {totalAmount} STONE • {new Date(tickets[0].purchaseDate).toLocaleString()}
+              <CardDescription className="text-sm">
+                Total: {totalAmount} STONE • {new Date(tickets[0].purchaseDate).toLocaleDateString()}
               </CardDescription>
             </div>
           </div>
-          <Badge className={getStatusColor(tickets[0].status)}>
+          <Badge className={getStatusColor(tickets[0].status)} size="sm">
             {tickets[0].status}
           </Badge>
         </div>
@@ -184,17 +234,17 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
 
       {isExpanded && (
         <CardContent className="pt-0">
-          <div className="space-y-2 mb-4">
-            <div className="text-sm font-medium text-muted-foreground">Ticket Numbers:</div>
-            <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+          <div className="space-y-1 mb-3">
+            <div className="text-xs font-medium text-muted-foreground">Ticket Numbers:</div>
+            <div className="grid grid-cols-1 gap-1 max-h-32 overflow-y-auto">
               {tickets.map((ticket, index) => (
-                <div key={ticket.id} className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">#{index + 1}:</span>
-                  <div className="flex gap-1">
+                <div key={ticket.id} className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground w-8">#{index + 1}:</span>
+                  <div className="flex gap-0.5">
                     {ticket.numbers.map((number, numIndex) => (
                       <div
                         key={numIndex}
-                        className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center"
+                        className="w-4 h-4 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center"
                       >
                         {number}
                       </div>
@@ -207,63 +257,95 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
         </CardContent>
       )}
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 pt-0">
         {tickets[0].status === 'pending' && (
-          <div className="space-y-3">
-            <div className="text-sm text-muted-foreground">
-              Confirm all {tickets.length} tickets by transferring {totalAmount} STONE tokens to the burn address.
+          <div className="space-y-2">
+            <div className="text-xs text-muted-foreground">
+              Confirm all {tickets.length} tickets by transferring {totalAmount} STONE tokens.
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+              <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
                 {error}
               </div>
             )}
 
             {txId && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <div className="flex items-center gap-2 text-sm text-blue-700">
-                  <ExternalLink className="h-4 w-4" />
-                  <span>Bulk transaction submitted:</span>
-                  <code className="text-xs bg-blue-100 px-1 py-0.5 rounded">
-                    {txId.slice(0, 8)}...{txId.slice(-8)}
+              <div className="p-2 bg-blue-50 border border-blue-200 rounded">
+                <div className="flex items-center gap-1 text-xs text-blue-700">
+                  <ExternalLink className="h-3 w-3" />
+                  <span>Bulk TX:</span>
+                  <code className="text-xs bg-blue-100 px-1 rounded">
+                    {txId.slice(0, 6)}...{txId.slice(-6)}
                   </code>
                 </div>
-                <div className="text-xs text-blue-600 mt-1">
-                  Waiting for blockchain confirmation...
+                <div className="text-xs text-blue-600 mt-0.5">
+                  Waiting for confirmation...
                 </div>
               </div>
             )}
 
-            <Button
-              onClick={handleBulkBurnTokens}
-              disabled={isConfirming}
-              className="w-full"
-            >
-              {isConfirming ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Confirming {tickets.length} tickets...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Transfer {totalAmount} STONE for {tickets.length} tickets
-                </>
+            <div className="flex gap-1">
+              <Button
+                onClick={handleBulkBurnTokens}
+                disabled={isConfirming}
+                size="sm"
+                className="h-8 text-xs px-3"
+              >
+                {isConfirming ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Confirming {tickets.length}...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Transfer {totalAmount}
+                  </>
+                )}
+              </Button>
+              
+              {txId && (
+                <Button
+                  onClick={handleCheckBulkStatus}
+                  disabled={isCheckingStatus || isConfirming}
+                  variant="outline"
+                  size="sm"
+                  className="px-2 h-8"
+                >
+                  {isCheckingStatus ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    'Check'
+                  )}
+                </Button>
               )}
-            </Button>
+            </div>
           </div>
         )}
 
         {tickets[0].status === 'confirmed' && tickets[0].transactionId && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-            <div className="flex items-center gap-2 text-sm text-green-700">
-              <CheckCircle2 className="h-4 w-4" />
-              <span>All {tickets.length} tickets confirmed via transaction:</span>
-              <code className="text-xs bg-green-100 px-1 py-0.5 rounded">
-                {tickets[0].transactionId.slice(0, 8)}...{tickets[0].transactionId.slice(-8)}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 text-xs text-green-700">
+              <CheckCircle2 className="h-3 w-3" />
+              <span>All {tickets.length} confirmed TX:</span>
+              <code className="text-xs bg-green-100 px-1 rounded">
+                {tickets[0].transactionId.slice(0, 6)}...{tickets[0].transactionId.slice(-6)}
               </code>
             </div>
+            <Button
+              onClick={handleCheckBulkStatus}
+              disabled={isCheckingStatus}
+              variant="outline"
+              size="sm"
+              className="px-2 h-6 text-xs"
+            >
+              {isCheckingStatus ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                'Re-check'
+              )}
+            </Button>
           </div>
         )}
       </CardContent>

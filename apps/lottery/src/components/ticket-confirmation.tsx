@@ -190,77 +190,109 @@ export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfi
 
   return (
     <Card className="w-full">
-      <CardHeader>
+      <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className="text-lg">Ticket #{ticket.id.slice(-8)}</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-base">Ticket #{ticket.id.slice(-8)}</CardTitle>
+            <CardDescription className="text-sm">
               Numbers: {ticket.numbers.join(', ')} • {ticket.purchasePrice} STONE
             </CardDescription>
           </div>
-          <Badge className={getStatusColor(ticket.status)}>
+          <Badge className={getStatusColor(ticket.status)} size="sm">
             {ticket.status}
           </Badge>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 pt-0">
         {ticket.status === 'pending' && (
-          <div className="space-y-3">
-            <div className="text-sm text-muted-foreground">
-              This ticket needs to be confirmed by transferring {ticket.purchasePrice} STONE tokens to the burn address.
+          <div className="space-y-2">
+            <div className="text-xs text-muted-foreground">
+              Confirm by transferring {ticket.purchasePrice} STONE tokens to the burn address.
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+              <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
                 {error}
               </div>
             )}
 
             {txId && (
-              <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
-                <div className="flex items-center gap-2 text-sm text-blue-700">
-                  <ExternalLink className="h-4 w-4" />
-                  <span>Transaction submitted:</span>
-                  <code className="text-xs bg-blue-100 px-1 py-0.5 rounded">
-                    {txId.slice(0, 8)}...{txId.slice(-8)}
+              <div className="p-2 bg-blue-50 border border-blue-200 rounded">
+                <div className="flex items-center gap-1 text-xs text-blue-700">
+                  <ExternalLink className="h-3 w-3" />
+                  <span>TX:</span>
+                  <code className="text-xs bg-blue-100 px-1 rounded">
+                    {txId.slice(0, 6)}...{txId.slice(-6)}
                   </code>
                 </div>
-                <div className="text-xs text-blue-600 mt-1">
-                  Waiting for blockchain confirmation...
+                <div className="text-xs text-blue-600 mt-0.5">
+                  Waiting for confirmation...
                 </div>
               </div>
             )}
 
-            <Button
-              onClick={handleBurnTokens}
-              disabled={isConfirming}
-              className="w-full"
-            >
-              {isConfirming ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Confirming...
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                  Transfer {ticket.purchasePrice} STONE
-                </>
+            <div className="flex gap-1">
+              <Button
+                onClick={handleBurnTokens}
+                disabled={isConfirming}
+                size="sm"
+                className="h-8 text-xs px-3"
+              >
+                {isConfirming ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Confirming...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Transfer {ticket.purchasePrice}
+                  </>
+                )}
+              </Button>
+              
+              {txId && (
+                <Button
+                  onClick={handleCheckStatus}
+                  disabled={isCheckingStatus || isConfirming}
+                  variant="outline"
+                  size="sm"
+                  className="px-2 h-8"
+                >
+                  {isCheckingStatus ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    'Check'
+                  )}
+                </Button>
               )}
-            </Button>
+            </div>
           </div>
         )}
 
         {ticket.status === 'confirmed' && ticket.transactionId && (
-          <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-            <div className="flex items-center gap-2 text-sm text-green-700">
-              <CheckCircle2 className="h-4 w-4" />
-              <span>Confirmed via transaction:</span>
-              <code className="text-xs bg-green-100 px-1 py-0.5 rounded">
-                {ticket.transactionId.slice(0, 8)}...{ticket.transactionId.slice(-8)}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 text-xs text-green-700">
+              <CheckCircle2 className="h-3 w-3" />
+              <span>Confirmed TX:</span>
+              <code className="text-xs bg-green-100 px-1 rounded">
+                {ticket.transactionId.slice(0, 6)}...{ticket.transactionId.slice(-6)}
               </code>
             </div>
+            <Button
+              onClick={handleCheckStatus}
+              disabled={isCheckingStatus}
+              variant="outline"
+              size="sm"
+              className="px-2 h-6 text-xs"
+            >
+              {isCheckingStatus ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                'Re-check'
+              )}
+            </Button>
           </div>
         )}
       </CardContent>
