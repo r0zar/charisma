@@ -6,7 +6,7 @@
 import { ActivityItem } from './activity-types';
 import { getUserActivityTimeline } from './activity-storage';
 import { calculateTradeProfitability } from './profitability-service';
-import { getTokenMetadataCached, listPrices } from '@repo/tokens';
+import { getTokenMetadataCached, listPrices, getAddressBalance } from '@repo/tokens';
 import {
   PortfolioProfitabilityData,
   PortfolioProfitabilityMetrics,
@@ -19,31 +19,15 @@ import {
   TimeRange
 } from './profitability-types';
 
-// Types for charisma-party API responses (normalized format)
-interface BalanceResponse {
-  balances: Record<string, number>; // contractId -> balance (formatted units)
-  party: string;
-  serverTime: number;
-  initialized: boolean;
-}
-
-interface PriceUpdate {
-  type: 'PRICE_UPDATE';
+// Helper types for portfolio calculations
+interface TokenBalance {
   contractId: string;
-  price: number;
-  timestamp: number;
-  source?: string;
-}
-
-interface PriceResponse {
-  prices: PriceUpdate[];
-  party: string;
-  serverTime: number;
-  initialized: boolean;
+  balance: number; // formatted balance
+  decimals?: number;
 }
 
 /**
- * Get current portfolio data using charisma-party balances and prices
+ * Get current portfolio data using @packages/tokens
  */
 async function getCurrentPortfolioData(userAddress: string): Promise<{
   currentPortfolioValue: number;
@@ -51,27 +35,12 @@ async function getCurrentPortfolioData(userAddress: string): Promise<{
   tokenBreakdown: { contractId: string; balance: number; value: number; price: number }[];
 } | null> {
   try {
-    const charismaPartyUrl = process.env.CHARISMA_PARTY_URL || 'http://localhost:1999';
+    console.log(`[PORTFOLIO] Fetching current portfolio value for ${userAddress}`);
 
-    console.log(`[PORTFOLIO] Fetching current portfolio value from ${charismaPartyUrl}`);
-
-    // Fetch user balances from charisma-party
-    const balanceResponse = await fetch(`${charismaPartyUrl}/parties/balances/main?users=${userAddress}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    });
-
-    if (!balanceResponse.ok) {
-      console.warn(`[PORTFOLIO] Failed to fetch balances: ${balanceResponse.status} ${balanceResponse.statusText}`);
-      const errorText = await balanceResponse.text();
-      console.warn(`[PORTFOLIO] Balance response error:`, errorText);
-      return null;
-    }
-
-    const balanceData: BalanceResponse = await balanceResponse.json();
-    console.log(`[PORTFOLIO] Retrieved ${Object.keys(balanceData.balances).length} balance entries`);
+    // Fetch user balance data using @packages/tokens
+    const balanceData = await getAddressBalance(userAddress);
+    
+    console.log(`[PORTFOLIO] Retrieved balance data for ${userAddress}`);
 
     // Fetch all current prices using @packages/tokens
     const priceData = await listPrices({
@@ -87,21 +56,40 @@ async function getCurrentPortfolioData(userAddress: string): Promise<{
       priceMap.set(contractId, price);
     }
 
-    // Calculate portfolio value from normalized balance format
+    // Calculate portfolio value from balance data
     let totalValue = 0;
     const tokenBreakdown: { contractId: string; balance: number; value: number; price: number }[] = [];
 
-    for (const [contractId, formattedBalance] of Object.entries(balanceData.balances)) {
-      if (formattedBalance <= 0) {
+    // Process STX balance
+    if (balanceData.balance.stxBalance && parseFloat(balanceData.balance.stxBalance) > 0) {
+      const stxBalance = parseFloat(balanceData.balance.stxBalance) / 1_000_000; // Convert microSTX to STX
+      let stxPrice = priceMap.get('.stx') || priceMap.get('stx') || 0;
+      const stxValue = stxBalance * stxPrice;
+      
+      if (stxBalance > 0) {
+        totalValue += stxValue;
+        tokenBreakdown.push({
+          contractId: '.stx',
+          balance: stxBalance,
+          value: stxValue,
+          price: stxPrice
+        });
+        console.log(`[PORTFOLIO] STX: ${stxBalance.toFixed(6)} × $${stxPrice} = $${stxValue.toFixed(2)}`);
+      }
+    }
+
+    // Process fungible tokens
+    for (const [contractId, tokenData] of Object.entries(balanceData.balance.fungibleTokens)) {
+      const rawBalance = parseFloat(tokenData.balance);
+      if (rawBalance <= 0) {
         continue;
       }
 
+      // Convert raw balance to formatted balance using decimals
+      const decimals = tokenData.decimals || 6;
+      const formattedBalance = rawBalance / Math.pow(10, decimals);
+
       let price = priceMap.get(contractId) || 0;
-      
-      // Handle STX special case
-      if (price === 0 && (contractId === 'STX' || contractId === '.stx')) {
-        price = priceMap.get('.stx') || priceMap.get('stx') || 0;
-      }
       
       // Fallback for stablecoins
       if (price === 0 && (contractId.includes('usdc') || contractId.includes('USDC') ||
@@ -109,6 +97,7 @@ async function getCurrentPortfolioData(userAddress: string): Promise<{
           contractId.includes('dai') || contractId.includes('DAI'))) {
         price = 1.0;
       }
+      
       const value = formattedBalance * price;
 
       totalValue += value;
