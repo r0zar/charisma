@@ -416,7 +416,6 @@ function generateChartDataFromHistoricalPrices(
     }
 
     // Find closest prices for this timestamp
-    const inputPrice = findClosestPrice(inputHistory, timestamp) || entryPrices.inputToken;
     const outputPrice = findClosestPrice(outputHistory, timestamp) || entryPrices.outputToken;
 
     // Calculate position value at this point
@@ -604,10 +603,10 @@ async function getCurrentPrices(contractIds: string[]): Promise<CurrentPriceData
  * Get historical price data for tokens 
  */
 async function getHistoricalPriceData(
-  inputContractId: string,
-  outputContractId: string,
-  startTimestamp: number,
-  endTimestamp: number
+  _inputContractId: string,
+  _outputContractId: string,
+  _startTimestamp: number,
+  _endTimestamp: number
 ): Promise<HistoricalPricePoint[][]> {
   return {} as any; // Placeholder for actual implementation
 }
@@ -615,7 +614,7 @@ async function getHistoricalPriceData(
 /**
  * Fallback to get historical data via API call to simple-swap
  */
-async function getHistoricalDataFromPriceStore(
+async function _getHistoricalDataFromPriceStore(
   inputContractId: string,
   outputContractId: string,
   startTimestamp: number,
@@ -670,10 +669,10 @@ async function getHistoricalDataFromPriceStore(
 
     return [inputHistory, outputHistory];
   } catch (error) {
-    console.error(`[getHistoricalDataFromPriceStore] Error calling simple-swap API:`, error);
+    console.error(`[_getHistoricalDataFromPriceStore] Error calling simple-swap API:`, error);
 
     // Final fallback to minimal static data if everything fails
-    console.warn(`[getHistoricalDataFromPriceStore] Using minimal fallback data for ${inputContractId}, ${outputContractId}`);
+    console.warn(`[_getHistoricalDataFromPriceStore] Using minimal fallback data for ${inputContractId}, ${outputContractId}`);
 
     const getSimplePrice = (contractId: string): number => {
       if (contractId.includes('usdc') || contractId.includes('USDC') ||

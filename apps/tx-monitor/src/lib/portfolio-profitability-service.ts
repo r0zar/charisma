@@ -11,20 +11,11 @@ import {
   PortfolioProfitabilityData,
   PortfolioProfitabilityMetrics,
   PortfolioPosition,
-  PortfolioOverview,
-  TradingPerformance,
   TopHolding,
   ProfitabilityDataPoint,
-  ProfitabilityData,
   TimeRange
 } from './profitability-types';
 
-// Helper types for portfolio calculations
-interface TokenBalance {
-  contractId: string;
-  balance: number; // formatted balance
-  decimals?: number;
-}
 
 /**
  * Get current portfolio data using @packages/tokens
@@ -39,7 +30,7 @@ async function getCurrentPortfolioData(userAddress: string): Promise<{
 
     // Fetch user balance data using @packages/tokens
     const balanceData = await getAddressBalance(userAddress);
-    
+
     console.log(`[PORTFOLIO] Retrieved balance data for ${userAddress}`);
 
     // Fetch all current prices using @packages/tokens
@@ -47,7 +38,7 @@ async function getCurrentPortfolioData(userAddress: string): Promise<{
       strategy: 'fallback',
       sources: { stxtools: true, internal: true }
     });
-    
+
     console.log(`[PORTFOLIO] Retrieved ${Object.keys(priceData).length} price entries from @packages/tokens`);
 
     // Create price lookup map
@@ -61,11 +52,11 @@ async function getCurrentPortfolioData(userAddress: string): Promise<{
     const tokenBreakdown: { contractId: string; balance: number; value: number; price: number }[] = [];
 
     // Process STX balance
-    if (balanceData.balance.stxBalance && parseFloat(balanceData.balance.stxBalance) > 0) {
-      const stxBalance = parseFloat(balanceData.balance.stxBalance) / 1_000_000; // Convert microSTX to STX
-      let stxPrice = priceMap.get('.stx') || priceMap.get('stx') || 0;
+    if (balanceData.stxBalance && parseFloat(balanceData.stxBalance) > 0) {
+      const stxBalance = parseFloat(balanceData.stxBalance) / 1_000_000; // Convert microSTX to STX
+      const stxPrice = priceMap.get('.stx') || priceMap.get('stx') || 0;
       const stxValue = stxBalance * stxPrice;
-      
+
       if (stxBalance > 0) {
         totalValue += stxValue;
         tokenBreakdown.push({
@@ -79,25 +70,26 @@ async function getCurrentPortfolioData(userAddress: string): Promise<{
     }
 
     // Process fungible tokens
-    for (const [contractId, tokenData] of Object.entries(balanceData.balance.fungibleTokens)) {
-      const rawBalance = parseFloat(tokenData.balance);
+    for (const [contractId, tokenData] of Object.entries(balanceData.fungibleTokens)) {
+      const tokenInfo = tokenData as { balance: string; decimals?: number };
+      const rawBalance = parseFloat(tokenInfo.balance);
       if (rawBalance <= 0) {
         continue;
       }
 
       // Convert raw balance to formatted balance using decimals
-      const decimals = tokenData.decimals || 6;
+      const decimals = tokenInfo.decimals || 6;
       const formattedBalance = rawBalance / Math.pow(10, decimals);
 
       let price = priceMap.get(contractId) || 0;
-      
+
       // Fallback for stablecoins
       if (price === 0 && (contractId.includes('usdc') || contractId.includes('USDC') ||
-          contractId.includes('usdt') || contractId.includes('USDT') ||
-          contractId.includes('dai') || contractId.includes('DAI'))) {
+        contractId.includes('usdt') || contractId.includes('USDT') ||
+        contractId.includes('dai') || contractId.includes('DAI'))) {
         price = 1.0;
       }
-      
+
       const value = formattedBalance * price;
 
       totalValue += value;
@@ -126,9 +118,9 @@ async function getCurrentPortfolioData(userAddress: string): Promise<{
         try {
           // Fetch token metadata from cache
           const tokenMetadata = await getTokenMetadataCached(token.contractId);
-          
+
           // Extract symbol from contract ID as fallback
-          const fallbackSymbol = token.contractId.includes('.') 
+          const fallbackSymbol = token.contractId.includes('.')
             ? token.contractId.split('.')[1]?.toUpperCase().replace(/-/g, '') || 'UNKNOWN'
             : token.contractId.toUpperCase();
 
@@ -146,9 +138,9 @@ async function getCurrentPortfolioData(userAddress: string): Promise<{
           };
         } catch (error) {
           console.warn(`[PORTFOLIO] Failed to fetch metadata for ${token.contractId}:`, error);
-          
+
           // Fallback to basic token info
-          const fallbackSymbol = token.contractId.includes('.') 
+          const fallbackSymbol = token.contractId.includes('.')
             ? token.contractId.split('.')[1]?.toUpperCase().replace(/-/g, '') || 'UNKNOWN'
             : token.contractId.toUpperCase();
 
@@ -366,7 +358,7 @@ function calculateTradingMetrics(
   tradingVolume: number
 ): PortfolioProfitabilityMetrics {
   // Trading P&L: sum of individual trade P&L vs trading volume
-  const tradingPnLUsd = positions.reduce((sum, position) => 
+  const tradingPnLUsd = positions.reduce((sum, position) =>
     sum + position.profitabilityData.metrics.currentPnL.usdValue, 0);
   const tradingPnLPercentage = tradingVolume > 0 ? (tradingPnLUsd / tradingVolume) * 100 : 0;
 
@@ -553,14 +545,3 @@ function findClosestChartPoint(chartData: ProfitabilityDataPoint[], targetTimest
   return closest;
 }
 
-/**
- * Calculate total invested amount from positions (helper function)
- */
-function getTotalInvestedFromPositions(positions: PortfolioPosition[]): number {
-  // This is a bit circular, but we need it for weight calculations
-  // In practice, this would be calculated once and passed around
-  return positions.reduce((total, position) => {
-    // Estimate original value from current weight (this is approximate)
-    return total + (position.weight > 0 ? 100 / position.weight : 100);
-  }, 0);
-}

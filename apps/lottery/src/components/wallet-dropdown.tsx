@@ -47,7 +47,7 @@ function MenuContent({ onClose }: { onClose?: () => void }) {
     },
     {
       icon: Palette,
-      title: "Skins",
+      title: "Theme",
       href: "/settings/appearance",
     },
   ]

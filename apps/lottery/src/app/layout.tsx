@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Audiowide, Orbitron } from "next/font/google";
 import { ThemeProvider } from "next-themes";
-import { AppProvider, SkinProvider, WalletProvider } from "@/contexts";
+import { AppProvider, WalletProvider } from "@/contexts";
 import { Header } from "@/components/header";
 import "./globals.css";
 
@@ -35,22 +35,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function() {
-                try {
-                  const skin = localStorage.getItem('skin');
-                  if (skin === 'ocean') {
-                    document.documentElement.classList.add('ocean');
-                  }
-                } catch (e) {}
-              })();
-            `,
-          }}
-        />
-      </head>
+      <head></head>
       <body
         className={`${inter.variable} ${audiowide.variable} ${orbitron.variable} antialiased bg-background text-foreground flex flex-col min-h-screen`}
       >
@@ -62,16 +47,14 @@ export default function RootLayout({
           themes={["light", "dark"]}
           disableTransitionOnChange={false}
         >
-          <SkinProvider>
-            <WalletProvider>
-              <AppProvider>
-                <Header />
-                <main className="flex-1">
-                  {children}
-                </main>
-              </AppProvider>
-            </WalletProvider>
-          </SkinProvider>
+          <WalletProvider>
+            <AppProvider>
+              <Header />
+              <main className="flex-1">
+                {children}
+              </main>
+            </AppProvider>
+          </WalletProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -9,241 +9,67 @@
   --font-family-sans: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
   --font-family-mono: var(--font-orbitron), "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   
-  /* Default theme - light */
+  /* Light theme */
   --color-background: #ffffff;
   --color-foreground: #0f172a;
   --color-card: #ffffff;
   --color-card-foreground: #0f172a;
   --color-popover: #ffffff;
   --color-popover-foreground: #0f172a;
-  --color-primary: #3b82f6;
+  --color-primary: #2563eb;
   --color-primary-foreground: #ffffff;
   --color-secondary: #f1f5f9;
   --color-secondary-foreground: #0f172a;
-  --color-muted: #f1f5f9;
+  --color-muted: #f8fafc;
   --color-muted-foreground: #64748b;
   --color-accent: #f1f5f9;
   --color-accent-foreground: #0f172a;
-  --color-destructive: #ef4444;
+  --color-destructive: #dc2626;
   --color-destructive-foreground: #ffffff;
   --color-border: #e2e8f0;
-  --color-input: #e2e8f0;
-  --color-ring: #3b82f6;
+  --color-input: #ffffff;
+  --color-ring: #2563eb;
+  --color-chart-1: #2563eb;
+  --color-chart-2: #059669;
+  --color-chart-3: #dc2626;
+  --color-chart-4: #ca8a04;
+  --color-chart-5: #7c3aed;
 }
 
-/* Default theme - dark */
+/* Dark theme */
 .dark {
-  --color-background: #0f172a;
+  --color-background: #020617;
   --color-foreground: #f8fafc;
-  --color-card: #1e293b;
+  --color-card: #0f172a;
   --color-card-foreground: #f8fafc;
-  --color-popover: #1e293b;
+  --color-popover: #0f172a;
   --color-popover-foreground: #f8fafc;
-  --color-primary: #60a5fa;
-  --color-primary-foreground: #0f172a;
-  --color-secondary: #334155;
+  --color-primary: #3b82f6;
+  --color-primary-foreground: #ffffff;
+  --color-secondary: #1e293b;
   --color-secondary-foreground: #f8fafc;
-  --color-muted: #334155;
+  --color-muted: #1e293b;
   --color-muted-foreground: #94a3b8;
-  --color-accent: #334155;
+  --color-accent: #1e293b;
   --color-accent-foreground: #f8fafc;
-  --color-destructive: #dc2626;
+  --color-destructive: #ef4444;
   --color-destructive-foreground: #f8fafc;
   --color-border: #334155;
-  --color-input: #334155;
-  --color-ring: #60a5fa;
+  --color-input: #1e293b;
+  --color-ring: #3b82f6;
+  --color-chart-1: #3b82f6;
+  --color-chart-2: #10b981;
+  --color-chart-3: #ef4444;
+  --color-chart-4: #f59e0b;
+  --color-chart-5: #8b5cf6;
 }
 
-/* Ocean color scheme - light */
-.ocean {
-  --color-background: #f0f9ff;
-  --color-foreground: #0c4a6e;
-  --color-card: #f0f9ff;
-  --color-card-foreground: #0c4a6e;
-  --color-popover: #f0f9ff;
-  --color-popover-foreground: #0c4a6e;
-  --color-primary: #0891b2;
-  --color-primary-foreground: #f0f9ff;
-  --color-secondary: #bae6fd;
-  --color-secondary-foreground: #0c4a6e;
-  --color-muted: #bae6fd;
-  --color-muted-foreground: #0369a1;
-  --color-accent: #bae6fd;
-  --color-accent-foreground: #0c4a6e;
-  --color-destructive: #dc2626;
-  --color-destructive-foreground: #f0f9ff;
-  --color-border: #7dd3fc;
-  --color-input: #7dd3fc;
-  --color-ring: #0891b2;
-}
-
-/* Ocean color scheme - dark */
-.ocean.dark {
-  --color-background: #0c4a6e;
-  --color-foreground: #f0f9ff;
-  --color-card: #075985;
-  --color-card-foreground: #f0f9ff;
-  --color-popover: #075985;
-  --color-popover-foreground: #f0f9ff;
-  --color-primary: #22d3ee;
-  --color-primary-foreground: #0c4a6e;
-  --color-secondary: #164e63;
-  --color-secondary-foreground: #f0f9ff;
-  --color-muted: #164e63;
-  --color-muted-foreground: #7dd3fc;
-  --color-accent: #164e63;
-  --color-accent-foreground: #f0f9ff;
-  --color-destructive: #dc2626;
-  --color-destructive-foreground: #f0f9ff;
-  --color-border: #164e63;
-  --color-input: #164e63;
-  --color-ring: #22d3ee;
-}
-
-/* Sunset color scheme - light */
-.sunset {
-  --color-background: #fff7ed;
-  --color-foreground: #9a3412;
-  --color-card: #fff7ed;
-  --color-card-foreground: #9a3412;
-  --color-popover: #fff7ed;
-  --color-popover-foreground: #9a3412;
-  --color-primary: #f97316;
-  --color-primary-foreground: #fff7ed;
-  --color-secondary: #fed7aa;
-  --color-secondary-foreground: #9a3412;
-  --color-muted: #fed7aa;
-  --color-muted-foreground: #c2410c;
-  --color-accent: #fed7aa;
-  --color-accent-foreground: #9a3412;
-  --color-destructive: #dc2626;
-  --color-destructive-foreground: #fff7ed;
-  --color-border: #fdba74;
-  --color-input: #fdba74;
-  --color-ring: #f97316;
-}
-
-/* Sunset color scheme - dark */
-.sunset.dark {
-  --color-background: #9a3412;
-  --color-foreground: #fff7ed;
-  --color-card: #9a3412;
-  --color-card-foreground: #fff7ed;
-  --color-popover: #9a3412;
-  --color-popover-foreground: #fff7ed;
-  --color-primary: #fb923c;
-  --color-primary-foreground: #9a3412;
-  --color-secondary: #c2410c;
-  --color-secondary-foreground: #fff7ed;
-  --color-muted: #c2410c;
-  --color-muted-foreground: #fed7aa;
-  --color-accent: #c2410c;
-  --color-accent-foreground: #fff7ed;
-  --color-destructive: #991b1b;
-  --color-destructive-foreground: #fff7ed;
-  --color-border: #c2410c;
-  --color-input: #c2410c;
-  --color-ring: #fb923c;
-}
-
-/* Forest color scheme - light */
-.forest {
-  --color-background: #f0fdf4;
-  --color-foreground: #14532d;
-  --color-card: #f0fdf4;
-  --color-card-foreground: #14532d;
-  --color-popover: #f0fdf4;
-  --color-popover-foreground: #14532d;
-  --color-primary: #059669;
-  --color-primary-foreground: #f0fdf4;
-  --color-secondary: #bbf7d0;
-  --color-secondary-foreground: #14532d;
-  --color-muted: #bbf7d0;
-  --color-muted-foreground: #047857;
-  --color-accent: #bbf7d0;
-  --color-accent-foreground: #14532d;
-  --color-destructive: #dc2626;
-  --color-destructive-foreground: #f0fdf4;
-  --color-border: #86efac;
-  --color-input: #86efac;
-  --color-ring: #059669;
-}
-
-/* Forest color scheme - dark */
-.forest.dark {
-  --color-background: #14532d;
-  --color-foreground: #f0fdf4;
-  --color-card: #14532d;
-  --color-card-foreground: #f0fdf4;
-  --color-popover: #14532d;
-  --color-popover-foreground: #f0fdf4;
-  --color-primary: #34d399;
-  --color-primary-foreground: #14532d;
-  --color-secondary: #166534;
-  --color-secondary-foreground: #f0fdf4;
-  --color-muted: #166534;
-  --color-muted-foreground: #bbf7d0;
-  --color-accent: #166534;
-  --color-accent-foreground: #f0fdf4;
-  --color-destructive: #991b1b;
-  --color-destructive-foreground: #f0fdf4;
-  --color-border: #166534;
-  --color-input: #166534;
-  --color-ring: #34d399;
-}
-
-/* Lavender color scheme - light */
-.lavender {
-  --color-background: #faf5ff;
-  --color-foreground: #581c87;
-  --color-card: #faf5ff;
-  --color-card-foreground: #581c87;
-  --color-popover: #faf5ff;
-  --color-popover-foreground: #581c87;
-  --color-primary: #7c3aed;
-  --color-primary-foreground: #faf5ff;
-  --color-secondary: #ddd6fe;
-  --color-secondary-foreground: #581c87;
-  --color-muted: #ddd6fe;
-  --color-muted-foreground: #6d28d9;
-  --color-accent: #ddd6fe;
-  --color-accent-foreground: #581c87;
-  --color-destructive: #dc2626;
-  --color-destructive-foreground: #faf5ff;
-  --color-border: #c4b5fd;
-  --color-input: #c4b5fd;
-  --color-ring: #7c3aed;
-}
-
-/* Lavender color scheme - dark */
-.lavender.dark {
-  --color-background: #581c87;
-  --color-foreground: #faf5ff;
-  --color-card: #581c87;
-  --color-card-foreground: #faf5ff;
-  --color-popover: #581c87;
-  --color-popover-foreground: #faf5ff;
-  --color-primary: #a855f7;
-  --color-primary-foreground: #581c87;
-  --color-secondary: #6d28d9;
-  --color-secondary-foreground: #faf5ff;
-  --color-muted: #6d28d9;
-  --color-muted-foreground: #ddd6fe;
-  --color-accent: #6d28d9;
-  --color-accent-foreground: #faf5ff;
-  --color-destructive: #991b1b;
-  --color-destructive-foreground: #faf5ff;
-  --color-border: #6d28d9;
-  --color-input: #6d28d9;
-  --color-ring: #a855f7;
-}
-
-/* Global font application - Use Inter as default for readability */
+/* Global font application */
 body {
   font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
 }
 
-/* Global page texture background */
+/* Subtle background texture */
 body::before {
   content: '';
   position: fixed;
@@ -252,18 +78,18 @@ body::before {
   width: 100%;
   height: 100%;
   background-image: 
-    linear-gradient(90deg, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.008) 1px, transparent 1px),
-    linear-gradient(rgba(var(--color-foreground-rgb, 15, 23, 42), 0.008) 1px, transparent 1px);
+    linear-gradient(90deg, rgba(var(--color-foreground), 0.008) 1px, transparent 1px),
+    linear-gradient(rgba(var(--color-foreground), 0.008) 1px, transparent 1px);
   background-size: 60px 60px;
   pointer-events: none;
   z-index: -1;
 }
 
+/* Font utility classes */
 .font-mono {
   font-family: var(--font-orbitron), "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
-/* Vegas-style font classes - Use sparingly for impact! */
 .font-vegas-title {
   font-family: var(--font-audiowide), system-ui, sans-serif;
   text-transform: uppercase;
@@ -284,188 +110,76 @@ body::before {
   font-family: var(--font-orbitron), monospace;
 }
 
-/* Background Patterns and Effects */
-.bg-grid-pattern {
-  background-image: 
-    linear-gradient(rgba(var(--color-primary-rgb, 59, 130, 246), 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(var(--color-primary-rgb, 59, 130, 246), 0.03) 1px, transparent 1px);
-  background-size: 20px 20px;
+/* Smooth transitions */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-.bg-dot-pattern {
-  background-image: radial-gradient(rgba(var(--color-primary-rgb, 59, 130, 246), 0.1) 1px, transparent 1px);
-  background-size: 16px 16px;
+/* Focus states */
+:focus-visible {
+  outline: 2px solid hsl(var(--color-ring));
+  outline-offset: 2px;
 }
 
-.bg-diagonal-lines {
-  background-image: repeating-linear-gradient(
-    45deg,
-    transparent,
-    transparent 10px,
-    rgba(var(--color-primary-rgb, 59, 130, 246), 0.02) 10px,
-    rgba(var(--color-primary-rgb, 59, 130, 246), 0.02) 11px
-  );
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
 }
 
-/* Advanced Texture Grids */
-.bg-texture-grid {
-  background-image: 
-    linear-gradient(90deg, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.02) 1px, transparent 1px),
-    linear-gradient(rgba(var(--color-foreground-rgb, 15, 23, 42), 0.02) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01) 1px, transparent 1px),
-    linear-gradient(rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01) 1px, transparent 1px);
-  background-size: 50px 50px, 50px 50px, 10px 10px, 10px 10px;
-  background-position: 0 0, 0 0, 0 0, 0 0;
+::-webkit-scrollbar-track {
+  background: hsl(var(--color-muted));
 }
 
-.bg-casino-texture {
-  background-image: 
-    radial-gradient(circle at 25px 25px, rgba(var(--color-primary-rgb, 59, 130, 246), 0.02) 2px, transparent 2px),
-    linear-gradient(0deg, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 1px, transparent 1px);
-  background-size: 50px 50px, 25px 25px, 25px 25px;
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--color-border));
+  border-radius: 4px;
 }
 
-.bg-diamond-pattern {
-  background-image: 
-    linear-gradient(45deg, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.02) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.02) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.02) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.02) 75%);
-  background-size: 30px 30px;
-  background-position: 0 0, 0 15px, 15px -15px, -15px 0px;
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--color-muted-foreground));
 }
 
-.bg-circuit-pattern {
-  background-image: 
-    linear-gradient(90deg, rgba(var(--color-primary-rgb, 59, 130, 246), 0.03) 1px, transparent 1px),
-    linear-gradient(rgba(var(--color-primary-rgb, 59, 130, 246), 0.03) 1px, transparent 1px),
-    radial-gradient(circle at 20px 20px, rgba(var(--color-primary-rgb, 59, 130, 246), 0.04) 1px, transparent 1px);
-  background-size: 40px 40px, 40px 40px, 40px 40px;
+/* Card hover effects */
+.card-hover {
+  transition: all 0.2s ease;
 }
 
-.bg-luxury-texture {
-  background-image: 
-    linear-gradient(30deg, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01) 12%, transparent 12.5%, transparent 87%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01) 87.5%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01)),
-    linear-gradient(150deg, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01) 12%, transparent 12.5%, transparent 87%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01) 87.5%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01)),
-    linear-gradient(30deg, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01) 12%, transparent 12.5%, transparent 87%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01) 87.5%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01)),
-    linear-gradient(150deg, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01) 12%, transparent 12.5%, transparent 87%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01) 87.5%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.01));
-  background-size: 80px 140px;
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
-.bg-honeycomb {
-  background-image: 
-    radial-gradient(circle at 50% 50%, rgba(var(--color-primary-rgb, 59, 130, 246), 0.02) 20%, transparent 21%),
-    linear-gradient(0deg, transparent 24%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 25%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 26%, transparent 27%, transparent 74%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 75%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 76%, transparent 77%),
-    linear-gradient(60deg, transparent 24%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 25%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 26%, transparent 27%, transparent 74%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 75%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 76%, transparent 77%),
-    linear-gradient(-60deg, transparent 24%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 25%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 26%, transparent 27%, transparent 74%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 75%, rgba(var(--color-foreground-rgb, 15, 23, 42), 0.015) 76%, transparent 77%);
-  background-size: 60px 104px;
-  background-position: 0 0, 0 0, 30px 52px, 30px 52px;
+.dark .card-hover:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
-/* Animated Radial Gradients */
-@keyframes float-gradient-1 {
-  0%, 100% { transform: translate(-20%, -20%) scale(1); }
-  33% { transform: translate(20%, -40%) scale(1.1); }
-  66% { transform: translate(-40%, 20%) scale(0.9); }
+/* Button focus improvements */
+button:focus-visible,
+[role="button"]:focus-visible {
+  outline: 2px solid hsl(var(--color-ring));
+  outline-offset: 2px;
 }
 
-@keyframes float-gradient-2 {
-  0%, 100% { transform: translate(20%, 20%) scale(1.1); }
-  33% { transform: translate(-30%, 40%) scale(0.8); }
-  66% { transform: translate(40%, -20%) scale(1.2); }
+/* Improved link styles */
+a {
+  color: hsl(var(--color-primary));
+  text-decoration: none;
 }
 
-@keyframes float-gradient-3 {
-  0%, 100% { transform: translate(0%, -30%) scale(0.9); }
-  50% { transform: translate(-20%, 30%) scale(1.1); }
+a:hover {
+  text-decoration: underline;
 }
 
-.animated-bg {
-  position: relative;
-  overflow: hidden;
+/* Loading states */
+.loading {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-.animated-bg::before,
-.animated-bg::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(40px);
-  opacity: 0.3;
-  z-index: 0;
-}
-
-.animated-bg::before {
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(var(--color-primary-rgb, 59, 130, 246), 0.4), transparent 70%);
-  top: -200px;
-  right: -200px;
-  animation: float-gradient-1 20s ease-in-out infinite;
-}
-
-.animated-bg::after {
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(var(--color-accent-rgb, 241, 245, 249), 0.3), transparent 70%);
-  bottom: -150px;
-  left: -150px;
-  animation: float-gradient-2 25s ease-in-out infinite;
-}
-
-/* Additional floating gradients */
-.floating-orbs {
-  position: relative;
-  overflow: hidden;
-}
-
-.floating-orbs::before,
-.floating-orbs::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(60px);
-  opacity: 0.2;
-  z-index: 0;
-}
-
-.floating-orbs::before {
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(var(--color-primary-rgb, 59, 130, 246), 0.3), transparent 60%);
-  top: 20%;
-  left: -10%;
-  animation: float-gradient-3 30s ease-in-out infinite;
-}
-
-.floating-orbs::after {
-  width: 350px;
-  height: 350px;
-  background: radial-gradient(circle, rgba(var(--color-secondary-rgb, 241, 245, 249), 0.4), transparent 70%);
-  bottom: 10%;
-  right: -5%;
-  animation: float-gradient-1 35s ease-in-out infinite reverse;
-}
-
-/* Layered background system */
-.bg-layer-1 {
-  background: linear-gradient(135deg, rgba(var(--color-background-rgb, 255, 255, 255), 0.95), rgba(var(--color-background-rgb, 255, 255, 255), 1));
-}
-
-.bg-layer-2 {
-  background: radial-gradient(ellipse at top, rgba(var(--color-primary-rgb, 59, 130, 246), 0.1), transparent 50%);
-}
-
-.bg-layer-3 {
-  background: linear-gradient(45deg, transparent 30%, rgba(var(--color-accent-rgb, 241, 245, 249), 0.05) 50%, transparent 70%);
-}
-
-/* Casino-style glow effects */
-.glow-primary {
-  box-shadow: 0 0 20px rgba(var(--color-primary-rgb, 59, 130, 246), 0.3);
-}
-
-.glow-secondary {
-  box-shadow: 0 0 15px rgba(var(--color-secondary-rgb, 241, 245, 249), 0.4);
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
