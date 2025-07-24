@@ -179,7 +179,7 @@ export function PurchaseControls({
           <div className="flex justify-center items-center gap-4">
             <Button
               variant="outline"
-              size="sm"
+              
               onClick={() => setBulkQuantity(Math.max(1, bulkQuantity - 1))}
               disabled={bulkQuantity <= 1}
             >
@@ -197,7 +197,7 @@ export function PurchaseControls({
             </div>
             <Button
               variant="outline"
-              size="sm"
+              
               onClick={() => setBulkQuantity(Math.min(10000, bulkQuantity + 1))}
               disabled={bulkQuantity >= 10000}
             >
@@ -218,7 +218,7 @@ export function PurchaseControls({
               <Button
                 key={amount}
                 variant="outline"
-                size="sm"
+                
                 onClick={() => setBulkQuantity(amount)}
                 className="flex items-center gap-1"
               >

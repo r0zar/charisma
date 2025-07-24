@@ -221,7 +221,7 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
               <Trophy className="h-4 w-4 text-yellow-500" />
             )}
           </div>
-          <Badge className={getStatusColor(ticket.status)} size="sm">
+          <Badge className={getStatusColor(ticket.status)} >
             {ticket.status}
           </Badge>
         </div>
@@ -249,7 +249,7 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
               <Button
                 onClick={handleBurnTokens}
                 disabled={isConfirming}
-                size="sm"
+                
                 className="h-7 text-xs px-2"
               >
                 {isConfirming ? (
@@ -270,7 +270,7 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
                   onClick={handleCheckStatus}
                   disabled={isCheckingStatus || isConfirming}
                   variant="outline"
-                  size="sm"
+                  
                   className="px-2 h-7"
                 >
                   {isCheckingStatus ? (
@@ -295,7 +295,7 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
                 onClick={handleCheckStatus}
                 disabled={isCheckingStatus}
                 variant="outline"
-                size="sm"
+                
                 className="px-2 h-6 text-xs"
               >
                 {isCheckingStatus ? (
@@ -505,7 +505,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
-              size="sm"
+              
               onClick={() => setIsExpanded(!isExpanded)}
               className="p-0.5 h-4 w-4"
             >
@@ -522,7 +522,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
                   <Trophy className="h-4 w-4 text-yellow-500" />
                 )}
               </div>
-              <Badge className={getStatusColor(tickets[0].status)} size="sm">
+              <Badge className={getStatusColor(tickets[0].status)} >
                 {tickets[0].status}
               </Badge>
             </div>
@@ -556,7 +556,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
               <Button
                 onClick={handleBulkBurnTokens}
                 disabled={isConfirming}
-                size="sm"
+                
                 className="h-7 text-xs px-2"
               >
                 {isConfirming ? (
@@ -577,7 +577,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
                   onClick={handleCheckBulkStatus}
                   disabled={isCheckingStatus || isConfirming}
                   variant="outline"
-                  size="sm"
+                  
                   className="px-2 h-7"
                 >
                   {isCheckingStatus ? (
@@ -603,7 +603,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
                 onClick={handleCheckBulkStatus}
                 disabled={isCheckingStatus}
                 variant="outline"
-                size="sm"
+                
                 className="px-2 h-6 text-xs"
               >
                 {isCheckingStatus ? (

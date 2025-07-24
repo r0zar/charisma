@@ -130,7 +130,7 @@ export function WalletDropdown() {
       </Badge>
     </Button>
   ) : (
-    <Button variant="ghost" size="sm">
+    <Button variant="ghost" >
       <Menu className="h-5 w-5" />
     </Button>
   )

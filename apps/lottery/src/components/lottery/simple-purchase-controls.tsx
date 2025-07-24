@@ -75,7 +75,7 @@ export function SimplePurchaseControls({
           <div className="flex justify-center items-center gap-4">
             <Button
               variant="outline"
-              size="sm"
+              
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
               disabled={quantity <= 1}
             >
@@ -93,7 +93,7 @@ export function SimplePurchaseControls({
             </div>
             <Button
               variant="outline"
-              size="sm"
+              
               onClick={() => setQuantity(Math.min(10000, quantity + 1))}
               disabled={quantity >= 10000}
             >
@@ -112,7 +112,7 @@ export function SimplePurchaseControls({
               <Button
                 key={amount}
                 variant="outline"
-                size="sm"
+                
                 onClick={() => setQuantity(amount)}
                 className="flex items-center gap-1"
               >

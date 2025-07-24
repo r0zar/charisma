@@ -196,7 +196,7 @@ export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfi
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="flex-shrink-0">
               <div className="text-xs font-mono">#{ticket.id.slice(-6)}</div>
-              <Badge className={getStatusColor(ticket.status)} size="sm">
+              <Badge className={getStatusColor(ticket.status)} >
                 {ticket.status}
               </Badge>
             </div>
@@ -222,7 +222,7 @@ export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfi
                 <Button
                   onClick={handleBurnTokens}
                   disabled={isConfirming}
-                  size="sm"
+                  
                   className="h-7 text-xs px-2"
                 >
                   {isConfirming ? (
@@ -233,7 +233,7 @@ export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfi
                   ) : (
                     <>
                       <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Transfer {ticket.purchasePrice}
+                      Burn {ticket.purchasePrice}
                     </>
                   )}
                 </Button>
@@ -243,7 +243,7 @@ export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfi
                     onClick={handleCheckStatus}
                     disabled={isCheckingStatus || isConfirming}
                     variant="outline"
-                    size="sm"
+                    
                     className="px-2 h-7"
                   >
                     {isCheckingStatus ? (
@@ -268,7 +268,7 @@ export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfi
                   onClick={handleCheckStatus}
                   disabled={isCheckingStatus}
                   variant="outline"
-                  size="sm"
+                  
                   className="px-2 h-6 text-xs"
                 >
                   {isCheckingStatus ? (

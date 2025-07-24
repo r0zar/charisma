@@ -158,7 +158,7 @@ export function ConfirmationDialog({
             }
           </DialogTitle>
           <DialogDescription>
-            Complete your purchase by transferring STONE tokens to confirm your lottery {isBulk ? 'tickets' : 'ticket'}.
+            Complete your purchase by burning STONE tokens to confirm your lottery {isBulk ? 'tickets' : 'ticket'}.
           </DialogDescription>
         </DialogHeader>
         

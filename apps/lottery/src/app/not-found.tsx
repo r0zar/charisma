@@ -56,11 +56,11 @@ export default function NotFound() {
         <div className="text-center space-y-2">
           <p className="text-sm text-muted-foreground">You might be looking for:</p>
           <div className="flex flex-wrap justify-center gap-2">
-            <Button variant="link" size="sm" asChild>
+            <Button variant="link"  asChild>
               <Link href="/lottery">Lottery</Link>
             </Button>
             <span className="text-muted-foreground">•</span>
-            <Button variant="link" size="sm" asChild>
+            <Button variant="link"  asChild>
               <Link href="/">Home</Link>
             </Button>
           </div>

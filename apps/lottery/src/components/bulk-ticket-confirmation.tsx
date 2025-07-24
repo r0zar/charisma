@@ -208,7 +208,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <Button
               variant="ghost"
-              size="sm"
+              
               onClick={() => setIsExpanded(!isExpanded)}
               className="p-0.5 h-5 w-5 flex-shrink-0"
             >
@@ -220,7 +220,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
             </Button>
             <div className="flex-shrink-0">
               <div className="text-xs font-medium">Bulk - {tickets.length} tickets</div>
-              <Badge className={getStatusColor(tickets[0].status)} size="sm">
+              <Badge className={getStatusColor(tickets[0].status)}>
                 {tickets[0].status}
               </Badge>
             </div>
@@ -236,7 +236,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
                 <Button
                   onClick={handleBulkBurnTokens}
                   disabled={isConfirming}
-                  size="sm"
+                  
                   className="h-7 text-xs px-2"
                 >
                   {isConfirming ? (
@@ -247,7 +247,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
                   ) : (
                     <>
                       <CheckCircle2 className="h-3 w-3 mr-1" />
-                      Transfer {totalAmount}
+                      Burn {totalAmount}
                     </>
                   )}
                 </Button>
@@ -257,7 +257,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
                     onClick={handleCheckBulkStatus}
                     disabled={isCheckingStatus || isConfirming}
                     variant="outline"
-                    size="sm"
+                    
                     className="px-2 h-7"
                   >
                     {isCheckingStatus ? (
@@ -283,7 +283,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
                   onClick={handleCheckBulkStatus}
                   disabled={isCheckingStatus}
                   variant="outline"
-                  size="sm"
+                  
                   className="px-2 h-6 text-xs"
                 >
                   {isCheckingStatus ? (

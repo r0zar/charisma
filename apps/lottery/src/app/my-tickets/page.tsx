@@ -294,21 +294,21 @@ export default function MyTicketsPage() {
                 <div className="flex gap-2">
                   <Button
                     variant={filter === 'active' ? 'default' : 'outline'}
-                    size="sm"
+                    
                     onClick={() => setFilter('active')}
                   >
                     Active ({tickets.filter(t => t.status === 'pending' || t.status === 'confirmed').length})
                   </Button>
                   <Button
                     variant={filter === 'archived' ? 'default' : 'outline'}
-                    size="sm"
+                    
                     onClick={() => setFilter('archived')}
                   >
                     Archived ({tickets.filter(t => t.status === 'archived').length})
                   </Button>
                   <Button
                     variant={filter === 'all' ? 'default' : 'outline'}
-                    size="sm"
+                    
                     onClick={() => setFilter('all')}
                   >
                     All ({tickets.length})

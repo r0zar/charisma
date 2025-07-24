@@ -118,16 +118,16 @@ export default function NetworkSettingsPage() {
                   <code className="text-sm bg-background p-2 rounded flex-1 break-all border">
                     {walletState.address}
                   </code>
-                  <Button size="sm" variant="ghost" onClick={copyAddress}>
+                  <Button  variant="ghost" onClick={copyAddress}>
                     {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
                 </div>
                 
                 <div className="flex gap-2">
-                  <Button onClick={disconnectWallet} variant="outline" size="sm">
+                  <Button onClick={disconnectWallet} variant="outline" >
                     Disconnect
                   </Button>
-                  <Button onClick={clearAddresses} variant="destructive" size="sm">
+                  <Button onClick={clearAddresses} variant="destructive" >
                     Clear All Data
                   </Button>
                 </div>
