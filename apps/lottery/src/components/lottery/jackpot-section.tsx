@@ -159,42 +159,45 @@ export function JackpotSection() {
           </div>
           
           {jackpot && (
-            <div className="flex flex-col md:flex-row items-center gap-6">
+            <div className="flex flex-col lg:flex-row items-center lg:items-center text-center lg:text-left gap-8 lg:gap-12">
               {/* Jackpot Image */}
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 lg:flex-1 lg:flex lg:justify-center">
                 <img 
                   src={jackpot.imageUrl} 
                   alt={jackpot.title}
-                  className="w-48 h-36 object-cover rounded-lg border-2 border-primary/20"
+                  className="w-64 h-48 lg:w-80 lg:h-60 object-cover rounded-xl border-2 border-primary/20 shadow-lg"
                 />
               </div>
               
               {/* Jackpot Details */}
-              <div className="flex-1 text-center md:text-left space-y-3">
-                <h3 className="text-3xl font-bold text-primary font-vegas-numbers">
+              <div className="lg:flex-1 space-y-4 lg:space-y-6 max-w-lg lg:max-w-none">
+                <h3 className="text-4xl lg:text-5xl font-bold text-primary font-vegas-numbers leading-tight">
                   {jackpot.title}
                 </h3>
                 
                 {jackpot.estimatedValue && (
-                  <div className="text-lg text-muted-foreground">
-                    Estimated value: {jackpot.estimatedValue.toLocaleString()} STONE
+                  <div className="text-xl lg:text-2xl text-muted-foreground font-medium">
+                    Estimated value: ${(jackpot.estimatedValue / 1000).toLocaleString()} USD
                   </div>
                 )}
                 
-                <Button 
-                  variant="outline" 
-                  className="flex items-center gap-2"
-                  onClick={() => window.open(jackpot.linkUrl, '_blank')}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  View Details
-                </Button>
+                <div className="flex justify-center lg:justify-start pt-2">
+                  <Button 
+                    variant="outline" 
+                    size="lg"
+                    className="flex items-center gap-2 px-6 py-3"
+                    onClick={() => window.open(jackpot.linkUrl, '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    View Details
+                  </Button>
+                </div>
               </div>
             </div>
           )}
           
-          <div className="text-center space-y-2">
-            <div className="text-muted-foreground">
+          <div className="text-center space-y-3 pt-4 border-t border-border/20">
+            <div className="text-muted-foreground font-medium">
               Next draw in:
             </div>
             {nextDrawDate && <DrawCountdown targetDate={new Date(nextDrawDate)} />}

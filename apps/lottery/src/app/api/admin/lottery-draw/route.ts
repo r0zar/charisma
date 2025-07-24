@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Calculate actual winners based on ticket matches
-    const winners = calculateWinnersFromTickets(tickets, winningNumbers, config.currentJackpot)
+    const winners = calculateWinnersFromTickets(tickets, winningNumbers, config.currentJackpot.estimatedValue || 0)
     
     // Create the draw record
     const draw: LotteryDraw = {
@@ -152,22 +152,18 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    // Update lottery config - only reset jackpot if there was a winner
+    // Update lottery config - for physical jackpots, we typically don't auto-reset
     const hasJackpotWinner = winners.some(w => w.tier === 1 && w.winnerCount > 0)
-    const ticketRevenue = tickets.length * config.ticketPrice
     
-    const nextJackpot = hasJackpotWinner 
-      ? 0 // Reset to zero - winner takes all!
-      : config.currentJackpot + Math.floor(ticketRevenue * 0.5) // Add 50% of ticket revenue
-    
-    // Only update the jackpot, keep existing next draw date
-    await lotteryConfigService.updateConfig({
-      currentJackpot: Math.floor(nextJackpot)
-    })
+    // For physical jackpots, we keep the same prize unless manually updated
+    // The estimated value can stay the same or be updated by admin
+    if (hasJackpotWinner) {
+      console.log(`Physical jackpot "${config.currentJackpot.title}" has been won!`)
+      // Note: Admin should manually set a new physical jackpot for the next draw
+    }
 
     console.log('Draw completed successfully:', draw)
     console.log(`Jackpot winner: ${hasJackpotWinner ? 'YES' : 'NO'}`)
-    console.log(`Next jackpot: ${nextJackpot} STONE`)
     console.log(`Tickets archived: ${tickets.length}`)
     
     return NextResponse.json({
@@ -178,7 +174,7 @@ export async function POST(request: NextRequest) {
         ticketsArchived: tickets.length,
         guaranteedWinner: !drawRequest.winningNumbers,
         jackpotWinner: hasJackpotWinner,
-        nextJackpot: Math.floor(nextJackpot)
+        currentJackpot: config.currentJackpot.title
       }
     })
   } catch (error) {
