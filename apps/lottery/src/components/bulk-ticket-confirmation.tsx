@@ -34,6 +34,66 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
   const totalAmount = tickets.reduce((sum, ticket) => sum + ticket.purchasePrice, 0)
   const ticketIds = tickets.map(t => t.id)
 
+  const pollForBulkConfirmation = async (transactionId: string) => {
+    const maxAttempts = 24 // 2 minutes total (24 * 5 seconds)
+    let attempts = 0
+    
+    const poll = async () => {
+      try {
+        attempts++
+        console.log(`Bulk polling attempt ${attempts}/${maxAttempts} for transaction ${transactionId}`)
+        
+        // Try to confirm all tickets - they should all use the same transaction
+        const confirmPromises = tickets.map(ticket =>
+          fetch('/api/v1/lottery/confirm-ticket', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              ticketId: ticket.id,
+              transactionId: transactionId,
+              walletAddress: ticket.walletAddress,
+              expectedAmount: ticket.purchasePrice
+            }),
+          })
+        )
+
+        const responses = await Promise.all(confirmPromises)
+        const results = await Promise.all(responses.map(r => r.json()))
+
+        const allSuccessful = results.every(r => r.success)
+
+        if (allSuccessful) {
+          console.log('All bulk tickets confirmed successfully!')
+          setIsConfirming(false)
+          onConfirmationUpdate(ticketIds, 'confirmed')
+          return
+        }
+
+        // Check if we should retry
+        const anyRetryable = results.some(r => r.retryable !== false)
+        
+        if (attempts < maxAttempts && anyRetryable) {
+          // Wait 5 seconds before next attempt
+          setTimeout(poll, 5000)
+        } else {
+          // Max attempts reached or non-retryable error
+          const failedTickets = results.filter(r => !r.success)
+          throw new Error(`Bulk ticket confirmation failed: ${failedTickets.map(r => r.error).join(', ')}`)
+        }
+      } catch (error) {
+        console.error('Bulk confirmation polling error:', error)
+        setError(error instanceof Error ? error.message : 'Failed to confirm tickets')
+        setIsConfirming(false)
+        onConfirmationUpdate(ticketIds, 'failed')
+      }
+    }
+
+    // Start polling
+    poll()
+  }
+
   const handleBulkBurnTokens = async () => {
     try {
       setIsConfirming(true)
@@ -67,39 +127,8 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
         console.log('Bulk transaction submitted:', result.txid)
         setTxId(result.txid)
 
-        try {
-          // Send the transaction ID to the backend for verification of all tickets
-          const confirmPromises = tickets.map(ticket =>
-            fetch('/api/v1/lottery/confirm-ticket', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                ticketId: ticket.id,
-                transactionId: result.txid,
-                walletAddress: ticket.walletAddress,
-                expectedAmount: ticket.purchasePrice
-              }),
-            })
-          )
-
-          const responses = await Promise.all(confirmPromises)
-          const results = await Promise.all(responses.map(r => r.json()))
-
-          const allSuccessful = results.every(r => r.success)
-
-          if (allSuccessful) {
-            onConfirmationUpdate(ticketIds, 'confirmed')
-          } else {
-            const failedTickets = results.filter(r => !r.success)
-            throw new Error(`Some tickets failed to confirm: ${failedTickets.map(r => r.error).join(', ')}`)
-          }
-        } catch (error) {
-          console.error('Bulk confirmation API error:', error)
-          setError(error instanceof Error ? error.message : 'Failed to confirm tickets')
-          onConfirmationUpdate(ticketIds, 'failed')
-        }
+        // Start polling for confirmation instead of waiting for one long request
+        pollForBulkConfirmation(result.txid)
       } else {
         throw new Error('Transaction was cancelled or failed')
       }

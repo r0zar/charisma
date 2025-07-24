@@ -58,9 +58,9 @@ async function validateBurnTransaction(txId: string, expectedAmount: number, wal
     
     try {
       const result = await txMonitorClient.pollTransactionStatus(txId, {
-        interval: 5000,
-        timeout: 60000, // Reduced timeout for better UX
-        maxAttempts: 12,
+        interval: 2000,
+        timeout: 10000, // Short timeout for polling API
+        maxAttempts: 5,
         onStatusChange: (status) => {
           console.log(`Transaction ${txId} status: ${status.status}`)
         }

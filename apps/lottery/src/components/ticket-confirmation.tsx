@@ -30,6 +30,105 @@ export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfi
   const [isConfirming, setIsConfirming] = useState(false)
   const [txId, setTxId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false)
+
+  const pollForConfirmation = async (transactionId: string) => {
+    const maxAttempts = 24 // 2 minutes total (24 * 5 seconds)
+    let attempts = 0
+    
+    const poll = async () => {
+      try {
+        attempts++
+        console.log(`Polling attempt ${attempts}/${maxAttempts} for transaction ${transactionId}`)
+        
+        const response = await fetch('/api/v1/lottery/confirm-ticket', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ticketId: ticket.id,
+            transactionId: transactionId,
+            walletAddress: ticket.walletAddress,
+            expectedAmount: ticket.purchasePrice
+          }),
+        })
+
+        const apiResult = await response.json()
+
+        if (apiResult.success) {
+          console.log('Transaction confirmed successfully!')
+          setIsConfirming(false)
+          onConfirmationUpdate(ticket.id, 'confirmed')
+          return
+        }
+
+        // Check if we should retry
+        if (attempts < maxAttempts) {
+          if (apiResult.retryable !== false) {
+            // Wait 5 seconds before next attempt
+            setTimeout(poll, 5000)
+          } else {
+            // Non-retryable error
+            throw new Error(apiResult.error || 'Transaction validation failed')
+          }
+        } else {
+          // Max attempts reached
+          throw new Error('Transaction confirmation timed out. Please check your wallet and try again.')
+        }
+      } catch (error) {
+        console.error('Confirmation polling error:', error)
+        setError(error instanceof Error ? error.message : 'Failed to confirm ticket')
+        setIsConfirming(false)
+        onConfirmationUpdate(ticket.id, 'failed')
+      }
+    }
+
+    // Start polling
+    poll()
+  }
+
+  const handleCheckStatus = async () => {
+    if (!txId) {
+      setError('No transaction ID available to check')
+      return
+    }
+
+    setIsCheckingStatus(true)
+    setError(null)
+
+    try {
+      console.log(`Manually checking status for transaction ${txId}`)
+      
+      const response = await fetch('/api/v1/lottery/confirm-ticket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ticketId: ticket.id,
+          transactionId: txId,
+          walletAddress: ticket.walletAddress,
+          expectedAmount: ticket.purchasePrice
+        }),
+      })
+
+      const apiResult = await response.json()
+
+      if (apiResult.success) {
+        console.log('Manual status check: Transaction confirmed!')
+        onConfirmationUpdate(ticket.id, 'confirmed')
+      } else {
+        console.log('Manual status check failed:', apiResult.error)
+        setError(`Status check: ${apiResult.error}`)
+      }
+    } catch (error) {
+      console.error('Manual status check error:', error)
+      setError(`Status check failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsCheckingStatus(false)
+    }
+  }
 
   const handleBurnTokens = async () => {
     try {
@@ -66,33 +165,8 @@ export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfi
         console.log('Transaction submitted:', result.txid)
         setTxId(result.txid)
 
-        try {
-          // Send the transaction ID to the backend for verification
-          const response = await fetch('/api/v1/lottery/confirm-ticket', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              ticketId: ticket.id,
-              transactionId: result.txid,
-              walletAddress: ticket.walletAddress,
-              expectedAmount: ticket.purchasePrice
-            }),
-          })
-
-          const apiResult = await response.json()
-
-          if (apiResult.success) {
-            onConfirmationUpdate(ticket.id, 'confirmed')
-          } else {
-            throw new Error(apiResult.error || 'Failed to confirm ticket')
-          }
-        } catch (error) {
-          console.error('Confirmation API error:', error)
-          setError(error instanceof Error ? error.message : 'Failed to confirm ticket')
-          onConfirmationUpdate(ticket.id, 'failed')
-        }
+        // Start polling for confirmation instead of waiting for one long request
+        pollForConfirmation(result.txid)
       } else {
         throw new Error('Transaction was cancelled or failed')
       }
