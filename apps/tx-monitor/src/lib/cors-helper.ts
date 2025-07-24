@@ -24,7 +24,6 @@ const ALLOWED_ORIGINS = [
   getHostUrl('swap', 'development'),
   getHostUrl('invest', 'development'),
   getHostUrl('tx-monitor', 'development'),
-  getHostUrl('party', 'development'),
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:3002',

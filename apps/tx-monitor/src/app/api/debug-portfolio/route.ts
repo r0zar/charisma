@@ -1,107 +1,76 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getHostUrl } from '@modules/discovery';
-
-// Types for charisma-party API responses (normalized format)
-interface BalanceResponse {
-  balances: Record<string, number>; // contractId -> balance (formatted units)
-  party: string;
-  serverTime: number;
-  initialized: boolean;
-}
-
-interface PriceUpdate {
-  type: 'PRICE_UPDATE';
-  contractId: string;
-  price: number;
-  timestamp: number;
-  source?: string;
-}
-
-interface PriceResponse {
-  prices: PriceUpdate[];
-  party: string;
-  serverTime: number;
-  initialized: boolean;
-}
+import { getAddressBalance, listPrices } from '@repo/tokens';
 
 /**
- * Debug endpoint to test portfolio value calculation
+ * Debug endpoint to test portfolio value calculation using @packages/tokens
  */
 async function debugGetCurrentPortfolioValue(userAddress: string) {
   try {
-    const charismaPartyUrl = getHostUrl('party');
+    console.log(`[DEBUG] Fetching current portfolio value for ${userAddress} using @packages/tokens`);
 
-    console.log(`[DEBUG] Fetching current portfolio value from ${charismaPartyUrl}`);
+    // Fetch user balance data using @packages/tokens
+    const balanceData = await getAddressBalance(userAddress);
+    console.log(`[DEBUG] Retrieved balance data for ${userAddress}`);
 
-    // First test if we can reach prices endpoint
-    const priceTestResponse = await fetch(`${charismaPartyUrl}/parties/prices/main`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+    // Fetch all current prices using @packages/tokens
+    const priceData = await listPrices({
+      strategy: 'fallback',
+      sources: { stxtools: true, internal: true }
     });
-
-    console.log(`[DEBUG] Price test response status: ${priceTestResponse.status}`);
-
-    // Fetch user balances from charisma-party
-    const balanceResponse = await fetch(`${charismaPartyUrl}/parties/balances/main?users=${userAddress}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    });
-
-    console.log(`[DEBUG] Balance response status: ${balanceResponse.status}`);
-
-    if (!balanceResponse.ok) {
-      console.warn(`[DEBUG] Failed to fetch balances: ${balanceResponse.status} ${balanceResponse.statusText}`);
-      const errorText = await balanceResponse.text();
-      console.warn(`[DEBUG] Balance response error:`, errorText);
-      return { error: 'Failed to fetch balances', status: balanceResponse.status, details: errorText };
-    }
-
-    const balanceData: BalanceResponse = await balanceResponse.json();
-    console.log(`[DEBUG] Retrieved ${Object.keys(balanceData.balances).length} balance entries`);
-
-    // Fetch all current prices
-    const priceResponse = await fetch(`${charismaPartyUrl}/parties/prices/main`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    });
-
-    console.log(`[DEBUG] Price response status: ${priceResponse.status}`);
-
-    if (!priceResponse.ok) {
-      console.warn(`[DEBUG] Failed to fetch prices: ${priceResponse.status} ${priceResponse.statusText}`);
-      const errorText = await priceResponse.text();
-      console.warn(`[DEBUG] Price response error:`, errorText);
-      return { error: 'Failed to fetch prices', status: priceResponse.status, details: errorText };
-    }
-
-    const priceData: PriceResponse = await priceResponse.json();
-    console.log(`[DEBUG] Retrieved ${priceData.prices?.length || 0} price entries`);
+    console.log(`[DEBUG] Retrieved ${Object.keys(priceData).length} price entries from @packages/tokens`);
 
     // Create price lookup map
     const priceMap = new Map<string, number>();
-    for (const priceUpdate of priceData.prices) {
-      priceMap.set(priceUpdate.contractId, priceUpdate.price);
+    for (const [contractId, price] of Object.entries(priceData)) {
+      priceMap.set(contractId, price);
     }
 
-    // Calculate portfolio value from normalized balance format
+    // Calculate portfolio value from balance data
     let totalValue = 0;
     const tokenBreakdown: { contractId: string; balance: number; value: number; price: number }[] = [];
     let tokensWithValue = 0;
 
-    for (const [contractId, formattedBalance] of Object.entries(balanceData.balances)) {
-      if (formattedBalance <= 0) {
+    // Process STX balance
+    if (balanceData.stxBalance && parseFloat(balanceData.stxBalance) > 0) {
+      const stxBalance = parseFloat(balanceData.stxBalance) / 1_000_000; // Convert microSTX to STX
+      const stxPrice = priceMap.get('.stx') || priceMap.get('stx') || 0;
+      const stxValue = stxBalance * stxPrice;
+      
+      if (stxBalance > 0) {
+        totalValue += stxValue;
+        if (stxValue > 0) tokensWithValue++;
+        tokenBreakdown.push({
+          contractId: '.stx',
+          balance: stxBalance,
+          value: stxValue,
+          price: stxPrice
+        });
+        console.log(`[DEBUG] STX: ${stxBalance.toFixed(6)} × $${stxPrice} = $${stxValue.toFixed(2)}`);
+      }
+    }
+
+    // Process fungible tokens
+    for (const [contractId, tokenData] of Object.entries(balanceData.fungibleTokens)) {
+      const tokenInfo = tokenData as { balance: string; decimals?: number };
+      const rawBalance = parseFloat(tokenInfo.balance);
+      if (rawBalance <= 0) {
         continue;
       }
 
-      const price = priceMap.get(contractId) || 0;
-      const value = formattedBalance * price;
+      // Convert raw balance to formatted balance using decimals
+      const decimals = tokenInfo.decimals || 6;
+      const formattedBalance = rawBalance / Math.pow(10, decimals);
 
+      let price = priceMap.get(contractId) || 0;
+      
+      // Fallback for stablecoins
+      if (price === 0 && (contractId.includes('usdc') || contractId.includes('USDC') ||
+          contractId.includes('usdt') || contractId.includes('USDT') ||
+          contractId.includes('dai') || contractId.includes('DAI'))) {
+        price = 1.0;
+      }
+      
+      const value = formattedBalance * price;
       totalValue += value;
 
       if (value > 0) {
@@ -124,9 +93,9 @@ async function debugGetCurrentPortfolioValue(userAddress: string) {
       currentPortfolioValue: totalValue,
       tokenBreakdown: tokenBreakdown.slice(0, 10), // Only return top 10 for brevity
       summary: {
-        totalTokens: Object.keys(balanceData.balances).length,
+        totalTokens: Object.keys(balanceData.fungibleTokens).length + (balanceData.stxBalance ? 1 : 0),
         tokensWithValue,
-        pricesAvailable: priceData.prices.length
+        pricesAvailable: Object.keys(priceData).length
       }
     };
 
