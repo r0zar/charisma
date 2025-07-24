@@ -123,7 +123,7 @@ async function validateBurnTransaction(txId: string, expectedAmount: number, wal
       tx_type: txDetails.tx_type,
       tx_status: txDetails.tx_status,
       sender_address: txDetails.sender_address,
-      contract_call: txDetails.contract_call,
+      contract_call: txDetails.tx_type === 'contract_call' ? (txDetails as any).contract_call : undefined,
       tx_result: txDetails.tx_result
     })
     console.log(`Found ${txEvents.events?.length || 0} fungible token events`)

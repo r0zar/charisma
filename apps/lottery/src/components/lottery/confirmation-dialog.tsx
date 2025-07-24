@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { CheckCircle2, ExternalLink, Wallet } from 'lucide-react'
+import { CheckCircle2, Wallet } from 'lucide-react'
 import { TicketConfirmation } from '@/components/ticket-confirmation'
 import { BulkTicketConfirmation } from '@/components/bulk-ticket-confirmation'
 
