@@ -11,7 +11,8 @@ import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network'
 import {
   uintCV,
   standardPrincipalCV,
-  Pc
+  Pc,
+  noneCV
 } from '@stacks/transactions'
 
 interface BulkTicketConfirmationProps {
@@ -38,12 +39,12 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
   const pollForBulkConfirmation = async (transactionId: string) => {
     const maxAttempts = 24 // 2 minutes total (24 * 5 seconds)
     let attempts = 0
-    
+
     const poll = async () => {
       try {
         attempts++
         console.log(`Bulk polling attempt ${attempts}/${maxAttempts} for transaction ${transactionId}`)
-        
+
         // Try to confirm all tickets - they should all use the same transaction
         const confirmPromises = tickets.map(ticket =>
           fetch('/api/v1/lottery/confirm-ticket', {
@@ -74,7 +75,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
 
         // Check if we should retry
         const anyRetryable = results.some(r => r.retryable !== false)
-        
+
         if (attempts < maxAttempts && anyRetryable) {
           // Wait 5 seconds before next attempt
           setTimeout(poll, 5000)
@@ -106,7 +107,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
 
     try {
       console.log(`Manually checking bulk status for transaction ${txId}`)
-      
+
       const confirmPromises = tickets.map(ticket =>
         fetch('/api/v1/lottery/confirm-ticket', {
           method: 'POST',
@@ -166,7 +167,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
           uintCV(burnAmount),
           standardPrincipalCV(tickets[0].walletAddress),
           standardPrincipalCV(BURN_ADDRESS),
-          uintCV(0) // memo field
+          noneCV()
         ],
         postConditions,
       }
@@ -208,7 +209,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <Button
               variant="ghost"
-              
+
               onClick={() => setIsExpanded(!isExpanded)}
               className="p-0.5 h-5 w-5 flex-shrink-0"
             >
@@ -236,7 +237,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
                 <Button
                   onClick={handleBulkBurnTokens}
                   disabled={isConfirming}
-                  
+
                   className="h-7 text-xs px-2"
                 >
                   {isConfirming ? (
@@ -251,13 +252,13 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
                     </>
                   )}
                 </Button>
-                
+
                 {txId && (
                   <Button
                     onClick={handleCheckBulkStatus}
                     disabled={isCheckingStatus || isConfirming}
                     variant="outline"
-                    
+
                     className="px-2 h-7"
                   >
                     {isCheckingStatus ? (
@@ -269,7 +270,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
                 )}
               </>
             )}
-            
+
             {tickets[0].status === 'confirmed' && tickets[0].transactionId && (
               <>
                 <div className="flex items-center gap-1 text-xs text-green-700 mr-2">
@@ -283,7 +284,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
                   onClick={handleCheckBulkStatus}
                   disabled={isCheckingStatus}
                   variant="outline"
-                  
+
                   className="px-2 h-6 text-xs"
                 >
                   {isCheckingStatus ? (

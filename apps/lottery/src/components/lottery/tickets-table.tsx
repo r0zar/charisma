@@ -29,24 +29,24 @@ const NETWORK = process.env.NODE_ENV === 'production' ? STACKS_MAINNET : STACKS_
 const groupTicketsByBatch = (tickets: LotteryTicket[]) => {
   const groups: LotteryTicket[][] = []
   const processed = new Set<string>()
-  
+
   tickets.forEach(ticket => {
     if (processed.has(ticket.id)) return
-    
+
     // Find tickets purchased within the same minute (bulk purchase)
     const purchaseTime = new Date(ticket.purchaseDate).getTime()
     const batchTickets = tickets.filter(t => {
       const tTime = new Date(t.purchaseDate).getTime()
       return Math.abs(tTime - purchaseTime) < 60000 && // Within 1 minute
-             t.walletAddress === ticket.walletAddress &&
-             t.status === ticket.status &&
-             !processed.has(t.id)
+        t.walletAddress === ticket.walletAddress &&
+        t.status === ticket.status &&
+        !processed.has(t.id)
     })
-    
+
     batchTickets.forEach(t => processed.add(t.id))
     groups.push(batchTickets)
   })
-  
+
   return groups
 }
 
@@ -73,12 +73,12 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
   const pollForConfirmation = async (transactionId: string) => {
     const maxAttempts = 24 // 2 minutes total (24 * 5 seconds)
     let attempts = 0
-    
+
     const poll = async () => {
       try {
         attempts++
         console.log(`Polling attempt ${attempts}/${maxAttempts} for transaction ${transactionId}`)
-        
+
         const response = await fetch('/api/v1/lottery/confirm-ticket', {
           method: 'POST',
           headers: {
@@ -133,7 +133,7 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
 
     try {
       console.log(`Manually checking status for transaction ${txId}`)
-      
+
       const response = await fetch('/api/v1/lottery/confirm-ticket', {
         method: 'POST',
         headers: {
@@ -250,7 +250,7 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
               <Button
                 onClick={handleBurnTokens}
                 disabled={isConfirming}
-                
+
                 className="h-7 text-xs px-2"
               >
                 {isConfirming ? (
@@ -265,13 +265,13 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
                   </>
                 )}
               </Button>
-              
+
               {txId && (
                 <Button
                   onClick={handleCheckStatus}
                   disabled={isCheckingStatus || isConfirming}
                   variant="outline"
-                  
+
                   className="px-2 h-7"
                 >
                   {isCheckingStatus ? (
@@ -283,7 +283,7 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
               )}
             </>
           )}
-          
+
           {ticket.status === 'confirmed' && ticket.transactionId && (
             <>
               <div className="flex items-center gap-1 text-xs text-green-700 mr-1">
@@ -296,7 +296,7 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate }: IndividualTicketR
                 onClick={handleCheckStatus}
                 disabled={isCheckingStatus}
                 variant="outline"
-                
+
                 className="px-2 h-6 text-xs"
               >
                 {isCheckingStatus ? (
@@ -350,12 +350,12 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
   const pollForBulkConfirmation = async (transactionId: string) => {
     const maxAttempts = 24 // 2 minutes total (24 * 5 seconds)
     let attempts = 0
-    
+
     const poll = async () => {
       try {
         attempts++
         console.log(`Bulk polling attempt ${attempts}/${maxAttempts} for transaction ${transactionId}`)
-        
+
         const confirmPromises = tickets.map(ticket =>
           fetch('/api/v1/lottery/confirm-ticket', {
             method: 'POST',
@@ -385,7 +385,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
         }
 
         const anyRetryable = results.some(r => r.retryable !== false)
-        
+
         if (attempts < maxAttempts && anyRetryable) {
           setTimeout(poll, 5000)
         } else {
@@ -414,7 +414,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
 
     try {
       console.log(`Manually checking bulk status for transaction ${txId}`)
-      
+
       const confirmPromises = tickets.map(ticket =>
         fetch('/api/v1/lottery/confirm-ticket', {
           method: 'POST',
@@ -474,7 +474,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
           uintCV(burnAmount),
           standardPrincipalCV(tickets[0].walletAddress),
           standardPrincipalCV(BURN_ADDRESS),
-          uintCV(0) // memo field
+          noneCV()
         ],
         postConditions,
       }
@@ -505,7 +505,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
           <div className="flex items-center gap-1">
             <Button
               variant="ghost"
-              
+
               onClick={() => setIsExpanded(!isExpanded)}
               className="p-0.5 h-4 w-4"
             >
@@ -546,7 +546,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
               <Button
                 onClick={handleBulkBurnTokens}
                 disabled={isConfirming}
-                
+
                 className="h-7 text-xs px-2"
               >
                 {isConfirming ? (
@@ -561,13 +561,13 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
                   </>
                 )}
               </Button>
-              
+
               {txId && (
                 <Button
                   onClick={handleCheckBulkStatus}
                   disabled={isCheckingStatus || isConfirming}
                   variant="outline"
-                  
+
                   className="px-2 h-7"
                 >
                   {isCheckingStatus ? (
@@ -579,7 +579,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
               )}
             </>
           )}
-          
+
           {tickets[0].status === 'confirmed' && tickets[0].transactionId && (
             <>
               <div className="flex items-center gap-1 text-xs text-green-700 mr-1">
@@ -593,7 +593,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
                 onClick={handleCheckBulkStatus}
                 disabled={isCheckingStatus}
                 variant="outline"
-                
+
                 className="px-2 h-6 text-xs"
               >
                 {isCheckingStatus ? (
@@ -677,7 +677,7 @@ export function TicketsTable({ tickets, onConfirmationUpdate, onBulkConfirmation
         <div className="col-span-3">Purchase</div>
         <div className="col-span-3 text-right">Actions</div>
       </div>
-      
+
       {/* Table Body */}
       <div className="space-y-0">
         {ticketGroups.map((ticketGroup, groupIndex) => {

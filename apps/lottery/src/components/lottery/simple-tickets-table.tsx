@@ -474,7 +474,7 @@ function BulkTicketRow({ tickets, onBulkConfirmationUpdate }: BulkTicketRowProps
           uintCV(burnAmount),
           standardPrincipalCV(tickets[0].walletAddress),
           standardPrincipalCV(BURN_ADDRESS),
-          uintCV(0) // memo field
+          noneCV()
         ],
         postConditions,
       }
