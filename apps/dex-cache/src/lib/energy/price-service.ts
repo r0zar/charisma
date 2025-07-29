@@ -169,6 +169,7 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
                 usdPrice: 0.01, // Mock $0.01 per energy token
                 sbtcRatio: 0.0000001,
                 reliability: 0.5,
+                confidence: 0.5,
                 lastUpdated: now,
                 source: 'market'
             },
@@ -178,6 +179,7 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
                 usdPrice: 0.01, // Mock $0.01 per HOOT token
                 sbtcRatio: 0.0000001,
                 reliability: 0.5,
+                confidence: 0.5,
                 lastUpdated: now,
                 source: 'market'
             },

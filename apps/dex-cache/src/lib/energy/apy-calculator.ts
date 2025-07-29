@@ -161,8 +161,10 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
             symbol: 'ENERGY',
             usdPrice: energyPrice.usdPrice,
             sbtcRatio: energyPrice.usdPrice / 65000,
+            reliability: energyPrice.confidence || 0.8,
             confidence: energyPrice.confidence || 0.8,
-            lastUpdated: now
+            lastUpdated: now,
+            source: 'market'
         };
     }
 
@@ -172,8 +174,10 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
             symbol: 'CHARISMA',
             usdPrice: charismaPrice.usdPrice,
             sbtcRatio: charismaPrice.usdPrice / 65000,
+            reliability: charismaPrice.confidence || 0.8,
             confidence: charismaPrice.confidence || 0.8,
-            lastUpdated: now
+            lastUpdated: now,
+            source: 'market'
         };
     }
 
@@ -183,8 +187,10 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
             symbol: 'DEXTERITY',
             usdPrice: dexterityPrice.usdPrice,
             sbtcRatio: dexterityPrice.usdPrice / 65000,
+            reliability: dexterityPrice.confidence || 0.8,
             confidence: dexterityPrice.confidence || 0.8,
-            lastUpdated: now
+            lastUpdated: now,
+            source: 'market'
         };
     }
 
