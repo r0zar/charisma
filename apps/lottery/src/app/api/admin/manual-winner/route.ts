@@ -16,11 +16,9 @@ function validateAdminAuth(request: NextRequest): boolean {
   return providedKey === adminKey
 }
 
-function generateDrawId(): string {
-  const now = new Date()
-  const timestamp = now.toISOString().slice(0, 10).replace(/-/g, '') // YYYYMMDD
-  const randomSuffix = Math.random().toString(36).substring(2, 8)
-  return `draw-${timestamp}-${randomSuffix}`
+async function generateDrawId(): Promise<string> {
+  const drawNumber = await blobStorage.incrementDrawCounter()
+  return drawNumber.toString().padStart(6, '0') // Format as 000001, 000002, etc.
 }
 
 export async function POST(request: NextRequest) {
@@ -51,20 +49,25 @@ export async function POST(request: NextRequest) {
     const nextDrawId = await ticketService.getNextDrawId()
     const allTickets = await ticketService.getTicketsByDraw(nextDrawId, false)
     
-    // Only process confirmed tickets for the draw
-    const tickets = allTickets.filter(ticket => ticket.status === 'confirmed')
+    // Separate confirmed tickets (for archiving) and pending/cancelled tickets (for deletion)
+    const confirmedTickets = allTickets.filter(ticket => ticket.status === 'confirmed')
+    const pendingTickets = allTickets.filter(ticket => ticket.status === 'pending')
+    const cancelledTickets = allTickets.filter(ticket => ticket.status === 'cancelled')
     
-    console.log(`Found ${allTickets.length} total tickets (${tickets.length} confirmed) for draw ${nextDrawId}`)
+    console.log(`Found ${allTickets.length} total tickets:`)
+    console.log(`  - ${confirmedTickets.length} confirmed (will be archived)`)
+    console.log(`  - ${pendingTickets.length} pending (will be deleted)`)
+    console.log(`  - ${cancelledTickets.length} cancelled (will be archived)`)
     
-    if (tickets.length === 0) {
+    if (confirmedTickets.length === 0) {
       return NextResponse.json(
         { error: 'Cannot create draw: No confirmed tickets available' },
         { status: 400 }
       )
     }
 
-    // Find the winning ticket
-    const winningTicket = tickets.find(ticket => ticket.id === winningTicketId)
+    // Find the winning ticket (must be from confirmed tickets)
+    const winningTicket = confirmedTickets.find(ticket => ticket.id === winningTicketId)
     
     if (!winningTicket) {
       return NextResponse.json(
@@ -76,7 +79,7 @@ export async function POST(request: NextRequest) {
     console.log(`Manual winner selected: Ticket ${winningTicket.id} for wallet ${winningTicket.walletAddress}`)
 
     // Generate draw details
-    const drawId = providedDrawId || generateDrawId()
+    const drawId = providedDrawId || await generateDrawId()
     const drawDate = new Date().toISOString()
     
     // For simple format lottery, we don't need actual numbers - just the winning ticket
@@ -98,8 +101,10 @@ export async function POST(request: NextRequest) {
       drawDate,
       winningNumbers,
       jackpotAmount: config.currentJackpot,
-      totalTicketsSold: tickets.length,
+      totalTicketsSold: confirmedTickets.length,
       winners,
+      winnerWalletAddress: winningTicket.walletAddress,
+      winningTicketId: winningTicket.id,
       status: 'completed',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
@@ -108,9 +113,25 @@ export async function POST(request: NextRequest) {
     // Save the draw to blob storage
     await blobStorage.saveLotteryDraw(draw)
     
-    // Archive all tickets for this draw and mark the winner
-    console.log(`Archiving ${tickets.length} tickets for completed draw ${nextDrawId}`)
-    for (const ticket of tickets) {
+    // Delete pending tickets (they never got confirmed)
+    console.log(`Deleting ${pendingTickets.length} pending tickets...`)
+    let deletedCount = 0
+    for (const ticket of pendingTickets) {
+      try {
+        await blobStorage.deleteLotteryTicket(ticket.id)
+        deletedCount++
+        console.log(`Deleted pending ticket ${ticket.id}`)
+      } catch (error) {
+        console.error(`Failed to delete pending ticket ${ticket.id}:`, error)
+        // Continue with other tickets even if one fails
+      }
+    }
+    
+    // Archive confirmed and cancelled tickets for this draw
+    const ticketsToArchive = [...confirmedTickets, ...cancelledTickets]
+    console.log(`Archiving ${ticketsToArchive.length} tickets for completed draw ${nextDrawId}`)
+    let archivedCount = 0
+    for (const ticket of ticketsToArchive) {
       try {
         const archivedTicket = {
           ...ticket,
@@ -119,6 +140,7 @@ export async function POST(request: NextRequest) {
           isWinner: ticket.id === winningTicketId // Mark the winning ticket
         }
         await blobStorage.saveLotteryTicket(archivedTicket)
+        archivedCount++
         console.log(`Archived ticket ${ticket.id}${ticket.id === winningTicketId ? ' (WINNER)' : ''}`)
       } catch (error) {
         console.error(`Failed to archive ticket ${ticket.id}:`, error)
@@ -128,7 +150,9 @@ export async function POST(request: NextRequest) {
     
     console.log(`Manual draw completed successfully:`, draw)
     console.log(`Manual winner: Ticket ${winningTicketId}`)
-    console.log(`Tickets archived: ${tickets.length}`)
+    console.log(`Tickets processed: ${allTickets.length} total`)
+    console.log(`  - Deleted: ${deletedCount} pending tickets`)
+    console.log(`  - Archived: ${archivedCount} confirmed/cancelled tickets`)
     
     return NextResponse.json({
       success: true,
@@ -137,8 +161,9 @@ export async function POST(request: NextRequest) {
         manualSelection: true,
         winningTicketId,
         winnerWallet: winningTicket.walletAddress,
-        ticketsProcessed: tickets.length,
-        ticketsArchived: tickets.length,
+        ticketsProcessed: allTickets.length,
+        ticketsDeleted: deletedCount,
+        ticketsArchived: archivedCount,
         currentJackpot: config.currentJackpot.title
       }
     })

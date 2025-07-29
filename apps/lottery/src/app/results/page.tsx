@@ -250,7 +250,7 @@ export default function ResultsPage() {
                           <div className="flex items-center gap-3">
                             <div>
                               <CardTitle className="text-lg font-mono">
-                                Draw #{draw.id.split('-').pop()}
+                                Draw #{draw.id}
                               </CardTitle>
                               <CardDescription>
                                 {new Date(draw.drawDate).toLocaleDateString()} at {new Date(draw.drawDate).toLocaleTimeString([], {
@@ -339,13 +339,28 @@ export default function ResultsPage() {
                             <div className="text-sm font-medium text-muted-foreground mb-2">Winner Status</div>
                             <div>
                               {draw.winners.length > 0 ? (
-                                <div className="text-sm">
+                                <div className="text-sm space-y-1">
                                   <div className="font-medium text-green-600">
                                     {draw.winners[0].winnerCount} Winner{draw.winners[0].winnerCount !== 1 ? 's' : ''}
                                   </div>
                                   {lotteryFormat === 'traditional' && (
                                     <div className="text-xs text-muted-foreground">
                                       {draw.winners[0].matchCount} number matches
+                                    </div>
+                                  )}
+                                  {draw.winnerWalletAddress && (
+                                    <div className="flex items-center gap-1">
+                                      <span className="font-mono text-xs text-muted-foreground">
+                                        {draw.winnerWalletAddress.slice(0, 8)}...{draw.winnerWalletAddress.slice(-4)}
+                                      </span>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => copyToClipboard(draw.winnerWalletAddress!)}
+                                        className="p-0 h-auto text-xs"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                      </Button>
                                     </div>
                                   )}
                                 </div>

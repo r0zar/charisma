@@ -5,6 +5,7 @@ const LOTTERY_CONFIG_KEY = 'lottery-config.json'
 const LOTTERY_RESULTS_PREFIX = 'lottery-results/'
 const LOTTERY_TICKETS_PREFIX = 'lottery-tickets/'
 const TICKET_COUNTER_KEY = 'ticket-counter.json'
+const DRAW_COUNTER_KEY = 'draw-counter.json'
 
 export class BlobStorageService {
   private token: string
@@ -408,6 +409,63 @@ export class BlobStorageService {
     } catch (error) {
       console.error('Failed to increment ticket counter:', error)
       throw new Error(`Failed to increment ticket counter: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // Draw Counter Methods
+  async getDrawCounter(): Promise<number> {
+    try {
+      const metadata = await head(DRAW_COUNTER_KEY, { token: this.token })
+      
+      if (!metadata?.url) {
+        return 1 // Start from 1 if no counter exists
+      }
+
+      const response = await fetch(metadata.url)
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          return 1
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+      
+      const data = await response.json()
+      return data.counter || 1
+      
+    } catch (error) {
+      console.error('Failed to get draw counter:', error)
+      
+      // If it's a 404 or blob not found, return 1
+      if (error instanceof Error) {
+        if (error.message.includes('404') || error.message.includes('not found')) {
+          return 1
+        }
+      }
+      
+      throw new Error(`Failed to get draw counter: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  async incrementDrawCounter(): Promise<number> {
+    try {
+      const currentCounter = await this.getDrawCounter()
+      const newCounter = currentCounter + 1
+      
+      const counterData = { counter: newCounter }
+      const counterJson = JSON.stringify(counterData, null, 2)
+      
+      await put(DRAW_COUNTER_KEY, counterJson, {
+        access: 'public',
+        token: this.token,
+        contentType: 'application/json',
+        allowOverwrite: true,
+      })
+      
+      return currentCounter // Return the current counter before increment (the one to use)
+    } catch (error) {
+      console.error('Failed to increment draw counter:', error)
+      throw new Error(`Failed to increment draw counter: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 }

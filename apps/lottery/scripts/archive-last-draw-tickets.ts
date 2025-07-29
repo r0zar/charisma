@@ -15,11 +15,9 @@ import { blobStorage } from '../src/lib/blob-storage'
 import { ticketService } from '../src/lib/ticket-service'
 import { LotteryTicket, LotteryDraw } from '../src/types/lottery'
 
-function generateDrawId(): string {
-  const now = new Date()
-  const timestamp = now.toISOString().slice(0, 10).replace(/-/g, '') // YYYYMMDD
-  const randomSuffix = Math.random().toString(36).substring(2, 8)
-  return `draw-${timestamp}-${randomSuffix}`
+async function generateDrawId(): Promise<string> {
+  const drawNumber = await blobStorage.incrementDrawCounter()
+  return drawNumber.toString().padStart(6, '0') // Format as 000001, 000002, etc.
 }
 
 async function archiveLastDrawTickets() {
@@ -50,7 +48,7 @@ async function archiveLastDrawTickets() {
     console.log(`   - Cancelled: ${cancelled}`)
     
     // Create a historical draw record for these archived tickets
-    const drawId = generateDrawId()
+    const drawId = await generateDrawId()
     console.log(`🎲 Creating historical draw record: ${drawId}`)
     
     const historicalDraw: LotteryDraw = {

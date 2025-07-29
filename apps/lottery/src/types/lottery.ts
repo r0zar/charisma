@@ -37,6 +37,8 @@ export interface LotteryDraw {
   jackpotAmount: PhysicalJackpot; // jackpot item for this draw
   totalTicketsSold: number;      // number of tickets sold
   winners: WinnerInfo[];         // winner details by tier
+  winnerWalletAddress?: string;  // wallet address of the jackpot winner (for simple format)
+  winningTicketId?: string;      // ID of the winning ticket (for simple format)
   status: 'pending' | 'completed' | 'cancelled';
   createdAt: string;            // ISO timestamp
   updatedAt: string;            // ISO timestamp
