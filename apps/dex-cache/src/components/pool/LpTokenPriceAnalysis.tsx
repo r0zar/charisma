@@ -14,7 +14,7 @@ import {
     Target
 } from 'lucide-react';
 import { Vault } from '@/lib/pool-service';
-import { analyzeLpTokenPricing, formatLpPriceAnalysis } from '@services/prices';
+import { analyzeLpTokenPricing, formatLpPriceAnalysis } from '@/services/prices';
 
 interface LpTokenPriceAnalysisProps {
     vault: Vault;

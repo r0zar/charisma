@@ -18,7 +18,7 @@ export async function OPTIONS() {
 
 export async function GET(
     _request: Request,
-    context: { params: { contractId: string } }
+    context: { params: Promise<{ contractId: string }> }
 ) {
     const { contractId } = await context.params;
 

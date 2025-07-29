@@ -1,4 +1,4 @@
-import { PriceAPIResponse, PriceSeriesAPI, PriceSeriesStorage, TokenPriceData } from '@services/prices';
+import { PriceAPIResponse, PriceSeriesAPI, PriceSeriesStorage, TokenPriceData } from '@/services/prices';
 const priceSeriesService = new PriceSeriesAPI(new PriceSeriesStorage());
 
 // Energy-related token contract IDs
@@ -20,6 +20,7 @@ export interface EnergyTokenPrices {
     lastUpdated: number;
     isStale: boolean;
     reliability: number; // Average confidence across all prices
+    confidence: number; // Add confidence property that was missing
 }
 
 export interface PriceError {
@@ -65,7 +66,8 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
         const errors: PriceError[] = [];
         const prices: Partial<EnergyTokenPrices> = {
             lastUpdated: now,
-            isStale: false
+            isStale: false,
+            confidence: 0
         };
 
         // Extract individual token prices
@@ -123,6 +125,7 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
         prices.reliability = availablePrices.length > 0
             ? availablePrices.reduce((sum, price) => sum + (price?.reliability || 0), 0) / availablePrices.length
             : 0;
+        prices.confidence = prices.reliability;
 
         // Cache the results
         cachedPrices = prices as EnergyTokenPrices;
@@ -180,7 +183,8 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
             },
             lastUpdated: now,
             isStale: true,
-            reliability: 0.5
+            reliability: 0.5,
+            confidence: 0.5
         };
 
         console.log('[EnergyPriceService] Using mock prices as fallback:', mockPrices);

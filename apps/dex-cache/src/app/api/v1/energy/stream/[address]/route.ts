@@ -6,9 +6,9 @@ import { calculateRealTimeEnergyStatus } from '@/lib/energy/real-time';
  */
 export async function GET(
     request: NextRequest,
-    { params }: { params: { address: string } }
+    { params }: { params: Promise<{ address: string }> }
 ) {
-    const userAddress = params.address;
+    const { address: userAddress } = await params;
     
     if (!userAddress) {
         return new Response('User address is required', { status: 400 });

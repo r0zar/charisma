@@ -8,9 +8,9 @@ import { fetchContractInfo } from '@/app/actions';
 export const revalidate = 300;
 
 interface VaultPageProps {
-    params: {
+    params: Promise<{
         vaultId: string;
-    };
+    }>;
 }
 
 // Calculate USD value based on token amount and price

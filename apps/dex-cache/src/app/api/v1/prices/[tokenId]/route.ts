@@ -30,12 +30,12 @@ interface RouteParams {
 
 export async function GET(
     request: Request,
-    { params }: { params: RouteParams }
+    { params }: { params: Promise<RouteParams> }
 ) {
     const startTime = Date.now();
 
     try {
-        const { tokenId } = params;
+        const { tokenId } = await params;
         const url = new URL(request.url);
         const includeDetails = url.searchParams.get('details') === 'true';
 
@@ -137,7 +137,7 @@ export async function GET(
         });
 
     } catch (error: any) {
-        console.error(`[Price API] Error fetching price for ${params.tokenId}:`, error);
+        console.error(`[Price API] Error fetching price:`, error);
 
         const processingTime = Date.now() - startTime;
 
