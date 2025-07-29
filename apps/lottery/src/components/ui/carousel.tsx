@@ -19,32 +19,35 @@ export function Carousel({
 }: CarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
 
+  // Ensure images is always an array
+  const safeImages = images || []
+
   // Auto-slide functionality
   useEffect(() => {
-    if (images.length <= 1 || autoSlideInterval <= 0) return
+    if (safeImages.length <= 1 || autoSlideInterval <= 0) return
 
     const interval = setInterval(() => {
       setCurrentIndex((prevIndex) => 
-        prevIndex === images.length - 1 ? 0 : prevIndex + 1
+        prevIndex === safeImages.length - 1 ? 0 : prevIndex + 1
       )
     }, autoSlideInterval)
 
     return () => clearInterval(interval)
-  }, [images.length, autoSlideInterval])
+  }, [safeImages.length, autoSlideInterval])
 
   const goToPrevious = () => {
-    setCurrentIndex(currentIndex === 0 ? images.length - 1 : currentIndex - 1)
+    setCurrentIndex(currentIndex === 0 ? safeImages.length - 1 : currentIndex - 1)
   }
 
   const goToNext = () => {
-    setCurrentIndex(currentIndex === images.length - 1 ? 0 : currentIndex + 1)
+    setCurrentIndex(currentIndex === safeImages.length - 1 ? 0 : currentIndex + 1)
   }
 
   const goToSlide = (index: number) => {
     setCurrentIndex(index)
   }
 
-  if (!images || images.length === 0) {
+  if (!safeImages || safeImages.length === 0) {
     return (
       <div className={`w-full h-48 bg-gray-100 rounded-lg flex items-center justify-center ${className}`}>
         <span className="text-gray-400 text-sm">No images available</span>
@@ -52,11 +55,11 @@ export function Carousel({
     )
   }
 
-  if (images.length === 1) {
+  if (safeImages.length === 1) {
     return (
       <div className={`relative w-full h-48 ${className}`}>
         <img
-          src={images[0]}
+          src={safeImages[0]}
           alt={alt}
           className="w-full h-full object-cover rounded-lg"
           onError={(e) => {
@@ -72,7 +75,7 @@ export function Carousel({
       {/* Main image */}
       <div className="relative w-full h-full overflow-hidden rounded-lg">
         <img
-          src={images[currentIndex]}
+          src={safeImages[currentIndex]}
           alt={`${alt} ${currentIndex + 1}`}
           className="w-full h-full object-cover transition-opacity duration-300"
           onError={(e) => {
@@ -104,7 +107,7 @@ export function Carousel({
 
       {/* Dots indicator */}
       <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
-        {images.map((_, index) => (
+        {safeImages.map((_, index) => (
           <button
             key={index}
             className={`w-2 h-2 rounded-full transition-colors duration-200 ${
@@ -118,7 +121,7 @@ export function Carousel({
 
       {/* Image counter */}
       <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded">
-        {currentIndex + 1} / {images.length}
+        {currentIndex + 1} / {safeImages.length}
       </div>
     </div>
   )

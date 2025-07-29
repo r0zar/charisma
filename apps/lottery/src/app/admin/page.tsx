@@ -114,7 +114,14 @@ export default function AdminPage() {
 
       // Populate forms
       if (result.data) {
-        setJackpotForm(result.data.currentJackpot)
+        // Handle backward compatibility: convert old imageUrl to new imageUrls array
+        const currentJackpot = result.data.currentJackpot
+        const migratedJackpot = {
+          ...currentJackpot,
+          imageUrls: currentJackpot.imageUrls || (currentJackpot.imageUrl ? [currentJackpot.imageUrl] : [])
+        }
+        
+        setJackpotForm(migratedJackpot)
         setConfigForm({
           ticketPrice: result.data.ticketPrice,
           format: result.data.format,

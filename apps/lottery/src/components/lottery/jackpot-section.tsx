@@ -159,7 +159,7 @@ export function JackpotSection() {
               <div className="flex-shrink-0 lg:flex-1 lg:flex lg:justify-center">
                 <div className="w-64 h-48 lg:w-80 lg:h-60">
                   <Carousel 
-                    images={jackpot.imageUrls}
+                    images={jackpot.imageUrls || []}
                     alt={jackpot.title}
                     autoSlideInterval={5000}
                     className="w-full h-full border-2 border-primary/20 shadow-lg"
