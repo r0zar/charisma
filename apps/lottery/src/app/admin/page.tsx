@@ -23,6 +23,7 @@ import {
   Loader2
 } from "lucide-react"
 import { LotteryConfig, PhysicalJackpot, LotteryFormat } from "@/types/lottery"
+import { Carousel } from "@/components/ui/carousel"
 
 export default function AdminPage() {
   const [config, setConfig] = useState<LotteryConfig | null>(null)
@@ -42,7 +43,7 @@ export default function AdminPage() {
   // Form states
   const [jackpotForm, setJackpotForm] = useState<PhysicalJackpot>({
     title: "",
-    imageUrl: "",
+    imageUrls: [],
     linkUrl: "",
     estimatedValue: 0
   })
@@ -411,9 +412,14 @@ export default function AdminPage() {
 
       const result = await response.json()
       
-      // Update the jackpot form with the new image URL
-      setJackpotForm(prev => ({ ...prev, imageUrl: result.data.url }))
-      setSuccess(`Image uploaded successfully (${(result.data.size / 1024).toFixed(1)} KB)`)
+      // Add the new image URL to the array (max 3 images)
+      setJackpotForm(prev => ({
+        ...prev,
+        imageUrls: prev.imageUrls.length < 3 
+          ? [...prev.imageUrls, result.data.url]
+          : [...prev.imageUrls.slice(1), result.data.url] // Replace oldest if at max
+      }))
+      setSuccess(`Image uploaded successfully (${(result.data.size / 1024).toFixed(1)} KB) - ${jackpotForm.imageUrls.length + 1}/3 images`)
       
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to upload image')
@@ -831,7 +837,7 @@ export default function AdminPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="jackpot-image">Prize Image</Label>
+                <Label htmlFor="jackpot-image">Prize Images (Carousel)</Label>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Input
@@ -839,23 +845,51 @@ export default function AdminPage() {
                       type="file"
                       accept="image/*"
                       onChange={handleImageUpload}
-                      disabled={imageUploading}
+                      disabled={imageUploading || jackpotForm.imageUrls.length >= 3}
                       className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
                     />
                     {imageUploading && (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     )}
                   </div>
-                  {jackpotForm.imageUrl && (
-                    <Input
-                      value={jackpotForm.imageUrl}
-                      onChange={(e) => setJackpotForm(prev => ({ ...prev, imageUrl: e.target.value }))}
-                      placeholder="Or enter image URL manually"
-                      className="text-xs"
-                    />
+                  
+                  {/* Display current images */}
+                  {jackpotForm.imageUrls.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-xs text-muted-foreground">
+                        Current images ({jackpotForm.imageUrls.length}/3):
+                      </div>
+                      {jackpotForm.imageUrls.map((url, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <Input
+                            value={url}
+                            onChange={(e) => {
+                              const newUrls = [...jackpotForm.imageUrls]
+                              newUrls[index] = e.target.value
+                              setJackpotForm(prev => ({ ...prev, imageUrls: newUrls }))
+                            }}
+                            placeholder={`Image ${index + 1} URL`}
+                            className="text-xs"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const newUrls = jackpotForm.imageUrls.filter((_, i) => i !== index)
+                              setJackpotForm(prev => ({ ...prev, imageUrls: newUrls }))
+                            }}
+                            className="text-xs"
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   )}
+                  
                   <div className="text-xs text-muted-foreground">
-                    Upload an image (JPEG, PNG, WebP, GIF) up to 5MB, or enter a URL manually below
+                    Upload up to 3 images for carousel (JPEG, PNG, WebP, GIF) up to 5MB each. Auto-slides every 5 seconds.
                   </div>
                 </div>
               </div>
@@ -887,15 +921,17 @@ export default function AdminPage() {
 
             <div className="space-y-4">
               <div className="text-sm font-medium">Preview</div>
-              {jackpotForm.imageUrl && (
-                <img
-                  src={jackpotForm.imageUrl}
+              {jackpotForm.imageUrls.length > 0 ? (
+                <Carousel 
+                  images={jackpotForm.imageUrls}
                   alt={jackpotForm.title}
-                  className="w-full h-48 object-cover rounded-lg border"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
+                  autoSlideInterval={5000}
+                  className="border"
                 />
+              ) : (
+                <div className="w-full h-48 bg-gray-100 rounded-lg border flex items-center justify-center">
+                  <span className="text-gray-400 text-sm">No images uploaded</span>
+                </div>
               )}
               <div className="space-y-2">
                 <div className="font-medium">{jackpotForm.title || 'Prize Title'}</div>

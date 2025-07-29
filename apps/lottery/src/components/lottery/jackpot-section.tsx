@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Trophy, ExternalLink } from 'lucide-react'
 import { DrawCountdown } from './draw-countdown'
 import { PhysicalJackpot } from '@/types/lottery'
+import { Carousel } from '@/components/ui/carousel'
 
 async function getCurrentJackpot(): Promise<PhysicalJackpot> {
   try {
@@ -154,13 +155,16 @@ export function JackpotSection() {
 
           {jackpot && (
             <div className="flex flex-col lg:flex-row items-center lg:items-center text-center lg:text-left gap-8 lg:gap-12">
-              {/* Jackpot Image */}
+              {/* Jackpot Image Carousel */}
               <div className="flex-shrink-0 lg:flex-1 lg:flex lg:justify-center">
-                <img
-                  src={jackpot.imageUrl}
-                  alt={jackpot.title}
-                  className="w-64 h-48 lg:w-80 lg:h-60 object-cover rounded-xl border-2 border-primary/20 shadow-lg"
-                />
+                <div className="w-64 h-48 lg:w-80 lg:h-60">
+                  <Carousel 
+                    images={jackpot.imageUrls}
+                    alt={jackpot.title}
+                    autoSlideInterval={5000}
+                    className="w-full h-full border-2 border-primary/20 shadow-lg"
+                  />
+                </div>
               </div>
 
               {/* Jackpot Details */}
