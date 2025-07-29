@@ -269,6 +269,16 @@ export default function AdminPage() {
         new Date(d.drawDate) > thirtyDaysAgo
       ).length
 
+      // Current draw analytics (non-archived tickets)
+      const currentDrawTickets = tickets.filter((t: any) => t.status !== 'archived')
+      const currentDrawConfirmed = currentDrawTickets.filter((t: any) => t.status === 'confirmed').length
+      const currentDrawPending = currentDrawTickets.filter((t: any) => t.status === 'pending').length
+      const currentDrawCancelled = currentDrawTickets.filter((t: any) => t.status === 'cancelled').length
+      const currentDrawRevenue = currentDrawTickets
+        .filter((t: any) => t.status === 'confirmed')
+        .reduce((sum: number, ticket: any) => sum + (ticket.purchasePrice || 0), 0)
+      const currentDrawUniqueWallets = new Set(currentDrawTickets.map((t: any) => t.walletAddress)).size
+
       setAnalytics({
         totalTickets,
         confirmedTickets,
@@ -283,7 +293,14 @@ export default function AdminPage() {
         recentConfirmedTickets,
         recentAllTickets,
         recentDraws,
-        averageTicketsPerDraw: totalDraws > 0 ? Math.round(totalTickets / totalDraws) : 0
+        averageTicketsPerDraw: totalDraws > 0 ? Math.round(totalTickets / totalDraws) : 0,
+        // Current draw analytics
+        currentDrawTickets: currentDrawTickets.length,
+        currentDrawConfirmed,
+        currentDrawPending,
+        currentDrawCancelled,
+        currentDrawRevenue,
+        currentDrawUniqueWallets
       })
 
     } catch (err) {
@@ -735,10 +752,6 @@ export default function AdminPage() {
                     <span className="text-sm">Cancelled</span>
                     <span className="font-mono text-red-600">{analytics.cancelledTickets.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Archived</span>
-                    <span className="font-mono text-gray-600">{analytics.archivedTickets.toLocaleString()}</span>
-                  </div>
                 </div>
               </div>
 
@@ -814,6 +827,118 @@ export default function AdminPage() {
           ) : (
             <div className="text-center py-8 text-muted-foreground">
               Analytics data not available. Click refresh to load.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Current Draw Analytics */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Ticket className="h-5 w-5" />
+                Current Draw Analytics
+              </CardTitle>
+              <CardDescription>
+                Active tickets for the current draw (resets after winner selection)
+              </CardDescription>
+            </div>
+            <Button
+              onClick={fetchAnalytics}
+              disabled={analyticsLoading}
+              variant="outline"
+              size="sm"
+            >
+              {analyticsLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Loading...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </>
+              )}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {analyticsLoading && !analytics ? (
+            <div className="text-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+              <div className="text-muted-foreground">Loading current draw analytics...</div>
+            </div>
+          ) : analytics ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Current Draw Tickets */}
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm text-muted-foreground">Active Tickets</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-lg font-medium">Total Active</span>
+                    <span className="font-mono font-bold text-lg text-blue-600">{analytics.currentDrawTickets.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Confirmed</span>
+                    <span className="font-mono text-green-600">{analytics.currentDrawConfirmed.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Pending</span>
+                    <span className="font-mono text-yellow-600">{analytics.currentDrawPending.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Cancelled</span>
+                    <span className="font-mono text-red-600">{analytics.currentDrawCancelled.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Current Draw Revenue */}
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm text-muted-foreground">Current Draw Revenue</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-lg font-medium">STONE Collected</span>
+                    <span className="font-mono font-bold text-lg text-orange-600">{analytics.currentDrawRevenue.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Unique Wallets</span>
+                    <span className="font-mono font-medium">{analytics.currentDrawUniqueWallets.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Avg per Wallet</span>
+                    <span className="font-mono text-sm">
+                      {analytics.currentDrawUniqueWallets > 0 ? (analytics.currentDrawRevenue / analytics.currentDrawUniqueWallets).toFixed(0) : '0'} STONE
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Current Draw Status */}
+              <div className="space-y-4">
+                <h4 className="font-medium text-sm text-muted-foreground">Draw Status</h4>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span className="text-sm">Ready for Export</span>
+                    <Badge variant={analytics.currentDrawConfirmed > 0 ? "default" : "secondary"}>
+                      {analytics.currentDrawConfirmed > 0 ? "Yes" : "No tickets"}
+                    </Badge>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Confirmation Rate</span>
+                    <span className="font-mono text-sm">
+                      {analytics.currentDrawTickets > 0 ? `${((analytics.currentDrawConfirmed / analytics.currentDrawTickets) * 100).toFixed(1)}%` : '0%'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              Current draw analytics not available. Click refresh to load.
             </div>
           )}
         </CardContent>
