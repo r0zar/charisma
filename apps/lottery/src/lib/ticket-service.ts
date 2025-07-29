@@ -4,10 +4,9 @@ import { lotteryConfigService } from './lottery-config'
 
 export class TicketService {
   
-  private generateTicketId(): string {
-    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '') // YYYYMMDD
-    const randomSuffix = Math.random().toString(36).substring(2, 12)
-    return `ticket-${timestamp}-${randomSuffix}`
+  private async generateTicketId(): Promise<string> {
+    const ticketNumber = await blobStorage.incrementTicketCounter()
+    return ticketNumber.toString().padStart(6, '0')
   }
 
   private generateRandomNumbers(maxNumber: number, count: number): number[] {
@@ -56,7 +55,7 @@ export class TicketService {
 
       // Create the ticket
       const ticket: LotteryTicket = {
-        id: this.generateTicketId(),
+        id: await this.generateTicketId(),
         drawId,
         walletAddress: request.walletAddress,
         numbers: config.format === 'traditional' ? [...request.numbers].sort((a, b) => a - b) : [], // Empty for simple format
@@ -97,7 +96,7 @@ export class TicketService {
       // Generate multiple tickets
       for (let i = 0; i < request.quantity; i++) {
         const ticket: LotteryTicket = {
-          id: this.generateTicketId(),
+          id: await this.generateTicketId(),
           drawId,
           walletAddress: request.walletAddress,
           numbers: config.format === 'traditional' 

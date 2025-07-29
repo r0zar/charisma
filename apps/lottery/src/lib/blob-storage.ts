@@ -4,6 +4,7 @@ import { LotteryConfig, LotteryDraw, LotteryTicket } from '@/types/lottery'
 const LOTTERY_CONFIG_KEY = 'lottery-config.json'
 const LOTTERY_RESULTS_PREFIX = 'lottery-results/'
 const LOTTERY_TICKETS_PREFIX = 'lottery-tickets/'
+const TICKET_COUNTER_KEY = 'ticket-counter.json'
 
 export class BlobStorageService {
   private token: string
@@ -350,6 +351,63 @@ export class BlobStorageService {
     } catch (error) {
       console.error(`Failed to delete lottery ticket ${ticketId}:`, error)
       throw new Error(`Failed to delete lottery ticket: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // Ticket Counter Methods
+  async getTicketCounter(): Promise<number> {
+    try {
+      const metadata = await head(TICKET_COUNTER_KEY, { token: this.token })
+      
+      if (!metadata?.url) {
+        return 1 // Start from 1 if no counter exists
+      }
+
+      const response = await fetch(metadata.url)
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+          return 1
+        }
+        throw new Error(`Failed to fetch counter: ${response.statusText}`)
+      }
+
+      const counterData = await response.json()
+      return counterData.counter || 1
+    } catch (error) {
+      if (error instanceof Error && (
+        error.message.includes('NotFound') || 
+        error.message.includes('BlobNotFound') ||
+        error.message.includes('404')
+      )) {
+        console.log('Counter blob not found, starting from 1')
+        return 1
+      }
+      
+      console.error('Failed to get ticket counter from blob storage:', error)
+      throw error
+    }
+  }
+
+  async incrementTicketCounter(): Promise<number> {
+    try {
+      const currentCounter = await this.getTicketCounter()
+      const newCounter = currentCounter + 1
+      
+      const counterData = { counter: newCounter }
+      const counterJson = JSON.stringify(counterData, null, 2)
+      
+      await put(TICKET_COUNTER_KEY, counterJson, {
+        access: 'public',
+        token: this.token,
+        contentType: 'application/json',
+        allowOverwrite: true,
+      })
+      
+      return currentCounter // Return the current counter before increment (the one to use)
+    } catch (error) {
+      console.error('Failed to increment ticket counter:', error)
+      throw new Error(`Failed to increment ticket counter: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 }

@@ -2,7 +2,7 @@ export type LotteryFormat = 'traditional' | 'simple'
 
 export interface PhysicalJackpot {
   title: string;              // Name/description of the physical item
-  imageUrl: string;           // URL to image of the item
+  imageUrls: string[];        // URLs to images of the item (up to 3 for carousel)
   linkUrl: string;            // URL to view more details about the item
   estimatedValue?: number;    // Optional estimated value in STONE for reference
 }
@@ -102,7 +102,7 @@ export const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
   nextDrawDate: "2025-01-26T20:00:00Z", // Next Saturday 8 PM
   currentJackpot: {
     title: "Rare Collectible NFT",
-    imageUrl: "https://via.placeholder.com/400x300?text=Jackpot+Prize",
+    imageUrls: ["https://via.placeholder.com/400x300?text=Jackpot+Prize"],
     linkUrl: "https://example.com/nft-details",
     estimatedValue: 125000000 // 125M STONE equivalent
   },

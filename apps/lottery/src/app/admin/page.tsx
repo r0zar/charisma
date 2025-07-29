@@ -28,15 +28,16 @@ export default function AdminPage() {
   const [config, setConfig] = useState<LotteryConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [drawLoading, setDrawLoading] = useState(false)
-  const [dryRunLoading, setDryRunLoading] = useState(false)
   const [exportLoading, setExportLoading] = useState(false)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
+  const [manualWinnerLoading, setManualWinnerLoading] = useState(false)
+  const [imageUploading, setImageUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [adminKey, setAdminKey] = useState("")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [analytics, setAnalytics] = useState<any>(null)
+  const [winningTicketId, setWinningTicketId] = useState("")
 
   // Form states
   const [jackpotForm, setJackpotForm] = useState<PhysicalJackpot>({
@@ -192,65 +193,6 @@ export default function AdminPage() {
     }
   }
 
-  const triggerDraw = async () => {
-    setDrawLoading(true)
-    setError(null)
-    setSuccess(null)
-
-    try {
-      const response = await fetch('/api/admin/lottery-draw', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-key': adminKey
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to trigger draw')
-      }
-
-      setSuccess('Lottery draw triggered successfully!')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to trigger draw')
-    } finally {
-      setDrawLoading(false)
-    }
-  }
-
-  const triggerDryRun = async () => {
-    setDryRunLoading(true)
-    setError(null)
-    setSuccess(null)
-
-    try {
-      const response = await fetch('/api/admin/lottery-draw', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-key': adminKey
-        },
-        body: JSON.stringify({ dryRun: true })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.text()
-        throw new Error(`Dry run test failed (${response.status}): ${errorData}`)
-      }
-
-      const result = await response.json()
-
-      if (result.data) {
-        setSuccess(`Dry run completed! ${result.data.totalTicketsSold} tickets processed, ${result.data.winners?.length || 0} winner(s) would be selected.`)
-      } else {
-        setSuccess('Dry run test completed successfully!')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to run dry run test')
-    } finally {
-      setDryRunLoading(false)
-    }
-  }
 
   const fetchAnalytics = async () => {
     setAnalyticsLoading(true)
@@ -281,6 +223,7 @@ export default function AdminPage() {
       const totalTickets = tickets.length
       const confirmedTickets = tickets.filter((t: any) => t.status === 'confirmed').length
       const pendingTickets = tickets.filter((t: any) => t.status === 'pending').length
+      const cancelledTickets = tickets.filter((t: any) => t.status === 'cancelled').length
       const archivedTickets = tickets.filter((t: any) => t.status === 'archived').length
       
       const uniqueWallets = new Set(tickets.map((t: any) => t.walletAddress)).size
@@ -304,7 +247,13 @@ export default function AdminPage() {
       const thirtyDaysAgo = new Date()
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
       
-      const recentTickets = tickets.filter((t: any) => 
+      // Prioritize confirmed tickets for main metric
+      const recentConfirmedTickets = tickets.filter((t: any) => 
+        new Date(t.purchaseDate) > thirtyDaysAgo && t.status === 'confirmed'
+      ).length
+      
+      // Also track all new tickets for additional context
+      const recentAllTickets = tickets.filter((t: any) => 
         new Date(t.purchaseDate) > thirtyDaysAgo
       ).length
 
@@ -316,13 +265,15 @@ export default function AdminPage() {
         totalTickets,
         confirmedTickets,
         pendingTickets,
+        cancelledTickets,
         archivedTickets,
         uniqueWallets,
         totalDraws,
         completedDraws,
         totalRevenue,
         totalPrizesAwarded,
-        recentTickets,
+        recentConfirmedTickets,
+        recentAllTickets,
         recentDraws,
         averageTicketsPerDraw: totalDraws > 0 ? Math.round(totalTickets / totalDraws) : 0
       })
@@ -354,71 +305,122 @@ export default function AdminPage() {
       const result = await response.json()
       const allTickets = result.data || []
 
-      // Filter to only active tickets (pending or confirmed, not archived)
+      // Filter to only confirmed tickets for external drawing
       const tickets = allTickets.filter((ticket: any) =>
-        ticket.status === 'pending' || ticket.status === 'confirmed'
+        ticket.status === 'confirmed'
       )
 
       if (tickets.length === 0) {
-        setError('No active tickets available for export')
+        setError('No confirmed tickets available for export')
         return
       }
 
-      // Create different export formats
+      // Create CSV export for external lottery drawing
       const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-')
 
-      // Format 1: Simple list (one ticket per line)
-      const simpleList = tickets.map((ticket: any) =>
-        `${ticket.id.slice(-6)} - ${ticket.walletAddress}`
-      ).join('\n')
-
-      // Format 2: CSV format
+      // CSV format optimized for external lottery drawing
+      // Quote ticket IDs to preserve leading zeros in Excel/Sheets
       const csvData = [
-        'Ticket ID,Wallet Address,Purchase Date,Status,Full Ticket ID',
+        'Ticket ID,Wallet Address,Purchase Date,Status',
         ...tickets.map((ticket: any) =>
-          `${ticket.id.slice(-6)},${ticket.walletAddress},${ticket.purchaseDate},${ticket.status},${ticket.id}`
+          `"${ticket.id}","${ticket.walletAddress}","${ticket.purchaseDate}","${ticket.status}"`
         )
       ].join('\n')
 
-      // Format 3: JSON format for advanced picker apps
-      const jsonData = JSON.stringify({
-        exportDate: new Date().toISOString(),
-        totalTickets: tickets.length,
-        format: 'lottery-export-v1',
-        tickets: tickets.map((ticket: any) => ({
-          shortId: ticket.id.slice(-6),
-          fullId: ticket.id,
-          walletAddress: ticket.walletAddress,
-          purchaseDate: ticket.purchaseDate,
-          status: ticket.status
-        }))
-      }, null, 2)
+      // Create and download CSV file
+      const blob = new Blob([csvData], { type: 'text/csv' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `lottery-tickets-${timestamp}.csv`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
 
-      // Create and download files
-      const downloads = [
-        { data: simpleList, filename: `lottery-tickets-simple-${timestamp}.txt`, type: 'text/plain' },
-        { data: csvData, filename: `lottery-tickets-${timestamp}.csv`, type: 'text/csv' },
-        { data: jsonData, filename: `lottery-tickets-${timestamp}.json`, type: 'application/json' }
-      ]
-
-      downloads.forEach(({ data, filename, type }) => {
-        const blob = new Blob([data], { type })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-      })
-
-      setSuccess(`Successfully exported ${tickets.length} tickets in 3 formats (TXT, CSV, JSON)`)
+      setSuccess(`Successfully exported ${tickets.length} confirmed tickets as CSV for external drawing`)
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to export tickets')
     } finally {
       setExportLoading(false)
+    }
+  }
+
+  const selectManualWinner = async () => {
+    setManualWinnerLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      if (!winningTicketId.trim()) {
+        setError('Please enter a winning ticket ID')
+        return
+      }
+
+      const response = await fetch('/api/admin/manual-winner', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminKey
+        },
+        body: JSON.stringify({
+          winningTicketId: winningTicketId.trim()
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to select manual winner')
+      }
+
+      const result = await response.json()
+      setSuccess(`Manual winner selected! Ticket ${result.metadata.winningTicketId} (${result.metadata.winnerWallet}) has won the jackpot. Draw ${result.data.id} created and ${result.metadata.ticketsArchived} tickets archived.`)
+      setWinningTicketId('') // Clear the input
+      fetchAnalytics() // Refresh analytics
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to select manual winner')
+    } finally {
+      setManualWinnerLoading(false)
+    }
+  }
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setImageUploading(true)
+    setError(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await fetch('/api/admin/upload-image', {
+        method: 'POST',
+        headers: {
+          'x-admin-key': adminKey
+        },
+        body: formData
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to upload image')
+      }
+
+      const result = await response.json()
+      
+      // Update the jackpot form with the new image URL
+      setJackpotForm(prev => ({ ...prev, imageUrl: result.data.url }))
+      setSuccess(`Image uploaded successfully (${(result.data.size / 1024).toFixed(1)} KB)`)
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to upload image')
+    } finally {
+      setImageUploading(false)
+      // Clear the input so the same file can be uploaded again if needed
+      event.target.value = ''
     }
   }
 
@@ -565,54 +567,19 @@ export default function AdminPage() {
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
+        {/* External Drawing Actions */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Play className="h-5 w-5" />
-              Quick Actions
+              <ExternalLink className="h-5 w-5" />
+              External Drawing
             </CardTitle>
+            <CardDescription>
+              Export tickets and select winners from external draws
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-3">
-              <Button
-                onClick={triggerDraw}
-                disabled={drawLoading || !config?.isActive}
-                className="w-full"
-                variant="default"
-              >
-                {drawLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Processing Draw...
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4 mr-2" />
-                    Trigger Draw Now
-                  </>
-                )}
-              </Button>
-
-              <Button
-                onClick={triggerDryRun}
-                disabled={dryRunLoading || !config?.isActive}
-                className="w-full"
-                variant="outline"
-              >
-                {dryRunLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Running Test...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Dry Run Test Draw
-                  </>
-                )}
-              </Button>
-
               <Button
                 onClick={exportTickets}
                 disabled={exportLoading}
@@ -628,6 +595,44 @@ export default function AdminPage() {
                   <>
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Export for External Draw
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <div className="text-sm font-medium text-muted-foreground">Manual Winner Selection</div>
+              <div className="space-y-2">
+                <Label htmlFor="winning-ticket-id">Winning Ticket ID</Label>
+                <Input
+                  id="winning-ticket-id"
+                  value={winningTicketId}
+                  onChange={(e) => setWinningTicketId(e.target.value)}
+                  placeholder="e.g., 000042"
+                  className="font-mono"
+                />
+                <div className="text-xs text-muted-foreground">
+                  Enter the ticket ID from external drawing (live stream, random picker, etc.)
+                </div>
+              </div>
+              
+              <Button
+                onClick={selectManualWinner}
+                disabled={manualWinnerLoading || !winningTicketId.trim()}
+                className="w-full"
+                variant="destructive"
+              >
+                {manualWinnerLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Selecting Winner...
+                  </>
+                ) : (
+                  <>
+                    <Trophy className="h-4 w-4 mr-2" />
+                    Select Manual Winner
                   </>
                 )}
               </Button>
@@ -714,6 +719,10 @@ export default function AdminPage() {
                     <span className="font-mono text-yellow-600">{analytics.pendingTickets.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
+                    <span className="text-sm">Cancelled</span>
+                    <span className="font-mono text-red-600">{analytics.cancelledTickets.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-sm">Archived</span>
                     <span className="font-mono text-gray-600">{analytics.archivedTickets.toLocaleString()}</span>
                   </div>
@@ -769,8 +778,12 @@ export default function AdminPage() {
                 <h4 className="font-medium text-sm text-muted-foreground">Last 30 Days</h4>
                 <div className="space-y-3">
                   <div className="flex justify-between">
-                    <span className="text-sm">New Tickets</span>
-                    <span className="font-mono font-medium text-blue-600">{analytics.recentTickets.toLocaleString()}</span>
+                    <span className="text-sm">Confirmed Tickets</span>
+                    <span className="font-mono font-medium text-blue-600">{analytics.recentConfirmedTickets.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">All New Tickets</span>
+                    <span className="font-mono text-gray-600">{analytics.recentAllTickets.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-sm">New Draws</span>
@@ -779,7 +792,7 @@ export default function AdminPage() {
                   <div className="flex justify-between">
                     <span className="text-sm">Activity Rate</span>
                     <span className="font-mono text-sm">
-                      {analytics.recentTickets > 0 ? `${(analytics.recentTickets / 30).toFixed(1)}/day` : '0/day'}
+                      {analytics.recentConfirmedTickets > 0 ? `${(analytics.recentConfirmedTickets / 30).toFixed(1)}/day` : '0/day'}
                     </span>
                   </div>
                 </div>
@@ -818,13 +831,33 @@ export default function AdminPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="jackpot-image">Image URL</Label>
-                <Input
-                  id="jackpot-image"
-                  value={jackpotForm.imageUrl}
-                  onChange={(e) => setJackpotForm(prev => ({ ...prev, imageUrl: e.target.value }))}
-                  placeholder="https://example.com/image.jpg"
-                />
+                <Label htmlFor="jackpot-image">Prize Image</Label>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      id="jackpot-image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={imageUploading}
+                      className="file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-medium file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+                    />
+                    {imageUploading && (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    )}
+                  </div>
+                  {jackpotForm.imageUrl && (
+                    <Input
+                      value={jackpotForm.imageUrl}
+                      onChange={(e) => setJackpotForm(prev => ({ ...prev, imageUrl: e.target.value }))}
+                      placeholder="Or enter image URL manually"
+                      className="text-xs"
+                    />
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    Upload an image (JPEG, PNG, WebP, GIF) up to 5MB, or enter a URL manually below
+                  </div>
+                </div>
               </div>
 
               <div className="space-y-2">
