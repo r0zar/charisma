@@ -40,22 +40,6 @@ async function getPastDraws() {
   }
 }
 
-async function getWinningTickets(drawId: string) {
-  try {
-    const response = await fetch(`/api/v1/lottery/results/${drawId}/tickets`)
-    const result = await response.json()
-
-    if (!response.ok || !result.success) {
-      // If the endpoint doesn't exist, return empty array
-      return []
-    }
-
-    return result.data || []
-  } catch (error) {
-    console.error('Failed to get winning tickets:', error)
-    return []
-  }
-}
 
 function copyToClipboard(text: string) {
   navigator.clipboard.writeText(text)
@@ -67,8 +51,6 @@ export default function ResultsPage() {
   const [pastDraws, setPastDraws] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
-  const [winningTickets, setWinningTickets] = useState<Record<string, any[]>>({})
-  const [expandedDraws, setExpandedDraws] = useState<Set<string>>(new Set())
 
   // Get lottery format
   const lotteryFormat = getLotteryFormat()
@@ -95,27 +77,6 @@ export default function ResultsPage() {
     }
   }
 
-  const loadWinningTickets = async (drawId: string) => {
-    if (winningTickets[drawId]) return // Already loaded
-
-    try {
-      const tickets = await getWinningTickets(drawId)
-      setWinningTickets(prev => ({ ...prev, [drawId]: tickets }))
-    } catch (err) {
-      console.error('Failed to load winning tickets for draw:', drawId, err)
-    }
-  }
-
-  const toggleExpandDraw = (drawId: string) => {
-    const newExpanded = new Set(expandedDraws)
-    if (newExpanded.has(drawId)) {
-      newExpanded.delete(drawId)
-    } else {
-      newExpanded.add(drawId)
-      loadWinningTickets(drawId) // Load tickets when expanding
-    }
-    setExpandedDraws(newExpanded)
-  }
 
   useEffect(() => {
     if (mounted) {
@@ -245,181 +206,133 @@ export default function ResultsPage() {
                 ) : (
                   pastDraws.map((draw: any) => (
                     <Card key={draw.id} className="border-border/40">
-                      <CardHeader className="pb-3">
+                      <CardHeader className="pb-4">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div>
-                              <CardTitle className="text-lg font-mono">
-                                Draw #{draw.id}
-                              </CardTitle>
-                              <CardDescription>
-                                {new Date(draw.drawDate).toLocaleDateString()} at {new Date(draw.drawDate).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })} • {draw.totalTicketsSold} tickets sold
-                              </CardDescription>
-                            </div>
+                          <div>
+                            <CardTitle className="text-2xl font-mono font-bold">
+                              Draw #{draw.id}
+                            </CardTitle>
+                            <CardDescription className="text-base mt-1">
+                              {new Date(draw.drawDate).toLocaleDateString()} at {new Date(draw.drawDate).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })} • {draw.totalTicketsSold} tickets sold
+                            </CardDescription>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {draw.winners.length > 0 && (
-                              <Badge variant="default" className="bg-green-100 text-green-800">
-                                {draw.winners[0].winnerCount} Winner{draw.winners[0].winnerCount !== 1 ? 's' : ''}
-                              </Badge>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => toggleExpandDraw(draw.id)}
-                            >
-                              {expandedDraws.has(draw.id) ? 'Hide Details' : 'Prize Details'}
-                            </Button>
-                          </div>
+                          {draw.winners.length > 0 && (
+                            <Badge variant="default" className="bg-green-100 text-green-800 text-lg py-2 px-4">
+                              🏆 {draw.winners[0].winnerCount} Winner{draw.winners[0].winnerCount !== 1 ? 's' : ''}
+                            </Badge>
+                          )}
                         </div>
                       </CardHeader>
 
-                      <CardContent className="pt-0">
-                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {/* Winning Numbers or Format Info */}
-                          <div>
-                            <div className="text-sm font-medium text-muted-foreground mb-2">
-                              {lotteryFormat === 'traditional' ? 'Winning Numbers' : 'Lottery Format'}
+                      <CardContent className="pt-0 space-y-6">
+                        {/* Prize Information - Always Visible */}
+                        <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg p-6">
+                          <h3 className="text-lg font-semibold text-primary mb-3">🎁 Prize Won</h3>
+                          {typeof draw.jackpotAmount === 'object' ? (
+                            <div className="space-y-3">
+                              <div className="text-xl font-bold">{draw.jackpotAmount.title}</div>
+                              {draw.jackpotAmount.estimatedValue && (
+                                <div className="text-lg text-green-600 font-semibold">
+                                  Estimated Value: ${(draw.jackpotAmount.estimatedValue / 1000).toLocaleString()} USD
+                                </div>
+                              )}
+                              <Button
+                                variant="outline"
+                                size="lg"
+                                className="mt-2"
+                                onClick={() => window.open(draw.jackpotAmount.linkUrl, '_blank')}
+                              >
+                                View Prize Details <ExternalLink className="h-4 w-4 ml-2" />
+                              </Button>
                             </div>
-                            {lotteryFormat === 'traditional' ? (
-                              <div className="flex gap-1 flex-wrap">
+                          ) : (
+                            <div className="text-xl font-bold">
+                              {draw.jackpotAmount.toLocaleString()} STONE
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Winner Information - Always Visible and Prominent */}
+                        {draw.winners.length > 0 ? (
+                          <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-green-800 mb-4">🏆 Winner Information</h3>
+                            
+                            {draw.winnerWalletAddress ? (
+                              <div className="space-y-4">
+                                <div>
+                                  <div className="text-sm font-medium text-green-700 mb-2">STX Wallet Address:</div>
+                                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                                    <span className="font-mono text-lg font-bold text-green-800 break-all">
+                                      {draw.winnerWalletAddress}
+                                    </span>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => copyToClipboard(draw.winnerWalletAddress!)}
+                                      className="flex-shrink-0"
+                                    >
+                                      <Copy className="h-4 w-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                                
+                                {draw.winningTicketId && (
+                                  <div>
+                                    <div className="text-sm font-medium text-green-700 mb-2">Winning Ticket:</div>
+                                    <div className="font-mono text-xl font-bold text-green-800">
+                                      #{draw.winningTicketId}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="text-green-700">
+                                {draw.winners[0].winnerCount} Winner{draw.winners[0].winnerCount !== 1 ? 's' : ''} Selected
+                                {lotteryFormat === 'traditional' && (
+                                  <div className="text-sm text-green-600 mt-1">
+                                    {draw.winners[0].matchCount} number matches
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-6 text-center">
+                            <div className="text-lg font-semibold text-gray-600">No Winner This Draw</div>
+                            <div className="text-sm text-gray-500 mt-1">Prize rolls over to next draw</div>
+                          </div>
+                        )}
+
+                        {/* Lottery Format Info */}
+                        <div className="text-center pt-2 border-t border-border/20">
+                          {lotteryFormat === 'traditional' ? (
+                            <div>
+                              <div className="text-sm font-medium text-muted-foreground mb-2">Winning Numbers</div>
+                              <div className="flex gap-2 justify-center flex-wrap">
                                 {draw.winningNumbers.map((number: number, index: number) => (
                                   <div
                                     key={index}
-                                    className="w-8 h-8 rounded-full bg-yellow-500 text-white text-sm font-bold flex items-center justify-center"
+                                    className="w-10 h-10 rounded-full bg-yellow-500 text-white font-bold flex items-center justify-center"
                                   >
                                     {number}
                                   </div>
                                 ))}
                               </div>
-                            ) : (
-                              <div className="text-sm">
-                                <Badge variant="secondary">Simple Random Draw</Badge>
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  One random ticket selected as winner
-                                </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <Badge variant="secondary" className="text-base py-1 px-3">
+                                Simple Random Draw
+                              </Badge>
+                              <div className="text-sm text-muted-foreground mt-1">
+                                One random ticket selected as winner
                               </div>
-                            )}
-                          </div>
-
-                          {/* Prize Information */}
-                          <div>
-                            <div className="text-sm font-medium text-muted-foreground mb-2">Prize</div>
-                            <div>
-                              {typeof draw.jackpotAmount === 'object' ? (
-                                <div className="space-y-1">
-                                  <div className="text-sm font-medium">{draw.jackpotAmount.title}</div>
-                                  {draw.jackpotAmount.estimatedValue && (
-                                    <div className="text-xs text-muted-foreground">
-                                      Est. ${(draw.jackpotAmount.estimatedValue / 1000).toLocaleString()} USD
-                                    </div>
-                                  )}
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="p-0 h-auto text-xs"
-                                    onClick={() => window.open(draw.jackpotAmount.linkUrl, '_blank')}
-                                  >
-                                    View Prize <ExternalLink className="h-3 w-3 ml-1" />
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="text-sm font-medium">
-                                  {draw.jackpotAmount.toLocaleString()} STONE
-                                </div>
-                              )}
                             </div>
-                          </div>
-
-                          {/* Winner Summary */}
-                          <div>
-                            <div className="text-sm font-medium text-muted-foreground mb-2">Winner Status</div>
-                            <div>
-                              {draw.winners.length > 0 ? (
-                                <div className="text-sm space-y-1">
-                                  <div className="font-medium text-green-600">
-                                    {draw.winners[0].winnerCount} Winner{draw.winners[0].winnerCount !== 1 ? 's' : ''}
-                                  </div>
-                                  {lotteryFormat === 'traditional' && (
-                                    <div className="text-xs text-muted-foreground">
-                                      {draw.winners[0].matchCount} number matches
-                                    </div>
-                                  )}
-                                  {draw.winnerWalletAddress && (
-                                    <div className="flex items-center gap-1">
-                                      <span className="font-mono text-xs text-muted-foreground">
-                                        {draw.winnerWalletAddress.slice(0, 8)}...{draw.winnerWalletAddress.slice(-4)}
-                                      </span>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => copyToClipboard(draw.winnerWalletAddress!)}
-                                        className="p-0 h-auto text-xs"
-                                      >
-                                        <Copy className="h-3 w-3" />
-                                      </Button>
-                                    </div>
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="text-sm text-muted-foreground">
-                                  No winner this draw
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                          )}
                         </div>
-
-                        {/* Expanded Details - Winner Addresses */}
-                        {expandedDraws.has(draw.id) && (
-                          <div className="mt-6 pt-4 border-t border-border/40">
-                            <div className="text-sm font-medium text-muted-foreground mb-3">
-                              Winner Details
-                            </div>
-                            {winningTickets[draw.id] ? (
-                              winningTickets[draw.id].length > 0 ? (
-                                <div className="space-y-2">
-                                  {winningTickets[draw.id].map((ticket: any, index: number) => (
-                                    <div key={ticket.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                                      <div className="flex items-center gap-3">
-                                        <Trophy className="h-4 w-4 text-green-600" />
-                                        <div>
-                                          <div className="font-mono text-sm">#{ticket.id.slice(-6)}</div>
-                                          <div className="text-xs text-muted-foreground">Winning Ticket</div>
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center gap-2">
-                                        <div className="text-right">
-                                          <div className="font-mono text-sm">{ticket.walletAddress}</div>
-                                          <div className="text-xs text-muted-foreground">Winner Address</div>
-                                        </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => copyToClipboard(ticket.walletAddress)}
-                                          className="p-1 h-auto"
-                                        >
-                                          <Copy className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="text-sm text-muted-foreground">
-                                  No winning tickets found for this draw
-                                </div>
-                              )
-                            ) : (
-                              <div className="text-sm text-muted-foreground">
-                                Loading winner details...
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </CardContent>
                     </Card>
                   ))
