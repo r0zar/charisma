@@ -37,7 +37,7 @@ export default function AdminPage() {
   const [success, setSuccess] = useState<string | null>(null)
   const [adminKey, setAdminKey] = useState("")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [analytics, setAnalytics] = useState<any>(null)
+  const [analytics, setAnalytics] = useState<any>({})
   const [winningTicketId, setWinningTicketId] = useState("")
 
   // Form states
@@ -238,18 +238,6 @@ export default function AdminPage() {
       const totalDraws = draws.length
       const completedDraws = draws.filter((d: any) => d.status === 'completed').length
       
-      // Calculate total revenue (STONE burned)
-      const totalRevenue = tickets
-        .filter((t: any) => t.status === 'confirmed' || t.status === 'archived')
-        .reduce((sum: number, ticket: any) => sum + (ticket.purchasePrice || 0), 0)
-
-      // Calculate total prizes awarded (for legacy STONE prizes)
-      const totalPrizesAwarded = draws
-        .filter((d: any) => d.status === 'completed')
-        .reduce((sum: number, draw: any) => {
-          return sum + (draw.winners?.reduce((prizeSum: number, winner: any) => 
-            prizeSum + (winner.totalPrize || 0), 0) || 0)
-        }, 0)
 
       // Recent activity (last 30 days)
       const thirtyDaysAgo = new Date()
@@ -274,9 +262,6 @@ export default function AdminPage() {
       const currentDrawConfirmed = currentDrawTickets.filter((t: any) => t.status === 'confirmed').length
       const currentDrawPending = currentDrawTickets.filter((t: any) => t.status === 'pending').length
       const currentDrawCancelled = currentDrawTickets.filter((t: any) => t.status === 'cancelled').length
-      const currentDrawRevenue = currentDrawTickets
-        .filter((t: any) => t.status === 'confirmed')
-        .reduce((sum: number, ticket: any) => sum + (ticket.purchasePrice || 0), 0)
       const currentDrawUniqueWallets = new Set(currentDrawTickets.map((t: any) => t.walletAddress)).size
 
       setAnalytics({
@@ -288,8 +273,6 @@ export default function AdminPage() {
         uniqueWallets,
         totalDraws,
         completedDraws,
-        totalRevenue,
-        totalPrizesAwarded,
         recentConfirmedTickets,
         recentAllTickets,
         recentDraws,
@@ -299,7 +282,6 @@ export default function AdminPage() {
         currentDrawConfirmed,
         currentDrawPending,
         currentDrawCancelled,
-        currentDrawRevenue,
         currentDrawUniqueWallets
       })
 
@@ -778,26 +760,6 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Revenue Statistics */}
-              <div className="space-y-4">
-                <h4 className="font-medium text-sm text-muted-foreground">Revenue (STONE Burned)</h4>
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-sm">Total Revenue</span>
-                    <span className="font-mono font-medium text-orange-600">{analytics.totalRevenue.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Legacy Prizes</span>
-                    <span className="font-mono text-purple-600">{analytics.totalPrizesAwarded.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Net Burned</span>
-                    <span className="font-mono font-medium text-red-600">
-                      {(analytics.totalRevenue - analytics.totalPrizesAwarded).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
 
               {/* Recent Activity */}
               <div className="space-y-4">
@@ -896,23 +858,13 @@ export default function AdminPage() {
                 </div>
               </div>
 
-              {/* Current Draw Revenue */}
+              {/* Current Draw Participants */}
               <div className="space-y-4">
-                <h4 className="font-medium text-sm text-muted-foreground">Current Draw Revenue</h4>
+                <h4 className="font-medium text-sm text-muted-foreground">Current Draw Participants</h4>
                 <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-lg font-medium">STONE Collected</span>
-                    <span className="font-mono font-bold text-lg text-orange-600">{analytics.currentDrawRevenue.toLocaleString()}</span>
-                  </div>
                   <div className="flex justify-between">
                     <span className="text-sm">Unique Wallets</span>
                     <span className="font-mono font-medium">{analytics.currentDrawUniqueWallets.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-sm">Avg per Wallet</span>
-                    <span className="font-mono text-sm">
-                      {analytics.currentDrawUniqueWallets > 0 ? (analytics.currentDrawRevenue / analytics.currentDrawUniqueWallets).toFixed(0) : '0'} STONE
-                    </span>
                   </div>
                 </div>
               </div>
