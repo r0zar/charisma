@@ -150,55 +150,67 @@ export function JackpotSection() {
       <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-accent/5 animate-pulse"></div>
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-accent to-primary animate-pulse"></div>
 
-      <CardContent className="py-8 relative z-10">
-        <div className="space-y-6">
+      <CardContent className="py-12 px-8 relative z-10">
+        <div className="space-y-8">
 
           {jackpot && (
-            <div className="flex flex-col lg:flex-row items-center lg:items-center text-center lg:text-left gap-8 lg:gap-12">
-              {/* Jackpot Image Carousel */}
-              <div className="flex-shrink-0 lg:flex-1 lg:flex lg:justify-center">
-                <div className="w-64 h-48 lg:w-80 lg:h-60">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center min-h-[400px]">
+              {/* Jackpot Image Carousel - Enhanced */}
+              <div className="flex justify-center lg:justify-start">
+                <div className="w-full max-w-md lg:max-w-lg aspect-[4/3]">
                   <Carousel 
                     images={jackpot.imageUrls || []}
                     alt={jackpot.title}
                     autoSlideInterval={5000}
-                    className="w-full h-full border-2 border-primary/20 shadow-lg"
+                    className="w-full h-full border-2 border-primary/30 shadow-2xl rounded-xl overflow-hidden"
                   />
                 </div>
               </div>
 
-              {/* Jackpot Details */}
-              <div className="lg:flex-1 space-y-4 lg:space-y-6 max-w-lg lg:max-w-none">
-                <h3 className="text-4xl lg:text-5xl font-bold text-primary font-vegas-numbers leading-tight">
-                  {jackpot.title}
-                </h3>
+              {/* Jackpot Details - Enhanced */}
+              <div className="space-y-6 lg:space-y-8 text-center lg:text-left">
+                <div className="space-y-4">
+                  <Badge variant="outline" className="text-lg py-2 px-4 glow-secondary border-primary/30">
+                    <Trophy className="h-5 w-5 mr-2" />
+                    Current Jackpot
+                  </Badge>
+                  
+                  <h3 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary font-vegas-numbers leading-tight">
+                    {jackpot.title}
+                  </h3>
 
-                {jackpot.estimatedValue && (
-                  <div className="text-xl lg:text-2xl text-muted-foreground font-medium">
-                    Estimated value: ${(jackpot.estimatedValue / 1000).toLocaleString()} USD
-                  </div>
-                )}
+                  {jackpot.estimatedValue && (
+                    <div className="text-2xl lg:text-3xl text-muted-foreground font-medium">
+                      Estimated value: <span className="text-green-600 font-bold">${(jackpot.estimatedValue / 1000).toLocaleString()} USD</span>
+                    </div>
+                  )}
+                </div>
 
-                <div className="flex justify-center lg:justify-start pt-2">
+                <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4 pt-4">
                   <Button
                     variant="outline"
                     size="lg"
-                    className="flex items-center gap-2 px-6 py-3"
+                    className="flex items-center gap-2 px-8 py-4 text-lg hover:bg-primary/10 hover:border-primary/50 transition-all"
                     onClick={() => window.open(jackpot.linkUrl, '_blank')}
                   >
-                    <ExternalLink className="h-4 w-4" />
-                    View Details
+                    <ExternalLink className="h-5 w-5" />
+                    View Prize Details
                   </Button>
                 </div>
               </div>
             </div>
           )}
 
-          <div className="text-center space-y-3 pt-4">
-            <div className="text-muted-foreground font-medium">
+          {/* Countdown Section - Enhanced */}
+          <div className="text-center space-y-4 pt-8 border-t border-primary/20">
+            <div className="text-muted-foreground font-medium text-xl">
               Next draw in:
             </div>
-            {nextDrawDate && <DrawCountdown targetDate={new Date(nextDrawDate)} />}
+            {nextDrawDate && (
+              <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg p-6">
+                <DrawCountdown targetDate={new Date(nextDrawDate)} />
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

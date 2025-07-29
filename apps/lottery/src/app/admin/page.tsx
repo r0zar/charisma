@@ -712,7 +712,7 @@ export default function AdminPage() {
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
               <div className="text-muted-foreground">Loading analytics...</div>
             </div>
-          ) : analytics ? (
+          ) : analytics && analytics.totalTickets !== undefined ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Ticket Statistics */}
               <div className="space-y-4">
@@ -833,7 +833,7 @@ export default function AdminPage() {
               <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
               <div className="text-muted-foreground">Loading current draw analytics...</div>
             </div>
-          ) : analytics ? (
+          ) : analytics && analytics.currentDrawTickets !== undefined ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Current Draw Tickets */}
               <div className="space-y-4">
