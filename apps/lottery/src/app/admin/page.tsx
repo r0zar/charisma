@@ -293,7 +293,7 @@ export default function AdminPage() {
         recentConfirmedTickets,
         recentAllTickets,
         recentDraws,
-        averageTicketsPerDraw: totalDraws > 0 ? Math.round(totalTickets / totalDraws) : 0,
+        averageTicketsPerDraw: totalDraws > 0 ? Math.round(confirmedTickets / totalDraws) : 0,
         // Current draw analytics
         currentDrawTickets: currentDrawTickets.length,
         currentDrawConfirmed,
