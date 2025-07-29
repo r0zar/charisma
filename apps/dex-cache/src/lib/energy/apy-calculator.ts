@@ -46,6 +46,7 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
     const result: EnergyTokenPrices = {
         lastUpdated: now,
         isStale: false,
+        reliability: 0.8, // Default reliability
         confidence: 0.8 // Default confidence
     };
 
@@ -61,8 +62,10 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
             symbol: 'HOOT',
             usdPrice: hootPrice,
             sbtcRatio: hootPrice / 65000, // Assume BTC ~$65k
+            reliability: 0.8,
             confidence: 0.8,
-            lastUpdated: now
+            lastUpdated: now,
+            source: 'market'
         };
     }
 
@@ -72,8 +75,10 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
             symbol: 'ENERGY',
             usdPrice: energyPrice,
             sbtcRatio: energyPrice / 65000,
+            reliability: 0.8,
             confidence: 0.8,
-            lastUpdated: now
+            lastUpdated: now,
+            source: 'market'
         };
     }
 
@@ -83,8 +88,10 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
             symbol: 'CHARISMA',
             usdPrice: charismaPrice,
             sbtcRatio: charismaPrice / 65000,
+            reliability: 0.8,
             confidence: 0.8,
-            lastUpdated: now
+            lastUpdated: now,
+            source: 'market'
         };
     }
 
@@ -94,8 +101,10 @@ export function convertPriceMapToEnergyTokenPrices(priceMap: Record<string, numb
             symbol: 'DEXTERITY',
             usdPrice: dexterityPrice,
             sbtcRatio: dexterityPrice / 65000,
+            reliability: 0.8,
             confidence: 0.8,
-            lastUpdated: now
+            lastUpdated: now,
+            source: 'market'
         };
     }
 
@@ -128,6 +137,7 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
     const result: EnergyTokenPrices = {
         lastUpdated: now,
         isStale: false,
+        reliability: 0.8, // Default reliability
         confidence: 0.8 // Default confidence
     };
 
@@ -138,8 +148,10 @@ export function convertKraxelPricesToEnergyTokenPrices(kraxelPrices: KraxelPrice
             symbol: 'HOOT',
             usdPrice: hootPrice.usdPrice,
             sbtcRatio: hootPrice.usdPrice / 65000, // Assume BTC ~$65k
+            reliability: hootPrice.confidence || 0.8,
             confidence: hootPrice.confidence || 0.8,
-            lastUpdated: now
+            lastUpdated: now,
+            source: 'market'
         };
     }
 

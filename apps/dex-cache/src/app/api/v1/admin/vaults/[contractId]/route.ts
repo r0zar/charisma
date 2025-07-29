@@ -5,9 +5,9 @@ import { withAdminAuth } from '@/lib/auth'; // Import the HOF
 // TODO: Add authentication/authorization check here for admin access
 
 interface VaultParams {
-    params: {
+    params: Promise<{
         contractId: string;
-    };
+    }>;
 }
 
 /**
@@ -16,7 +16,7 @@ interface VaultParams {
  * Requires admin privileges.
  */
 const getHandler = async (request: NextRequest, { params }: VaultParams) => {
-    const { contractId } = params;
+    const { contractId } = await params;
 
     if (!contractId) {
         return NextResponse.json({ status: 'error', message: 'Contract ID is required' }, { status: 400 });
@@ -51,7 +51,7 @@ const getHandler = async (request: NextRequest, { params }: VaultParams) => {
  * Expects a JSON body with properties to update.
  */
 const patchHandler = async (request: NextRequest, { params }: VaultParams) => {
-    const { contractId } = params;
+    const { contractId } = await params;
 
     if (!contractId) {
         return NextResponse.json({ status: 'error', message: 'Contract ID is required' }, { status: 400 });

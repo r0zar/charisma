@@ -241,7 +241,7 @@ export default async function EnergySystemStatsServer() {
                                                 <div className="flex items-center gap-3">
                                                     {(vault?.image || contractMetadata?.image) && (
                                                         <img 
-                                                            src={vault?.image || contractMetadata?.image} 
+                                                            src={vault?.image || contractMetadata?.image || ''} 
                                                             alt={vault?.name || contractId.split('.')[1]} 
                                                             className="w-6 h-6 rounded-full"
                                                         />

@@ -5,6 +5,7 @@ export interface TokenPriceData {
     usdPrice: number;
     sbtcRatio: number;
     reliability: number;
+    confidence: number;
     lastUpdated: number;
     source: string;
 }
@@ -40,12 +41,14 @@ export class PriceSeriesAPI {
 
             data.prices.forEach((price: any) => {
                 if (tokenIds.includes(price.token_contract_id)) {
+                    const reliability = Math.min(1, Math.max(0, 1 - (price.final_convergence_percent || 0) / 100));
                     prices[price.token_contract_id] = {
                         tokenId: price.token_contract_id,
                         symbol: price.token_contract_id.split('.').pop()?.toUpperCase() || 'UNKNOWN',
                         usdPrice: price.usd_price,
                         sbtcRatio: price.sbtc_price,
-                        reliability: Math.min(1, Math.max(0, 1 - (price.final_convergence_percent || 0) / 100)),
+                        reliability: reliability,
+                        confidence: reliability,
                         lastUpdated: new Date(price.calculated_at).getTime(),
                         source: 'lakehouse'
                     };
