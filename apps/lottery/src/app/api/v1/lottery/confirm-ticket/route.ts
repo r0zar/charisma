@@ -32,9 +32,9 @@ const BURN_ADDRESS = 'SP000000000000000000002Q6VF78'
 // Create tx-monitor client with proper configuration using service discovery
 const txMonitorClient = createTxMonitorClient({
   baseUrl: getHostUrl('tx-monitor'),
-  timeout: 30000,
-  retryAttempts: 3,
-  retryDelay: 2000
+  timeout: 10000, // Shorter timeout to fail faster
+  retryAttempts: 1, // Single retry to avoid long delays
+  retryDelay: 1000
 })
 
 async function validateBurnTransaction(txId: string, expectedAmount: number, walletAddress: string) {
@@ -46,7 +46,15 @@ async function validateBurnTransaction(txId: string, expectedAmount: number, wal
       await txMonitorClient.addToQueue([txId])
       console.log(`Added transaction ${txId} to monitoring queue`)
     } catch (queueError) {
-      console.error(`Failed to add transaction to monitoring queue:`, queueError)
+      console.error(`Failed to add transaction to monitoring queue:`)
+      console.error(`Error type: ${queueError.constructor.name}`)
+      console.error(`Error message: ${queueError.message}`)
+      if (queueError.status) {
+        console.error(`HTTP status: ${queueError.status}`)
+      }
+      if (queueError.cause) {
+        console.error(`Underlying cause: ${queueError.cause}`)
+      }
       // Continue with direct validation if queue fails
       console.log(`Proceeding with direct transaction validation...`)
     }
