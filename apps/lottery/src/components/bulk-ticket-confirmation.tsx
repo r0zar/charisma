@@ -317,9 +317,16 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
               </div>
             )}
             {txId && !error && (
-              <div className="flex items-center gap-1 text-xs text-blue-600">
-                <ExternalLink className="h-3 w-3" />
-                <span>Bulk TX: {txId.slice(0, 6)}...{txId.slice(-6)} - Waiting for confirmation...</span>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-blue-600">Bulk transaction waiting for confirmation...</span>
+                <TransactionLink 
+                  txId={txId} 
+                  variant="inline" 
+                  size="sm"
+                  className="text-xs"
+                >
+                  View TX
+                </TransactionLink>
               </div>
             )}
           </div>

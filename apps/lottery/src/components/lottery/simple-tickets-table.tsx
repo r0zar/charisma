@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, ExternalLink, CheckCircle2, Trophy, X } from 'lucide-react'
 import { LotteryTicket } from '@/types/lottery'
+import { TransactionLink } from '@/components/ui/transaction-link'
 import { request } from '@stacks/connect'
 import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network'
 import {
@@ -315,22 +316,16 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }
             <>
               <div className="flex items-center gap-1 text-xs text-green-700 mr-1">
                 <CheckCircle2 className="h-3 w-3" />
-                <code className="text-xs bg-green-100 px-1 rounded">
-                  {ticket.transactionId.slice(0, 4)}...{ticket.transactionId.slice(-4)}
-                </code>
+                <span>Confirmed</span>
               </div>
-              <Button
-                onClick={handleCheckStatus}
-                disabled={isCheckingStatus}
-                variant="outline"
-                className="px-2 h-6 text-xs"
+              <TransactionLink 
+                txId={ticket.transactionId} 
+                variant="button" 
+                size="sm"
+                className="h-6 text-xs px-2"
               >
-                {isCheckingStatus ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  'Re-check'
-                )}
-              </Button>
+                View TX
+              </TransactionLink>
             </>
           )}
         </div>
@@ -346,9 +341,16 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }
               </div>
             )}
             {txId && !error && isConfirming && (
-              <div className="flex items-center gap-1 text-xs text-blue-600">
-                <ExternalLink className="h-3 w-3" />
-                <span>TX: {txId.slice(0, 6)}...{txId.slice(-6)} - Waiting for confirmation...</span>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-blue-600">Waiting for confirmation...</span>
+                <TransactionLink 
+                  txId={txId} 
+                  variant="inline" 
+                  size="sm"
+                  className="text-xs"
+                >
+                  View TX
+                </TransactionLink>
               </div>
             )}
           </div>

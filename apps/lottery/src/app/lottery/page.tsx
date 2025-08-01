@@ -18,6 +18,7 @@ import Link from "next/link"
 import { Footer } from "@/components/footer"
 import { JackpotSection } from "@/components/lottery/jackpot-section"
 import { ConfirmationDialog } from "@/components/lottery/confirmation-dialog"
+import { TransactionLink } from "@/components/ui/transaction-link"
 import { LotteryConfig } from "@/types/lottery"
 
 // Simplified tickets component for inline display
@@ -99,15 +100,30 @@ function MyTicketsPreview() {
         ) : (
           <div className="space-y-3">
             {tickets.map((ticket) => (
-              <div key={ticket.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="text-xs font-mono">#{ticket.id.slice(-6)}</div>
-                  <Badge variant={ticket.status === 'confirmed' ? 'default' : 'secondary'}>
-                    {ticket.status}
-                  </Badge>
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {config?.ticketPrice || 100} STONE
+              <div key={ticket.id} className="p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="text-xs font-mono">#{ticket.id.slice(-6)}</div>
+                    <Badge variant={ticket.status === 'confirmed' ? 'default' : 'secondary'}>
+                      {ticket.status}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {ticket.transactionId && (
+                      <TransactionLink 
+                        txId={ticket.transactionId} 
+                        variant="inline" 
+                        size="sm"
+                        className="text-xs"
+                        showIcon={false}
+                      >
+                        TX
+                      </TransactionLink>
+                    )}
+                    <div className="text-sm text-muted-foreground">
+                      {config?.ticketPrice || 100} STONE
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
