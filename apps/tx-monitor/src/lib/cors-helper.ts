@@ -55,9 +55,8 @@ export function isOriginAllowed(origin: string | null): boolean {
   // Check wildcard pattern for *.charisma.rocks
   if (origin.endsWith('.charisma.rocks')) {
     // Verify it's a valid subdomain pattern
-    const subdomain = origin.replace('.charisma.rocks', '');
-    const isValidSubdomain = /^https:\/\/[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$/.test(subdomain);
-    if (isValidSubdomain) {
+    const match = origin.match(/^https:\/\/([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)\.charisma\.rocks$/);
+    if (match) {
       console.log(`[CORS] Origin ${origin} allowed (subdomain match)`);
       return true;
     }
