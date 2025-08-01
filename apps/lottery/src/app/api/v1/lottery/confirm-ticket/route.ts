@@ -47,14 +47,22 @@ async function validateBurnTransaction(txId: string, expectedAmount: number, wal
       console.log(`Added transaction ${txId} to monitoring queue`)
     } catch (queueError) {
       console.error(`Failed to add transaction to monitoring queue:`)
-      console.error(`Error type: ${queueError.constructor.name}`)
-      console.error(`Error message: ${queueError.message}`)
-      if (queueError.status) {
-        console.error(`HTTP status: ${queueError.status}`)
+      
+      if (queueError instanceof Error) {
+        console.error(`Error type: ${queueError.constructor.name}`)
+        console.error(`Error message: ${queueError.message}`)
+        
+        // Check if it's a TxMonitorError with additional properties
+        if ('status' in queueError && queueError.status) {
+          console.error(`HTTP status: ${queueError.status}`)
+        }
+        if ('cause' in queueError && queueError.cause) {
+          console.error(`Underlying cause: ${queueError.cause}`)
+        }
+      } else {
+        console.error(`Unknown error:`, queueError)
       }
-      if (queueError.cause) {
-        console.error(`Underlying cause: ${queueError.cause}`)
-      }
+      
       // Continue with direct validation if queue fails
       console.log(`Proceeding with direct transaction validation...`)
     }
