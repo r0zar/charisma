@@ -116,6 +116,29 @@ export class TicketService {
     return `next-draw-${new Date(config.nextDrawDate).toISOString().slice(0, 10)}`
   }
 
+  async updateTicketTransactionId(ticketId: string, transactionId: string): Promise<LotteryTicket> {
+    try {
+      const ticket = await hybridStorage.getLotteryTicket(ticketId)
+      
+      if (!ticket) {
+        throw new Error('Ticket not found')
+      }
+
+      const updatedTicket: LotteryTicket = {
+        ...ticket,
+        transactionId
+      }
+
+      await hybridStorage.saveLotteryTicket(updatedTicket)
+      console.log(`Ticket ${ticketId} updated with transaction ID: ${transactionId}`)
+      
+      return updatedTicket
+    } catch (error) {
+      console.error('Failed to update ticket transaction ID:', error)
+      throw new Error(`Unable to update ticket transaction ID: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
   async confirmTicket(ticketId: string, transactionId?: string): Promise<LotteryTicket> {
     try {
       const ticket = await hybridStorage.getLotteryTicket(ticketId)
@@ -131,7 +154,8 @@ export class TicketService {
       const confirmedTicket: LotteryTicket = {
         ...ticket,
         status: 'confirmed',
-        transactionId
+        transactionId: transactionId || ticket.transactionId, // Use provided TX ID or existing one
+        confirmedAt: new Date().toISOString()
       }
 
       await hybridStorage.saveLotteryTicket(confirmedTicket)

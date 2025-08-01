@@ -178,6 +178,28 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
       if (result.txid) {
         console.log('Bulk transaction submitted:', result.txid)
         setTxId(result.txid)
+        
+        // Immediately update all tickets with the transaction ID
+        try {
+          const updatePromises = tickets.map(ticket =>
+            fetch('/api/v1/lottery/update-ticket-tx', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                ticketId: ticket.id,
+                transactionId: result.txid,
+                walletAddress: ticket.walletAddress
+              })
+            })
+          )
+          
+          await Promise.all(updatePromises)
+          console.log(`All ${tickets.length} tickets updated with transaction ID immediately`)
+        } catch (updateError) {
+          console.warn('Failed to update some tickets with transaction ID:', updateError)
+        }
 
         // Start polling for confirmation instead of waiting for one long request
         pollForBulkConfirmation(result.txid)

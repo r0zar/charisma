@@ -51,12 +51,12 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }
   const pollForConfirmation = async (transactionId: string) => {
     const maxAttempts = 24 // 2 minutes total (24 * 5 seconds)
     let attempts = 0
-    
+
     const poll = async () => {
       try {
         attempts++
         console.log(`Polling attempt ${attempts}/${maxAttempts} for transaction ${transactionId}`)
-        
+
         const response = await fetch('/api/v1/lottery/confirm-ticket', {
           method: 'POST',
           headers: {
@@ -96,7 +96,7 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }
         onConfirmationUpdate(ticket.id, 'failed')
       }
     }
-    
+
     poll()
   }
 
@@ -145,7 +145,7 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }
 
   const handleCancelTicket = async () => {
     if (!onTicketCancelled) return
-    
+
     setIsCancelling(true)
     setError(null)
 
@@ -208,6 +208,25 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }
       if (result.txid) {
         console.log('Transaction submitted:', result.txid)
         setTxId(result.txid)
+
+        // Immediately update the ticket with the transaction ID
+        try {
+          await fetch('/api/v1/lottery/update-ticket-tx', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              ticketId: ticket.id,
+              transactionId: result.txid,
+              walletAddress: ticket.walletAddress
+            })
+          })
+          console.log(`Ticket ${ticket.id} updated with transaction ID immediately`)
+        } catch (updateError) {
+          console.warn('Failed to update ticket with transaction ID:', updateError)
+        }
+
         pollForConfirmation(result.txid)
       } else {
         throw new Error('Transaction was cancelled or failed')
@@ -294,7 +313,7 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }
                   </>
                 )}
               </Button>
-              
+
               {txId && (
                 <Button
                   onClick={handleCheckStatus}
@@ -311,16 +330,16 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }
               )}
             </>
           )}
-          
+
           {ticket.status === 'confirmed' && ticket.transactionId && (
             <>
               <div className="flex items-center gap-1 text-xs text-green-700 mr-1">
                 <CheckCircle2 className="h-3 w-3" />
                 <span>Confirmed</span>
               </div>
-              <TransactionLink 
-                txId={ticket.transactionId} 
-                variant="button" 
+              <TransactionLink
+                txId={ticket.transactionId}
+                variant="button"
                 size="sm"
                 className="h-6 text-xs px-2"
               >
@@ -343,9 +362,9 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }
             {txId && !error && isConfirming && (
               <div className="flex items-center justify-between text-xs">
                 <span className="text-blue-600">Waiting for confirmation...</span>
-                <TransactionLink 
-                  txId={txId} 
-                  variant="inline" 
+                <TransactionLink
+                  txId={txId}
+                  variant="inline"
                   size="sm"
                   className="text-xs"
                 >
@@ -375,10 +394,10 @@ export function SimpleTicketsTable({ tickets, onConfirmationUpdate, onTicketCanc
       <div className="grid grid-cols-12 gap-3 px-3 py-2 text-xs font-medium text-muted-foreground border-b">
         <div className="col-span-3">Ticket</div>
         <div className="col-span-3">Type</div>
-        <div className="col-span-3">Purchase</div>
+        <div className="col-span-3">Burned</div>
         <div className="col-span-3 text-right">Actions</div>
       </div>
-      
+
       {/* Table Body */}
       <div className="space-y-0">
         {tickets.map((ticket) => (

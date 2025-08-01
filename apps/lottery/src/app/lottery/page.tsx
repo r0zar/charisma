@@ -22,30 +22,27 @@ import { TransactionLink } from "@/components/ui/transaction-link"
 import { LotteryConfig } from "@/types/lottery"
 
 // Simplified tickets component for inline display
-function MyTicketsPreview() {
+function MyTicketsPreview({ refreshTrigger }: { refreshTrigger: number }) {
   const { walletState } = useWallet()
   const { config } = useLottery()
   const [tickets, setTickets] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (walletState.connected && walletState.address) {
-      fetchTickets()
-    }
-  }, [walletState.connected, walletState.address])
 
   const fetchTickets = async () => {
     if (!walletState.address) return
     
     setLoading(true)
     try {
-      const response = await fetch(`/api/v1/lottery/my-tickets?walletAddress=${encodeURIComponent(walletState.address)}`)
+      // Use the faster preview endpoint that only checks KV storage
+      // Add timestamp for cache busting to ensure real-time updates
+      const timestamp = Date.now()
+      const response = await fetch(`/api/v1/lottery/my-tickets-preview?walletAddress=${encodeURIComponent(walletState.address)}&limit=3&_t=${timestamp}`, {
+        cache: 'no-cache' // Bypass Next.js cache
+      })
       const result = await response.json()
       
       if (response.ok && result.success) {
-        // Show only the 3 most recent active tickets
-        const activeTickets = result.data.filter((t: any) => t.status === 'pending' || t.status === 'confirmed')
-        setTickets(activeTickets.slice(0, 3))
+        setTickets(result.data)
       }
     } catch (error) {
       console.error('Failed to fetch tickets:', error)
@@ -53,6 +50,12 @@ function MyTicketsPreview() {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (walletState.connected && walletState.address) {
+      fetchTickets()
+    }
+  }, [walletState.connected, walletState.address, refreshTrigger]) // Add refreshTrigger to dependencies
 
   if (!walletState.connected) {
     return (
@@ -144,7 +147,7 @@ function MyTicketsPreview() {
 }
 
 // Simplified purchase component
-function SimplifiedPurchase() {
+function SimplifiedPurchase({ onTicketPurchased }: { onTicketPurchased?: () => void }) {
   const { walletState, connectWallet } = useWallet()
   const { config } = useLottery()
   const [quantity, setQuantity] = useState(1)
@@ -194,6 +197,8 @@ function SimplifiedPurchase() {
             tickets: [result.data],
             isBulk: false
           })
+          // Refresh ticket preview immediately after purchase
+          onTicketPurchased?.()
         }
       } else {
         // Bulk ticket purchase
@@ -221,6 +226,8 @@ function SimplifiedPurchase() {
             tickets: result.data,
             isBulk: true
           })
+          // Refresh ticket preview immediately after purchase
+          onTicketPurchased?.()
         }
       }
       
@@ -356,6 +363,10 @@ function SimplifiedPurchase() {
         onOpenChange={(isOpen) => setConfirmationDialog(prev => ({ ...prev, isOpen }))}
         onConfirmationUpdate={(ticketIds, status) => {
           // Handle confirmation update - dialog will show success state on confirmed
+          if (status === 'confirmed') {
+            // Refresh ticket preview when tickets are confirmed
+            onTicketPurchased?.()
+          }
         }}
         onViewTickets={() => {
           // Navigate to My Tickets page
@@ -368,10 +379,16 @@ function SimplifiedPurchase() {
 
 export default function LotteryPage() {
   const [mounted, setMounted] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const handleTicketPurchased = () => {
+    // Trigger refresh by incrementing the counter
+    setRefreshTrigger(prev => prev + 1)
+  }
 
   if (!mounted) {
     return <div className="p-8">Loading...</div>
@@ -409,12 +426,12 @@ export default function LotteryPage() {
         <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
           {/* Purchase Section */}
           <div>
-            <SimplifiedPurchase />
+            <SimplifiedPurchase onTicketPurchased={handleTicketPurchased} />
           </div>
 
           {/* My Tickets Preview */}
           <div>
-            <MyTicketsPreview />
+            <MyTicketsPreview refreshTrigger={refreshTrigger} />
           </div>
         </div>
       </div>

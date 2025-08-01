@@ -165,6 +165,24 @@ export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfi
       if (result.txid) {
         console.log('Transaction submitted:', result.txid)
         setTxId(result.txid)
+        
+        // Immediately update the ticket with the transaction ID
+        try {
+          await fetch('/api/v1/lottery/update-ticket-tx', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              ticketId: ticket.id,
+              transactionId: result.txid,
+              walletAddress: ticket.walletAddress
+            })
+          })
+          console.log(`Ticket ${ticket.id} updated with transaction ID immediately`)
+        } catch (updateError) {
+          console.warn('Failed to update ticket with transaction ID:', updateError)
+        }
 
         // Start polling for confirmation instead of waiting for one long request
         pollForConfirmation(result.txid)
