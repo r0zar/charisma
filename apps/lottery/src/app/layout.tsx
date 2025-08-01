@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Audiowide, Orbitron } from "next/font/google";
 import { ThemeProvider } from "next-themes";
-import { AppProvider, WalletProvider } from "@/contexts";
+import { AppProvider, WalletProvider, LotteryProvider } from "@/contexts";
 import { Header } from "@/components/header";
 import "./globals.css";
 
@@ -49,10 +49,12 @@ export default function RootLayout({
         >
           <WalletProvider>
             <AppProvider>
-              <Header />
-              <main className="flex-1">
-                {children}
-              </main>
+              <LotteryProvider>
+                <Header />
+                <main className="flex-1">
+                  {children}
+                </main>
+              </LotteryProvider>
             </AppProvider>
           </WalletProvider>
         </ThemeProvider>

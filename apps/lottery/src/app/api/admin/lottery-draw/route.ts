@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { blobStorage } from '@/lib/blob-storage'
+import { hybridStorage } from '@/lib/hybrid-storage'
 import { lotteryConfigService } from '@/lib/lottery-config'
 import { ticketService } from '@/lib/ticket-service'
 import { LotteryDraw, DrawRequest, WinnerInfo, LotteryTicket } from '@/types/lottery'
@@ -23,46 +23,19 @@ function generateDrawId(): string {
   return `draw-${timestamp}-${randomSuffix}`
 }
 
-function generateWinningNumbers(maxNumber: number, count: number): number[] {
-  const numbers: number[] = []
-  while (numbers.length < count) {
-    const num = Math.floor(Math.random() * maxNumber) + 1
-    if (!numbers.includes(num)) {
-      numbers.push(num)
-    }
-  }
-  return numbers.sort((a, b) => a - b)
-}
-
 function selectWinningTicket(tickets: LotteryTicket[]): LotteryTicket {
   // Randomly select one ticket to be the guaranteed winner
   const randomIndex = Math.floor(Math.random() * tickets.length)
   return tickets[randomIndex]
 }
 
-function countMatches(ticketNumbers: number[], winningNumbers: number[]): number {
-  return ticketNumbers.filter(num => winningNumbers.includes(num)).length
-}
-
-function calculateWinnersFromTickets(tickets: LotteryTicket[], winningNumbers: number[], jackpotAmount: number): WinnerInfo[] {
-  // WINNER TAKES ALL: Only the ticket with the winning numbers gets the entire jackpot
-  
-  // Find the exact match (guaranteed since we selected winning numbers from a ticket)
-  const jackpotWinners = tickets.filter(ticket => 
-    countMatches(ticket.numbers, winningNumbers) === 6
-  )
-
-  if (jackpotWinners.length === 0) {
-    // This should never happen with our guaranteed winner system, but just in case
-    throw new Error('No jackpot winner found - this should not happen with guaranteed winner system')
-  }
-
-  // Winner takes all - entire jackpot goes to the winner(s)
+function calculateWinnersFromTicket(winningTicket: LotteryTicket, jackpotAmount: number): WinnerInfo[] {
+  // Simple mode: One random ticket wins the entire jackpot
   const winners: WinnerInfo[] = [{
     tier: 1,
-    matchCount: 6,
-    winnerCount: jackpotWinners.length,
-    prizePerWinner: Math.floor(jackpotAmount / jackpotWinners.length), // Split jackpot if multiple exact matches
+    matchCount: 1, // Always 1 for simple random draw
+    winnerCount: 1,
+    prizePerWinner: jackpotAmount,
     totalPrize: jackpotAmount
   }]
 
@@ -108,53 +81,39 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let winningNumbers: number[]
+    // Simple random draw - select one random ticket as winner
+    const winningTicket = selectWinningTicket(tickets)
+    console.log(`Selected winning ticket ${winningTicket.id}`)
     
-    if (drawRequest.winningNumbers) {
-      // Use provided winning numbers (for testing)
-      winningNumbers = drawRequest.winningNumbers
-    } else {
-      // GUARANTEED WINNER LOGIC: Select a random ticket and use its numbers as winning numbers
-      const winningTicket = selectWinningTicket(tickets)
-      winningNumbers = [...winningTicket.numbers]
-      console.log(`Selected winning ticket ${winningTicket.id} with numbers:`, winningNumbers)
-    }
-    
-    // Calculate actual winners based on ticket matches
-    const winners = calculateWinnersFromTickets(tickets, winningNumbers, config.currentJackpot.estimatedValue || 0)
+    // Calculate winners (simple mode - one winner)
+    const winners = calculateWinnersFromTicket(winningTicket, config.currentJackpot.estimatedValue || 0)
     
     // Create the draw record
     const draw: LotteryDraw = {
       id: drawId,
       drawDate,
-      winningNumbers,
       jackpotAmount: config.currentJackpot,
       totalTicketsSold: tickets.length,
       winners,
       status: 'completed',
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      winnerWalletAddress: winningTicket.walletAddress,
+      winningTicketId: winningTicket.id
     }
 
     if (!isDryRun) {
       // Save to blob storage (only for real draws)
-      await blobStorage.saveLotteryDraw(draw)
+      await hybridStorage.saveLotteryDraw(draw)
       
       // ARCHIVE: Mark all tickets for this draw as archived (only for real draws)
       console.log(`Archiving ${tickets.length} tickets for completed draw ${nextDrawId}`)
-      for (const ticket of tickets) {
-        try {
-          const archivedTicket = {
-            ...ticket,
-            status: 'archived' as const,
-            drawResult: drawId // Link to the completed draw
-          }
-          await blobStorage.saveLotteryTicket(archivedTicket)
-          console.log(`Archived ticket ${ticket.id}`)
-        } catch (error) {
-          console.error(`Failed to archive ticket ${ticket.id}:`, error)
-          // Continue with other tickets even if one fails
-        }
+      try {
+        await hybridStorage.archiveTicketsForDraw(nextDrawId)
+        console.log(`Successfully archived ${tickets.length} tickets`)
+      } catch (error) {
+        console.error(`Failed to archive tickets for draw ${nextDrawId}:`, error)
+        // Continue even if archiving fails - the draw was still successful
       }
       
       // Update lottery config - for physical jackpots, we typically don't auto-reset
@@ -183,7 +142,7 @@ export async function POST(request: NextRequest) {
         isDryRun,
         ticketsProcessed: tickets.length,
         ticketsArchived: isDryRun ? 0 : tickets.length,
-        guaranteedWinner: !drawRequest.winningNumbers,
+        drawType: 'simple-random',
         jackpotWinner: hasJackpotWinner,
         currentJackpot: config.currentJackpot.title
       }

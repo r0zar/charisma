@@ -6,14 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Wallet } from "lucide-react"
 import { Footer } from "@/components/footer"
-import { TicketsTable } from "@/components/lottery/tickets-table"
 import { SimpleTicketsTable } from "@/components/lottery/simple-tickets-table"
-import { getLotteryFormat } from "@/types/lottery"
 
 // User tickets data function
 async function getUserTickets(walletAddress: string) {
   try {
-    const response = await fetch(`/api/v1/lottery/my-tickets?walletAddress=${encodeURIComponent(walletAddress)}`)
+    // Add cache busting parameter to ensure fresh data
+    const timestamp = Date.now()
+    const response = await fetch(`/api/v1/lottery/my-tickets?walletAddress=${encodeURIComponent(walletAddress)}&_t=${timestamp}`, {
+      cache: 'no-cache'
+    })
     const result = await response.json()
     
     if (!response.ok || !result.success) {
@@ -36,9 +38,6 @@ export default function MyTicketsPage() {
   const [confirmingTickets, setConfirmingTickets] = useState<Set<string>>(new Set())
   const [mounted, setMounted] = useState(false)
 
-  // Get lottery format
-  const lotteryFormat = getLotteryFormat()
-
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -50,9 +49,12 @@ export default function MyTicketsPage() {
     setError(null)
 
     try {
+      console.log('Fetching tickets for wallet:', walletState.address)
       const userTickets = await getUserTickets(walletState.address)
+      console.log('Fetched tickets:', userTickets.length, userTickets)
       setTickets(userTickets)
     } catch (err) {
+      console.error('Error fetching tickets:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch user tickets')
     } finally {
       setLoading(false)
@@ -107,50 +109,10 @@ export default function MyTicketsPage() {
     }
   }
 
-  const handleBulkConfirmationUpdate = (ticketIds: string[], status: 'confirming' | 'confirmed' | 'failed') => {
-    if (status === 'confirming') {
-      setConfirmingTickets(prev => {
-        const newSet = new Set(prev)
-        ticketIds.forEach(id => newSet.add(id))
-        return newSet
-      })
-    } else {
-      setConfirmingTickets(prev => {
-        const newSet = new Set(prev)
-        ticketIds.forEach(id => newSet.delete(id))
-        return newSet
-      })
-      
-      if (status === 'confirmed') {
-        // Update all ticket statuses in our local state
-        setTickets(prev => prev.map(ticket => 
-          ticketIds.includes(ticket.id)
-            ? { ...ticket, status: 'confirmed' }
-            : ticket
-        ))
-      }
-      
-      // Optionally refresh tickets to get latest data
-      fetchTickets()
-    }
-  }
-
   const handleTicketCancelled = (ticketId: string) => {
     // Update the ticket status to 'cancelled' in local state
     setTickets(prev => prev.map(ticket => 
       ticket.id === ticketId 
-        ? { ...ticket, status: 'cancelled' }
-        : ticket
-    ))
-    
-    // Refresh tickets to get latest data
-    fetchTickets()
-  }
-
-  const handleBulkTicketsCancelled = (ticketIds: string[]) => {
-    // Update all ticket statuses to 'cancelled' in local state
-    setTickets(prev => prev.map(ticket => 
-      ticketIds.includes(ticket.id)
         ? { ...ticket, status: 'cancelled' }
         : ticket
     ))
@@ -362,21 +324,11 @@ export default function MyTicketsPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {lotteryFormat === 'traditional' ? (
-                    <TicketsTable
-                      tickets={filteredTickets}
-                      onConfirmationUpdate={handleConfirmationUpdate}
-                      onBulkConfirmationUpdate={handleBulkConfirmationUpdate}
-                      onTicketCancelled={handleTicketCancelled}
-                      onBulkTicketsCancelled={handleBulkTicketsCancelled}
-                    />
-                  ) : (
-                    <SimpleTicketsTable
-                      tickets={filteredTickets}
-                      onConfirmationUpdate={handleConfirmationUpdate}
-                      onTicketCancelled={handleTicketCancelled}
-                    />
-                  )}
+                  <SimpleTicketsTable
+                    tickets={filteredTickets}
+                    onConfirmationUpdate={handleConfirmationUpdate}
+                    onTicketCancelled={handleTicketCancelled}
+                  />
                   
                   <div className="text-center pt-4">
                     <Button variant="outline" onClick={handleRetry}>

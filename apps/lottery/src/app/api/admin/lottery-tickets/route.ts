@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ticketService } from '@/lib/ticket-service'
-import { blobStorage } from '@/lib/blob-storage'
+import { hybridStorage } from '@/lib/hybrid-storage'
 
 function validateAdminAuth(request: NextRequest): boolean {
   const adminKey = process.env.ADMIN_API_KEY
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
       })
     } else {
       // Get all tickets with stats
-      const tickets = await blobStorage.getAllLotteryTickets()
+      const tickets = await hybridStorage.getAllLotteryTickets()
       const stats = await ticketService.getTicketStats()
       
       return NextResponse.json({
@@ -113,7 +113,7 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    await blobStorage.deleteLotteryTicket(ticketId)
+    await hybridStorage.deleteLotteryTicket(ticketId)
     console.log('Ticket deleted successfully:', ticketId)
     
     return NextResponse.json({

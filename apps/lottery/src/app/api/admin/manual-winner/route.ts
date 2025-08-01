@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { blobStorage } from '@/lib/blob-storage'
+import { hybridStorage } from '@/lib/hybrid-storage'
 import { lotteryConfigService } from '@/lib/lottery-config'
 import { ticketService } from '@/lib/ticket-service'
 import { LotteryDraw, WinnerInfo, LotteryTicket } from '@/types/lottery'
@@ -17,7 +17,7 @@ function validateAdminAuth(request: NextRequest): boolean {
 }
 
 async function generateDrawId(): Promise<string> {
-  const drawNumber = await blobStorage.incrementDrawCounter()
+  const drawNumber = await hybridStorage.incrementDrawCounter()
   return drawNumber.toString().padStart(6, '0') // Format as 000001, 000002, etc.
 }
 
@@ -82,14 +82,10 @@ export async function POST(request: NextRequest) {
     const drawId = providedDrawId || await generateDrawId()
     const drawDate = new Date().toISOString()
     
-    // For simple format lottery, we don't need actual numbers - just the winning ticket
-    // Use empty array for numbers since simple format doesn't use number matching
-    const winningNumbers: number[] = []
-    
     // Create winner info - for simple format it's just one winner
     const winners: WinnerInfo[] = [{
       tier: 1,
-      matchCount: 0, // Not applicable for simple format
+      matchCount: 1, // Always 1 for simple random draw
       winnerCount: 1,
       prizePerWinner: config.currentJackpot.estimatedValue || 0,
       totalPrize: config.currentJackpot.estimatedValue || 0
@@ -99,7 +95,6 @@ export async function POST(request: NextRequest) {
     const draw: LotteryDraw = {
       id: drawId,
       drawDate,
-      winningNumbers,
       jackpotAmount: config.currentJackpot,
       totalTicketsSold: confirmedTickets.length,
       winners,
@@ -111,14 +106,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Save the draw to blob storage
-    await blobStorage.saveLotteryDraw(draw)
+    await hybridStorage.saveLotteryDraw(draw)
     
     // Delete pending tickets (they never got confirmed)
     console.log(`Deleting ${pendingTickets.length} pending tickets...`)
     let deletedCount = 0
     for (const ticket of pendingTickets) {
       try {
-        await blobStorage.deleteLotteryTicket(ticket.id)
+        await hybridStorage.deleteLotteryTicket(ticket.id)
         deletedCount++
         console.log(`Deleted pending ticket ${ticket.id}`)
       } catch (error) {
@@ -139,7 +134,7 @@ export async function POST(request: NextRequest) {
           drawResult: drawId,
           isWinner: ticket.id === winningTicketId // Mark the winning ticket
         }
-        await blobStorage.saveLotteryTicket(archivedTicket)
+        await hybridStorage.saveLotteryTicket(archivedTicket)
         archivedCount++
         console.log(`Archived ticket ${ticket.id}${ticket.id === winningTicketId ? ' (WINNER)' : ''}`)
       } catch (error) {

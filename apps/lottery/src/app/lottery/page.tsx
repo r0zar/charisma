@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useWallet } from "@/contexts"
+import { useWallet, useLottery } from "@/contexts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -18,14 +18,12 @@ import Link from "next/link"
 import { Footer } from "@/components/footer"
 import { JackpotSection } from "@/components/lottery/jackpot-section"
 import { ConfirmationDialog } from "@/components/lottery/confirmation-dialog"
-import { getLotteryFormat } from "@/types/lottery"
-
-// Constants
-const TICKET_PRICE = 100 // 100 STONE
+import { LotteryConfig } from "@/types/lottery"
 
 // Simplified tickets component for inline display
 function MyTicketsPreview() {
   const { walletState } = useWallet()
+  const { config } = useLottery()
   const [tickets, setTickets] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -109,7 +107,7 @@ function MyTicketsPreview() {
                   </Badge>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {TICKET_PRICE} STONE
+                  {config?.ticketPrice || 100} STONE
                 </div>
               </div>
             ))}
@@ -132,6 +130,7 @@ function MyTicketsPreview() {
 // Simplified purchase component
 function SimplifiedPurchase() {
   const { walletState, connectWallet } = useWallet()
+  const { config } = useLottery()
   const [quantity, setQuantity] = useState(1)
   const [isPurchasing, setIsPurchasing] = useState(false)
   const [purchaseError, setPurchaseError] = useState<string | null>(null)
@@ -151,30 +150,62 @@ function SimplifiedPurchase() {
     setPurchaseError(null)
     
     try {
-      const response = await fetch('/api/v1/lottery/purchase-bulk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          walletAddress: walletState.address,
-          quantity: quantity
+      let response
+      let result
+      
+      if (quantity === 1) {
+        // Single ticket purchase
+        response = await fetch('/api/v1/lottery/purchase-ticket', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            walletAddress: walletState.address
+          })
         })
-      })
-      
-      const result = await response.json()
-      
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to purchase tickets')
-      }
-      
-      // Open confirmation dialog with tickets
-      if (result.data && Array.isArray(result.data) && result.data.length > 0) {
-        setConfirmationDialog({
-          isOpen: true,
-          tickets: result.data,
-          isBulk: true
+        
+        result = await response.json()
+        
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Failed to purchase ticket')
+        }
+        
+        // Convert single ticket to array for consistent handling
+        if (result.data) {
+          setConfirmationDialog({
+            isOpen: true,
+            tickets: [result.data],
+            isBulk: false
+          })
+        }
+      } else {
+        // Bulk ticket purchase
+        response = await fetch('/api/v1/lottery/purchase-bulk', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            walletAddress: walletState.address,
+            quantity: quantity
+          })
         })
+        
+        result = await response.json()
+        
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || 'Failed to purchase tickets')
+        }
+        
+        // Bulk tickets already come as array
+        if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+          setConfirmationDialog({
+            isOpen: true,
+            tickets: result.data,
+            isBulk: true
+          })
+        }
       }
       
       // Reset quantity
@@ -201,7 +232,7 @@ function SimplifiedPurchase() {
             Burn STONE for Tickets
           </CardTitle>
           <CardDescription>
-            Burn {TICKET_PRICE} STONE per ticket to enter the lottery. More tickets = better odds!
+            Burn {config?.ticketPrice || 100} STONE per ticket to enter the lottery. More tickets = better odds!
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -263,7 +294,7 @@ function SimplifiedPurchase() {
           <div className="bg-muted/50 rounded-lg p-4 text-center space-y-2">
             <div className="text-sm text-muted-foreground">STONE to burn</div>
             <div className="text-2xl font-bold text-primary">
-              {(quantity * TICKET_PRICE).toLocaleString()} STONE
+              {(quantity * (config?.ticketPrice || 100)).toLocaleString()} STONE
             </div>
             <div className="text-xs text-muted-foreground">Tokens will be permanently burned</div>
           </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ticketService } from '@/lib/ticket-service'
-import { blobStorage } from '@/lib/blob-storage'
+import { hybridStorage } from '@/lib/hybrid-storage'
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         cancelledAt: new Date().toISOString()
       }
       
-      await blobStorage.saveLotteryTicket(cancelledTicket)
+      await hybridStorage.saveLotteryTicket(cancelledTicket)
       cancelledTickets.push(cancelledTicket)
     }
 

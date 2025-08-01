@@ -1,15 +1,15 @@
 import { LotteryConfig, DEFAULT_LOTTERY_CONFIG, PhysicalJackpot } from '@/types/lottery'
-import { blobStorage } from './blob-storage'
+import { hybridStorage } from './hybrid-storage'
 
 export class LotteryConfigService {
   async getConfig(): Promise<LotteryConfig> {
     try {
-      const config = await blobStorage.getLotteryConfig()
+      const config = await hybridStorage.getLotteryConfig()
       
       if (!config) {
         // Initialize with default config if none exists
         console.log('No config found, initializing with defaults...')
-        await blobStorage.saveLotteryConfig(DEFAULT_LOTTERY_CONFIG)
+        await hybridStorage.saveLotteryConfig(DEFAULT_LOTTERY_CONFIG)
         return DEFAULT_LOTTERY_CONFIG
       }
 
@@ -33,7 +33,7 @@ export class LotteryConfigService {
         version: currentConfig.version + 1
       }
 
-      await blobStorage.saveLotteryConfig(updatedConfig)
+      await hybridStorage.saveLotteryConfig(updatedConfig)
       return updatedConfig
     } catch (error) {
       console.error('Failed to update lottery config:', error)
@@ -43,10 +43,10 @@ export class LotteryConfigService {
 
   async initializeDefaultConfig(): Promise<LotteryConfig> {
     try {
-      const configExists = await blobStorage.configExists()
+      const configExists = await hybridStorage.configExists()
       
       if (!configExists) {
-        await blobStorage.saveLotteryConfig(DEFAULT_LOTTERY_CONFIG)
+        await hybridStorage.saveLotteryConfig(DEFAULT_LOTTERY_CONFIG)
       }
 
       return DEFAULT_LOTTERY_CONFIG

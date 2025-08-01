@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Loader2, ExternalLink, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react'
 import { LotteryTicket } from '@/types/lottery'
+import { TransactionLink } from '@/components/ui/transaction-link'
 import { request } from '@stacks/connect'
 import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network'
 import {
@@ -276,23 +277,15 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
                 <div className="flex items-center gap-1 text-xs text-green-700 mr-2">
                   <CheckCircle2 className="h-3 w-3" />
                   <span>All {tickets.length} confirmed</span>
-                  <code className="text-xs bg-green-100 px-1 rounded">
-                    {tickets[0].transactionId.slice(0, 4)}...{tickets[0].transactionId.slice(-4)}
-                  </code>
                 </div>
-                <Button
-                  onClick={handleCheckBulkStatus}
-                  disabled={isCheckingStatus}
-                  variant="outline"
-
-                  className="px-2 h-6 text-xs"
+                <TransactionLink 
+                  txId={tickets[0].transactionId} 
+                  variant="button" 
+                  size="sm"
+                  className="h-6 text-xs px-2"
                 >
-                  {isCheckingStatus ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    'Re-check'
-                  )}
-                </Button>
+                  View TX
+                </TransactionLink>
               </>
             )}
           </div>
@@ -301,21 +294,14 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
         {/* Expanded ticket details */}
         {isExpanded && (
           <div className="mt-2 pt-2 border-t border-border">
-            <div className="text-xs font-medium text-muted-foreground mb-1">Ticket Numbers:</div>
-            <div className="grid grid-cols-1 gap-1 max-h-24 overflow-y-auto">
+            <div className="text-xs font-medium text-muted-foreground mb-1">Ticket IDs:</div>
+            <div className="grid grid-cols-2 gap-1 max-h-24 overflow-y-auto">
               {tickets.map((ticket, index) => (
                 <div key={ticket.id} className="flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground w-6">#{index + 1}:</span>
-                  <div className="flex gap-0.5">
-                    {ticket.numbers.map((number, numIndex) => (
-                      <div
-                        key={numIndex}
-                        className="w-4 h-4 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center"
-                      >
-                        {number}
-                      </div>
-                    ))}
-                  </div>
+                  <span className="text-muted-foreground">#{index + 1}:</span>
+                  <code className="text-xs bg-muted px-1 rounded">
+                    {ticket.id.slice(-8)}
+                  </code>
                 </div>
               ))}
             </div>

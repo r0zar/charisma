@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { CheckCircle2, Wallet } from 'lucide-react'
 import { TicketConfirmation } from '@/components/ticket-confirmation'
 import { BulkTicketConfirmation } from '@/components/bulk-ticket-confirmation'
+import { TransactionLink } from '@/components/ui/transaction-link'
 
 interface ConfirmationDialogProps {
   isOpen: boolean
@@ -87,8 +88,14 @@ export function ConfirmationDialog({
                 Transaction Confirmed
               </div>
               {transactionId && (
-                <div className="text-sm text-muted-foreground mt-2">
-                  Transaction ID: {transactionId.slice(0, 8)}...{transactionId.slice(-8)}
+                <div className="mt-3">
+                  <TransactionLink 
+                    txId={transactionId} 
+                    variant="button" 
+                    size="sm"
+                  >
+                    View on Stacks Explorer
+                  </TransactionLink>
                 </div>
               )}
             </div>

@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
     const newConfig: LotteryConfig = await request.json()
     
     // Basic validation
-    if (!newConfig.ticketPrice || !newConfig.numbersToSelect || !newConfig.maxNumber) {
+    if (!newConfig.ticketPrice) {
       return NextResponse.json(
         { error: 'Missing required config fields' },
         { status: 400 }

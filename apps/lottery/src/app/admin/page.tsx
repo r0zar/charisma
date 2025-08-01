@@ -22,7 +22,7 @@ import {
   CheckCircle2,
   Loader2
 } from "lucide-react"
-import { LotteryConfig, PhysicalJackpot, LotteryFormat } from "@/types/lottery"
+import { LotteryConfig, PhysicalJackpot } from "@/types/lottery"
 import { Carousel } from "@/components/ui/carousel"
 
 export default function AdminPage() {
@@ -49,7 +49,6 @@ export default function AdminPage() {
   })
   const [configForm, setConfigForm] = useState({
     ticketPrice: 100,
-    format: 'simple' as LotteryFormat,
     nextDrawDate: '',
     isActive: true
   })
@@ -124,7 +123,6 @@ export default function AdminPage() {
         setJackpotForm(migratedJackpot)
         setConfigForm({
           ticketPrice: result.data.ticketPrice,
-          format: result.data.format,
           nextDrawDate: result.data.nextDrawDate ? new Date(result.data.nextDrawDate).toISOString().slice(0, 16) : '',
           isActive: result.data.isActive
         })
@@ -548,7 +546,7 @@ export default function AdminPage() {
 
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Format</span>
-              <Badge variant="outline">{config?.format}</Badge>
+              <Badge variant="outline">Simple Random Draw</Badge>
             </div>
 
             <div className="flex items-center justify-between">
@@ -1074,21 +1072,6 @@ export default function AdminPage() {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="lottery-format">Lottery Format</Label>
-                <Select
-                  value={configForm.format}
-                  onValueChange={(value: LotteryFormat) => setConfigForm(prev => ({ ...prev, format: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="simple">Simple (Random Winner)</SelectItem>
-                    <SelectItem value="traditional">Traditional (Number Selection)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
 
             <div className="space-y-4">

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { blobStorage } from '@/lib/blob-storage'
+import { hybridStorage } from '@/lib/hybrid-storage'
 import { LotteryDraw } from '@/types/lottery'
 
 function validateAdminAuth(request: NextRequest): boolean {
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     
     if (drawId) {
       // Get specific draw
-      const draw = await blobStorage.getLotteryDraw(drawId)
+      const draw = await hybridStorage.getLotteryDraw(drawId)
       
       if (!draw) {
         return NextResponse.json(
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
       })
     } else {
       // Get all draws
-      const draws = await blobStorage.getAllLotteryDraws()
+      const draws = await hybridStorage.getAllLotteryDraws()
       
       return NextResponse.json({
         success: true,
@@ -83,7 +83,7 @@ export async function PUT(request: NextRequest) {
     console.log('PUT request received for draw:', drawId, 'updates:', updates)
     
     // Get existing draw
-    const existingDraw = await blobStorage.getLotteryDraw(drawId)
+    const existingDraw = await hybridStorage.getLotteryDraw(drawId)
     
     if (!existingDraw) {
       return NextResponse.json(
@@ -100,14 +100,14 @@ export async function PUT(request: NextRequest) {
     }
     
     // Validate required fields
-    if (!updatedDraw.id || !updatedDraw.drawDate || !updatedDraw.winningNumbers) {
+    if (!updatedDraw.id || !updatedDraw.drawDate) {
       return NextResponse.json(
         { error: 'Missing required draw fields' },
         { status: 400 }
       )
     }
 
-    await blobStorage.saveLotteryDraw(updatedDraw)
+    await hybridStorage.saveLotteryDraw(updatedDraw)
     console.log('Draw updated successfully:', updatedDraw)
     
     return NextResponse.json({
@@ -144,7 +144,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Check if draw exists
-    const existingDraw = await blobStorage.getLotteryDraw(drawId)
+    const existingDraw = await hybridStorage.getLotteryDraw(drawId)
     
     if (!existingDraw) {
       return NextResponse.json(
@@ -153,7 +153,7 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    await blobStorage.deleteLotteryDraw(drawId)
+    await hybridStorage.deleteLotteryDraw(drawId)
     console.log('Draw deleted successfully:', drawId)
     
     return NextResponse.json({

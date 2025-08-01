@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Loader2, ExternalLink, CheckCircle2 } from 'lucide-react'
 import { LotteryTicket } from '@/types/lottery'
+import { TransactionLink } from '@/components/ui/transaction-link'
 import { request } from '@stacks/connect'
 import { STACKS_TESTNET, STACKS_MAINNET } from '@stacks/network'
 import {
@@ -201,14 +202,9 @@ export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfi
               </Badge>
             </div>
             <div className="flex gap-0.5 flex-shrink-0">
-              {ticket.numbers.map((number: number, index: number) => (
-                <div
-                  key={index}
-                  className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center"
-                >
-                  {number}
-                </div>
-              ))}
+              <Badge variant="outline" className="text-xs">
+                Simple Draw
+              </Badge>
             </div>
             <div className="text-xs text-muted-foreground flex-shrink-0">
               {ticket.purchasePrice} STONE
@@ -260,23 +256,16 @@ export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfi
               <>
                 <div className="flex items-center gap-1 text-xs text-green-700 mr-2">
                   <CheckCircle2 className="h-3 w-3" />
-                  <code className="text-xs bg-green-100 px-1 rounded">
-                    {ticket.transactionId.slice(0, 4)}...{ticket.transactionId.slice(-4)}
-                  </code>
+                  <span>Confirmed</span>
                 </div>
-                <Button
-                  onClick={handleCheckStatus}
-                  disabled={isCheckingStatus}
-                  variant="outline"
-                  
-                  className="px-2 h-6 text-xs"
+                <TransactionLink 
+                  txId={ticket.transactionId} 
+                  variant="button" 
+                  size="sm"
+                  className="h-6 text-xs px-2"
                 >
-                  {isCheckingStatus ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    'Re-check'
-                  )}
-                </Button>
+                  View TX
+                </TransactionLink>
               </>
             )}
           </div>
@@ -291,9 +280,16 @@ export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfi
               </div>
             )}
             {txId && !error && (
-              <div className="flex items-center gap-1 text-xs text-blue-600">
-                <ExternalLink className="h-3 w-3" />
-                <span>TX: {txId.slice(0, 6)}...{txId.slice(-6)} - Waiting for confirmation...</span>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-blue-600">Waiting for confirmation...</span>
+                <TransactionLink 
+                  txId={txId} 
+                  variant="inline" 
+                  size="sm"
+                  className="text-xs"
+                >
+                  View TX
+                </TransactionLink>
               </div>
             )}
           </div>

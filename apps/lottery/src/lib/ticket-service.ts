@@ -1,24 +1,14 @@
 import { LotteryTicket, TicketPurchaseRequest, BulkTicketPurchaseRequest } from '@/types/lottery'
-import { blobStorage } from './blob-storage'
+import { hybridStorage } from './hybrid-storage'
 import { lotteryConfigService } from './lottery-config'
 
 export class TicketService {
   
   private async generateTicketId(): Promise<string> {
-    const ticketNumber = await blobStorage.incrementTicketCounter()
+    const ticketNumber = await hybridStorage.incrementTicketCounter()
     return ticketNumber.toString().padStart(6, '0')
   }
 
-  private generateRandomNumbers(maxNumber: number, count: number): number[] {
-    const numbers: number[] = []
-    while (numbers.length < count) {
-      const num = Math.floor(Math.random() * maxNumber) + 1
-      if (!numbers.includes(num)) {
-        numbers.push(num)
-      }
-    }
-    return numbers.sort((a, b) => a - b)
-  }
 
   async purchaseTicket(request: TicketPurchaseRequest): Promise<LotteryTicket> {
     try {
@@ -26,28 +16,6 @@ export class TicketService {
       
       if (!config.isActive) {
         throw new Error('Lottery is currently inactive')
-      }
-
-      // Handle different lottery formats
-      if (config.format === 'traditional') {
-        // Traditional format - validate numbers
-        if (request.numbers.length !== config.numbersToSelect) {
-          throw new Error(`Must select exactly ${config.numbersToSelect} numbers`)
-        }
-
-        if (request.numbers.some(n => n < 1 || n > config.maxNumber)) {
-          throw new Error(`Numbers must be between 1 and ${config.maxNumber}`)
-        }
-
-        if (new Set(request.numbers).size !== request.numbers.length) {
-          throw new Error('Cannot select duplicate numbers')
-        }
-      } else if (config.format === 'simple') {
-        // Simple format - no number validation needed, tickets are just entries
-        // Numbers array should be empty for simple format
-        if (request.numbers.length > 0) {
-          console.warn('Simple format tickets should have empty numbers array, ignoring provided numbers')
-        }
       }
 
       // Determine which draw this ticket is for
@@ -58,14 +26,13 @@ export class TicketService {
         id: await this.generateTicketId(),
         drawId,
         walletAddress: request.walletAddress,
-        numbers: config.format === 'traditional' ? [...request.numbers].sort((a, b) => a - b) : [], // Empty for simple format
         purchaseDate: new Date().toISOString(),
         purchasePrice: config.ticketPrice,
         status: 'pending', // Starts as pending until blockchain confirmation
       }
 
-      // Save to storage
-      await blobStorage.saveLotteryTicket(ticket)
+      // Save to storage (will use KV for immediate consistency)
+      await hybridStorage.saveLotteryTicket(ticket)
 
       console.log('Ticket purchased successfully:', ticket)
       return ticket
@@ -99,16 +66,13 @@ export class TicketService {
           id: await this.generateTicketId(),
           drawId,
           walletAddress: request.walletAddress,
-          numbers: config.format === 'traditional' 
-            ? this.generateRandomNumbers(config.maxNumber, config.numbersToSelect)
-            : [], // Empty array for simple format
           purchaseDate,
           purchasePrice: config.ticketPrice,
           status: 'pending', // Starts as pending until blockchain confirmation
         }
 
-        // Save each ticket
-        await blobStorage.saveLotteryTicket(ticket)
+        // Save each ticket (will use KV for immediate consistency)
+        await hybridStorage.saveLotteryTicket(ticket)
         tickets.push(ticket)
       }
 
@@ -122,7 +86,7 @@ export class TicketService {
 
   async getTicketsByWallet(walletAddress: string): Promise<LotteryTicket[]> {
     try {
-      return await blobStorage.getTicketsByWallet(walletAddress)
+      return await hybridStorage.getTicketsByWallet(walletAddress)
     } catch (error) {
       console.error('Failed to get tickets by wallet:', error)
       throw new Error('Unable to retrieve tickets')
@@ -131,7 +95,7 @@ export class TicketService {
 
   async getTicketsByDraw(drawId: string, includeArchived: boolean = false): Promise<LotteryTicket[]> {
     try {
-      return await blobStorage.getTicketsByDraw(drawId, includeArchived)
+      return await hybridStorage.getTicketsByDraw(drawId, includeArchived)
     } catch (error) {
       console.error('Failed to get tickets by draw:', error)
       throw new Error('Unable to retrieve tickets for draw')
@@ -140,7 +104,7 @@ export class TicketService {
 
   async getTicket(ticketId: string): Promise<LotteryTicket | null> {
     try {
-      return await blobStorage.getLotteryTicket(ticketId)
+      return await hybridStorage.getLotteryTicket(ticketId)
     } catch (error) {
       console.error('Failed to get ticket:', error)
       return null
@@ -154,7 +118,7 @@ export class TicketService {
 
   async confirmTicket(ticketId: string, transactionId?: string): Promise<LotteryTicket> {
     try {
-      const ticket = await blobStorage.getLotteryTicket(ticketId)
+      const ticket = await hybridStorage.getLotteryTicket(ticketId)
       
       if (!ticket) {
         throw new Error('Ticket not found')
@@ -170,7 +134,7 @@ export class TicketService {
         transactionId
       }
 
-      await blobStorage.saveLotteryTicket(confirmedTicket)
+      await hybridStorage.saveLotteryTicket(confirmedTicket)
       console.log(`Ticket ${ticketId} confirmed`)
       
       return confirmedTicket
@@ -187,8 +151,8 @@ export class TicketService {
   }> {
     try {
       const tickets = drawId 
-        ? await blobStorage.getTicketsByDraw(drawId)
-        : await blobStorage.getAllLotteryTickets()
+        ? await hybridStorage.getTicketsByDraw(drawId)
+        : await hybridStorage.getAllLotteryTickets()
 
       const totalTickets = tickets.length
       const totalRevenue = tickets.reduce((sum, ticket) => sum + ticket.purchasePrice, 0)

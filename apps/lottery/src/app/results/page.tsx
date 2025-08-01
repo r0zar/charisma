@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Trophy, ExternalLink, Copy } from "lucide-react"
 import { Footer } from "@/components/footer"
-import { getLotteryFormat } from "@/types/lottery"
 
 async function getLatestWinningNumbers() {
   try {
@@ -53,7 +52,6 @@ export default function ResultsPage() {
   const [mounted, setMounted] = useState(false)
 
   // Get lottery format
-  const lotteryFormat = getLotteryFormat()
 
   useEffect(() => {
     setMounted(true)
@@ -291,11 +289,6 @@ export default function ResultsPage() {
                             ) : (
                               <div className="text-green-700">
                                 {draw.winners[0].winnerCount} Winner{draw.winners[0].winnerCount !== 1 ? 's' : ''} Selected
-                                {lotteryFormat === 'traditional' && (
-                                  <div className="text-sm text-green-600 mt-1">
-                                    {draw.winners[0].matchCount} number matches
-                                  </div>
-                                )}
                               </div>
                             )}
                           </div>
@@ -306,32 +299,14 @@ export default function ResultsPage() {
                           </div>
                         )}
 
-                        {/* Lottery Format Info */}
+                        {/* Draw Info */}
                         <div className="text-center pt-2 border-t border-border/20">
-                          {lotteryFormat === 'traditional' ? (
-                            <div>
-                              <div className="text-sm font-medium text-muted-foreground mb-2">Winning Numbers</div>
-                              <div className="flex gap-2 justify-center flex-wrap">
-                                {draw.winningNumbers.map((number: number, index: number) => (
-                                  <div
-                                    key={index}
-                                    className="w-10 h-10 rounded-full bg-yellow-500 text-white font-bold flex items-center justify-center"
-                                  >
-                                    {number}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ) : (
-                            <div>
-                              <Badge variant="secondary" className="text-base py-1 px-3">
-                                Simple Random Draw
-                              </Badge>
-                              <div className="text-sm text-muted-foreground mt-1">
-                                One random ticket selected as winner
-                              </div>
-                            </div>
-                          )}
+                          <Badge variant="secondary" className="text-base py-1 px-3">
+                            Simple Random Draw
+                          </Badge>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            One random ticket selected as winner
+                          </div>
                         </div>
                       </CardContent>
                     </Card>

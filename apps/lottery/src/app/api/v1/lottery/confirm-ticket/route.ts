@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { blobStorage } from '@/lib/blob-storage'
+import { hybridStorage } from '@/lib/hybrid-storage'
 import { ticketService } from '@/lib/ticket-service'
 import { createTxMonitorClient } from '@repo/tx-monitor-client'
 import { getTransactionEvents, getTransactionDetails } from '@repo/polyglot'
@@ -74,7 +74,8 @@ async function validateBurnTransaction(txId: string, expectedAmount: number, wal
         return {
           success: false,
           error: `Transaction failed with status: ${result.status}`,
-          status: result.status
+          status: result.status,
+          retryable: result.status === 'pending'
         }
       }
       
@@ -94,14 +95,16 @@ async function validateBurnTransaction(txId: string, expectedAmount: number, wal
         } else {
           return {
             success: false,
-            error: `Transaction not yet confirmed or failed. Status: ${directTxDetails.tx_status}. Please wait a moment and try again.`
+            error: `Transaction not yet confirmed or failed. Status: ${directTxDetails.tx_status}. Please wait a moment and try again.`,
+            retryable: directTxDetails.tx_status === 'pending'
           }
         }
       } catch (directError) {
         console.error(`Failed to validate transaction directly:`, directError)
         return {
           success: false,
-          error: 'Unable to validate transaction status. The transaction monitoring service may be temporarily unavailable. Please try again in a few minutes.'
+          error: 'Unable to validate transaction status. The transaction monitoring service may be temporarily unavailable. Please try again in a few minutes.',
+          retryable: true
         }
       }
     }
@@ -260,7 +263,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Get the ticket to verify it exists and is in pending status
-    const ticket = await blobStorage.getLotteryTicket(ticketId)
+    const ticket = await hybridStorage.getLotteryTicket(ticketId)
     if (!ticket) {
       return NextResponse.json(
         { success: false, error: 'Ticket not found' },
@@ -282,16 +285,13 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    if (ticket.purchasePrice !== expectedAmount) {
-      return NextResponse.json(
-        { success: false, error: 'Amount mismatch' },
-        { status: 400 }
-      )
-    }
+    // Use the ticket's stored purchase price for validation instead of frontend expectedAmount
+    // This handles cases where the lottery config was updated after the ticket was purchased
+    console.log(`Using ticket's stored price ${ticket.purchasePrice} STONE instead of frontend expected amount ${expectedAmount} STONE`)
     
     // Validate the burn transaction using tx-monitor-client and polyglot
     console.log(`Validating burn transaction ${transactionId} for ticket ${ticketId}`)
-    const validationResult = await validateBurnTransaction(transactionId, expectedAmount, walletAddress)
+    const validationResult = await validateBurnTransaction(transactionId, ticket.purchasePrice, walletAddress)
     
     if (!validationResult.success) {
       console.log(`Transaction validation failed for ${ticketId}:`, validationResult.error)
@@ -326,7 +326,7 @@ export async function POST(request: NextRequest) {
       blockTime: validationResult.blockTime
     }
     
-    await blobStorage.saveLotteryTicket(confirmedTicket)
+    await hybridStorage.saveLotteryTicket(confirmedTicket)
     
     console.log(`Ticket ${ticketId} confirmed successfully`)
     
@@ -340,7 +340,15 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    return NextResponse.json(response)
+    const jsonResponse = NextResponse.json(response)
+    
+    // Never cache confirmation responses to ensure fresh transaction status
+    jsonResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    jsonResponse.headers.set('Pragma', 'no-cache')
+    jsonResponse.headers.set('Expires', '0')
+    jsonResponse.headers.set('Surrogate-Control', 'no-store')
+    
+    return jsonResponse
     
   } catch (error) {
     console.error('Confirm ticket API error:', error)
@@ -368,6 +376,14 @@ export async function POST(request: NextRequest) {
       error: errorMessage
     }
     
-    return NextResponse.json(response, { status: statusCode })
+    const jsonResponse = NextResponse.json(response, { status: statusCode })
+    
+    // Never cache error responses from confirmation endpoint
+    jsonResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+    jsonResponse.headers.set('Pragma', 'no-cache')
+    jsonResponse.headers.set('Expires', '0')
+    jsonResponse.headers.set('Surrogate-Control', 'no-store')
+    
+    return jsonResponse
   }
 }
