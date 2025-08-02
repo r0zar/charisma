@@ -39,6 +39,10 @@ export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [analytics, setAnalytics] = useState<any>({})
   const [winningTicketId, setWinningTicketId] = useState("")
+  const [dateFilter, setDateFilter] = useState({
+    startDate: '',
+    endDate: ''
+  })
 
   // Form states
   const [jackpotForm, setJackpotForm] = useState<PhysicalJackpot>({
@@ -225,6 +229,32 @@ export default function AdminPage() {
       const tickets = ticketsData.data || []
       const draws = drawsData.data || []
 
+      // Set default date filter if not already set
+      if (!dateFilter.startDate && !dateFilter.endDate) {
+        const sortedDraws = draws.sort((a: any, b: any) => new Date(b.drawDate).getTime() - new Date(a.drawDate).getTime())
+        const latestDraw = sortedDraws[0]
+        
+        if (latestDraw) {
+          const startDate = new Date(latestDraw.drawDate)
+          const endDate = new Date()
+          
+          // Format in client's local timezone for datetime-local input
+          const formatForDatetimeLocal = (date: Date) => {
+            const year = date.getFullYear()
+            const month = String(date.getMonth() + 1).padStart(2, '0')
+            const day = String(date.getDate()).padStart(2, '0')
+            const hours = String(date.getHours()).padStart(2, '0')
+            const minutes = String(date.getMinutes()).padStart(2, '0')
+            return `${year}-${month}-${day}T${hours}:${minutes}`
+          }
+          
+          setDateFilter({
+            startDate: formatForDatetimeLocal(startDate),
+            endDate: formatForDatetimeLocal(endDate)
+          })
+        }
+      }
+
       // Calculate analytics
       const totalTickets = tickets.length
       const confirmedTickets = tickets.filter((t: any) => t.status === 'confirmed').length
@@ -256,7 +286,22 @@ export default function AdminPage() {
       ).length
 
       // Current draw analytics (non-archived tickets)
-      const currentDrawTickets = tickets.filter((t: any) => t.status !== 'archived')
+      let currentDrawTickets = tickets.filter((t: any) => t.status !== 'archived')
+      
+      // Apply date filter if set
+      if (dateFilter.startDate || dateFilter.endDate) {
+        currentDrawTickets = currentDrawTickets.filter((t: any) => {
+          const ticketDate = new Date(t.purchaseDate)
+          // Create Date objects from datetime-local values (they're in local time)
+          const startDate = dateFilter.startDate ? new Date(dateFilter.startDate) : null
+          const endDate = dateFilter.endDate ? new Date(dateFilter.endDate) : null
+          
+          if (startDate && ticketDate < startDate) return false
+          if (endDate && ticketDate > endDate) return false
+          return true
+        })
+      }
+      
       const currentDrawConfirmed = currentDrawTickets.filter((t: any) => t.status === 'confirmed').length
       const currentDrawPending = currentDrawTickets.filter((t: any) => t.status === 'pending').length
       const currentDrawCancelled = currentDrawTickets.filter((t: any) => t.status === 'cancelled').length
@@ -311,9 +356,23 @@ export default function AdminPage() {
       const allTickets = result.data || []
 
       // Filter to only confirmed tickets for external drawing
-      const tickets = allTickets.filter((ticket: any) =>
+      let tickets = allTickets.filter((ticket: any) =>
         ticket.status === 'confirmed'
       )
+      
+      // Apply date filter if set
+      if (dateFilter.startDate || dateFilter.endDate) {
+        tickets = tickets.filter((t: any) => {
+          const ticketDate = new Date(t.purchaseDate)
+          // Create Date objects from datetime-local values (they're in local time)
+          const startDate = dateFilter.startDate ? new Date(dateFilter.startDate) : null
+          const endDate = dateFilter.endDate ? new Date(dateFilter.endDate) : null
+          
+          if (startDate && ticketDate < startDate) return false
+          if (endDate && ticketDate > endDate) return false
+          return true
+        })
+      }
 
       if (tickets.length === 0) {
         setError('No confirmed tickets available for export')
@@ -343,7 +402,10 @@ export default function AdminPage() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      setSuccess(`Successfully exported ${tickets.length} confirmed tickets as CSV for external drawing`)
+      const filterInfo = (dateFilter.startDate || dateFilter.endDate) ? 
+        ` (filtered${dateFilter.startDate ? ` from ${new Date(dateFilter.startDate).toLocaleDateString()}` : ''}${dateFilter.endDate ? ` to ${new Date(dateFilter.endDate).toLocaleDateString()}` : ''})` : 
+        ''
+      setSuccess(`Successfully exported ${tickets.length} confirmed tickets as CSV for external drawing${filterInfo}`)
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to export tickets')
@@ -803,26 +865,52 @@ export default function AdminPage() {
               </CardTitle>
               <CardDescription>
                 Active tickets for the current draw (resets after winner selection)
+                {(dateFilter.startDate || dateFilter.endDate) && (
+                  <span className="ml-2 text-xs">
+                    • Filtered {dateFilter.startDate && `from ${new Date(dateFilter.startDate).toLocaleDateString()}`}
+                    {dateFilter.startDate && dateFilter.endDate && ' '}
+                    {dateFilter.endDate && `to ${new Date(dateFilter.endDate).toLocaleDateString()}`}
+                  </span>
+                )}
               </CardDescription>
             </div>
-            <Button
-              onClick={fetchAnalytics}
-              disabled={analyticsLoading}
-              variant="outline"
-              size="sm"
-            >
-              {analyticsLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </>
-              )}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Input
+                type="datetime-local"
+                value={dateFilter.startDate}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
+                placeholder="Start date"
+                className="h-8 w-40 text-xs"
+                disabled={analyticsLoading}
+              />
+              <Input
+                type="datetime-local"
+                value={dateFilter.endDate}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
+                placeholder="End date"
+                className="h-8 w-40 text-xs"
+                disabled={analyticsLoading}
+              />
+              <Button
+                onClick={fetchAnalytics}
+                disabled={analyticsLoading}
+                variant="outline"
+                size="sm"
+                className="h-8"
+              >
+                {analyticsLoading ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Apply Filter
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
