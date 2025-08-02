@@ -5,6 +5,8 @@ import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
 import { useTokenMetadata } from '@/contexts/token-metadata-context';
+import { useTokenPrices } from '@/contexts/token-price-context';
+import { useSubnetTokens } from '@/contexts/subnet-tokens-context';
 import { ChevronDown, Search, X, ArrowLeft } from 'lucide-react';
 
 interface TokenDropdownProps {
@@ -35,20 +37,73 @@ export default function TokenDropdown({
 
     // Get balance data for enhanced display
     const { address } = useWallet();
-    const { getFormattedBalanceWithSubnet } = useBalances(address ? [address] : []);
+    
+    const { getFormattedBalanceWithSubnet, getTokenBalance, balances, isLoading, error } = useBalances(address ? [address] : []);
+    const { prices } = useTokenPrices();
     const { getTokenDecimals } = useTokenMetadata();
+    const { getSubnetContractId } = useSubnetTokens();
 
     /* ---------------- helpers ---------------- */
+    
+    // Calculate USD value for a token (mainnet + subnet)
+    const calculateTokenUSDValue = (token: TokenCacheData): number => {
+        if (!address || !showBalances) return 0;
+        
+        const price = prices[token.contractId] || 0;
+        if (price === 0) return 0;
+        
+        // Use raw balances and convert to decimal-adjusted values for USD calculation
+        const rawMainnetBalance = getTokenBalance(address, token.contractId);
+        
+        // Get subnet balance if applicable
+        let rawSubnetBalance = 0;
+        const subnetContractId = getSubnetContractId(token.contractId);
+        if (subnetContractId) {
+            rawSubnetBalance = getTokenBalance(address, subnetContractId);
+        }
+        
+        // Convert raw balances to decimal-adjusted values
+        const decimals = getTokenDecimals(token.contractId) || 6;
+        const mainnetValue = rawMainnetBalance / Math.pow(10, decimals);
+        const subnetValue = rawSubnetBalance / Math.pow(10, decimals);
+        const totalBalance = mainnetValue + subnetValue;
+        
+        return totalBalance * price;
+    };
+
     const filtered = useMemo(() => {
-        if (!search) return tokens;
-        const q = search.toLowerCase();
-        return tokens.filter(
-            (t) =>
-                t.symbol?.toLowerCase().includes(q) ||
-                t.name?.toLowerCase().includes(q) ||
-                t.contractId?.toLowerCase().includes(q)
-        );
-    }, [tokens, search]);
+        let result = tokens;
+        
+        // Filter by search term
+        if (search) {
+            const q = search.toLowerCase();
+            result = result.filter(
+                (t) =>
+                    t.symbol?.toLowerCase().includes(q) ||
+                    t.name?.toLowerCase().includes(q) ||
+                    t.contractId?.toLowerCase().includes(q)
+            );
+        }
+        
+        // Sort by USD value if showing balances, otherwise by symbol
+        if (showBalances && address) {
+            result = [...result].sort((a, b) => {
+                const aValue = calculateTokenUSDValue(a);
+                const bValue = calculateTokenUSDValue(b);
+                
+                // Sort by USD value (highest first), then by symbol for ties
+                if (bValue !== aValue) {
+                    return bValue - aValue;
+                }
+                return (a.symbol || '').localeCompare(b.symbol || '');
+            });
+        } else {
+            // Default sort by symbol
+            result = [...result].sort((a, b) => (a.symbol || '').localeCompare(b.symbol || ''));
+        }
+        
+        return result;
+    }, [tokens, search, showBalances, address, getFormattedBalanceWithSubnet, getTokenBalance, getTokenDecimals, getSubnetContractId, prices]);
 
     const close = () => {
         setOpen(false);
@@ -223,20 +278,31 @@ export default function TokenDropdown({
                                                         {(() => {
                                                             // Use the new function that automatically handles subnet/mainnet lookup
                                                             const { mainnet, subnet, hasSubnet } = getFormattedBalanceWithSubnet(address, token.contractId);
+                                                            const usdValue = calculateTokenUSDValue(token);
                                                             
                                                             return (
                                                                 <>
+                                                                    {/* USD Value */}
+                                                                    {usdValue > 0 && (
+                                                                        <div className="text-sm sm:text-base font-bold text-green-400 mb-1">
+                                                                            ${usdValue >= 1000000 
+                                                                                ? `${(usdValue / 1000000).toFixed(2)}M`
+                                                                                : usdValue >= 1000 
+                                                                                    ? `${(usdValue / 1000).toFixed(2)}K`
+                                                                                    : usdValue.toFixed(2)
+                                                                            }
+                                                                        </div>
+                                                                    )}
+                                                                    
+                                                                    {/* Token Balance */}
                                                                     <div className="text-sm sm:text-base font-semibold text-white/90">
-                                                                        {mainnet}
+                                                                        {mainnet || '0'}
                                                                     </div>
                                                                     {hasSubnet && (
                                                                         <div className="text-xs sm:text-sm text-purple-400 font-medium">
-                                                                            +{subnet} subnet
+                                                                            +{subnet}
                                                                         </div>
                                                                     )}
-                                                                    <div className="text-xs text-white/50 mt-1">
-                                                                        {hasSubnet ? 'Mainnet' : 'Balance'}
-                                                                    </div>
                                                                 </>
                                                             );
                                                         })()}

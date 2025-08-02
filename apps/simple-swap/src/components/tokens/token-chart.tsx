@@ -11,11 +11,7 @@ import {
 } from 'lightweight-charts';
 import { usePriceSeriesService } from '@/lib/charts/price-series-service';
 import { perfMonitor } from '@/lib/performance-monitor';
-import {
-    enhanceSparseTokenData,
-    calculateResilientRatioData,
-    type ChartDataPoint
-} from '@/lib/chart-data-utils';
+import { calculateSimpleRatio, cleanPriceData } from '@/lib/charts/simple-chart-utils';
 
 interface TokenChartProps {
     primary: string; // contract ID of the primary token
@@ -150,21 +146,7 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
 
     const priceSeriesService = usePriceSeriesService();
 
-    // Helper function to convert LineData to ChartDataPoint format
-    const convertToChartDataPoints = (data: LineData[]): ChartDataPoint[] => {
-        return data.map(point => ({
-            time: Number(point.time) * 1000, // Convert to milliseconds
-            value: point.value
-        }));
-    };
-
-    // Helper function to convert ChartDataPoint back to LineData format
-    const convertToLineData = (data: ChartDataPoint[]): LineData[] => {
-        return data.map(point => ({
-            time: Math.floor(point.time / 1000) as any, // Convert back to seconds
-            value: point.value
-        }));
-    };
+    // No conversion needed - working directly with LineData
 
     // Chart data extrapolation now handled by chart-data-utils
 
@@ -194,26 +176,17 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                 const rawPrimaryData = bulkData[primary] || [];
                 const rawCompareData = compareId ? (bulkData[compareId] || []) : [];
 
-                // Determine if we should use ratio comparison mode
-                const useRatioMode = compareId && rawCompareData.length > 0;
+                // Clean the primary data
+                let primaryData = cleanPriceData(rawPrimaryData);
 
-                let primaryData: LineData[];
-
-                if (useRatioMode) {
-                    console.log('[TOKEN-CHART] Computing ratio with extrapolation...');
-
-                    // Convert to ChartDataPoint format for extrapolation utilities
-                    const primaryChartData = convertToChartDataPoints(rawPrimaryData);
-                    const compareChartData = convertToChartDataPoints(rawCompareData);
-
-                    // Use resilient ratio calculation with extrapolation
-                    const ratioChartData = calculateResilientRatioData(primaryChartData, compareChartData, {
-                        minPoints: 15, // Ensure smooth charts even with sparse data
-                        defaultTimeRangeMs: 30 * 24 * 60 * 60 * 1000 // 30 days
-                    });
-
-                    // Convert back to LineData format
-                    primaryData = convertToLineData(ratioChartData);
+                if (compareId && rawCompareData.length > 0) {
+                    console.log('[TOKEN-CHART] Computing simple ratio...');
+                    
+                    // Clean compare data
+                    const cleanCompareData = cleanPriceData(rawCompareData);
+                    
+                    // Calculate simple ratio
+                    primaryData = calculateSimpleRatio(primaryData, cleanCompareData);
                     setComparisonMode('ratio');
 
                     console.log(`[TOKEN-CHART] Ratio calculation: ${rawPrimaryData.length}+${rawCompareData.length} -> ${primaryData.length} points`);
@@ -225,19 +198,10 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                         setCompareDataCount(0);
                     }
                 } else {
-                    console.log('[TOKEN-CHART] Enhancing sparse token data...');
-
-                    // Convert to ChartDataPoint format
-                    const primaryChartData = convertToChartDataPoints(rawPrimaryData);
-
-                    // Enhance sparse data with extrapolation
-                    const enhancedChartData = enhanceSparseTokenData(primaryChartData, undefined, 15);
-
-                    // Convert back to LineData format
-                    primaryData = convertToLineData(enhancedChartData);
+                    console.log('[TOKEN-CHART] Using cleaned data directly...');
                     setComparisonMode('absolute');
 
-                    console.log(`[TOKEN-CHART] Data enhancement: ${rawPrimaryData.length} -> ${primaryData.length} points`);
+                    console.log(`[TOKEN-CHART] Data points: ${rawPrimaryData.length} -> ${primaryData.length}`);
 
                     // Remove comparison series if switching back to single token
                     if (compareSeriesRef.current && chartRef.current) {
@@ -284,12 +248,13 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                 }
 
                 // Update price scale formatting based on mode
+                const isRatioMode = comparisonMode === 'ratio';
                 if (chartRef.current) {
                     chartRef.current.applyOptions({
                         leftPriceScale: {
                             ...chartConfig.leftPriceScale,
                             // Format as ratio when in comparison mode
-                            ...(useRatioMode ? {
+                            ...(isRatioMode ? {
                                 priceFormat: {
                                     type: 'price' as const,
                                     precision: 6,
@@ -310,13 +275,13 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                     primaryDataPoints: primaryData.length,
                     compareDataPoints: compareId ? rawCompareData.length : 0,
                     bulkFetch: true,
-                    comparisonMode: useRatioMode ? 'ratio' : 'absolute'
+                    comparisonMode: comparisonMode
                 });
 
                 console.log('[TOKEN-CHART] Bulk data loaded:', {
                     primaryPoints: primaryData.length,
                     rawComparePoints: compareId ? rawCompareData.length : 0,
-                    mode: useRatioMode ? 'ratio' : 'absolute'
+                    mode: comparisonMode
                 });
                 setLoading(false);
             })

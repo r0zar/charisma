@@ -94,7 +94,7 @@ function adaptTokenMetadata(contractId: string, registryData: any): TokenCacheDa
 
 /**
  * Replacement for listTokens() from @repo/tokens
- * Fetches all tokens from cached contract-registry API and adapts them to TokenCacheData format
+ * Fetches all tokens from both contract-registry API and external token-cache API
  */
 export async function listTokens(): Promise<TokenCacheData[]> {
   const contractRegistryUrl = getHostUrl('contract-registry');
@@ -114,9 +114,61 @@ export async function listTokens(): Promise<TokenCacheData[]> {
   console.log(`[Contract Registry Adapter] Fetched ${tokens?.length || 0} tokens from cached API`);
 
   // Convert to TokenCacheData format
-  const tokenData: TokenCacheData[] = tokens
+  let tokenData: TokenCacheData[] = tokens
     .filter((contract: any) => contract.tokenMetadata)
     .map((contract: any) => adaptTokenMetadata(contract.contractId, contract));
+
+  // Also fetch from external token-cache API to get USDh and other external tokens
+  try {
+    const TOKEN_CACHE = process.env.NEXT_PUBLIC_TOKEN_CACHE_URL || process.env.TOKEN_CACHE_URL || 'https://tokens.charisma.rocks';
+    const externalResponse = await fetch(`${TOKEN_CACHE}/api/v1/metadata`, {
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    });
+    
+    if (externalResponse.ok) {
+      const externalTokens = await externalResponse.json();
+      console.log(`[Contract Registry Adapter] Fetched ${externalTokens?.length || 0} tokens from external token-cache`);
+      
+      // Convert external tokens to TokenCacheData format and merge
+      const externalTokenData: TokenCacheData[] = externalTokens
+        .filter((token: any) => token.contractId && token.symbol)
+        .map((token: any) => ({
+          type: token.type || 'token',
+          contractId: token.contractId,
+          name: token.name || token.symbol,
+          description: token.description || '',
+          image: token.image || '',
+          lastUpdated: token.lastUpdated || Date.now(),
+          decimals: token.decimals || 6,
+          symbol: token.symbol,
+          token_uri: token.token_uri || null,
+          identifier: token.identifier || token.symbol,
+          total_supply: token.total_supply || null,
+          tokenAContract: null,
+          tokenBContract: null,
+          lpRebatePercent: null,
+          externalPoolId: null,
+          engineContractId: null,
+          base: token.base || null,
+          usdPrice: token.usdPrice || null,
+          confidence: token.confidence || null,
+          marketPrice: token.marketPrice || null,
+          intrinsicValue: token.intrinsicValue || null,
+          totalLiquidity: token.totalLiquidity || null
+        }));
+      
+      // Merge with existing tokens, preferring external data for duplicates
+      const contractIdSet = new Set(tokenData.map(t => t.contractId));
+      const newExternalTokens = externalTokenData.filter(t => !contractIdSet.has(t.contractId));
+      
+      tokenData = [...tokenData, ...newExternalTokens];
+      console.log(`[Contract Registry Adapter] Total tokens after merge: ${tokenData.length}`);
+    } else {
+      console.warn(`[Contract Registry Adapter] Failed to fetch external tokens: ${externalResponse.status}`);
+    }
+  } catch (error) {
+    console.warn('[Contract Registry Adapter] External token fetch failed:', error);
+  }
 
   return tokenData;
 }

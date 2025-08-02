@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { KraxelPriceData } from '@/lib/contract-registry-adapter';
 import { getPrices } from '../app/actions';
-import { getCurrentPrices } from '@repo/tokens';
+import { lakehouseClient } from '@repo/tokens';
 
 interface TokenPriceContextType {
   prices: KraxelPriceData;
@@ -42,22 +42,22 @@ export function TokenPriceProvider({ children, refreshInterval = 30000 }: TokenP
       
       // Try data client first (simple, clean integration)
       if (tryDataClient) {
-        console.log('[TokenPriceContext] Trying data client for price refresh');
+        console.log('[TokenPriceContext] Trying lakehouse client for price refresh');
         try {
-          const priceArray = await getCurrentPrices(50, { timeout: 8000, retries: 1 });
+          const priceArray = await lakehouseClient.getCurrentPrices({ limit: 50 });
           
           // Convert array to KraxelPriceData format (simple conversion)
           const priceData: KraxelPriceData = {};
           priceArray.forEach(price => {
-            priceData[price.tokenId] = price.usdPrice;
+            priceData[price.token_contract_id] = price.usd_price;
           });
           
           setPrices(priceData);
           setLastUpdate(Date.now());
-          console.log(`[TokenPriceContext] ✓ Data client success: ${Object.keys(priceData).length} prices`);
+          console.log(`[TokenPriceContext] ✓ Lakehouse client success: ${Object.keys(priceData).length} prices`);
           return; // Success - exit early
-        } catch (dataClientError) {
-          console.warn('[TokenPriceContext] Data client failed, falling back:', dataClientError);
+        } catch (lakehouseError) {
+          console.warn('[TokenPriceContext] Lakehouse client failed, falling back:', lakehouseError);
           setTryDataClient(false); // Disable for this session
         }
       }

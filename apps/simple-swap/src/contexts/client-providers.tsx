@@ -5,6 +5,7 @@ import { WalletProvider } from '@/contexts/wallet-context';
 import { TokenPriceProvider } from '@/contexts/token-price-context';
 import { WalletBalanceProvider } from '@/contexts/wallet-balance-context';
 import { TokenMetadataProvider } from '@/contexts/token-metadata-context';
+import { SubnetTokensProvider } from '@/contexts/subnet-tokens-context';
 import type { TokenCacheData } from '@/lib/contract-registry-adapter';
 
 interface ClientProvidersProps {
@@ -85,9 +86,11 @@ function TokenAwareProviders({ children, initialTokens }: { children: React.Reac
     return (
         <TokenPriceProvider>
             <TokenMetadataProvider initialTokens={initialTokens}>
-                <WalletBalanceProvider>
-                    {children}
-                </WalletBalanceProvider>
+                <SubnetTokensProvider>
+                    <WalletBalanceProvider>
+                        {children}
+                    </WalletBalanceProvider>
+                </SubnetTokensProvider>
             </TokenMetadataProvider>
         </TokenPriceProvider>
     );

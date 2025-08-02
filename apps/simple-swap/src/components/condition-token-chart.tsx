@@ -13,12 +13,7 @@ import {
 } from "lightweight-charts";
 import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
-import {
-    calculateResilientRatioData,
-    enhanceSparseTokenData,
-    isValidDataPoint,
-    type ChartDataPoint
-} from "@/lib/chart-data-utils";
+import { calculateSimpleRatio, cleanPriceData, formatPrice as formatPriceUtil } from "@/lib/charts/simple-chart-utils";
 import { usePrices } from '@/contexts/token-price-context';
 import { useWallet } from '@/contexts/wallet-context';
 import { usePriceSeriesService } from '@/lib/charts/price-series-service';
@@ -33,45 +28,10 @@ interface Props {
     colour?: string;
 }
 
-// Convert LineData to ChartDataPoint format - detect time format automatically
-function convertToChartDataPoint(data: LineData[]): ChartDataPoint[] {
-    return data.map(point => {
-        const timeValue = Number(point.time);
-        // Detect if time is already in milliseconds (> year 2000 in seconds = 946684800)
-        // If it's a large number, it's likely milliseconds; if small, it's seconds
-        const isMilliseconds = timeValue > 946684800000;
-        return {
-            time: isMilliseconds ? timeValue : timeValue * 1000,
-            value: point.value
-        };
-    });
-}
+// Removed unnecessary data conversion functions - charts now work directly with LineData
 
-// Convert ChartDataPoint back to LineData format - lightweight-charts expects seconds
-function convertToLineData(data: ChartDataPoint[]): LineData[] {
-    return data.map(point => ({
-        time: Math.floor(point.time / 1000) as any, // Always convert to seconds for lightweight-charts
-        value: point.value
-    }));
-}
-
-function formatPrice(price: number): string {
-    if (price === 0) return '0';
-    if (isNaN(price)) return '0';
-
-    // Use 4-5 significant digits, but ensure we show meaningful precision
-    const magnitude = Math.floor(Math.log10(Math.abs(price)));
-
-    if (price >= 1) {
-        // For values >= 1, show 2-4 decimal places max
-        return price.toFixed(Math.min(4, Math.max(2, 4 - magnitude)));
-    } else {
-        // For values < 1, ensure we show at least 4 significant digits
-        const significantDigits = 4;
-        const decimalPlaces = significantDigits - magnitude - 1;
-        return price.toFixed(Math.min(8, Math.max(2, decimalPlaces)));
-    }
-}
+// Use the simplified formatPrice from utils
+const formatPrice = formatPriceUtil;
 
 // UI Components
 function ChartSkeleton() {
@@ -178,40 +138,22 @@ export default function ConditionTokenChart({
                 throw new Error("Invalid price data format");
             }
 
-            let processedData = tokenData;
+            // Simplified data processing - no unnecessary transformations
+            let chartData: LineData[];
 
-            // Process ratio data if base token exists
             if (baseToken?.contractId && bulkData[baseToken.contractId]) {
+                // Calculate simple ratio for base token pairs
                 const baseData = bulkData[baseToken.contractId];
-                if (Array.isArray(baseData)) {
-                    // Convert to ChartDataPoint format and use resilient ratio calculation
-                    const tokenChartData = convertToChartDataPoint(tokenData);
-                    const baseChartData = convertToChartDataPoint(baseData);
-
-                    const ratioChartData = calculateResilientRatioData(tokenChartData, baseChartData, {
-                        minPoints: 15, // Match token chart for better extrapolation
-                        defaultTimeRangeMs: 30 * 24 * 60 * 60 * 1000 // 30 days
-                    });
-                    processedData = convertToLineData(ratioChartData);
-                }
+                const cleanTokenData = cleanPriceData(tokenData);
+                const cleanBaseData = cleanPriceData(baseData);
+                chartData = calculateSimpleRatio(cleanTokenData, cleanBaseData);
             } else {
-                // For single token data, apply resilience if needed (match token chart exactly)
-                const tokenChartData = convertToChartDataPoint(tokenData);
-                const enhancedData = enhanceSparseTokenData(tokenChartData, undefined, 15); // Match token chart
-                processedData = convertToLineData(enhancedData);
+                // Single token chart - just clean the data
+                chartData = cleanPriceData(tokenData);
             }
 
-            const validData = processedData.filter((point): point is LineData => isValidDataPoint({
-                time: Number(point.time),
-                value: point.value
-            }));
-
-            // Sort by time and remove duplicates (required by lightweight-charts)
-            const sortedData = validData.sort((a, b) => Number(a.time) - Number(b.time));
-            const deduplicatedData = sortedData.filter((point, index) => {
-                if (index === 0) return true;
-                return Number(point.time) !== Number(sortedData[index - 1].time);
-            });
+            // Data is already properly formatted - no additional processing needed
+            const deduplicatedData = chartData;
 
             setData(deduplicatedData);
 
@@ -226,9 +168,7 @@ export default function ConditionTokenChart({
                 token: token.symbol,
                 baseToken: baseToken?.symbol || null,
                 mode: baseToken ? 'ratio' : 'single',
-                originalPoints: validData.length,
-                finalPoints: deduplicatedData.length,
-                duplicatesRemoved: validData.length - deduplicatedData.length
+                dataPoints: deduplicatedData.length
             });
 
         } catch (err) {

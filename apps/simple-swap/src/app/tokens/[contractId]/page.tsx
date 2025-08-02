@@ -5,7 +5,7 @@ import { type TokenCacheData } from '@/lib/contract-registry-adapter';
 import { listTokens as listMetadata } from '@/lib/contract-registry-adapter';
 import type { TokenSummary, PriceStats } from '@/types/token-types';
 import { calculateMarketCap, findClosestPrice } from '@/lib/utils/token-utils';
-import { CachedPriceClient } from '@/lib/cached-balance-client';
+import { lakehouseClient } from '@repo/tokens';
 import { Header } from '@/components/layout/header';
 import TokenDetailClient from '@/components/tokens/token-detail-client';
 import TokenDetailSkeleton from '@/components/tokens/token-detail-skeleton';

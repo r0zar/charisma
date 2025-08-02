@@ -2,11 +2,13 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { AccountBalancesResponse } from '@repo/polyglot';
-import { getAccountBalancesWithSubnet, getBalancesAction, getAddressBalancesAction } from '@/app/actions';
+import { getBalancesAction } from '@/app/actions';
+// import { balanceClient } from '@repo/tokens'; // Avoiding import to prevent SSR hang
 import { formatTokenAmount } from '@/lib/swap-utils';
 import { useTokenMetadata } from './token-metadata-context';
-import type { BulkBalanceResponse } from '@/lib/cached-balance-client';
-import { getAddressBalances } from '@repo/tokens';
+import { useSubnetTokens } from './subnet-tokens-context';
+import type { BulkBalanceResponse } from '@repo/tokens';
+// Note: getAddressBalances removed - using balance service or original method
 
 interface WalletBalanceContextType {
   balances: Record<string, AccountBalancesResponse>;
@@ -37,8 +39,8 @@ interface WalletBalanceProviderProps {
   initialServiceBalances?: BulkBalanceResponse;
 }
 
-export function WalletBalanceProvider({ 
-  children, 
+export function WalletBalanceProvider({
+  children,
   refreshInterval = 60000,
   initialBalances,
   initialServiceBalances
@@ -48,11 +50,12 @@ export function WalletBalanceProvider({
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [watchedAddresses, setWatchedAddresses] = useState<string[]>([]);
-  const [useBalanceService, setUseBalanceService] = useState(!!initialServiceBalances);
+  const [useBalanceService, setUseBalanceService] = useState(true); // Default to using the new balance service
   const [tryDataClient, setTryDataClient] = useState(true); // Simple flag to try data client
-  
-  const { tokens } = useTokenMetadata();
-  
+
+  const { tokens, getTokenDecimals } = useTokenMetadata();
+  const { getSubnetContractId } = useSubnetTokens();
+
   // Use refs to track active requests and prevent duplicates
   const activeRequests = useRef(new Set<string>());
   const intervalRef = useRef<NodeJS.Timeout | undefined>();
@@ -67,7 +70,7 @@ export function WalletBalanceProvider({
     serviceBalances: Record<string, string>
   ): AccountBalancesResponse => {
     const fungible_tokens: Record<string, any> = {};
-    
+
     Object.entries(serviceBalances).forEach(([contractId, balance]) => {
       if (balance !== '0') {
         fungible_tokens[contractId] = {
@@ -104,79 +107,62 @@ export function WalletBalanceProvider({
     setError(null);
 
     try {
-      // Try data client first if enabled (simple, clean integration)
-      if (tryDataClient) {
-        console.log('[WalletBalanceContext] Trying data client for balance refresh');
-        
-        try {
-          const dataClientBalances = await getAddressBalances(addressesToUpdate, { timeout: 8000, retries: 1 });
-          
-          // Convert to expected format (simple conversion)
-          const convertedBalances: Record<string, AccountBalancesResponse> = {};
-          Object.entries(dataClientBalances).forEach(([address, balanceData]) => {
-            const fungible_tokens: Record<string, any> = {};
-            Object.entries(balanceData.fungibleTokens).forEach(([contractId, tokenData]) => {
-              fungible_tokens[contractId] = {
-                balance: tokenData.balance,
-                total_sent: '0',
-                total_received: tokenData.balance,
-              };
-            });
+      // Skip data client - no longer available
 
-            convertedBalances[address] = {
-              stx: {
-                balance: balanceData.stxBalance,
-                total_sent: balanceData.metadata.stxTotalSent,
-                total_received: balanceData.metadata.stxTotalReceived,
-                lock_tx_id: '',
-                locked: balanceData.metadata.stxLocked,
-                lock_height: 0,
-                burnchain_lock_height: 0,
-                burnchain_unlock_height: 0
-              },
-              fungible_tokens,
-              non_fungible_tokens: {}
-            };
-          });
-          
-          setBalances(prevBalances => ({ ...prevBalances, ...convertedBalances }));
-          setLastUpdate(Date.now());
-          console.log(`[WalletBalanceContext] ✓ Data client success: ${Object.keys(convertedBalances).length} addresses`);
-          return; // Success - exit early
-        } catch (dataClientError) {
-          console.warn('[WalletBalanceContext] Data client failed, falling back:', dataClientError);
-          setTryDataClient(false); // Disable for this session
-        }
-      }
-      
       // Use balance service if enabled, otherwise fall back to original method
       if (useBalanceService) {
         console.log('[WalletBalanceContext] Using balance service for refresh');
-        
-        const response = await getBalancesAction(addressesToUpdate, undefined, false);
-        
-        if (response.success && response.data) {
+
+        const response = await getBalancesAction(addressesToUpdate, undefined, true); // Include zero balances
+
+        if (response.success && response.balances) {
           const newBalances = { ...balances };
-          
+
           // Convert service balance data to AccountBalancesResponse format
-          Object.entries(response.data).forEach(([address, serviceBalances]) => {
-            newBalances[address] = convertServiceBalancesToAccountResponse(address, serviceBalances);
+          Object.entries(response.balances).forEach(([address, balanceResponse]) => {
+            if (balanceResponse) {
+              newBalances[address] = {
+                stx: {
+                  balance: balanceResponse.stxBalance,
+                  total_sent: balanceResponse.metadata.stxTotalSent,
+                  total_received: balanceResponse.metadata.stxTotalReceived,
+                  total_fees_sent: '0',
+                  total_miner_rewards_received: '0',
+                  lock_tx_id: '',
+                  locked: balanceResponse.metadata.stxLocked,
+                  lock_height: 0,
+                  burnchain_lock_height: 0,
+                  burnchain_unlock_height: 0
+                },
+                fungible_tokens: Object.fromEntries(
+                  Object.entries(balanceResponse.fungibleTokens).map(([contractId, token]) => [
+                    contractId,
+                    {
+                      balance: token.balance,
+                      total_sent: '0',
+                      total_received: token.balance
+                    }
+                  ])
+                ),
+                non_fungible_tokens: balanceResponse.nonFungibleTokens
+              };
+            }
           });
-          
+
           setBalances(newBalances);
           setLastUpdate(Date.now());
-          console.log(`[WalletBalanceContext] Successfully updated ${Object.keys(response.data).length} addresses using balance service`);
+          console.log(`[WalletBalanceContext] Successfully updated ${Object.keys(response.balances).length} addresses using balance service`);
         } else {
           console.warn('[WalletBalanceContext] Balance service failed, falling back to original method');
           setUseBalanceService(false);
           // Fall through to original method
         }
       }
-      
+
       // Original method (fallback or when balance service is disabled)
       if (!useBalanceService) {
         console.log('[WalletBalanceContext] Using original balance fetching method');
-        
+
         const results = await Promise.allSettled(
           addressesToUpdate.map(async (address) => {
             // Skip if request is already active for this address
@@ -189,9 +175,50 @@ export function WalletBalanceProvider({
             }
 
             activeRequests.current.add(address);
-            
+
             try {
-              const balanceData = await getAccountBalancesWithSubnet(address, { trim: true });
+              // Use direct API call instead of balance client to avoid SSR hang
+              const cacheBuster = Date.now();
+              const baseUrl = typeof window !== 'undefined' ? '' : (process.env.NODE_ENV === 'development' ? 'http://localhost:3002' : '');
+              const response = await fetch(`${baseUrl}/api/v1/balances/${address}?includeZero=true&_t=${cacheBuster}`, {
+                headers: {
+                  'Accept': 'application/json',
+                  'Cache-Control': 'no-cache'
+                },
+                signal: AbortSignal.timeout(15000)
+              });
+              const balanceResponse = response.ok ? await response.json() : null;
+              if (!balanceResponse) {
+                return null;
+              }
+
+              // Convert balance client response to AccountBalancesResponse format
+              const balanceData: AccountBalancesResponse = {
+                stx: {
+                  balance: balanceResponse.stxBalance,
+                  total_sent: balanceResponse.metadata.stxTotalSent,
+                  total_received: balanceResponse.metadata.stxTotalReceived,
+                  total_fees_sent: '0',
+                  total_miner_rewards_received: '0',
+                  lock_tx_id: '',
+                  locked: balanceResponse.metadata.stxLocked,
+                  lock_height: 0,
+                  burnchain_lock_height: 0,
+                  burnchain_unlock_height: 0
+                },
+                fungible_tokens: Object.fromEntries(
+                  Object.entries(balanceResponse.fungibleTokens).map(([contractId, token]) => [
+                    contractId,
+                    {
+                      balance: token.balance,
+                      total_sent: '0',
+                      total_received: token.balance
+                    }
+                  ])
+                ),
+                non_fungible_tokens: balanceResponse.nonFungibleTokens
+              };
+
               return { address, balanceData };
             } catch (err) {
               console.error(`Failed to fetch balance for ${address}:`, err);
@@ -215,7 +242,7 @@ export function WalletBalanceProvider({
     } catch (err) {
       console.error('Failed to refresh balances:', err);
       setError(err instanceof Error ? err.message : 'Failed to refresh balances');
-      
+
       // If balance service failed, try falling back to original method
       if (useBalanceService) {
         console.log('[WalletBalanceContext] Balance service error, disabling for this session');
@@ -232,12 +259,18 @@ export function WalletBalanceProvider({
 
   const getTokenBalance = (address: string, contractId: string): number => {
     const balance = balances[address];
-    if (!balance) return 0;
+    if (!balance) {
+      return 0;
+    }
 
     try {
       const tokenBalance = balance.fungible_tokens?.[contractId];
-      if (!tokenBalance) return 0;
-      return parseFloat(tokenBalance.balance || '0');
+      if (!tokenBalance) {
+        return 0;
+      }
+      const result = parseFloat(tokenBalance.balance || '0');
+
+      return result;
     } catch (error) {
       console.error('Error parsing token balance:', error);
       return 0;
@@ -279,7 +312,9 @@ export function WalletBalanceProvider({
     const rawBalance = getTokenBalance(address, contractId);
     const token = tokens[contractId];
     const decimals = token?.decimals || 6;
-    return formatTokenAmount(rawBalance, decimals);
+    const formatted = formatTokenAmount(rawBalance, decimals);
+
+    return formatted;
   };
 
   const getFormattedSubnetBalance = (address: string, contractId: string): string => {
@@ -291,7 +326,40 @@ export function WalletBalanceProvider({
 
   const getFormattedBalanceWithSubnet = (address: string, contractId: string): { mainnet: string; subnet: string; hasSubnet: boolean } => {
     const token = tokens[contractId];
+
+
     if (!token) {
+
+      // Fallback: format balance even without token metadata - use correct decimals from metadata context
+      const rawBalance = getTokenBalance(address, contractId);
+
+      // Look for corresponding subnet token using the subnet tokens API
+      const subnetContractId = getSubnetContractId(contractId);
+      const rawSubnetBalance = subnetContractId ? getTokenBalance(address, subnetContractId) : 0;
+
+      // Get proper decimals from metadata context
+      const mainnetDecimals = getTokenDecimals(contractId) || 6;
+      const subnetDecimals = subnetContractId ? (getTokenDecimals(subnetContractId) || 6) : 6;
+
+      // Extra debug for USDh tokens
+      if (contractId.includes('usdh-token')) {
+        console.log('[WalletBalanceContext] USDh fallback formatting:', {
+          contractId,
+          mainnetBalance: rawBalance,
+          mainnetDecimals,
+          subnetContractId: subnetContractId,
+          subnetBalance: rawSubnetBalance,
+          subnetDecimals
+        });
+      }
+
+      if (rawBalance > 0 || rawSubnetBalance > 0) {
+        const mainnetFormatted = rawBalance > 0 ? formatTokenAmount(rawBalance, mainnetDecimals) : "0";
+        const subnetFormatted = rawSubnetBalance > 0 ? formatTokenAmount(rawSubnetBalance, subnetDecimals) : "0";
+        const hasSubnet = rawSubnetBalance > 0;
+        return { mainnet: mainnetFormatted, subnet: subnetFormatted, hasSubnet };
+      }
+
       return { mainnet: "0", subnet: "0", hasSubnet: false };
     }
 
@@ -307,7 +375,7 @@ export function WalletBalanceProvider({
     } else {
       // This is a mainnet token - get mainnet balance from this token, look for corresponding subnet token
       mainnetBalance = getFormattedMainnetBalance(address, contractId);
-      
+
       // Find corresponding subnet token
       const subnetToken = Object.values(tokens).find(t => t.type === 'SUBNET' && t.base === contractId);
       if (subnetToken) {
@@ -319,12 +387,23 @@ export function WalletBalanceProvider({
       }
     }
 
+    // Debug logging for Charisma token
+    if (contractId.includes('charisma-token')) {
+      console.log('[WalletBalanceContext] Final Charisma result:', {
+        contractId,
+        tokenType: token.type,
+        mainnetBalance,
+        subnetBalance,
+        hasSubnet
+      });
+    }
+
     return { mainnet: mainnetBalance, subnet: subnetBalance, hasSubnet };
   };
 
   const addWalletAddress = (address: string) => {
     if (!isValidStacksAddress(address)) return;
-    
+
     setWatchedAddresses(prev => {
       if (prev.includes(address)) return prev;
       return [...prev, address];
@@ -344,12 +423,12 @@ export function WalletBalanceProvider({
   useEffect(() => {
     if (initialServiceBalances?.success && initialServiceBalances.data) {
       console.log('[WalletBalanceContext] Processing initial service balance data');
-      
+
       const processedBalances: Record<string, AccountBalancesResponse> = {};
-      
+
       Object.entries(initialServiceBalances.data).forEach(([address, serviceBalances]) => {
         processedBalances[address] = convertServiceBalancesToAccountResponse(address, serviceBalances);
-        
+
         // Auto-add the address to watched list
         setWatchedAddresses(prev => {
           if (!prev.includes(address)) {
@@ -358,10 +437,10 @@ export function WalletBalanceProvider({
           return prev;
         });
       });
-      
+
       setBalances(prev => ({ ...prev, ...processedBalances }));
       setLastUpdate(Date.now());
-      
+
       console.log(`[WalletBalanceContext] Processed ${Object.keys(processedBalances).length} addresses from initial service data`);
     }
   }, [initialServiceBalances]);
@@ -374,12 +453,12 @@ export function WalletBalanceProvider({
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
-      
+
       // Set up new interval
       intervalRef.current = setInterval(() => {
         refreshBalances();
       }, refreshInterval);
-      
+
       // Initial refresh
       refreshBalances();
     } else {
