@@ -44,9 +44,6 @@ export function TokenMetadataProvider({ children, initialTokens }: TokenMetadata
     if (initialTokens) {
       console.log(`[TokenMetadataProvider] Initializing with ${initialTokens.length} SSR tokens`);
       
-      // Debug: Check for USDh tokens in SSR data
-      const usdhTokens = initialTokens.filter(t => t.contractId.toLowerCase().includes('usdh'));
-      console.log(`[TokenMetadataProvider] Found ${usdhTokens.length} USDh tokens in SSR:`, usdhTokens.map(t => ({ contractId: t.contractId, decimals: t.decimals })));
       
       const tokenRecord: Record<string, TokenCacheData> = {};
       initialTokens.forEach((token: TokenCacheData) => {

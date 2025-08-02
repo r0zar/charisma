@@ -111,7 +111,6 @@ export function WalletBalanceProvider({
 
       // Use balance service if enabled, otherwise fall back to original method
       if (useBalanceService) {
-        console.log('[WalletBalanceContext] Using balance service for refresh');
 
         const response = await getBalancesAction(addressesToUpdate, undefined, true); // Include zero balances
 
@@ -151,7 +150,6 @@ export function WalletBalanceProvider({
 
           setBalances(newBalances);
           setLastUpdate(Date.now());
-          console.log(`[WalletBalanceContext] Successfully updated ${Object.keys(response.balances).length} addresses using balance service`);
         } else {
           console.warn('[WalletBalanceContext] Balance service failed, falling back to original method');
           setUseBalanceService(false);
@@ -161,7 +159,6 @@ export function WalletBalanceProvider({
 
       // Original method (fallback or when balance service is disabled)
       if (!useBalanceService) {
-        console.log('[WalletBalanceContext] Using original balance fetching method');
 
         const results = await Promise.allSettled(
           addressesToUpdate.map(async (address) => {
@@ -245,7 +242,6 @@ export function WalletBalanceProvider({
 
       // If balance service failed, try falling back to original method
       if (useBalanceService) {
-        console.log('[WalletBalanceContext] Balance service error, disabling for this session');
         setUseBalanceService(false);
       }
     } finally {
@@ -325,8 +321,17 @@ export function WalletBalanceProvider({
   };
 
   const getFormattedBalanceWithSubnet = (address: string, contractId: string): { mainnet: string; subnet: string; hasSubnet: boolean } => {
-    const token = tokens[contractId];
+    // Special handling for STX
+    if (contractId === 'STX' || contractId.toLowerCase() === 'stx') {
+      const stxBalance = getStxBalance(address);
+      const formatted = stxBalance > 0 ? stxBalance.toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 6
+      }) : "0";
+      return { mainnet: formatted, subnet: "0", hasSubnet: false };
+    }
 
+    const token = tokens[contractId];
 
     if (!token) {
 
@@ -341,17 +346,6 @@ export function WalletBalanceProvider({
       const mainnetDecimals = getTokenDecimals(contractId) || 6;
       const subnetDecimals = subnetContractId ? (getTokenDecimals(subnetContractId) || 6) : 6;
 
-      // Extra debug for USDh tokens
-      if (contractId.includes('usdh-token')) {
-        console.log('[WalletBalanceContext] USDh fallback formatting:', {
-          contractId,
-          mainnetBalance: rawBalance,
-          mainnetDecimals,
-          subnetContractId: subnetContractId,
-          subnetBalance: rawSubnetBalance,
-          subnetDecimals
-        });
-      }
 
       if (rawBalance > 0 || rawSubnetBalance > 0) {
         const mainnetFormatted = rawBalance > 0 ? formatTokenAmount(rawBalance, mainnetDecimals) : "0";
@@ -387,16 +381,6 @@ export function WalletBalanceProvider({
       }
     }
 
-    // Debug logging for Charisma token
-    if (contractId.includes('charisma-token')) {
-      console.log('[WalletBalanceContext] Final Charisma result:', {
-        contractId,
-        tokenType: token.type,
-        mainnetBalance,
-        subnetBalance,
-        hasSubnet
-      });
-    }
 
     return { mainnet: mainnetBalance, subnet: subnetBalance, hasSubnet };
   };
@@ -422,7 +406,6 @@ export function WalletBalanceProvider({
   // Process initial service balance data
   useEffect(() => {
     if (initialServiceBalances?.success && initialServiceBalances.data) {
-      console.log('[WalletBalanceContext] Processing initial service balance data');
 
       const processedBalances: Record<string, AccountBalancesResponse> = {};
 
@@ -441,7 +424,6 @@ export function WalletBalanceProvider({
       setBalances(prev => ({ ...prev, ...processedBalances }));
       setLastUpdate(Date.now());
 
-      console.log(`[WalletBalanceContext] Processed ${Object.keys(processedBalances).length} addresses from initial service data`);
     }
   }, [initialServiceBalances]);
 

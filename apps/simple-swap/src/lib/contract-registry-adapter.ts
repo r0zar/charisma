@@ -98,7 +98,9 @@ function adaptTokenMetadata(contractId: string, registryData: any): TokenCacheDa
  */
 export async function listTokens(): Promise<TokenCacheData[]> {
   const contractRegistryUrl = getHostUrl('contract-registry');
-  const response = await fetch(`${contractRegistryUrl}/api/tokens?type=all`);
+  const response = await fetch(`${contractRegistryUrl}/api/tokens?type=all`, {
+    signal: AbortSignal.timeout(10000) // 10 second timeout
+  });
 
   if (!response.ok) {
     throw new Error(`Failed to fetch tokens: ${response.status} ${response.statusText}`);
@@ -122,7 +124,11 @@ export async function listTokens(): Promise<TokenCacheData[]> {
   try {
     const TOKEN_CACHE = process.env.NEXT_PUBLIC_TOKEN_CACHE_URL || process.env.TOKEN_CACHE_URL || 'https://tokens.charisma.rocks';
     const externalResponse = await fetch(`${TOKEN_CACHE}/api/v1/metadata`, {
-      signal: AbortSignal.timeout(5000) // 5 second timeout
+      signal: AbortSignal.timeout(8000), // 8 second timeout
+      headers: {
+        'Accept': 'application/json',
+        'User-Agent': 'simple-swap-build'
+      }
     });
     
     if (externalResponse.ok) {

@@ -38,7 +38,7 @@ export default function TokenDropdown({
     // Get balance data for enhanced display
     const { address } = useWallet();
     
-    const { getFormattedBalanceWithSubnet, getTokenBalance, balances, isLoading, error } = useBalances(address ? [address] : []);
+    const { getFormattedBalanceWithSubnet, getTokenBalance, getStxBalance, balances, isLoading, error } = useBalances(address ? [address] : []);
     const { prices } = useTokenPrices();
     const { getTokenDecimals } = useTokenMetadata();
     const { getSubnetContractId } = useSubnetTokens();
@@ -49,8 +49,19 @@ export default function TokenDropdown({
     const calculateTokenUSDValue = (token: TokenCacheData): number => {
         if (!address || !showBalances) return 0;
         
-        const price = prices[token.contractId] || 0;
+        // Special price lookup for STX
+        let price = prices[token.contractId] || 0;
+        if (token.contractId === 'STX' && price === 0) {
+            price = prices['.stx'] || 0; // STX prices are stored under '.stx' key
+        }
+        
         if (price === 0) return 0;
+        
+        // Special handling for STX
+        if (token.contractId === 'STX' || token.contractId.toLowerCase() === 'stx') {
+            const stxBalance = getStxBalance(address);
+            return stxBalance * price;
+        }
         
         // Use raw balances and convert to decimal-adjusted values for USD calculation
         const rawMainnetBalance = getTokenBalance(address, token.contractId);
@@ -72,7 +83,37 @@ export default function TokenDropdown({
     };
 
     const filtered = useMemo(() => {
+        // Add STX as a synthetic token if not already present
+        const hasSTX = tokens.some(t => t.contractId === 'STX' || t.contractId.toLowerCase() === 'stx');
         let result = tokens;
+        
+        if (!hasSTX) {
+            const stxToken: TokenCacheData = {
+                type: 'token',
+                contractId: 'STX',
+                name: 'Stacks',
+                description: 'Native STX token',
+                image: 'https://assets.coingecko.com/coins/images/2069/standard/Stacks_logo_full.png',
+                lastUpdated: Date.now(),
+                decimals: 6,
+                symbol: 'STX',
+                token_uri: null,
+                identifier: 'stx',
+                total_supply: null,
+                tokenAContract: null,
+                tokenBContract: null,
+                lpRebatePercent: null,
+                externalPoolId: null,
+                engineContractId: null,
+                base: null,
+                usdPrice: null,
+                confidence: null,
+                marketPrice: null,
+                intrinsicValue: null,
+                totalLiquidity: null
+            };
+            result = [stxToken, ...tokens];
+        }
         
         // Filter by search term
         if (search) {
@@ -103,7 +144,7 @@ export default function TokenDropdown({
         }
         
         return result;
-    }, [tokens, search, showBalances, address, getFormattedBalanceWithSubnet, getTokenBalance, getTokenDecimals, getSubnetContractId, prices]);
+    }, [tokens, search, showBalances, address, getFormattedBalanceWithSubnet, getTokenBalance, getStxBalance, getTokenDecimals, getSubnetContractId, prices]);
 
     const close = () => {
         setOpen(false);
@@ -279,6 +320,7 @@ export default function TokenDropdown({
                                                             // Use the new function that automatically handles subnet/mainnet lookup
                                                             const { mainnet, subnet, hasSubnet } = getFormattedBalanceWithSubnet(address, token.contractId);
                                                             const usdValue = calculateTokenUSDValue(token);
+                                                            
                                                             
                                                             return (
                                                                 <>
