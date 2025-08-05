@@ -20,7 +20,8 @@ import {
   ExternalLink,
   AlertTriangle,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Trash2
 } from "lucide-react"
 import { LotteryConfig, PhysicalJackpot } from "@/types/lottery"
 import { Carousel } from "@/components/ui/carousel"
@@ -33,12 +34,17 @@ export default function AdminPage() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [manualWinnerLoading, setManualWinnerLoading] = useState(false)
   const [imageUploading, setImageUploading] = useState(false)
+  const [resetDataLoading, setResetDataLoading] = useState(false)
+  const [undoDrawLoading, setUndoDrawLoading] = useState(false)
+  const [resetDrawingsLoading, setResetDrawingsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [adminKey, setAdminKey] = useState("")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [analytics, setAnalytics] = useState<any>({})
   const [winningTicketId, setWinningTicketId] = useState("")
+  const [undoDrawId, setUndoDrawId] = useState("")
+  const [availableDraws, setAvailableDraws] = useState<any[]>([])
   const [dateFilter, setDateFilter] = useState({
     startDate: '',
     endDate: ''
@@ -228,6 +234,9 @@ export default function AdminPage() {
 
       const tickets = ticketsData.data || []
       const draws = drawsData.data || []
+
+      // Store available draws for the undo dropdown
+      setAvailableDraws(draws)
 
       // Set default date filter if not already set
       if (!dateFilter.startDate && !dateFilter.endDate) {
@@ -496,6 +505,138 @@ export default function AdminPage() {
     }
   }
 
+  const undoLotteryDraw = async () => {
+    if (!undoDrawId.trim() || undoDrawId === 'no-draws') {
+      setError('Please select a draw ID to undo')
+      return
+    }
+
+    if (!confirm(`⚠️ DANGER: This will undo lottery draw "${undoDrawId}" and restore all archived tickets back to active status. The draw will be permanently deleted. Are you absolutely sure?`)) {
+      return
+    }
+
+    if (!confirm('Final confirmation: This will restore all tickets from the draw back to confirmed status and delete the draw record. This action cannot be undone.')) {
+      return
+    }
+
+    setUndoDrawLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await fetch('/api/admin/undo-lottery-draw', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminKey
+        },
+        body: JSON.stringify({
+          drawId: undoDrawId.trim()
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to undo lottery draw')
+      }
+
+      const result = await response.json()
+      setSuccess(`✅ Lottery draw undone successfully! Draw ${result.metadata.drawId} has been deleted and ${result.metadata.ticketsRestored} tickets have been restored to active status.`)
+      setUndoDrawId('') // Clear the input
+      
+      // Refresh analytics to show the updated data
+      fetchAnalytics()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to undo lottery draw')
+    } finally {
+      setUndoDrawLoading(false)
+    }
+  }
+
+  const resetAllDrawings = async () => {
+    if (!confirm('⚠️ This will permanently delete ALL lottery drawings but keep all tickets intact. Drawing numbering will restart from 1. Are you sure?')) {
+      return
+    }
+
+    if (!confirm('Final confirmation: This will delete all completed lottery drawings. Tickets will remain untouched. Continue?')) {
+      return
+    }
+
+    setResetDrawingsLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await fetch('/api/admin/reset-drawings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminKey
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to reset drawings')
+      }
+
+      const result = await response.json()
+      setSuccess(`✅ Drawings reset successful! ${result.metadata.drawingsDeleted} drawings were deleted. Next draw will be #1. All tickets preserved.`)
+      
+      // Refresh analytics to show the updated data
+      fetchAnalytics()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset drawings')
+    } finally {
+      setResetDrawingsLoading(false)
+    }
+  }
+
+  const resetAllTicketData = async () => {
+    if (!confirm('⚠️ DANGER: This will permanently delete ALL lottery data (tickets AND drawings) and reset the ticket counter to start from 000001. This action cannot be undone. Are you absolutely sure?')) {
+      return
+    }
+
+    if (!confirm('Final confirmation: This will delete ALL tickets (pending, confirmed, cancelled, and archived) AND all lottery drawings. This provides a complete clean slate. Type "DELETE ALL" in the next prompt to proceed.')) {
+      return
+    }
+
+    const userInput = prompt('Type "DELETE ALL" to confirm permanent deletion of all lottery data:')
+    if (userInput !== 'DELETE ALL') {
+      setError('Reset cancelled: Confirmation text did not match')
+      return
+    }
+
+    setResetDataLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await fetch('/api/admin/reset-ticket-data', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminKey
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to reset ticket data')
+      }
+
+      const result = await response.json()
+      setSuccess(`✅ Complete lottery reset successful! ${result.metadata.ticketsDeleted} tickets and ${result.metadata.drawsDeleted} drawings were deleted. Next ticket will be ${result.metadata.nextTicketId}.`)
+      
+      // Refresh analytics to show the reset data
+      fetchAnalytics()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reset ticket data')
+    } finally {
+      setResetDataLoading(false)
+    }
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="container mx-auto p-6 max-w-md">
@@ -718,6 +859,114 @@ export default function AdminPage() {
               <RefreshCw className="h-4 w-4 mr-2" />
               Refresh Data
             </Button>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <div className="text-sm font-medium text-muted-foreground">Undo Lottery Drawing</div>
+              <div className="space-y-2">
+                <Label htmlFor="undo-draw-select">Select Draw to Undo</Label>
+                <Select value={undoDrawId} onValueChange={setUndoDrawId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a completed draw to undo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableDraws.length === 0 ? (
+                      <SelectItem value="no-draws" disabled>No draws available</SelectItem>
+                    ) : (
+                      availableDraws
+                        .filter(draw => draw.status === 'completed')
+                        .sort((a, b) => new Date(b.drawDate).getTime() - new Date(a.drawDate).getTime())
+                        .map((draw) => (
+                          <SelectItem key={draw.id} value={draw.id}>
+                            <div className="flex flex-col">
+                              <span className="font-mono text-sm">{draw.id}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(draw.drawDate).toLocaleDateString()} - Winner: {draw.winningTicketId || 'Unknown'}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <div className="text-xs text-muted-foreground">
+                  Select a completed draw to reverse. This will restore all archived tickets back to confirmed status.
+                </div>
+              </div>
+              
+              <Button
+                onClick={undoLotteryDraw}
+                disabled={undoDrawLoading || !undoDrawId.trim() || undoDrawId === 'no-draws'}
+                className="w-full"
+                variant="destructive"
+              >
+                {undoDrawLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Undoing Draw...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Undo Lottery Drawing
+                  </>
+                )}
+              </Button>
+              <div className="text-xs text-muted-foreground text-center">
+                ⚠️ This will delete the draw and restore all tickets to active status
+              </div>
+            </div>
+
+            <Separator />
+
+            <div className="space-y-3">
+              <div className="text-sm font-medium text-destructive">⚠️ Danger Zone</div>
+              
+              <Button
+                onClick={resetAllDrawings}
+                disabled={resetDrawingsLoading}
+                className="w-full"
+                variant="outline"
+              >
+                {resetDrawingsLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Resetting Drawings...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Reset All Drawings Only
+                  </>
+                )}
+              </Button>
+              <div className="text-xs text-muted-foreground text-center">
+                Deletes all drawings but keeps tickets - restarts drawing numbering from #1
+              </div>
+
+              <Button
+                onClick={resetAllTicketData}
+                disabled={resetDataLoading}
+                className="w-full"
+                variant="destructive"
+              >
+                {resetDataLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Resetting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Reset All Lottery Data
+                  </>
+                )}
+              </Button>
+              <div className="text-xs text-muted-foreground text-center">
+                ⚠️ This will permanently delete ALL tickets AND drawings - complete clean slate
+              </div>
+            </div>
 
             <Button
               onClick={() => {

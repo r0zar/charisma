@@ -468,6 +468,73 @@ export class BlobStorageService {
       throw new Error(`Failed to increment draw counter: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
+
+  // Reset Methods for Admin
+  async resetTicketCounter(): Promise<void> {
+    try {
+      const counterData = { counter: 0 }
+      const counterJson = JSON.stringify(counterData, null, 2)
+      
+      await put(TICKET_COUNTER_KEY, counterJson, {
+        access: 'public',
+        token: this.token,
+        contentType: 'application/json',
+        allowOverwrite: true,
+      })
+      
+      console.log('Ticket counter reset to 0 in blob storage')
+    } catch (error) {
+      console.error('Failed to reset ticket counter:', error)
+      throw new Error(`Failed to reset ticket counter: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  async resetDrawCounter(): Promise<void> {
+    try {
+      const counterData = { counter: 0 }
+      const counterJson = JSON.stringify(counterData, null, 2)
+      
+      await put(DRAW_COUNTER_KEY, counterJson, {
+        access: 'public',
+        token: this.token,
+        contentType: 'application/json',
+        allowOverwrite: true,
+      })
+      
+      console.log('Draw counter reset to 0 in blob storage')
+    } catch (error) {
+      console.error('Failed to reset draw counter:', error)
+      throw new Error(`Failed to reset draw counter: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  async clearAllTickets(): Promise<void> {
+    try {
+      console.log('Starting to clear all tickets from blob storage...')
+      
+      const { blobs } = await list({
+        prefix: LOTTERY_TICKETS_PREFIX,
+        token: this.token,
+      })
+
+      console.log(`Found ${blobs.length} ticket blobs to delete`)
+
+      // Delete all ticket blobs
+      for (const blob of blobs) {
+        try {
+          await del(blob.url, { token: this.token })
+          console.log(`Deleted ticket blob: ${blob.pathname}`)
+        } catch (error) {
+          console.warn(`Failed to delete ticket blob ${blob.pathname}:`, error)
+        }
+      }
+
+      console.log('Finished clearing all tickets from blob storage')
+    } catch (error) {
+      console.error('Failed to clear all tickets from blob storage:', error)
+      throw new Error(`Failed to clear all tickets: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
 }
 
 // Singleton instance
