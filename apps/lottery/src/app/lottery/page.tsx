@@ -30,7 +30,7 @@ function MyTicketsPreview({ refreshTrigger }: { refreshTrigger: number }) {
 
   const fetchTickets = async () => {
     if (!walletState.address) return
-    
+
     setLoading(true)
     try {
       // Use the faster preview endpoint that only checks KV storage
@@ -40,7 +40,7 @@ function MyTicketsPreview({ refreshTrigger }: { refreshTrigger: number }) {
         cache: 'no-cache' // Bypass Next.js cache
       })
       const result = await response.json()
-      
+
       if (response.ok && result.success) {
         setTickets(result.data)
       }
@@ -56,6 +56,8 @@ function MyTicketsPreview({ refreshTrigger }: { refreshTrigger: number }) {
       fetchTickets()
     }
   }, [walletState.connected, walletState.address, refreshTrigger]) // Add refreshTrigger to dependencies
+
+  console.log(config)
 
   if (!walletState.connected) {
     return (
@@ -113,9 +115,9 @@ function MyTicketsPreview({ refreshTrigger }: { refreshTrigger: number }) {
                   </div>
                   <div className="flex items-center gap-2">
                     {ticket.transactionId && (
-                      <TransactionLink 
-                        txId={ticket.transactionId} 
-                        variant="inline" 
+                      <TransactionLink
+                        txId={ticket.transactionId}
+                        variant="inline"
                         size="sm"
                         className="text-xs"
                         showIcon={false}
@@ -164,14 +166,14 @@ function SimplifiedPurchase({ onTicketPurchased }: { onTicketPurchased?: () => v
       connectWallet()
       return
     }
-    
+
     setIsPurchasing(true)
     setPurchaseError(null)
-    
+
     try {
       let response
       let result
-      
+
       if (quantity === 1) {
         // Single ticket purchase
         response = await fetch('/api/v1/lottery/purchase-ticket', {
@@ -183,13 +185,13 @@ function SimplifiedPurchase({ onTicketPurchased }: { onTicketPurchased?: () => v
             walletAddress: walletState.address
           })
         })
-        
+
         result = await response.json()
-        
+
         if (!response.ok || !result.success) {
           throw new Error(result.error || 'Failed to purchase ticket')
         }
-        
+
         // Convert single ticket to array for consistent handling
         if (result.data) {
           setConfirmationDialog({
@@ -212,13 +214,13 @@ function SimplifiedPurchase({ onTicketPurchased }: { onTicketPurchased?: () => v
             quantity: quantity
           })
         })
-        
+
         result = await response.json()
-        
+
         if (!response.ok || !result.success) {
           throw new Error(result.error || 'Failed to purchase tickets')
         }
-        
+
         // Bulk tickets already come as array
         if (result.data && Array.isArray(result.data) && result.data.length > 0) {
           setConfirmationDialog({
@@ -230,7 +232,7 @@ function SimplifiedPurchase({ onTicketPurchased }: { onTicketPurchased?: () => v
           onTicketPurchased?.()
         }
       }
-      
+
       // Reset quantity
       setQuantity(1)
     } catch (error) {
@@ -345,8 +347,8 @@ function SimplifiedPurchase({ onTicketPurchased }: { onTicketPurchased?: () => v
               ) : (
                 <>
                   <Ticket className="h-4 w-4" />
-                  {walletState.connected 
-                    ? `Burn for ${quantity.toLocaleString()} ticket${quantity !== 1 ? 's' : ''}` 
+                  {walletState.connected
+                    ? `Burn for ${quantity.toLocaleString()} ticket${quantity !== 1 ? 's' : ''}`
                     : 'Connect Wallet'
                   }
                 </>
@@ -415,7 +417,7 @@ export default function LotteryPage() {
               </p>
             </div>
           </div>
-          
+
           {/* Enhanced Jackpot Section */}
           <div className="relative">
             <JackpotSection />

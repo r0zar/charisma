@@ -10,6 +10,8 @@ export interface TicketConfirmationRequest {
   transactionId: string
   walletAddress: string
   expectedAmount: number
+  isBulkValidation?: boolean
+  totalBulkAmount?: number
 }
 
 export interface TicketConfirmationResponse {
@@ -37,9 +39,9 @@ const txMonitorClient = createTxMonitorClient({
   retryDelay: 1000
 })
 
-async function validateBurnTransaction(txId: string, expectedAmount: number, walletAddress: string) {
+async function validateBurnTransaction(txId: string, expectedAmount: number, walletAddress: string, isBulkValidation: boolean = false) {
   try {
-    console.log(`Starting burn transaction validation for ${txId}`)
+    console.log(`Starting burn transaction validation for ${txId} (bulk: ${isBulkValidation})`)
     
     // First wait for transaction confirmation using tx-monitor
     try {
@@ -163,13 +165,15 @@ async function validateBurnTransaction(txId: string, expectedAmount: number, wal
     // Look for STONE transfer to burn address
     const expectedAmountMicro = expectedAmount * 1000000 // Convert to microSTONE
     let foundValidTransfer = false
+    let actualTransferAmount = 0
     
     console.log(`=== SEARCHING FOR STONE TRANSFER ===`)
     console.log(`Expected:`, {
       assetId: `${STONE_CONTRACT_ADDRESS}.${STONE_CONTRACT_NAME}::stone`.toLowerCase(),
       amount: expectedAmountMicro,
       sender: walletAddress,
-      recipient: BURN_ADDRESS
+      recipient: BURN_ADDRESS,
+      isBulkValidation
     })
     
     // Check fungible token events first
@@ -202,11 +206,24 @@ async function validateBurnTransaction(txId: string, expectedAmount: number, wal
         
         if (assetId === stoneAssetId &&
             asset.sender === walletAddress &&
-            asset.recipient === BURN_ADDRESS &&
-            parseInt(asset.amount) === expectedAmountMicro) {
-          foundValidTransfer = true
-          console.log(`✅ Found valid STONE burn transfer!`)
-          break
+            asset.recipient === BURN_ADDRESS) {
+          
+          actualTransferAmount = parseInt(asset.amount)
+          
+          if (isBulkValidation) {
+            // For bulk validation, we need to find ANY STONE transfer to burn address
+            // The amount validation will be done at the ticket level
+            foundValidTransfer = true
+            console.log(`✅ Found valid STONE burn transfer for bulk validation! Amount: ${actualTransferAmount} microSTONE`)
+            break
+          } else {
+            // For single ticket validation, exact amount match is required
+            if (actualTransferAmount === expectedAmountMicro) {
+              foundValidTransfer = true
+              console.log(`✅ Found valid STONE burn transfer!`)
+              break
+            }
+          }
         }
       }
     }
@@ -235,6 +252,7 @@ async function validateBurnTransaction(txId: string, expectedAmount: number, wal
       blockHeight: blockHeight,
       blockTime: blockTime,
       validatedAmount: expectedAmount,
+      actualTransferAmount: actualTransferAmount,
       burnAddress: BURN_ADDRESS
     }
     
@@ -266,9 +284,9 @@ async function validateBurnTransaction(txId: string, expectedAmount: number, wal
 export async function POST(request: NextRequest) {
   try {
     const body: TicketConfirmationRequest = await request.json()
-    const { ticketId, transactionId, walletAddress, expectedAmount } = body
+    const { ticketId, transactionId, walletAddress, expectedAmount, isBulkValidation, totalBulkAmount } = body
     
-    console.log('Ticket confirmation request:', { ticketId, transactionId, walletAddress, expectedAmount })
+    console.log('Ticket confirmation request:', { ticketId, transactionId, walletAddress, expectedAmount, isBulkValidation, totalBulkAmount })
     
     // Validate input
     if (!ticketId || !transactionId || !walletAddress || !expectedAmount) {
@@ -305,9 +323,12 @@ export async function POST(request: NextRequest) {
     // This handles cases where the lottery config was updated after the ticket was purchased
     console.log(`Using ticket's stored price ${ticket.purchasePrice} STONE instead of frontend expected amount ${expectedAmount} STONE`)
     
+    // For bulk validation, use the total bulk amount, otherwise use individual ticket price
+    const validationAmount = isBulkValidation && totalBulkAmount ? totalBulkAmount : ticket.purchasePrice
+    
     // Validate the burn transaction using tx-monitor-client and polyglot
-    console.log(`Validating burn transaction ${transactionId} for ticket ${ticketId}`)
-    const validationResult = await validateBurnTransaction(transactionId, ticket.purchasePrice, walletAddress)
+    console.log(`Validating burn transaction ${transactionId} for ticket ${ticketId} (bulk: ${isBulkValidation}, amount: ${validationAmount})`)
+    const validationResult = await validateBurnTransaction(transactionId, validationAmount, walletAddress, isBulkValidation || false)
     
     if (!validationResult.success) {
       console.log(`Transaction validation failed for ${ticketId}:`, validationResult.error)
@@ -330,6 +351,33 @@ export async function POST(request: NextRequest) {
         },
         { status: statusCode }
       )
+    }
+    
+    // For bulk validation, verify that the individual ticket price is valid compared to the total transfer
+    if (isBulkValidation && validationResult.actualTransferAmount) {
+      const actualTotalSTONE = validationResult.actualTransferAmount / 1000000
+      const individualTicketPrice = ticket.purchasePrice
+      
+      console.log(`Bulk validation - Total burned: ${actualTotalSTONE} STONE, Individual ticket price: ${individualTicketPrice} STONE`)
+      
+      // Check if the individual ticket price is reasonable relative to the total burn
+      // The total burn should be divisible by the individual ticket price (with some tolerance for floating point)
+      const expectedTicketCount = Math.round(actualTotalSTONE / individualTicketPrice)
+      const expectedTotal = expectedTicketCount * individualTicketPrice
+      const tolerance = 0.000001 // 1 microSTONE tolerance
+      
+      if (Math.abs(actualTotalSTONE - expectedTotal) > tolerance) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: `Bulk validation failed: Total burned amount ${actualTotalSTONE} STONE doesn't match expected pattern for ${individualTicketPrice} STONE tickets`,
+            retryable: false
+          },
+          { status: 400 }
+        )
+      }
+      
+      console.log(`✅ Bulk validation passed: ${actualTotalSTONE} STONE total for ${expectedTicketCount} tickets at ${individualTicketPrice} STONE each`)
     }
     
     // Update the ticket to confirmed status

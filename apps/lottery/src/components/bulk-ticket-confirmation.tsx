@@ -57,7 +57,9 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
               ticketId: ticket.id,
               transactionId: transactionId,
               walletAddress: ticket.walletAddress,
-              expectedAmount: ticket.purchasePrice
+              expectedAmount: ticket.purchasePrice,
+              isBulkValidation: true,
+              totalBulkAmount: totalAmount
             }),
           })
         )
@@ -119,7 +121,9 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
             ticketId: ticket.id,
             transactionId: txId,
             walletAddress: ticket.walletAddress,
-            expectedAmount: ticket.purchasePrice
+            expectedAmount: ticket.purchasePrice,
+            isBulkValidation: true,
+            totalBulkAmount: totalAmount
           }),
         })
       )
