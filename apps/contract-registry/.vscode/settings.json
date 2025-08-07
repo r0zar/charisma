@@ -1,5 +1,0 @@
-{
-    "jest.jestCommandLine": "pnpm test",
-    "jest.rootPath": ".",
-    "jest.autoRun": "off"
-}
