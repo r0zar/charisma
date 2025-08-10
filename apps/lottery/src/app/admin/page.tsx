@@ -37,6 +37,8 @@ export default function AdminPage() {
   const [resetDataLoading, setResetDataLoading] = useState(false)
   const [undoDrawLoading, setUndoDrawLoading] = useState(false)
   const [resetDrawingsLoading, setResetDrawingsLoading] = useState(false)
+  const [expireTicketsLoading, setExpireTicketsLoading] = useState(false)
+  const [migrateDataLoading, setMigrateDataLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [adminKey, setAdminKey] = useState("")
@@ -461,6 +463,68 @@ export default function AdminPage() {
     }
   }
 
+  const expirePendingTickets = async () => {
+    setExpireTicketsLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await fetch('/api/admin/expire-pending-tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminKey
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to expire pending tickets')
+      }
+
+      const result = await response.json()
+      setSuccess(`✅ ${result.message}`)
+      
+      // Refresh analytics to show updated ticket counts
+      fetchAnalytics()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to expire pending tickets')
+    } finally {
+      setExpireTicketsLoading(false)
+    }
+  }
+
+  const migrateDrawStatus = async () => {
+    setMigrateDataLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await fetch('/api/admin/migrate-draw-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-key': adminKey
+        }
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to migrate draw status data')
+      }
+
+      const result = await response.json()
+      setSuccess(`✅ ${result.message}`)
+      
+      // Refresh analytics to show updated data
+      fetchAnalytics()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to migrate draw status data')
+    } finally {
+      setMigrateDataLoading(false)
+    }
+  }
+
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
@@ -851,6 +915,57 @@ export default function AdminPage() {
               </Button>
             </div>
 
+            <Separator />
+
+            <div className="space-y-3">
+              <div className="text-sm font-medium text-muted-foreground">Ticket Maintenance</div>
+              <div className="text-xs text-muted-foreground">
+                Expire pending tickets older than 48 hours to clean up unconfirmed purchases
+              </div>
+              
+              <Button
+                onClick={expirePendingTickets}
+                disabled={expireTicketsLoading}
+                variant="outline"
+                className="w-full"
+              >
+                {expireTicketsLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Expiring Tickets...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Expire Old Pending Tickets (48h+)
+                  </>
+                )}
+              </Button>
+
+              <div className="text-xs text-muted-foreground">
+                Migrate existing tickets to use new drawStatus field (run once after update)
+              </div>
+              
+              <Button
+                onClick={migrateDrawStatus}
+                disabled={migrateDataLoading}
+                variant="outline"
+                className="w-full"
+              >
+                {migrateDataLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Migrating Data...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Migrate Ticket Data Structure
+                  </>
+                )}
+              </Button>
+            </div>
+
             <Button
               onClick={fetchConfig}
               variant="outline"
@@ -918,55 +1033,6 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <Separator />
-
-            <div className="space-y-3">
-              <div className="text-sm font-medium text-destructive">⚠️ Danger Zone</div>
-              
-              <Button
-                onClick={resetAllDrawings}
-                disabled={resetDrawingsLoading}
-                className="w-full"
-                variant="outline"
-              >
-                {resetDrawingsLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Resetting Drawings...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Reset All Drawings Only
-                  </>
-                )}
-              </Button>
-              <div className="text-xs text-muted-foreground text-center">
-                Deletes all drawings but keeps tickets - restarts drawing numbering from #1
-              </div>
-
-              <Button
-                onClick={resetAllTicketData}
-                disabled={resetDataLoading}
-                className="w-full"
-                variant="destructive"
-              >
-                {resetDataLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Resetting...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Reset All Lottery Data
-                  </>
-                )}
-              </Button>
-              <div className="text-xs text-muted-foreground text-center">
-                ⚠️ This will permanently delete ALL tickets AND drawings - complete clean slate
-              </div>
-            </div>
 
             <Button
               onClick={() => {
@@ -1463,6 +1529,63 @@ export default function AdminPage() {
               </>
             )}
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Danger Zone - Moved to bottom for better UX */}
+      <Card className="border-destructive/20">
+        <CardHeader>
+          <CardTitle className="text-destructive">⚠️ Danger Zone</CardTitle>
+          <CardDescription>
+            Destructive actions that cannot be undone. Use with extreme caution.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-3">
+            <Button
+              onClick={resetAllDrawings}
+              disabled={resetDrawingsLoading}
+              className="w-full"
+              variant="outline"
+            >
+              {resetDrawingsLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Resetting Drawings...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Reset All Drawings Only
+                </>
+              )}
+            </Button>
+            <div className="text-xs text-muted-foreground text-center">
+              Deletes all drawings but keeps tickets - restarts drawing numbering from #1
+            </div>
+
+            <Button
+              onClick={resetAllTicketData}
+              disabled={resetDataLoading}
+              className="w-full"
+              variant="destructive"
+            >
+              {resetDataLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Resetting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Reset All Lottery Data
+                </>
+              )}
+            </Button>
+            <div className="text-xs text-muted-foreground text-center">
+              ⚠️ This will permanently delete ALL tickets AND drawings - complete clean slate
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

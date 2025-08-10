@@ -65,9 +65,9 @@ export default function MyTicketsPage() {
   const filteredTickets = tickets.filter(ticket => {
     switch (filter) {
       case 'active':
-        return ticket.status === 'pending' || ticket.status === 'confirmed'
+        return !ticket.drawStatus || ticket.drawStatus === 'active'
       case 'archived':
-        return ticket.status === 'archived'
+        return ticket.drawStatus === 'archived'
       case 'all':
         return true
       default:
@@ -283,14 +283,14 @@ export default function MyTicketsPage() {
                     
                     onClick={() => setFilter('active')}
                   >
-                    Active ({tickets.filter(t => t.status === 'pending' || t.status === 'confirmed').length})
+                    Active ({tickets.filter(t => !t.drawStatus || t.drawStatus === 'active').length})
                   </Button>
                   <Button
                     variant={filter === 'archived' ? 'default' : 'outline'}
                     
                     onClick={() => setFilter('archived')}
                   >
-                    Archived ({tickets.filter(t => t.status === 'archived').length})
+                    Archived ({tickets.filter(t => t.drawStatus === 'archived').length})
                   </Button>
                   <Button
                     variant={filter === 'all' ? 'default' : 'outline'}

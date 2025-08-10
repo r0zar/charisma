@@ -74,7 +74,7 @@ describe('Hybrid Storage UX Improvement', () => {
     
     const archivedTicket: LotteryTicket = {
       ...mockTicket,
-      status: 'archived'
+      drawStatus: 'archived'
     }
     
     await hybridStorage.saveLotteryTicket(archivedTicket)

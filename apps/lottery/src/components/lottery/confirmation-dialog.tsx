@@ -122,8 +122,12 @@ export function ConfirmationDialog({
                 confirmedTickets.length > 0 && (
                   <div className="text-sm text-green-700">
                     <div className="flex justify-between mb-1">
-                      <span>Numbers:</span>
-                      <span className="font-medium">{confirmedTickets[0].numbers?.join(', ')}</span>
+                      <span>Ticket ID:</span>
+                      <span className="font-medium">#{confirmedTickets[0].id.slice(-6)}</span>
+                    </div>
+                    <div className="flex justify-between mb-1">
+                      <span>Draw:</span>
+                      <span className="font-medium">{confirmedTickets[0].drawId.replace('next-draw-', '')}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Cost:</span>

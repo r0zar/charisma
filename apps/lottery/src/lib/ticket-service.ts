@@ -192,6 +192,60 @@ export class TicketService {
       throw new Error('Unable to retrieve ticket statistics')
     }
   }
+
+  async expirePendingTickets(): Promise<{
+    expired: number;
+    errors: number;
+  }> {
+    try {
+      console.log('Starting pending ticket expiration cleanup...')
+      
+      // Get all tickets
+      const allTickets = await hybridStorage.getAllLotteryTickets()
+      
+      // Find pending tickets older than 48 hours
+      const fortyEightHoursAgo = Date.now() - (48 * 60 * 60 * 1000)
+      const expiredPendingTickets = allTickets.filter(ticket => 
+        ticket.status === 'pending' && 
+        (!ticket.drawStatus || ticket.drawStatus === 'active') &&
+        new Date(ticket.purchaseDate).getTime() < fortyEightHoursAgo
+      )
+      
+      console.log(`Found ${expiredPendingTickets.length} expired pending tickets`)
+      
+      if (expiredPendingTickets.length === 0) {
+        return { expired: 0, errors: 0 }
+      }
+      
+      let expiredCount = 0
+      let errorCount = 0
+      
+      // Cancel each expired ticket
+      for (const ticket of expiredPendingTickets) {
+        try {
+          const cancelledTicket: LotteryTicket = {
+            ...ticket,
+            status: 'cancelled',
+            cancelledAt: new Date().toISOString()
+          }
+          
+          await hybridStorage.saveLotteryTicket(cancelledTicket)
+          expiredCount++
+          console.log(`Expired pending ticket ${ticket.id} (${Math.round((Date.now() - new Date(ticket.purchaseDate).getTime()) / (60 * 60 * 1000))}h old)`)
+        } catch (error) {
+          console.error(`Failed to expire ticket ${ticket.id}:`, error)
+          errorCount++
+        }
+      }
+      
+      console.log(`Pending ticket expiration completed: ${expiredCount} expired, ${errorCount} errors`)
+      
+      return { expired: expiredCount, errors: errorCount }
+    } catch (error) {
+      console.error('Failed to expire pending tickets:', error)
+      throw new Error(`Unable to expire pending tickets: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
 }
 
 // Singleton instance

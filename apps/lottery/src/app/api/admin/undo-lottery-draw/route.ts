@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     // We need to find tickets that have drawResult matching this drawId or were archived around the draw time
     const allArchivedTickets = await hybridStorage.getAllLotteryTickets()
     const drawTickets = allArchivedTickets.filter(ticket => 
-      ticket.status === 'archived' && 
+      ticket.drawStatus === 'archived' && 
       (ticket.drawResult === drawId || 
        // Fallback: check if ticket was archived around the same time as the draw
        (!ticket.drawResult && Math.abs(new Date(ticket.purchaseDate).getTime() - new Date(draw.drawDate).getTime()) < 24 * 60 * 60 * 1000))
@@ -73,20 +73,20 @@ export async function POST(request: NextRequest) {
     let restoredCount = 0
     for (const ticket of drawTickets) {
       try {
-        // Determine the original status - default to 'confirmed' for restored tickets
-        const originalStatus = ticket.status === 'archived' ? 'confirmed' : ticket.status
-        
+        // Restore ticket to active draw status and preserve original transaction status
         const restoredTicket: LotteryTicket = {
           ...ticket,
-          status: originalStatus,
-          drawResult: undefined // Remove the draw result reference
+          drawStatus: 'active', // Back to active draw participation
+          drawResult: undefined, // Remove the draw result reference
+          archivedAt: undefined, // Remove archived timestamp
+          isWinner: undefined // Remove winner status
         }
         
         // Save the restored ticket (will go to KV storage since it's now active)
         await hybridStorage.saveLotteryTicket(restoredTicket)
         restoredCount++
         
-        console.log(`Restored ticket ${ticket.id} to status: ${originalStatus}`)
+        console.log(`Restored ticket ${ticket.id} to active status`)
       } catch (error) {
         console.error(`Failed to restore ticket ${ticket.id}:`, error)
         // Continue with other tickets even if one fails

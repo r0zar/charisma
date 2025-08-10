@@ -25,7 +25,7 @@ export class KVTicketStorageService {
       pipeline.sadd(`${DRAW_TICKETS_PREFIX}${ticket.drawId}`, ticket.id)
       
       // 4. Set expiration for active tickets (24 hours), archived tickets (30 days)
-      const ttl = ticket.status === 'archived' ? 30 * 24 * 60 * 60 : 24 * 60 * 60
+      const ttl = ticket.drawStatus === 'archived' ? 30 * 24 * 60 * 60 : 24 * 60 * 60
       pipeline.expire(`${TICKET_PREFIX}${ticket.id}`, ttl)
       
       await pipeline.exec()
@@ -94,7 +94,7 @@ export class KVTicketStorageService {
       let validTickets = tickets.filter((ticket): ticket is LotteryTicket => ticket !== null)
       
       if (!includeArchived) {
-        validTickets = validTickets.filter(ticket => ticket.status !== 'archived')
+        validTickets = validTickets.filter(ticket => ticket.drawStatus !== 'archived')
       }
       
       // Sort by purchase date (oldest first for draws)
@@ -173,7 +173,8 @@ export class KVTicketStorageService {
           // Update status to archived
           const archivedTicket: LotteryTicket = {
             ...ticket,
-            status: 'archived'
+            drawStatus: 'archived',
+            archivedAt: new Date().toISOString()
           }
           
           // Save with extended TTL (30 days)

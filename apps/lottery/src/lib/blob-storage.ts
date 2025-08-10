@@ -266,7 +266,7 @@ export class BlobStorageService {
             const ticketData = await response.json() as LotteryTicket
             if (ticketData.drawId === drawId) {
               // Only include non-archived tickets unless specifically requested
-              if (includeArchived || ticketData.status !== 'archived') {
+              if (includeArchived || ticketData.drawStatus !== 'archived') {
                 tickets.push(ticketData)
               }
             }

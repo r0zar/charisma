@@ -19,7 +19,7 @@ export class HybridStorageService {
   async saveLotteryTicket(ticket: LotteryTicket): Promise<void> {
     console.log('Saving ticket with hybrid storage:', ticket.id, 'status:', ticket.status)
     
-    if (ticket.status === 'archived') {
+    if (ticket.drawStatus === 'archived') {
       // Archived tickets go to blob storage for long-term storage
       await Promise.all([
         blobStorage.saveLotteryTicket(ticket),
@@ -166,8 +166,9 @@ export class HybridStorageService {
       for (const ticket of activeTickets) {
         const archivedTicket: LotteryTicket = {
           ...ticket,
-          status: 'archived',
-          drawResult: drawId
+          drawStatus: 'archived',
+          drawResult: drawId,
+          archivedAt: new Date().toISOString()
         }
         
         // Save archived ticket (will go to blob storage)

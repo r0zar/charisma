@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { kvTicketStorage } from '@/lib/kv-ticket-storage'
+import { ticketService } from '@/lib/ticket-service'
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,12 +14,12 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Only get from KV for speed - active tickets should be in KV
-    const tickets = await kvTicketStorage.getTicketsByWallet(walletAddress)
+    // Use the same service as main my-tickets endpoint for consistency
+    const tickets = await ticketService.getTicketsByWallet(walletAddress)
     
     // Filter to only active tickets and limit results
     const activeTickets = tickets
-      .filter(ticket => ticket.status === 'pending' || ticket.status === 'confirmed')
+      .filter(ticket => !ticket.drawStatus || ticket.drawStatus === 'active')
       .slice(0, limit)
     
     const response = NextResponse.json({

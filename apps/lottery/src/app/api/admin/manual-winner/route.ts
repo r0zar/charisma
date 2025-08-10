@@ -130,8 +130,9 @@ export async function POST(request: NextRequest) {
       try {
         const archivedTicket = {
           ...ticket,
-          status: 'archived' as const,
+          drawStatus: 'archived' as const,
           drawResult: drawId,
+          archivedAt: new Date().toISOString(),
           isWinner: ticket.id === winningTicketId // Mark the winning ticket
         }
         await hybridStorage.saveLotteryTicket(archivedTicket)

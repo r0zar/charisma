@@ -58,10 +58,12 @@ export interface LotteryTicket {
   purchaseDate: string;         // ISO timestamp when purchased
   purchasePrice: number;        // amount paid in STONE
   transactionId?: string;       // blockchain transaction ID
-  status: 'pending' | 'confirmed' | 'cancelled' | 'archived';
+  status: 'pending' | 'confirmed' | 'cancelled';  // transaction/payment status
+  drawStatus?: 'active' | 'archived';             // draw participation status
   drawResult?: string;          // link to completed draw (for archived tickets)
   confirmedAt?: string;         // ISO timestamp when confirmed
   cancelledAt?: string;         // ISO timestamp when cancelled
+  archivedAt?: string;          // ISO timestamp when archived
   blockHeight?: number;         // block height when confirmed
   blockTime?: number;           // block time when confirmed
   isWinner?: boolean;           // indicates if this ticket won
