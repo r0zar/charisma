@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/admin/expire-pending-tickets",
+      "schedule": "0 */6 * * *"
+    }
+  ]
+}

@@ -26,6 +26,7 @@ function MyTicketsPreview({ refreshTrigger }: { refreshTrigger: number }) {
   const { walletState } = useWallet()
   const { config } = useLottery()
   const [tickets, setTickets] = useState<any[]>([])
+  const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(false)
 
   const fetchTickets = async () => {
@@ -43,6 +44,7 @@ function MyTicketsPreview({ refreshTrigger }: { refreshTrigger: number }) {
 
       if (response.ok && result.success) {
         setTickets(result.data)
+        setTotalCount(result.count || 0)
       }
     } catch (error) {
       console.error('Failed to fetch tickets:', error)
@@ -83,7 +85,7 @@ function MyTicketsPreview({ refreshTrigger }: { refreshTrigger: number }) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Ticket className="h-5 w-5" />
-            My Tickets ({tickets.length})
+            My Tickets ({totalCount})
           </CardTitle>
           <Link href="/my-tickets">
             <Button variant="outline" size="sm">
