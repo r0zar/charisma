@@ -244,7 +244,7 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }
     <>
       <div className="grid grid-cols-12 gap-3 px-3 py-2 hover:bg-muted/50 rounded-lg border-b border-border/20 items-center">
         {/* Column 1: ID/Status */}
-        <div className="col-span-3">
+        <div className="col-span-2">
           <div className="flex items-center gap-2">
             <div className="text-xs font-mono">#{ticket.id.slice(-6)}</div>
             {ticket.isWinner && (
@@ -265,14 +265,20 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }
         </div>
 
         {/* Column 3: Purchase Info */}
-        <div className="col-span-3">
+        <div className="col-span-2">
           <div className="text-xs font-medium">{ticket.purchasePrice} STONE</div>
           <div className="text-xs text-muted-foreground">
             {new Date(ticket.purchaseDate).toLocaleDateString()}
           </div>
         </div>
 
-        {/* Column 4: Actions */}
+        {/* Column 4: Draw ID */}
+        <div className="col-span-2">
+          <div className="text-xs font-mono">{ticket.drawId.replace('next-draw-', '')}</div>
+          <div className="text-xs text-muted-foreground">Draw</div>
+        </div>
+
+        {/* Column 5: Actions */}
         <div className="col-span-3 flex items-center gap-1 justify-end">
           {ticket.status === 'pending' && (
             <>
@@ -392,9 +398,10 @@ export function SimpleTicketsTable({ tickets, onConfirmationUpdate, onTicketCanc
     <div className="space-y-2">
       {/* Table Header */}
       <div className="grid grid-cols-12 gap-3 px-3 py-2 text-xs font-medium text-muted-foreground border-b">
-        <div className="col-span-3">Ticket</div>
+        <div className="col-span-2">Ticket</div>
         <div className="col-span-3">Type</div>
-        <div className="col-span-3">Burned</div>
+        <div className="col-span-2">Burned</div>
+        <div className="col-span-2">Draw ID</div>
         <div className="col-span-3 text-right">Actions</div>
       </div>
 
