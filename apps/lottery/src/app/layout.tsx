@@ -3,21 +3,22 @@ import { Inter, Audiowide, Orbitron } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { AppProvider, WalletProvider, LotteryProvider } from "@/contexts";
 import { Header } from "@/components/header";
+import { Analytics } from "@vercel/analytics/next"
 import "./globals.css";
 
-const inter = Inter({ 
-  variable: "--font-inter", 
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   display: "swap"
 });
-const audiowide = Audiowide({ 
-  variable: "--font-audiowide", 
+const audiowide = Audiowide({
+  variable: "--font-audiowide",
   subsets: ["latin"],
   display: "swap",
   weight: ["400"]
 });
-const orbitron = Orbitron({ 
-  variable: "--font-orbitron", 
+const orbitron = Orbitron({
+  variable: "--font-orbitron",
   subsets: ["latin"],
   display: "swap",
   weight: ["400", "500", "600", "700", "800", "900"]
@@ -54,6 +55,7 @@ export default function RootLayout({
                 <main className="flex-1">
                   {children}
                 </main>
+                <Analytics />
               </LotteryProvider>
             </AppProvider>
           </WalletProvider>

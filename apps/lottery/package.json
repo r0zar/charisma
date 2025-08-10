@@ -35,6 +35,7 @@
     "@stacks/network": "7.0.2",
     "@stacks/transactions": "7.1.0",
     "@stacks/wallet-sdk": "7.1.2",
+    "@vercel/analytics": "^1.5.0",
     "@vercel/blob": "^1.1.1",
     "@vercel/kv": "^3.0.0",
     "class-variance-authority": "^0.7.1",
