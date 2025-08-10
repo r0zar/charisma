@@ -17,15 +17,20 @@ export async function GET(request: NextRequest) {
     // Use the same service as main my-tickets endpoint for consistency
     const tickets = await ticketService.getTicketsByWallet(walletAddress)
     
-    // Filter to only active tickets and limit results
+    // Filter to only active tickets
     const activeTickets = tickets
       .filter(ticket => !ticket.drawStatus || ticket.drawStatus === 'active')
-      .slice(0, limit)
+    
+    // Get the total count before limiting results
+    const totalCount = activeTickets.length
+    
+    // Limit results for display
+    const limitedTickets = activeTickets.slice(0, limit)
     
     const response = NextResponse.json({
       success: true,
-      data: activeTickets,
-      count: activeTickets.length
+      data: limitedTickets,
+      count: totalCount
     })
     
     // Cache for 2 seconds to improve performance while still being responsive for real-time updates
