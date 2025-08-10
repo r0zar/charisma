@@ -2,3 +2,6 @@
 .env*.local
 
 logs/*
+
+# TypeScript build cache
+tsconfig.tsbuildinfo
