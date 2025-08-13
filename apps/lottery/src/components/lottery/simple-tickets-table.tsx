@@ -242,7 +242,118 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }
 
   return (
     <>
-      <div className="grid grid-cols-12 gap-3 px-3 py-2 hover:bg-muted/50 rounded-lg border-b border-border/20 items-center">
+      {/* Mobile Layout */}
+      <div className="block sm:hidden bg-muted/30 rounded-lg p-4 space-y-3 border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-mono">#{ticket.id.slice(-6)}</div>
+            {ticket.isWinner && (
+              <Trophy className="h-4 w-4 text-yellow-500" />
+            )}
+          </div>
+          <Badge className={getStatusColor(ticket.status)}>
+            {ticket.status}
+          </Badge>
+        </div>
+        
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Amount:</span>
+            <span className="font-medium">{ticket.purchasePrice} STONE</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Date:</span>
+            <span>{new Date(ticket.purchaseDate).toLocaleDateString()}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Draw:</span>
+            <span className="font-mono">{ticket.drawId.replace('next-draw-', '')}</span>
+          </div>
+          {ticket.isWinner && (
+            <div className="text-center py-2 text-yellow-600 font-medium">
+              🏆 WINNER!
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2 pt-2">
+          {ticket.status === 'pending' && (
+            <>
+              <Button
+                onClick={handleBurnTokens}
+                disabled={isConfirming || isCancelling}
+                size="sm"
+                className="flex-1 min-w-0"
+              >
+                {isConfirming ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Transfer
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="h-3 w-3 mr-1" />
+                    Transfer {ticket.purchasePrice}
+                  </>
+                )}
+              </Button>
+
+              <Button
+                onClick={handleCancelTicket}
+                disabled={isConfirming || isCancelling}
+                variant="outline"
+                size="sm"
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                    Cancel
+                  </>
+                ) : (
+                  <>
+                    <X className="h-3 w-3 mr-1" />
+                    Cancel
+                  </>
+                )}
+              </Button>
+
+              {txId && (
+                <Button
+                  onClick={handleCheckStatus}
+                  disabled={isCheckingStatus || isConfirming || isCancelling}
+                  variant="outline"
+                  size="sm"
+                >
+                  {isCheckingStatus ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    'Check'
+                  )}
+                </Button>
+              )}
+            </>
+          )}
+
+          {ticket.status === 'confirmed' && ticket.transactionId && (
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-1 text-sm text-green-700">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>Confirmed</span>
+              </div>
+              <TransactionLink
+                txId={ticket.transactionId}
+                variant="button"
+                size="sm"
+              >
+                View TX
+              </TransactionLink>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop Layout */}
+      <div className="hidden sm:grid grid-cols-12 gap-3 px-3 py-2 hover:bg-muted/50 rounded-lg border-b border-border/20 items-center">
         {/* Column 1: ID/Status */}
         <div className="col-span-2">
           <div className="flex items-center gap-2">
@@ -358,27 +469,25 @@ function IndividualTicketRow({ ticket, onConfirmationUpdate, onTicketCancelled }
 
       {/* Error/Status row */}
       {(error || (txId && isConfirming)) && (
-        <div className="grid grid-cols-12 gap-3 px-3 pb-2">
-          <div className="col-span-12">
-            {error && (
-              <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
-                {error}
-              </div>
-            )}
-            {txId && !error && isConfirming && (
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-blue-600">Waiting for confirmation...</span>
-                <TransactionLink
-                  txId={txId}
-                  variant="inline"
-                  size="sm"
-                  className="text-xs"
-                >
-                  View TX
-                </TransactionLink>
-              </div>
-            )}
-          </div>
+        <div className="px-3 pb-2 sm:px-0">
+          {error && (
+            <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+              {error}
+            </div>
+          )}
+          {txId && !error && isConfirming && (
+            <div className="hidden sm:flex items-center justify-between text-xs">
+              <span className="text-blue-600">Waiting for confirmation...</span>
+              <TransactionLink
+                txId={txId}
+                variant="inline"
+                size="sm"
+                className="text-xs"
+              >
+                View TX
+              </TransactionLink>
+            </div>
+          )}
         </div>
       )}
     </>
@@ -396,8 +505,8 @@ export function SimpleTicketsTable({ tickets, onConfirmationUpdate, onTicketCanc
 
   return (
     <div className="space-y-2">
-      {/* Table Header */}
-      <div className="grid grid-cols-12 gap-3 px-3 py-2 text-xs font-medium text-muted-foreground border-b">
+      {/* Table Header - Desktop Only */}
+      <div className="hidden sm:grid grid-cols-12 gap-3 px-3 py-2 text-xs font-medium text-muted-foreground border-b">
         <div className="col-span-2">Ticket</div>
         <div className="col-span-3">Type</div>
         <div className="col-span-2">Burned</div>
@@ -406,7 +515,7 @@ export function SimpleTicketsTable({ tickets, onConfirmationUpdate, onTicketCanc
       </div>
 
       {/* Table Body */}
-      <div className="space-y-0">
+      <div className="space-y-2 sm:space-y-0">
         {tickets.map((ticket) => (
           <IndividualTicketRow
             key={ticket.id}

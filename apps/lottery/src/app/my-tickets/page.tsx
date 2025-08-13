@@ -253,11 +253,11 @@ export default function MyTicketsPage() {
       <div className="container mx-auto p-6 space-y-8 flex-1">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold flex items-center justify-center gap-3">
-            <Wallet className="h-10 w-10 text-primary" />
+          <h1 className="text-2xl sm:text-4xl font-bold flex items-center justify-center gap-2 sm:gap-3">
+            <Wallet className="h-6 w-6 sm:h-10 sm:w-10 text-primary" />
             My Tickets
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-sm sm:text-lg">
             View and manage your lottery tickets
           </p>
         </div>
@@ -265,7 +265,7 @@ export default function MyTicketsPage() {
         <div className="max-w-4xl mx-auto">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-center lg:space-y-0">
                 <div>
                   <CardTitle className="flex items-center gap-2">
                     <Wallet className="h-5 w-5" />
@@ -277,24 +277,24 @@ export default function MyTicketsPage() {
                 </div>
                 
                 {/* Filter Controls */}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     variant={filter === 'active' ? 'default' : 'outline'}
-                    
+                    size="sm"
                     onClick={() => setFilter('active')}
                   >
                     Active ({tickets.filter(t => !t.drawStatus || t.drawStatus === 'active').length})
                   </Button>
                   <Button
                     variant={filter === 'archived' ? 'default' : 'outline'}
-                    
+                    size="sm"
                     onClick={() => setFilter('archived')}
                   >
                     Archived ({tickets.filter(t => t.drawStatus === 'archived').length})
                   </Button>
                   <Button
                     variant={filter === 'all' ? 'default' : 'outline'}
-                    
+                    size="sm"
                     onClick={() => setFilter('all')}
                   >
                     All ({tickets.length})

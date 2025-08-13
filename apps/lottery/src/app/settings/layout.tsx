@@ -39,35 +39,38 @@ export default function SettingsLayout({
       
       <div className="container mx-auto p-6 max-w-4xl flex-1 relative z-10">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Settings className="h-8 w-8" />
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 sm:gap-3">
+            <Settings className="h-6 w-6 sm:h-8 sm:w-8" />
             Settings
           </h1>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground mt-2 text-sm sm:text-base">
             Manage your application preferences and wallet settings
           </p>
         </div>
 
         {/* Tabs Navigation */}
         <Tabs value={getActiveTab()} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsList className="grid w-full grid-cols-3 mb-6 sm:mb-8">
             <Link href="/settings/general">
-              <TabsTrigger value="general" className="flex items-center gap-2 w-full">
-                <Monitor className="h-4 w-4" />
+              <TabsTrigger value="general" className="flex items-center gap-1 sm:gap-2 w-full text-xs sm:text-sm">
+                <Monitor className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">General</span>
+                <span className="sm:hidden">General</span>
               </TabsTrigger>
             </Link>
             <Link href="/settings/appearance">
-              <TabsTrigger value="appearance" className="flex items-center gap-2 w-full">
-                <Palette className="h-4 w-4" />
+              <TabsTrigger value="appearance" className="flex items-center gap-1 sm:gap-2 w-full text-xs sm:text-sm">
+                <Palette className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Appearance</span>
+                <span className="sm:hidden">Theme</span>
               </TabsTrigger>
             </Link>
             <Link href="/settings/network">
-              <TabsTrigger value="network" className="flex items-center gap-2 w-full">
-                <Network className="h-4 w-4" />
+              <TabsTrigger value="network" className="flex items-center gap-1 sm:gap-2 w-full text-xs sm:text-sm">
+                <Network className="h-3 w-3 sm:h-4 sm:w-4" />
                 <span className="hidden sm:inline">Network</span>
+                <span className="sm:hidden">Network</span>
               </TabsTrigger>
             </Link>
           </TabsList>

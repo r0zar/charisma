@@ -300,14 +300,14 @@ function SimplifiedPurchase({ onTicketPurchased }: { onTicketPurchased?: () => v
 
           {/* Quick Amount Buttons */}
           <div className="text-center space-y-4">
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap justify-center gap-2">
               {[1, 10, 50, 100].map((amount) => (
                 <Button
                   key={amount}
                   variant="outline"
                   size="sm"
                   onClick={() => setQuantity(amount)}
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 text-xs sm:text-sm"
                 >
                   {amount} ticket{amount !== 1 ? 's' : ''}
                 </Button>
@@ -404,17 +404,17 @@ export default function LotteryPage() {
         {/* Hero Section - Jackpot */}
         <div className="space-y-8">
           {/* Hero Header */}
-          <div className="text-center space-y-6 py-8">
+          <div className="text-center space-y-6 py-4 sm:py-8">
             <div className="space-y-4">
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary animate-pulse">
+              <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-primary animate-pulse">
                 Stone Lottery
               </h1>
-              <div className="flex items-center justify-center gap-2 text-xl md:text-2xl font-medium text-muted-foreground">
-                <Trophy className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-                Win Amazing Physical Prizes
-                <Trophy className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground">
+                <Trophy className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
+                <span className="text-center">Win Amazing Physical Prizes</span>
+                <Trophy className="h-5 w-5 sm:h-6 sm:w-6 md:h-8 md:w-8 text-primary" />
               </div>
-              <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+              <p className="text-muted-foreground text-base sm:text-lg md:text-xl max-w-2xl mx-auto leading-relaxed px-4">
                 Burn STONE tokens to enter blockchain-powered lottery draws for real-world collectibles and prizes
               </p>
             </div>
@@ -427,14 +427,14 @@ export default function LotteryPage() {
         </div>
 
         {/* Two Column Layout for Purchase and My Tickets */}
-        <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto">
           {/* Purchase Section */}
-          <div>
+          <div className="order-1">
             <SimplifiedPurchase onTicketPurchased={handleTicketPurchased} />
           </div>
 
           {/* My Tickets Preview */}
-          <div>
+          <div className="order-2">
             <MyTicketsPreview refreshTrigger={refreshTrigger} />
           </div>
         </div>

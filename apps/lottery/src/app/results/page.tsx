@@ -175,11 +175,11 @@ export default function ResultsPage() {
       <div className="container mx-auto p-6 space-y-8 flex-1">
         {/* Header */}
         <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold flex items-center justify-center gap-3">
-            <Trophy className="h-10 w-10 text-primary" />
+          <h1 className="text-2xl sm:text-4xl font-bold flex items-center justify-center gap-2 sm:gap-3">
+            <Trophy className="h-6 w-6 sm:h-10 sm:w-10 text-primary" />
             Lottery Results
           </h1>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-sm sm:text-lg">
             Latest draw results and historical data
           </p>
         </div>
@@ -205,12 +205,12 @@ export default function ResultsPage() {
                   pastDraws.map((draw: any) => (
                     <Card key={draw.id} className="border-border/40">
                       <CardHeader className="pb-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
                           <div>
-                            <CardTitle className="text-2xl font-mono font-bold">
+                            <CardTitle className="text-xl sm:text-2xl font-mono font-bold">
                               Draw #{draw.id}
                             </CardTitle>
-                            <CardDescription className="text-base mt-1">
+                            <CardDescription className="text-sm sm:text-base mt-1">
                               {new Date(draw.drawDate).toLocaleDateString()} at {new Date(draw.drawDate).toLocaleTimeString([], {
                                 hour: '2-digit',
                                 minute: '2-digit'
@@ -218,7 +218,7 @@ export default function ResultsPage() {
                             </CardDescription>
                           </div>
                           {draw.winners.length > 0 && (
-                            <Badge variant="default" className="bg-green-100 text-green-800 text-lg py-2 px-4">
+                            <Badge variant="default" className="bg-green-100 text-green-800 text-sm sm:text-lg py-1 sm:py-2 px-2 sm:px-4 self-start sm:self-auto">
                               🏆 {draw.winners[0].winnerCount} Winner{draw.winners[0].winnerCount !== 1 ? 's' : ''}
                             </Badge>
                           )}
@@ -262,15 +262,15 @@ export default function ResultsPage() {
                               <div className="space-y-4">
                                 <div>
                                   <div className="text-sm font-medium text-green-700 mb-2">STX Wallet Address:</div>
-                                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-                                    <span className="font-mono text-lg font-bold text-green-800 break-all">
+                                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 p-3 bg-white rounded-lg border">
+                                    <span className="font-mono text-sm sm:text-lg font-bold text-green-800 break-all flex-1 min-w-0">
                                       {draw.winnerWalletAddress}
                                     </span>
                                     <Button
                                       variant="outline"
                                       size="sm"
                                       onClick={() => copyToClipboard(draw.winnerWalletAddress!)}
-                                      className="flex-shrink-0"
+                                      className="flex-shrink-0 self-start sm:self-auto"
                                     >
                                       <Copy className="h-4 w-4" />
                                     </Button>
