@@ -1,4 +1,4 @@
-import { LotteryConfig, DEFAULT_LOTTERY_CONFIG, PhysicalJackpot } from '@/types/lottery'
+import { LotteryConfig, DEFAULT_LOTTERY_CONFIG, PhysicalJackpot, Jackpot } from '@/types/lottery'
 import { hybridStorage } from './hybrid-storage'
 
 export class LotteryConfigService {
@@ -30,7 +30,7 @@ export class LotteryConfigService {
         ...currentConfig,
         ...updates,
         lastModified: new Date().toISOString(),
-        version: currentConfig.version + 1
+        version: (currentConfig.version || 0) + 1
       }
 
       await hybridStorage.saveLotteryConfig(updatedConfig)
@@ -56,12 +56,12 @@ export class LotteryConfigService {
     }
   }
 
-  async getCurrentJackpot(): Promise<PhysicalJackpot> {
+  async getCurrentJackpot(): Promise<PhysicalJackpot | Jackpot | null> {
     const config = await this.getConfig()
     return config.currentJackpot
   }
 
-  async getNextDrawTime(): Promise<string> {
+  async getNextDrawTime(): Promise<string | null> {
     const config = await this.getConfig()
     return config.nextDrawDate
   }

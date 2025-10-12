@@ -19,7 +19,7 @@ export class TicketService {
       }
 
       // Determine which draw this ticket is for
-      const drawId = request.drawId || `next-draw-${new Date(config.nextDrawDate).toISOString().slice(0, 10)}`
+      const drawId = request.drawId || `next-draw-${new Date(config.nextDrawDate || new Date()).toISOString().slice(0, 10)}`
 
       // Create the ticket
       const ticket: LotteryTicket = {
@@ -55,7 +55,7 @@ export class TicketService {
       }
 
       // Determine which draw these tickets are for
-      const drawId = request.drawId || `next-draw-${new Date(config.nextDrawDate).toISOString().slice(0, 10)}`
+      const drawId = request.drawId || `next-draw-${new Date(config.nextDrawDate || new Date()).toISOString().slice(0, 10)}`
 
       const tickets: LotteryTicket[] = []
       const purchaseDate = new Date().toISOString()
@@ -113,7 +113,7 @@ export class TicketService {
 
   async getNextDrawId(): Promise<string> {
     const config = await lotteryConfigService.getConfig()
-    return `next-draw-${new Date(config.nextDrawDate).toISOString().slice(0, 10)}`
+    return `next-draw-${new Date(config.nextDrawDate || new Date()).toISOString().slice(0, 10)}`
   }
 
   async updateTicketTransactionId(ticketId: string, transactionId: string): Promise<LotteryTicket> {

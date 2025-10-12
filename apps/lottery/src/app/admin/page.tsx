@@ -835,7 +835,7 @@ export default function AdminPage() {
               <div className="text-sm text-muted-foreground">
                 {config?.currentJackpot?.title || 'No jackpot set'}
               </div>
-              {config?.currentJackpot?.estimatedValue && (
+              {config?.currentJackpot && 'estimatedValue' in config.currentJackpot && config.currentJackpot.estimatedValue && (
                 <div className="text-sm font-mono">
                   ${(config.currentJackpot.estimatedValue / 1000).toLocaleString()} USD
                 </div>

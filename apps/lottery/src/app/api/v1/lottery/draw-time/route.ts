@@ -5,6 +5,13 @@ export async function GET() {
   try {
     const nextDrawDate = await lotteryConfigService.getNextDrawTime()
 
+    if (!nextDrawDate) {
+      return NextResponse.json({
+        success: false,
+        error: 'Next draw date not set'
+      }, { status: 404 })
+    }
+
     const response = NextResponse.json({
       success: true,
       data: {

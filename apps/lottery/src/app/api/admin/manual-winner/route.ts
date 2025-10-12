@@ -82,20 +82,25 @@ export async function POST(request: NextRequest) {
     const drawId = providedDrawId || await generateDrawId()
     const drawDate = new Date().toISOString()
     
+    // Get jackpot value - check if it's a PhysicalJackpot with estimatedValue
+    const jackpotValue = config.currentJackpot && 'estimatedValue' in config.currentJackpot
+      ? config.currentJackpot.estimatedValue || 0
+      : 0
+
     // Create winner info - for simple format it's just one winner
     const winners: WinnerInfo[] = [{
       tier: 1,
       matchCount: 1, // Always 1 for simple random draw
       winnerCount: 1,
-      prizePerWinner: config.currentJackpot.estimatedValue || 0,
-      totalPrize: config.currentJackpot.estimatedValue || 0
+      prizePerWinner: jackpotValue,
+      totalPrize: jackpotValue
     }]
-    
+
     // Create the draw record with manual selection metadata
     const draw: LotteryDraw = {
       id: drawId,
       drawDate,
-      jackpotAmount: config.currentJackpot,
+      jackpotAmount: config.currentJackpot || { title: 'Unknown', imageUrls: [], linkUrl: '' },
       totalTicketsSold: confirmedTickets.length,
       winners,
       winnerWalletAddress: winningTicket.walletAddress,
@@ -160,7 +165,7 @@ export async function POST(request: NextRequest) {
         ticketsProcessed: allTickets.length,
         ticketsDeleted: deletedCount,
         ticketsArchived: archivedCount,
-        currentJackpot: config.currentJackpot.title
+        currentJackpot: config.currentJackpot?.title || 'Unknown'
       }
     })
   } catch (error) {
