@@ -98,7 +98,7 @@ export default function CurrentDrawPage() {
         t.purchasePrice,
         t.transactionId || 'N/A'
       ])
-      const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n')
+      const csv = [headers.join(','), ...rows.map((row: (string | number)[]) => row.join(','))].join('\n')
 
       // 2. JSON - Full data export
       const json = JSON.stringify({

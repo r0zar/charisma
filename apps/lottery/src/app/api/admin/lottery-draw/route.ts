@@ -84,15 +84,20 @@ export async function POST(request: NextRequest) {
     // Simple random draw - select one random ticket as winner
     const winningTicket = selectWinningTicket(tickets)
     console.log(`Selected winning ticket ${winningTicket.id}`)
-    
+
+    // Get jackpot value - check if it's a PhysicalJackpot with estimatedValue
+    const jackpotValue = config.currentJackpot && 'estimatedValue' in config.currentJackpot
+      ? config.currentJackpot.estimatedValue || 0
+      : 0
+
     // Calculate winners (simple mode - one winner)
-    const winners = calculateWinnersFromTicket(winningTicket, config.currentJackpot.estimatedValue || 0)
-    
+    const winners = calculateWinnersFromTicket(winningTicket, jackpotValue)
+
     // Create the draw record
     const draw: LotteryDraw = {
       id: drawId,
       drawDate,
-      jackpotAmount: config.currentJackpot,
+      jackpotAmount: config.currentJackpot || { title: 'Unknown', imageUrls: [], linkUrl: '' },
       totalTicketsSold: tickets.length,
       winners,
       status: 'completed',
@@ -122,7 +127,7 @@ export async function POST(request: NextRequest) {
       // For physical jackpots, we keep the same prize unless manually updated
       // The estimated value can stay the same or be updated by admin
       if (hasJackpotWinner) {
-        console.log(`Physical jackpot "${config.currentJackpot.title}" has been won!`)
+        console.log(`Physical jackpot "${config.currentJackpot?.title || 'Unknown'}" has been won!`)
         // Note: Admin should manually set a new physical jackpot for the next draw
       }
     } else {
@@ -144,7 +149,7 @@ export async function POST(request: NextRequest) {
         ticketsArchived: isDryRun ? 0 : tickets.length,
         drawType: 'simple-random',
         jackpotWinner: hasJackpotWinner,
-        currentJackpot: config.currentJackpot.title
+        currentJackpot: config.currentJackpot?.title || 'Unknown'
       }
     })
   } catch (error) {

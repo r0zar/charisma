@@ -36,7 +36,7 @@ export interface LotteryConfig {
 export interface LotteryDraw {
   id: string;                    // unique draw identifier
   drawDate: string;              // ISO timestamp when draw occurred
-  jackpotAmount: PhysicalJackpot; // jackpot item for this draw
+  jackpotAmount: PhysicalJackpot | Jackpot; // jackpot item for this draw (supports both formats)
   totalTicketsSold: number;      // number of tickets sold
   winners: WinnerInfo[];         // winner details by tier
   winnerWalletAddress?: string;  // wallet address of the jackpot winner (for simple format)
