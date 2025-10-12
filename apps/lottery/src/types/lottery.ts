@@ -5,20 +5,30 @@ export interface PhysicalJackpot {
   estimatedValue?: number;    // Optional estimated value in STONE for reference
 }
 
+export interface Jackpot {
+  id: string;                 // Unique identifier for the jackpot
+  title: string;              // Name/title of the jackpot
+  description: string;        // Description of the jackpot prize
+  imageUrl: string;           // URL to image of the prize
+}
+
 export interface LotteryConfig {
   // Basic lottery rules
   ticketPrice: number;        // Price in STONE tokens
-  
+
   // Draw scheduling
-  drawFrequency: string;      // "twice_weekly" | "weekly" | "daily"
-  nextDrawDate: string;       // ISO timestamp
-  
-  // Jackpot settings
-  currentJackpot: PhysicalJackpot; // Physical item details
-  
+  drawFrequency?: string;     // "twice_weekly" | "weekly" | "daily"
+  nextDrawDate: string | null; // ISO timestamp
+  currentDrawId?: string;     // ID of the current active draw
+
+  // Jackpot settings (new format)
+  jackpots?: Jackpot[];       // Array of available jackpots
+  currentJackpot: PhysicalJackpot | Jackpot | null; // Current active jackpot (supports both formats)
+
   // Admin metadata
-  lastModified: string;       // ISO timestamp
-  version: number;            // for versioning config changes
+  lastModified?: string;      // ISO timestamp
+  lastUpdated?: string;       // ISO timestamp (alternate field name)
+  version?: number;           // for versioning config changes
   isActive: boolean;          // enable/disable lottery
 }
 
