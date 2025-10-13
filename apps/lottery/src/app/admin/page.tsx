@@ -43,63 +43,30 @@ export default function AdminDashboard() {
   const fetchAnalytics = async () => {
     setAnalyticsLoading(true)
     try {
-      const [ticketsResponse, drawsResponse] = await Promise.all([
-        fetch('/api/admin/lottery-tickets?activeOnly=true', {
-          headers: { 'x-admin-key': adminKey }
-        }),
-        fetch('/api/admin/lottery-results', {
-          headers: { 'x-admin-key': adminKey }
-        })
-      ])
+      // Use the fast stats endpoint that reads from KV counters
+      const statsResponse = await fetch('/api/admin/stats', {
+        headers: { 'x-admin-key': adminKey }
+      })
 
-      if (!ticketsResponse.ok || !drawsResponse.ok) {
-        throw new Error('Failed to fetch analytics data')
+      if (!statsResponse.ok) {
+        throw new Error('Failed to fetch stats data')
       }
 
-      const [ticketsData, drawsData] = await Promise.all([
-        ticketsResponse.json(),
-        drawsResponse.json()
-      ])
-
-      const tickets = ticketsData.data || []
-      const draws = drawsData.data || []
-
-      const totalTickets = tickets.length
-      const confirmedTickets = tickets.filter((t: any) => t.status === 'confirmed').length
-      const pendingTickets = tickets.filter((t: any) => t.status === 'pending').length
-      const cancelledTickets = tickets.filter((t: any) => t.status === 'cancelled').length
-      const uniqueWallets = new Set(tickets.map((t: any) => t.walletAddress)).size
-      const totalDraws = draws.length
-      const completedDraws = draws.filter((d: any) => d.status === 'completed').length
-
-      // Recent activity
-      const thirtyDaysAgo = new Date()
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-      const recentConfirmedTickets = tickets.filter((t: any) =>
-        new Date(t.purchaseDate) > thirtyDaysAgo && t.status === 'confirmed'
-      ).length
-
-      const recentDraws = draws.filter((d: any) =>
-        new Date(d.drawDate) > thirtyDaysAgo
-      ).length
-
-      // Current draw
-      const currentDrawTickets = tickets.filter((t: any) => t.status !== 'archived')
-      const currentDrawConfirmed = currentDrawTickets.filter((t: any) => t.status === 'confirmed').length
+      const statsData = await statsResponse.json()
+      const stats = statsData.data || {}
 
       setAnalytics({
-        totalTickets,
-        confirmedTickets,
-        pendingTickets,
-        cancelledTickets,
-        uniqueWallets,
-        totalDraws,
-        completedDraws,
-        recentConfirmedTickets,
-        recentDraws,
-        averageTicketsPerDraw: totalDraws > 0 ? Math.round(confirmedTickets / totalDraws) : 0,
-        currentDrawConfirmed
+        totalTickets: stats.totalTickets || 0,
+        confirmedTickets: stats.confirmedTickets || 0,
+        pendingTickets: stats.pendingTickets || 0,
+        cancelledTickets: stats.cancelledTickets || 0,
+        uniqueWallets: stats.uniqueWallets || 0,
+        totalDraws: stats.totalDraws || 0,
+        completedDraws: stats.completedDraws || 0,
+        recentConfirmedTickets: stats.recentConfirmedTickets || 0,
+        recentDraws: stats.recentDraws || 0,
+        averageTicketsPerDraw: stats.averageTicketsPerDraw || 0,
+        currentDrawConfirmed: stats.confirmedTickets || 0 // All active confirmed tickets
       })
     } catch (err) {
       console.error('Failed to fetch analytics:', err)

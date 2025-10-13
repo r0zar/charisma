@@ -7,21 +7,32 @@ const DRAW_TICKETS_PREFIX = 'draw_tickets:'
 const ALL_ACTIVE_TICKETS_KEY = 'all_active_tickets'
 const TICKET_COUNTER_KEY = 'ticket_counter'
 
+// Stats counters for fast analytics
+const STATS_TOTAL_TICKETS = 'stats:total_tickets'
+const STATS_CONFIRMED_TICKETS = 'stats:confirmed_tickets'
+const STATS_PENDING_TICKETS = 'stats:pending_tickets'
+const STATS_CANCELLED_TICKETS = 'stats:cancelled_tickets'
+const STATS_UNIQUE_WALLETS = 'stats:unique_wallets'
+
 export class KVTicketStorageService {
   // Save a lottery ticket with immediate consistency
   async saveLotteryTicket(ticket: LotteryTicket): Promise<void> {
     try {
       console.log('Saving ticket to KV:', ticket.id)
-      
+
+      // Check if ticket already exists to determine if it's new or update
+      const existingTicket = await kv.get<LotteryTicket>(`${TICKET_PREFIX}${ticket.id}`)
+      const isNewTicket = !existingTicket
+
       // Use pipeline for atomic operations
       const pipeline = kv.pipeline()
-      
+
       // 1. Save the ticket data
       pipeline.set(`${TICKET_PREFIX}${ticket.id}`, ticket)
-      
+
       // 2. Add to wallet index (for fast wallet-based queries)
       pipeline.sadd(`${WALLET_TICKETS_PREFIX}${ticket.walletAddress}`, ticket.id)
-      
+
       // 3. Add to draw index (for fast draw-based queries)
       pipeline.sadd(`${DRAW_TICKETS_PREFIX}${ticket.drawId}`, ticket.id)
 
@@ -33,12 +44,44 @@ export class KVTicketStorageService {
         pipeline.srem(ALL_ACTIVE_TICKETS_KEY, ticket.id)
       }
 
-      // 5. Set expiration for active tickets (24 hours), archived tickets (30 days)
+      // 5. Update stats counters
+      if (isNewTicket) {
+        // New ticket: increment total and status-specific counter
+        pipeline.incr(STATS_TOTAL_TICKETS)
+        pipeline.sadd(STATS_UNIQUE_WALLETS, ticket.walletAddress)
+
+        if (ticket.status === 'confirmed') {
+          pipeline.incr(STATS_CONFIRMED_TICKETS)
+        } else if (ticket.status === 'pending') {
+          pipeline.incr(STATS_PENDING_TICKETS)
+        } else if (ticket.status === 'cancelled') {
+          pipeline.incr(STATS_CANCELLED_TICKETS)
+        }
+      } else if (existingTicket && existingTicket.status !== ticket.status) {
+        // Status changed: decrement old, increment new
+        if (existingTicket.status === 'confirmed') {
+          pipeline.decr(STATS_CONFIRMED_TICKETS)
+        } else if (existingTicket.status === 'pending') {
+          pipeline.decr(STATS_PENDING_TICKETS)
+        } else if (existingTicket.status === 'cancelled') {
+          pipeline.decr(STATS_CANCELLED_TICKETS)
+        }
+
+        if (ticket.status === 'confirmed') {
+          pipeline.incr(STATS_CONFIRMED_TICKETS)
+        } else if (ticket.status === 'pending') {
+          pipeline.incr(STATS_PENDING_TICKETS)
+        } else if (ticket.status === 'cancelled') {
+          pipeline.incr(STATS_CANCELLED_TICKETS)
+        }
+      }
+
+      // 6. Set expiration for active tickets (24 hours), archived tickets (30 days)
       const ttl = ticket.drawStatus === 'archived' ? 30 * 24 * 60 * 60 : 24 * 60 * 60
       pipeline.expire(`${TICKET_PREFIX}${ticket.id}`, ttl)
-      
+
       await pipeline.exec()
-      
+
       console.log('Ticket saved to KV successfully:', ticket.id)
     } catch (error) {
       console.error('Failed to save ticket to KV:', error)
@@ -119,22 +162,34 @@ export class KVTicketStorageService {
     try {
       // First get the ticket to access its wallet and draw for index cleanup
       const ticket = await this.getLotteryTicket(ticketId)
-      
+
       if (ticket) {
         const pipeline = kv.pipeline()
-        
+
         // Remove from all indexes
         pipeline.del(`${TICKET_PREFIX}${ticketId}`)
         pipeline.srem(`${WALLET_TICKETS_PREFIX}${ticket.walletAddress}`, ticketId)
         pipeline.srem(`${DRAW_TICKETS_PREFIX}${ticket.drawId}`, ticketId)
         pipeline.srem(ALL_ACTIVE_TICKETS_KEY, ticketId)
-        
+
+        // Update stats counters
+        pipeline.decr(STATS_TOTAL_TICKETS)
+        if (ticket.status === 'confirmed') {
+          pipeline.decr(STATS_CONFIRMED_TICKETS)
+        } else if (ticket.status === 'pending') {
+          pipeline.decr(STATS_PENDING_TICKETS)
+        } else if (ticket.status === 'cancelled') {
+          pipeline.decr(STATS_CANCELLED_TICKETS)
+        }
+
+        // Note: We don't remove from STATS_UNIQUE_WALLETS since they might have other tickets
+
         await pipeline.exec()
       } else {
         // Just try to delete the ticket key if we can't find it
         await kv.del(`${TICKET_PREFIX}${ticketId}`)
       }
-      
+
       console.log('Ticket deleted from KV successfully:', ticketId)
     } catch (error) {
       console.error('Failed to delete ticket from KV:', error)
@@ -239,6 +294,30 @@ export class KVTicketStorageService {
     } catch (error) {
       console.error('Failed to get all active tickets from KV:', error)
       throw new Error(`Failed to get all active tickets from KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // Get stats from counters (instant, no ticket fetching needed)
+  async getStats() {
+    try {
+      const [totalTickets, confirmedTickets, pendingTickets, cancelledTickets, uniqueWalletsCount] = await Promise.all([
+        kv.get<number>(STATS_TOTAL_TICKETS),
+        kv.get<number>(STATS_CONFIRMED_TICKETS),
+        kv.get<number>(STATS_PENDING_TICKETS),
+        kv.get<number>(STATS_CANCELLED_TICKETS),
+        kv.scard(STATS_UNIQUE_WALLETS)
+      ])
+
+      return {
+        totalTickets: totalTickets || 0,
+        confirmedTickets: confirmedTickets || 0,
+        pendingTickets: pendingTickets || 0,
+        cancelledTickets: cancelledTickets || 0,
+        uniqueWallets: uniqueWalletsCount || 0
+      }
+    } catch (error) {
+      console.error('Failed to get stats from KV:', error)
+      throw new Error(`Failed to get stats from KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 }
