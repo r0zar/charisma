@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     const drawId = searchParams.get('drawId')
     const walletAddress = searchParams.get('walletAddress')
     const ticketId = searchParams.get('ticketId')
+    const activeOnly = searchParams.get('activeOnly') === 'true'
     
     if (ticketId) {
       // Get specific ticket
@@ -65,9 +66,12 @@ export async function GET(request: NextRequest) {
       })
     } else {
       // Get all tickets with stats
-      const tickets = await hybridStorage.getAllLotteryTickets()
+      // Use fast KV lookup for active-only queries
+      const tickets = activeOnly
+        ? await hybridStorage.getAllActiveTickets()
+        : await hybridStorage.getAllLotteryTickets()
       const stats = await ticketService.getTicketStats()
-      
+
       return NextResponse.json({
         success: true,
         data: tickets,
