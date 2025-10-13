@@ -23,27 +23,40 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get instant stats from KV counters
+    // Get instant current draw stats from KV counters
     const kvStats = await kvTicketStorage.getStats()
 
-    // Get draw count from blob storage (cached/fast)
+    // Get draw count from blob storage
     const draws = await hybridStorage.getAllLotteryDraws()
     const completedDraws = draws.filter(d => d.status === 'completed').length
 
-    // Calculate recent activity (last 30 days) - this would need to be cached or counters too
-    // For now, we'll return 0 and implement later
+    // Get total lifetime ticket count from blob storage (includes archived)
+    // This is cached and relatively fast with pagination
+    const allTickets = await hybridStorage.getAllLotteryTickets()
+    const lifetimeConfirmed = allTickets.filter(t => t.status === 'confirmed').length
+    const lifetimeUniqueWallets = new Set(allTickets.map(t => t.walletAddress)).size
+
     const stats = {
-      totalTickets: kvStats.totalTickets,
-      confirmedTickets: kvStats.confirmedTickets,
-      pendingTickets: kvStats.pendingTickets,
-      cancelledTickets: kvStats.cancelledTickets,
-      uniqueWallets: kvStats.uniqueWallets,
+      // Current draw stats (from KV - fast)
+      currentDrawTickets: kvStats.totalTickets,
+      currentDrawConfirmed: kvStats.confirmedTickets,
+      currentDrawPending: kvStats.pendingTickets,
+      currentDrawCancelled: kvStats.cancelledTickets,
+      currentDrawUniqueWallets: kvStats.uniqueWallets,
+
+      // Lifetime stats (from blob - slower but acceptable)
+      totalTickets: allTickets.length,
+      confirmedTickets: lifetimeConfirmed,
+      uniqueWallets: lifetimeUniqueWallets,
+
+      // Draw stats
       totalDraws: draws.length,
       completedDraws,
-      // These would need additional counters or caching:
+      averageTicketsPerDraw: draws.length > 0 ? Math.round(lifetimeConfirmed / draws.length) : 0,
+
+      // Placeholder for future implementation
       recentConfirmedTickets: 0,
-      recentDraws: 0,
-      averageTicketsPerDraw: draws.length > 0 ? Math.round(kvStats.confirmedTickets / draws.length) : 0
+      recentDraws: 0
     }
 
     return NextResponse.json({

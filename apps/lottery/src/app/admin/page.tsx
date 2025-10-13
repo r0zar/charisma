@@ -56,17 +56,24 @@ export default function AdminDashboard() {
       const stats = statsData.data || {}
 
       setAnalytics({
+        // Lifetime stats
         totalTickets: stats.totalTickets || 0,
         confirmedTickets: stats.confirmedTickets || 0,
-        pendingTickets: stats.pendingTickets || 0,
-        cancelledTickets: stats.cancelledTickets || 0,
         uniqueWallets: stats.uniqueWallets || 0,
         totalDraws: stats.totalDraws || 0,
         completedDraws: stats.completedDraws || 0,
-        recentConfirmedTickets: stats.recentConfirmedTickets || 0,
-        recentDraws: stats.recentDraws || 0,
         averageTicketsPerDraw: stats.averageTicketsPerDraw || 0,
-        currentDrawConfirmed: stats.confirmedTickets || 0 // All active confirmed tickets
+
+        // Current draw stats
+        currentDrawTickets: stats.currentDrawTickets || 0,
+        currentDrawConfirmed: stats.currentDrawConfirmed || 0,
+        currentDrawPending: stats.currentDrawPending || 0,
+        currentDrawCancelled: stats.currentDrawCancelled || 0,
+        currentDrawUniqueWallets: stats.currentDrawUniqueWallets || 0,
+
+        // Recent activity (TODO)
+        recentConfirmedTickets: stats.recentConfirmedTickets || 0,
+        recentDraws: stats.recentDraws || 0
       })
     } catch (err) {
       console.error('Failed to fetch analytics:', err)
@@ -84,12 +91,12 @@ export default function AdminDashboard() {
     )
   }
 
-  const currentDrawRevenue = analytics.confirmedTickets * (config?.ticketPrice || 0)
-  const conversionRate = analytics.totalTickets > 0
-    ? ((analytics.confirmedTickets / analytics.totalTickets) * 100).toFixed(1)
+  const currentDrawRevenue = analytics.currentDrawConfirmed * (config?.ticketPrice || 0)
+  const conversionRate = analytics.currentDrawTickets > 0
+    ? ((analytics.currentDrawConfirmed / analytics.currentDrawTickets) * 100).toFixed(1)
     : '0'
-  const avgTicketsPerWallet = analytics.uniqueWallets > 0
-    ? (analytics.totalTickets / analytics.uniqueWallets).toFixed(1)
+  const avgTicketsPerWallet = analytics.currentDrawUniqueWallets > 0
+    ? (analytics.currentDrawTickets / analytics.currentDrawUniqueWallets).toFixed(1)
     : '0'
 
   return (
@@ -103,7 +110,7 @@ export default function AdminDashboard() {
               <CardDescription>Active tickets and participation metrics</CardDescription>
             </div>
             <Badge variant="outline" className="text-base">
-              {analytics.totalTickets?.toLocaleString() || 0} Total Tickets
+              {analytics.currentDrawTickets?.toLocaleString() || 0} Current Draw Tickets
             </Badge>
           </div>
         </CardHeader>
@@ -118,7 +125,7 @@ export default function AdminDashboard() {
                 {currentDrawRevenue.toLocaleString()} <span className="text-sm text-muted-foreground">STONE</span>
               </div>
               <div className="text-xs text-muted-foreground">
-                From {analytics.confirmedTickets?.toLocaleString() || 0} confirmed
+                From {analytics.currentDrawConfirmed?.toLocaleString() || 0} confirmed
               </div>
             </div>
             <div className="space-y-2">
@@ -130,7 +137,7 @@ export default function AdminDashboard() {
                 {conversionRate}%
               </div>
               <div className="text-xs text-muted-foreground">
-                {analytics.confirmedTickets} / {analytics.totalTickets} confirmed
+                {analytics.currentDrawConfirmed} / {analytics.currentDrawTickets} confirmed
               </div>
             </div>
             <div className="space-y-2">
@@ -139,10 +146,10 @@ export default function AdminDashboard() {
                 Active Wallets
               </div>
               <div className="text-2xl font-bold">
-                {analytics.uniqueWallets?.toLocaleString() || 0}
+                {analytics.currentDrawUniqueWallets?.toLocaleString() || 0}
               </div>
               <div className="text-xs text-muted-foreground">
-                {avgTicketsPerWallet} avg tickets/wallet
+                {avgTicketsPerWallet} avg tickets/wallet in current draw
               </div>
             </div>
             <div className="space-y-2">
