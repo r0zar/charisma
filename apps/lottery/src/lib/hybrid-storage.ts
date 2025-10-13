@@ -252,25 +252,14 @@ export class HybridStorageService {
     }
   }
 
-  // Get all active tickets (queries both KV and blob, filters non-archived)
+  // Get all active tickets (KV only - after migration all active tickets are in KV)
   async getAllActiveTickets(): Promise<LotteryTicket[]> {
     try {
-      // Try KV first (for recently created tickets)
-      const kvTickets = await kvTicketStorage.getAllActiveTickets().catch(() => [])
+      // After the KV migration, all active tickets are in KV
+      // No need to query blob storage (which only has archived tickets now)
+      const kvTickets = await kvTicketStorage.getAllActiveTickets()
 
-      // Also get from blob storage (where existing tickets are stored)
-      const blobTickets = await blobStorage.getAllLotteryTickets().catch(() => [])
-
-      // Filter blob tickets to only active ones
-      const activeBlobTickets = blobTickets.filter(ticket => ticket.drawStatus !== 'archived')
-
-      // Combine and deduplicate (KV takes precedence)
-      const allTickets = new Map<string, LotteryTicket>()
-      activeBlobTickets.forEach(ticket => allTickets.set(ticket.id, ticket))
-      kvTickets.forEach(ticket => allTickets.set(ticket.id, ticket))
-
-      return Array.from(allTickets.values())
-        .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())
+      return kvTickets.sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())
     } catch (error) {
       console.error('Failed to get all active tickets with hybrid storage:', error)
       throw error

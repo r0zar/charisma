@@ -66,18 +66,22 @@ export async function GET(request: NextRequest) {
         count: tickets.length
       })
     } else {
-      // Get all tickets with stats
+      // Get all tickets with optional stats
       // Use fast KV lookup for active-only queries
       const tickets = activeOnly
         ? await hybridStorage.getAllActiveTickets()
         : await hybridStorage.getAllLotteryTickets()
-      const stats = await ticketService.getTicketStats()
+
+      // Skip expensive stats calculation for active-only queries
+      const stats = activeOnly
+        ? undefined
+        : await ticketService.getTicketStats()
 
       return NextResponse.json({
         success: true,
         data: tickets,
         count: tickets.length,
-        stats
+        ...(stats && { stats })
       })
     }
   } catch (error) {
