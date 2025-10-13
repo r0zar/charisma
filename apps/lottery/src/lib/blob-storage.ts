@@ -252,28 +252,37 @@ export class BlobStorageService {
 
   async getTicketsByDraw(drawId: string, includeArchived: boolean = false): Promise<LotteryTicket[]> {
     try {
-      const { blobs } = await list({
-        prefix: LOTTERY_TICKETS_PREFIX,
-        token: this.token,
-      })
-
       const tickets: LotteryTicket[] = []
-      
-      for (const blob of blobs) {
-        try {
-          const response = await fetch(blob.url)
-          if (response.ok) {
-            const ticketData = await response.json() as LotteryTicket
-            if (ticketData.drawId === drawId) {
-              // Only include non-archived tickets unless specifically requested
-              if (includeArchived || ticketData.drawStatus !== 'archived') {
-                tickets.push(ticketData)
+      let cursor: string | undefined = undefined
+      let hasMore = true
+
+      // Paginate through all results (1000 at a time)
+      while (hasMore) {
+        const result = await list({
+          prefix: LOTTERY_TICKETS_PREFIX,
+          token: this.token,
+          cursor,
+        })
+
+        for (const blob of result.blobs) {
+          try {
+            const response = await fetch(blob.url)
+            if (response.ok) {
+              const ticketData = await response.json() as LotteryTicket
+              if (ticketData.drawId === drawId) {
+                // Only include non-archived tickets unless specifically requested
+                if (includeArchived || ticketData.drawStatus !== 'archived') {
+                  tickets.push(ticketData)
+                }
               }
             }
+          } catch (error) {
+            console.error(`Failed to fetch ticket from ${blob.url}:`, error)
           }
-        } catch (error) {
-          console.error(`Failed to fetch ticket from ${blob.url}:`, error)
         }
+
+        hasMore = result.hasMore
+        cursor = result.cursor
       }
 
       // Sort by purchase date (oldest first)
@@ -286,25 +295,34 @@ export class BlobStorageService {
 
   async getTicketsByWallet(walletAddress: string): Promise<LotteryTicket[]> {
     try {
-      const { blobs } = await list({
-        prefix: LOTTERY_TICKETS_PREFIX,
-        token: this.token,
-      })
-
       const tickets: LotteryTicket[] = []
-      
-      for (const blob of blobs) {
-        try {
-          const response = await fetch(blob.url)
-          if (response.ok) {
-            const ticketData = await response.json() as LotteryTicket
-            if (ticketData.walletAddress === walletAddress) {
-              tickets.push(ticketData)
+      let cursor: string | undefined = undefined
+      let hasMore = true
+
+      // Paginate through all results (1000 at a time)
+      while (hasMore) {
+        const result = await list({
+          prefix: LOTTERY_TICKETS_PREFIX,
+          token: this.token,
+          cursor,
+        })
+
+        for (const blob of result.blobs) {
+          try {
+            const response = await fetch(blob.url)
+            if (response.ok) {
+              const ticketData = await response.json() as LotteryTicket
+              if (ticketData.walletAddress === walletAddress) {
+                tickets.push(ticketData)
+              }
             }
+          } catch (error) {
+            console.error(`Failed to fetch ticket from ${blob.url}:`, error)
           }
-        } catch (error) {
-          console.error(`Failed to fetch ticket from ${blob.url}:`, error)
         }
+
+        hasMore = result.hasMore
+        cursor = result.cursor
       }
 
       // Sort by purchase date (newest first)
@@ -317,24 +335,35 @@ export class BlobStorageService {
 
   async getAllLotteryTickets(): Promise<LotteryTicket[]> {
     try {
-      const { blobs } = await list({
-        prefix: LOTTERY_TICKETS_PREFIX,
-        token: this.token,
-      })
-
       const tickets: LotteryTicket[] = []
-      
-      for (const blob of blobs) {
-        try {
-          const response = await fetch(blob.url)
-          if (response.ok) {
-            const ticketData = await response.json()
-            tickets.push(ticketData as LotteryTicket)
+      let cursor: string | undefined = undefined
+      let hasMore = true
+
+      // Paginate through all results (1000 at a time)
+      while (hasMore) {
+        const result = await list({
+          prefix: LOTTERY_TICKETS_PREFIX,
+          token: this.token,
+          cursor,
+        })
+
+        for (const blob of result.blobs) {
+          try {
+            const response = await fetch(blob.url)
+            if (response.ok) {
+              const ticketData = await response.json()
+              tickets.push(ticketData as LotteryTicket)
+            }
+          } catch (error) {
+            console.error(`Failed to fetch ticket from ${blob.url}:`, error)
           }
-        } catch (error) {
-          console.error(`Failed to fetch ticket from ${blob.url}:`, error)
         }
+
+        hasMore = result.hasMore
+        cursor = result.cursor
       }
+
+      console.log(`Fetched ${tickets.length} total tickets from blob storage`)
 
       // Sort by purchase date (newest first)
       return tickets.sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())
@@ -511,25 +540,37 @@ export class BlobStorageService {
   async clearAllTickets(): Promise<void> {
     try {
       console.log('Starting to clear all tickets from blob storage...')
-      
-      const { blobs } = await list({
-        prefix: LOTTERY_TICKETS_PREFIX,
-        token: this.token,
-      })
 
-      console.log(`Found ${blobs.length} ticket blobs to delete`)
+      let cursor: string | undefined = undefined
+      let hasMore = true
+      let totalDeleted = 0
 
-      // Delete all ticket blobs
-      for (const blob of blobs) {
-        try {
-          await del(blob.url, { token: this.token })
-          console.log(`Deleted ticket blob: ${blob.pathname}`)
-        } catch (error) {
-          console.warn(`Failed to delete ticket blob ${blob.pathname}:`, error)
+      // Paginate through all results (1000 at a time)
+      while (hasMore) {
+        const result = await list({
+          prefix: LOTTERY_TICKETS_PREFIX,
+          token: this.token,
+          cursor,
+        })
+
+        console.log(`Found ${result.blobs.length} ticket blobs in this batch`)
+
+        // Delete all ticket blobs in this batch
+        for (const blob of result.blobs) {
+          try {
+            await del(blob.url, { token: this.token })
+            console.log(`Deleted ticket blob: ${blob.pathname}`)
+            totalDeleted++
+          } catch (error) {
+            console.warn(`Failed to delete ticket blob ${blob.pathname}:`, error)
+          }
         }
+
+        hasMore = result.hasMore
+        cursor = result.cursor
       }
 
-      console.log('Finished clearing all tickets from blob storage')
+      console.log(`Finished clearing all tickets from blob storage (${totalDeleted} deleted)`)
     } catch (error) {
       console.error('Failed to clear all tickets from blob storage:', error)
       throw new Error(`Failed to clear all tickets: ${error instanceof Error ? error.message : 'Unknown error'}`)
