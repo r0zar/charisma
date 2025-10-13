@@ -10,6 +10,12 @@ import { Footer } from "@/components/footer"
 async function getLatestWinningNumbers() {
   try {
     const response = await fetch('/api/v1/lottery/latest-result')
+
+    // 404 just means no draws yet, not an error
+    if (response.status === 404) {
+      return null
+    }
+
     const result = await response.json()
 
     if (!response.ok || !result.success) {
@@ -19,7 +25,7 @@ async function getLatestWinningNumbers() {
     return result.data
   } catch (error) {
     console.error('Failed to get latest winning numbers:', error)
-    throw new Error('Lottery drawing data not available. Please connect to the blockchain lottery contract to fetch the latest winning numbers.')
+    throw error
   }
 }
 
@@ -32,10 +38,10 @@ async function getPastDraws() {
       throw new Error(result.error || 'Failed to fetch past draws')
     }
 
-    return result.data
+    return result.data || []
   } catch (error) {
     console.error('Failed to get past draws:', error)
-    throw new Error('Historical lottery data not available. Please connect to the blockchain lottery contract to fetch past drawing results.')
+    throw error
   }
 }
 
@@ -142,23 +148,23 @@ export default function ResultsPage() {
           </div>
 
           <div className="max-w-2xl mx-auto">
-            <Card className="border-destructive/20">
+            <Card>
               <CardHeader className="text-center">
-                <CardTitle className="flex items-center justify-center gap-2 text-destructive">
+                <CardTitle className="flex items-center justify-center gap-2">
                   <Trophy className="h-5 w-5" />
-                  Results Unavailable
+                  Unable to Load Results
                 </CardTitle>
                 <CardDescription>
-                  Unable to load lottery drawing data
+                  There was a problem loading the lottery data
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center py-8 space-y-4">
-                  <div className="text-muted-foreground">
+                  <div className="text-sm text-muted-foreground">
                     {error}
                   </div>
-                  <Button variant="outline" onClick={handleRetry} size="lg">
-                    Retry
+                  <Button variant="default" onClick={handleRetry} size="lg">
+                    Try Again
                   </Button>
                 </div>
               </CardContent>
@@ -198,8 +204,16 @@ export default function ResultsPage() {
             <CardContent>
               <div className="space-y-4">
                 {pastDraws.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No lottery draws found
+                  <div className="text-center py-12 space-y-4">
+                    <Trophy className="h-16 w-16 mx-auto text-muted-foreground/40" />
+                    <div className="space-y-2">
+                      <div className="text-lg font-medium text-muted-foreground">
+                        No Draws Completed Yet
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Lottery draws will appear here once they are completed. Check back soon!
+                      </div>
+                    </div>
                   </div>
                 ) : (
                   pastDraws.map((draw: any) => (
