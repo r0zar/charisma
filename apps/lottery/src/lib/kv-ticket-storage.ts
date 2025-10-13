@@ -4,6 +4,7 @@ import { LotteryTicket } from '@/types/lottery'
 const TICKET_PREFIX = 'ticket:'
 const WALLET_TICKETS_PREFIX = 'wallet_tickets:'
 const DRAW_TICKETS_PREFIX = 'draw_tickets:'
+const ALL_ACTIVE_TICKETS_KEY = 'all_active_tickets'
 const TICKET_COUNTER_KEY = 'ticket_counter'
 
 export class KVTicketStorageService {
@@ -23,8 +24,16 @@ export class KVTicketStorageService {
       
       // 3. Add to draw index (for fast draw-based queries)
       pipeline.sadd(`${DRAW_TICKETS_PREFIX}${ticket.drawId}`, ticket.id)
-      
-      // 4. Set expiration for active tickets (24 hours), archived tickets (30 days)
+
+      // 4. Add to global active tickets index (for fast admin queries)
+      if (ticket.drawStatus !== 'archived') {
+        pipeline.sadd(ALL_ACTIVE_TICKETS_KEY, ticket.id)
+      } else {
+        // Remove from active index if archived
+        pipeline.srem(ALL_ACTIVE_TICKETS_KEY, ticket.id)
+      }
+
+      // 5. Set expiration for active tickets (24 hours), archived tickets (30 days)
       const ttl = ticket.drawStatus === 'archived' ? 30 * 24 * 60 * 60 : 24 * 60 * 60
       pipeline.expire(`${TICKET_PREFIX}${ticket.id}`, ttl)
       
@@ -118,6 +127,7 @@ export class KVTicketStorageService {
         pipeline.del(`${TICKET_PREFIX}${ticketId}`)
         pipeline.srem(`${WALLET_TICKETS_PREFIX}${ticket.walletAddress}`, ticketId)
         pipeline.srem(`${DRAW_TICKETS_PREFIX}${ticket.drawId}`, ticketId)
+        pipeline.srem(ALL_ACTIVE_TICKETS_KEY, ticketId)
         
         await pipeline.exec()
       } else {
@@ -188,6 +198,47 @@ export class KVTicketStorageService {
     } catch (error) {
       console.error('Failed to archive tickets in KV:', error)
       throw new Error(`Failed to archive tickets in KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // Get all active tickets (uses global index for fast admin queries)
+  async getAllActiveTickets(): Promise<LotteryTicket[]> {
+    try {
+      console.log('Getting all active tickets from KV')
+
+      // Get all active ticket IDs from the global index
+      const ticketIds = await kv.smembers(ALL_ACTIVE_TICKETS_KEY)
+
+      if (!ticketIds || ticketIds.length === 0) {
+        console.log('No active tickets found in KV')
+        return []
+      }
+
+      console.log(`Found ${ticketIds.length} active ticket IDs`)
+
+      // Batch get tickets in chunks to avoid Redis mget limits (100 keys per batch)
+      const BATCH_SIZE = 100
+      const allTickets: LotteryTicket[] = []
+
+      for (let i = 0; i < ticketIds.length; i += BATCH_SIZE) {
+        const batchIds = ticketIds.slice(i, i + BATCH_SIZE)
+        const ticketKeys = batchIds.map(id => `${TICKET_PREFIX}${id}`)
+        const batchTickets = await kv.mget<LotteryTicket[]>(...ticketKeys)
+
+        // Filter out null values and add to results
+        const validBatchTickets = batchTickets.filter((ticket): ticket is LotteryTicket => ticket !== null)
+        allTickets.push(...validBatchTickets)
+
+        console.log(`Fetched batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(ticketIds.length / BATCH_SIZE)}: ${validBatchTickets.length} tickets`)
+      }
+
+      console.log(`Total tickets fetched: ${allTickets.length}`)
+
+      // Sort by purchase date (newest first)
+      return allTickets.sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())
+    } catch (error) {
+      console.error('Failed to get all active tickets from KV:', error)
+      throw new Error(`Failed to get all active tickets from KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 }
