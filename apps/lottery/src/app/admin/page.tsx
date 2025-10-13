@@ -22,7 +22,8 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchConfig()
-    fetchAnalytics()
+    fetchCurrentDrawStats()
+    fetchLifetimeStats()
   }, [])
 
   const fetchConfig = async () => {
@@ -42,23 +43,54 @@ export default function AdminDashboard() {
     }
   }
 
-  const fetchAnalytics = async () => {
-    setAnalyticsLoading(true)
+  const fetchCurrentDrawStats = async () => {
     try {
-      // Use the fast stats endpoint that reads from KV counters
-      const statsResponse = await fetch('/api/admin/stats', {
+      // Fast KV-only query for current draw stats (loads instantly)
+      const statsResponse = await fetch('/api/admin/stats?currentOnly=true', {
         headers: { 'x-admin-key': adminKey }
       })
 
       if (!statsResponse.ok) {
-        throw new Error('Failed to fetch stats data')
+        throw new Error('Failed to fetch current draw stats')
       }
 
       const statsData = await statsResponse.json()
       const stats = statsData.data || {}
 
-      setAnalytics({
-        // Lifetime stats
+      // Update only current draw stats immediately
+      setAnalytics(prev => ({
+        ...prev,
+        currentDrawTickets: stats.currentDrawTickets || 0,
+        currentDrawConfirmed: stats.currentDrawConfirmed || 0,
+        currentDrawPending: stats.currentDrawPending || 0,
+        currentDrawCancelled: stats.currentDrawCancelled || 0,
+        currentDrawUniqueWallets: stats.currentDrawUniqueWallets || 0,
+      }))
+    } catch (err) {
+      console.error('Failed to fetch current draw stats:', err)
+    } finally {
+      setAnalyticsLoading(false)
+    }
+  }
+
+  const fetchLifetimeStats = async () => {
+    try {
+      // Slower blob storage query for lifetime stats
+      const statsResponse = await fetch('/api/admin/stats', {
+        headers: { 'x-admin-key': adminKey }
+      })
+
+      if (!statsResponse.ok) {
+        throw new Error('Failed to fetch lifetime stats')
+      }
+
+      const statsData = await statsResponse.json()
+      const stats = statsData.data || {}
+
+      // Update with full stats including lifetime data
+      setAnalytics(prev => ({
+        ...prev,
+        // Lifetime stats from blob storage
         totalTickets: stats.totalTickets || 0,
         confirmedTickets: stats.confirmedTickets || 0,
         uniqueWallets: stats.uniqueWallets || 0,
@@ -66,7 +98,7 @@ export default function AdminDashboard() {
         completedDraws: stats.completedDraws || 0,
         averageTicketsPerDraw: stats.averageTicketsPerDraw || 0,
 
-        // Current draw stats
+        // Update current draw stats again (in case they changed)
         currentDrawTickets: stats.currentDrawTickets || 0,
         currentDrawConfirmed: stats.currentDrawConfirmed || 0,
         currentDrawPending: stats.currentDrawPending || 0,
@@ -76,12 +108,16 @@ export default function AdminDashboard() {
         // Recent activity (TODO)
         recentConfirmedTickets: stats.recentConfirmedTickets || 0,
         recentDraws: stats.recentDraws || 0
-      })
+      }))
     } catch (err) {
-      console.error('Failed to fetch analytics:', err)
-    } finally {
-      setAnalyticsLoading(false)
+      console.error('Failed to fetch lifetime stats:', err)
     }
+  }
+
+  const fetchAnalytics = async () => {
+    // Refresh both current draw and lifetime stats
+    setAnalyticsLoading(true)
+    await Promise.all([fetchCurrentDrawStats(), fetchLifetimeStats()])
   }
 
   const currentDrawRevenue = analytics.currentDrawConfirmed * (config?.ticketPrice || 0)
