@@ -198,14 +198,14 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Trophy className="h-4 w-4" />
-                  Total Draws
+                  <TrendingUp className="h-4 w-4" />
+                  Pending Tickets
                 </div>
-                <div className="text-2xl font-bold">
-                  {analytics.totalDraws?.toLocaleString() || 0}
+                <div className="text-2xl font-bold text-yellow-600">
+                  {analytics.currentDrawPending?.toLocaleString() || 0}
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  {analytics.completedDraws?.toLocaleString() || 0} completed
+                  Awaiting confirmation
                 </div>
               </div>
             </div>
