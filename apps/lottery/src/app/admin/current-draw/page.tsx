@@ -13,6 +13,7 @@ export default function CurrentDrawPage() {
   const { adminKey, setSuccess, setError } = useAdmin()
   const [config, setConfig] = useState<LotteryConfig | null>(null)
   const [tickets, setTickets] = useState<LotteryTicket[]>([])
+  const [stats, setStats] = useState<any>({})
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [processingWinner, setProcessingWinner] = useState(false)
@@ -23,8 +24,22 @@ export default function CurrentDrawPage() {
 
   const fetchData = async () => {
     setLoading(true)
-    await Promise.all([fetchConfig(), fetchTickets()])
+    await Promise.all([fetchConfig(), fetchStats(), fetchTickets()])
     setLoading(false)
+  }
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch('/api/admin/stats', {
+        headers: { 'x-admin-key': adminKey }
+      })
+      if (response.ok) {
+        const result = await response.json()
+        setStats(result.data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch stats:', err)
+    }
   }
 
   const fetchConfig = async () => {
@@ -289,10 +304,13 @@ export default function CurrentDrawPage() {
     )
   }
 
+  // Use stats from stats endpoint (fast) instead of filtering tickets (slow)
   const confirmedTickets = tickets.filter(t => t.status === 'confirmed')
-  const pendingTickets = tickets.filter(t => t.status === 'pending')
-  const cancelledTickets = tickets.filter(t => t.status === 'cancelled')
-  const uniqueWallets = new Set(tickets.map(t => t.walletAddress)).size
+  const confirmedCount = stats.currentDrawConfirmed || 0
+  const pendingCount = stats.currentDrawPending || 0
+  const cancelledCount = stats.currentDrawCancelled || 0
+  const uniqueWalletsCount = stats.currentDrawUniqueWallets || 0
+  const totalTicketsCount = stats.currentDrawTickets || 0
 
   return (
     <div className="space-y-6">
@@ -311,19 +329,19 @@ export default function CurrentDrawPage() {
           <div className="grid md:grid-cols-4 gap-4">
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">Total Tickets</div>
-              <div className="text-2xl font-bold">{tickets.length}</div>
+              <div className="text-2xl font-bold">{totalTicketsCount}</div>
             </div>
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">Confirmed</div>
-              <div className="text-2xl font-bold text-green-600">{confirmedTickets.length}</div>
+              <div className="text-2xl font-bold text-green-600">{confirmedCount}</div>
             </div>
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">Pending</div>
-              <div className="text-2xl font-bold text-yellow-600">{pendingTickets.length}</div>
+              <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
             </div>
             <div className="space-y-1">
               <div className="text-sm text-muted-foreground">Unique Wallets</div>
-              <div className="text-2xl font-bold">{uniqueWallets}</div>
+              <div className="text-2xl font-bold">{uniqueWalletsCount}</div>
             </div>
           </div>
 
@@ -374,7 +392,7 @@ export default function CurrentDrawPage() {
 
             <Button
               onClick={handleSelectWinner}
-              disabled={processingWinner || confirmedTickets.length === 0}
+              disabled={processingWinner || confirmedCount === 0}
               className="w-full h-auto flex-col items-start p-4"
             >
               <div className="flex items-center gap-2 mb-2">
@@ -391,7 +409,7 @@ export default function CurrentDrawPage() {
             </Button>
           </div>
 
-          {confirmedTickets.length === 0 && (
+          {confirmedCount === 0 && (
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-700 flex items-center gap-2">
               <AlertCircle className="h-4 w-4" />
               No confirmed tickets available for winner selection
