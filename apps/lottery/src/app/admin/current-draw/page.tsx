@@ -9,26 +9,29 @@ import { Play, Download, Trophy, Ticket, Loader2, AlertCircle, CheckCircle2, XCi
 import { useAdmin } from "../admin-context"
 import { LotteryTicket, LotteryConfig } from "@/types/lottery"
 
+const Skeleton = ({ className = "" }: { className?: string }) => (
+  <div className={`animate-pulse bg-muted rounded ${className}`} />
+)
+
 export default function CurrentDrawPage() {
   const { adminKey, setSuccess, setError } = useAdmin()
   const [config, setConfig] = useState<LotteryConfig | null>(null)
   const [tickets, setTickets] = useState<LotteryTicket[]>([])
   const [stats, setStats] = useState<any>({})
-  const [loading, setLoading] = useState(true)
+  const [configLoading, setConfigLoading] = useState(true)
+  const [statsLoading, setStatsLoading] = useState(true)
+  const [ticketsLoading, setTicketsLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [processingWinner, setProcessingWinner] = useState(false)
 
   useEffect(() => {
-    fetchData()
+    fetchConfig()
+    fetchStats()
+    fetchTickets()
   }, [])
 
-  const fetchData = async () => {
-    setLoading(true)
-    await Promise.all([fetchConfig(), fetchStats(), fetchTickets()])
-    setLoading(false)
-  }
-
   const fetchStats = async () => {
+    setStatsLoading(true)
     try {
       const response = await fetch('/api/admin/stats', {
         headers: { 'x-admin-key': adminKey }
@@ -39,10 +42,13 @@ export default function CurrentDrawPage() {
       }
     } catch (err) {
       console.error('Failed to fetch stats:', err)
+    } finally {
+      setStatsLoading(false)
     }
   }
 
   const fetchConfig = async () => {
+    setConfigLoading(true)
     try {
       const response = await fetch('/api/admin/lottery-config', {
         headers: { 'x-admin-key': adminKey }
@@ -53,10 +59,13 @@ export default function CurrentDrawPage() {
       }
     } catch (err) {
       console.error('Failed to fetch config:', err)
+    } finally {
+      setConfigLoading(false)
     }
   }
 
   const fetchTickets = async () => {
+    setTicketsLoading(true)
     try {
       // Use activeOnly parameter for fast KV lookup
       const response = await fetch('/api/admin/lottery-tickets?activeOnly=true', {
@@ -74,6 +83,8 @@ export default function CurrentDrawPage() {
       console.error('Failed to fetch tickets:', err)
       setError('Failed to fetch tickets')
       setTickets([])
+    } finally {
+      setTicketsLoading(false)
     }
   }
 
@@ -286,22 +297,13 @@ export default function CurrentDrawPage() {
 
       const result = await response.json()
       setSuccess(`Winner selected: ${result.winner.walletAddress}`)
-      await fetchData()
+      await Promise.all([fetchConfig(), fetchStats(), fetchTickets()])
     } catch (err) {
       console.error('Winner selection failed:', err)
       setError(err instanceof Error ? err.message : 'Failed to select winner')
     } finally {
       setProcessingWinner(false)
     }
-  }
-
-  if (loading) {
-    return (
-      <div className="text-center py-8">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-        <div className="text-lg">Loading current draw...</div>
-      </div>
-    )
   }
 
   // Use stats from stats endpoint (fast) instead of filtering tickets (slow)
@@ -326,38 +328,58 @@ export default function CurrentDrawPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Total Tickets</div>
-              <div className="text-2xl font-bold">{totalTicketsCount}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Confirmed</div>
-              <div className="text-2xl font-bold text-green-600">{confirmedCount}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Pending</div>
-              <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">Unique Wallets</div>
-              <div className="text-2xl font-bold">{uniqueWalletsCount}</div>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <div className="text-sm font-medium">Next Draw Date</div>
-              <div className="text-sm text-muted-foreground">
-                {config?.nextDrawDate ? new Date(config.nextDrawDate).toLocaleString() : 'Not set'}
+          {statsLoading || configLoading ? (
+            <>
+              <div className="grid md:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="space-y-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-8 w-20" />
+                  </div>
+                ))}
               </div>
-            </div>
-            <Badge variant={config?.isActive ? "default" : "secondary"} className="text-base px-4 py-2">
-              {config?.isActive ? "Active" : "Inactive"}
-            </Badge>
-          </div>
+              <Separator />
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-7 w-24" />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="grid md:grid-cols-4 gap-4">
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Total Tickets</div>
+                  <div className="text-2xl font-bold">{totalTicketsCount}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Confirmed</div>
+                  <div className="text-2xl font-bold text-green-600">{confirmedCount}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Pending</div>
+                  <div className="text-2xl font-bold text-yellow-600">{pendingCount}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-sm text-muted-foreground">Unique Wallets</div>
+                  <div className="text-2xl font-bold">{uniqueWalletsCount}</div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <div className="text-sm font-medium">Next Draw Date</div>
+                  <div className="text-sm text-muted-foreground">
+                    {config?.nextDrawDate ? new Date(config.nextDrawDate).toLocaleString() : 'Not set'}
+                  </div>
+                </div>
+                <Badge variant={config?.isActive ? "default" : "secondary"} className="text-base px-4 py-2">
+                  {config?.isActive ? "Active" : "Inactive"}
+                </Badge>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
@@ -370,50 +392,59 @@ export default function CurrentDrawPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <Button
-              onClick={handleExportTickets}
-              disabled={exporting || tickets.length === 0}
-              variant="outline"
-              className="w-full h-auto flex-col items-start p-4"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                {exporting ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Download className="h-5 w-5" />
-                )}
-                <span className="font-semibold">Export Drawing Package</span>
-              </div>
-              <p className="text-xs text-muted-foreground text-left">
-                Download 5 files: CSV, JSON, ceremony list, summary report, and wallet list
-              </p>
-            </Button>
-
-            <Button
-              onClick={handleSelectWinner}
-              disabled={processingWinner || confirmedCount === 0}
-              className="w-full h-auto flex-col items-start p-4"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                {processingWinner ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Trophy className="h-5 w-5" />
-                )}
-                <span className="font-semibold">Select Winner</span>
-              </div>
-              <p className="text-xs text-left opacity-90">
-                Manually trigger winner selection for current draw
-              </p>
-            </Button>
-          </div>
-
-          {confirmedCount === 0 && (
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-700 flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              No confirmed tickets available for winner selection
+          {statsLoading || configLoading ? (
+            <div className="grid md:grid-cols-2 gap-4">
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-24 w-full" />
             </div>
+          ) : (
+            <>
+              <div className="grid md:grid-cols-2 gap-4">
+                <Button
+                  onClick={handleExportTickets}
+                  disabled={exporting || tickets.length === 0}
+                  variant="outline"
+                  className="w-full h-auto flex-col items-start p-4"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {exporting ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Download className="h-5 w-5" />
+                    )}
+                    <span className="font-semibold">Export Drawing Package</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-left">
+                    Download 5 files: CSV, JSON, ceremony list, summary report, and wallet list
+                  </p>
+                </Button>
+
+                <Button
+                  onClick={handleSelectWinner}
+                  disabled={processingWinner || confirmedCount === 0}
+                  className="w-full h-auto flex-col items-start p-4"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    {processingWinner ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Trophy className="h-5 w-5" />
+                    )}
+                    <span className="font-semibold">Select Winner</span>
+                  </div>
+                  <p className="text-xs text-left opacity-90">
+                    Manually trigger winner selection for current draw
+                  </p>
+                </Button>
+              </div>
+
+              {confirmedCount === 0 && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-700 flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4" />
+                  No confirmed tickets available for winner selection
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -423,14 +454,20 @@ export default function CurrentDrawPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Ticket className="h-5 w-5" />
-            Active Tickets ({tickets.length})
+            Active Tickets {!ticketsLoading && `(${tickets.length})`}
           </CardTitle>
           <CardDescription>
             All tickets in the current draw
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {tickets.length === 0 ? (
+          {ticketsLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3, 4, 5].map(i => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : tickets.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No tickets in current draw
             </div>
