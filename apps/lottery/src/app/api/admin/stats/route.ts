@@ -23,40 +23,42 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get instant current draw stats from KV counters
+    // Check if we only need current draw stats (fast KV-only query)
+    const { searchParams } = new URL(request.url)
+    const currentOnly = searchParams.get('currentOnly') === 'true'
+
+    // Get instant current draw stats from KV counters (always fast)
     const kvStats = await kvTicketStorage.getStats()
 
-    // Get draw count from blob storage
-    const draws = await hybridStorage.getAllLotteryDraws()
-    const completedDraws = draws.filter(d => d.status === 'completed').length
-
-    // Get total lifetime ticket count from blob storage (includes archived)
-    // This is cached and relatively fast with pagination
-    const allTickets = await hybridStorage.getAllLotteryTickets()
-    const lifetimeConfirmed = allTickets.filter(t => t.status === 'confirmed').length
-    const lifetimeUniqueWallets = new Set(allTickets.map(t => t.walletAddress)).size
-
-    const stats = {
-      // Current draw stats (from KV - fast)
+    const stats: any = {
+      // Current draw stats (from KV - instant)
       currentDrawTickets: kvStats.totalTickets,
       currentDrawConfirmed: kvStats.confirmedTickets,
       currentDrawPending: kvStats.pendingTickets,
       currentDrawCancelled: kvStats.cancelledTickets,
       currentDrawUniqueWallets: kvStats.uniqueWallets,
+    }
 
-      // Lifetime stats (from blob - slower but acceptable)
-      totalTickets: allTickets.length,
-      confirmedTickets: lifetimeConfirmed,
-      uniqueWallets: lifetimeUniqueWallets,
+    // Only fetch lifetime stats if requested (slow blob storage queries)
+    if (!currentOnly) {
+      // Get draw count from blob storage
+      const draws = await hybridStorage.getAllLotteryDraws()
+      const completedDraws = draws.filter(d => d.status === 'completed').length
 
-      // Draw stats
-      totalDraws: draws.length,
-      completedDraws,
-      averageTicketsPerDraw: draws.length > 0 ? Math.round(lifetimeConfirmed / draws.length) : 0,
+      // Get total lifetime ticket count from blob storage (includes archived)
+      const allTickets = await hybridStorage.getAllLotteryTickets()
+      const lifetimeConfirmed = allTickets.filter(t => t.status === 'confirmed').length
+      const lifetimeUniqueWallets = new Set(allTickets.map(t => t.walletAddress)).size
 
-      // Placeholder for future implementation
-      recentConfirmedTickets: 0,
-      recentDraws: 0
+      // Add lifetime stats
+      stats.totalTickets = allTickets.length
+      stats.confirmedTickets = lifetimeConfirmed
+      stats.uniqueWallets = lifetimeUniqueWallets
+      stats.totalDraws = draws.length
+      stats.completedDraws = completedDraws
+      stats.averageTicketsPerDraw = draws.length > 0 ? Math.round(lifetimeConfirmed / draws.length) : 0
+      stats.recentConfirmedTickets = 0 // Placeholder
+      stats.recentDraws = 0 // Placeholder
     }
 
     return NextResponse.json({

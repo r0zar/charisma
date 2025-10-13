@@ -33,7 +33,8 @@ export default function CurrentDrawPage() {
   const fetchStats = async () => {
     setStatsLoading(true)
     try {
-      const response = await fetch('/api/admin/stats', {
+      // Use currentOnly=true to skip slow blob storage queries
+      const response = await fetch('/api/admin/stats?currentOnly=true', {
         headers: { 'x-admin-key': adminKey }
       })
       if (response.ok) {
