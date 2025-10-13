@@ -313,7 +313,7 @@ export default function AdminDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {currentDrawLoading || lifetimeStatsLoading ? (
+            {currentDrawLoading ? (
               <>
                 {[1, 2, 3, 4].map(i => (
                   <Skeleton key={i} className="h-5 w-full" />
@@ -322,20 +322,20 @@ export default function AdminDashboard() {
             ) : (
               <>
                 <div className="flex justify-between">
-                  <span className="text-sm">Confirmed Tickets</span>
+                  <span className="text-sm">Total Tickets</span>
+                  <span className="font-mono font-medium">{analytics.currentDrawTickets?.toLocaleString() || 0}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm">Confirmed</span>
                   <span className="font-mono font-medium text-green-600">{analytics.currentDrawConfirmed?.toLocaleString() || 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm">Pending Tickets</span>
+                  <span className="text-sm">Pending</span>
                   <span className="font-mono font-medium text-yellow-600">{analytics.currentDrawPending?.toLocaleString() || 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm">Cancelled Tickets</span>
+                  <span className="text-sm">Cancelled</span>
                   <span className="font-mono text-red-600">{analytics.currentDrawCancelled?.toLocaleString() || 0}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Total Draws</span>
-                  <span className="font-mono font-medium">{analytics.totalDraws?.toLocaleString() || 0}</span>
                 </div>
               </>
             )}
