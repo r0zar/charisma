@@ -16,7 +16,8 @@ export default function AdminDashboard() {
   const [config, setConfig] = useState<LotteryConfig | null>(null)
   const [analytics, setAnalytics] = useState<any>({})
   const [configLoading, setConfigLoading] = useState(true)
-  const [analyticsLoading, setAnalyticsLoading] = useState(true)
+  const [currentDrawLoading, setCurrentDrawLoading] = useState(true)
+  const [lifetimeStatsLoading, setLifetimeStatsLoading] = useState(true)
 
   const adminKey = typeof window !== 'undefined' ? localStorage.getItem('admin-key') || '' : ''
 
@@ -44,6 +45,7 @@ export default function AdminDashboard() {
   }
 
   const fetchCurrentDrawStats = async () => {
+    setCurrentDrawLoading(true)
     try {
       // Fast KV-only query for current draw stats (loads instantly)
       const statsResponse = await fetch('/api/admin/stats?currentOnly=true', {
@@ -69,11 +71,12 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error('Failed to fetch current draw stats:', err)
     } finally {
-      setAnalyticsLoading(false)
+      setCurrentDrawLoading(false)
     }
   }
 
   const fetchLifetimeStats = async () => {
+    setLifetimeStatsLoading(true)
     try {
       // Slower blob storage query for lifetime stats
       const statsResponse = await fetch('/api/admin/stats', {
@@ -104,19 +107,16 @@ export default function AdminDashboard() {
         currentDrawPending: stats.currentDrawPending || 0,
         currentDrawCancelled: stats.currentDrawCancelled || 0,
         currentDrawUniqueWallets: stats.currentDrawUniqueWallets || 0,
-
-        // Recent activity (TODO)
-        recentConfirmedTickets: stats.recentConfirmedTickets || 0,
-        recentDraws: stats.recentDraws || 0
       }))
     } catch (err) {
       console.error('Failed to fetch lifetime stats:', err)
+    } finally {
+      setLifetimeStatsLoading(false)
     }
   }
 
   const fetchAnalytics = async () => {
     // Refresh both current draw and lifetime stats
-    setAnalyticsLoading(true)
     await Promise.all([fetchCurrentDrawStats(), fetchLifetimeStats()])
   }
 
@@ -138,7 +138,7 @@ export default function AdminDashboard() {
               <CardTitle className="text-lg">Current Draw Overview</CardTitle>
               <CardDescription>Active tickets and participation metrics</CardDescription>
             </div>
-            {analyticsLoading ? (
+            {currentDrawLoading ? (
               <Skeleton className="h-7 w-48" />
             ) : (
               <Badge variant="outline" className="text-base">
@@ -148,7 +148,7 @@ export default function AdminDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          {analyticsLoading ? (
+          {currentDrawLoading ? (
             <div className="grid md:grid-cols-4 gap-6">
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className="space-y-2">
@@ -275,7 +275,7 @@ export default function AdminDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {analyticsLoading ? (
+            {lifetimeStatsLoading ? (
               <>
                 {[1, 2, 3, 4].map(i => (
                   <Skeleton key={i} className="h-5 w-full" />
@@ -304,16 +304,16 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Recent Activity */}
+        {/* Current Draw Activity */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <TrendingUp className="h-5 w-5" />
-              Last 30 Days
+              Current Draw Activity
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {analyticsLoading ? (
+            {currentDrawLoading || lifetimeStatsLoading ? (
               <>
                 {[1, 2, 3, 4].map(i => (
                   <Skeleton key={i} className="h-5 w-full" />
@@ -323,21 +323,19 @@ export default function AdminDashboard() {
               <>
                 <div className="flex justify-between">
                   <span className="text-sm">Confirmed Tickets</span>
-                  <span className="font-mono font-medium text-blue-600">{analytics.recentConfirmedTickets?.toLocaleString() || 0}</span>
+                  <span className="font-mono font-medium text-green-600">{analytics.currentDrawConfirmed?.toLocaleString() || 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm">New Draws</span>
-                  <span className="font-mono font-medium text-blue-600">{analytics.recentDraws?.toLocaleString() || 0}</span>
+                  <span className="text-sm">Pending Tickets</span>
+                  <span className="font-mono font-medium text-yellow-600">{analytics.currentDrawPending?.toLocaleString() || 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm">Activity Rate</span>
-                  <span className="font-mono text-sm">
-                    {analytics.recentConfirmedTickets > 0 ? `${(analytics.recentConfirmedTickets / 30).toFixed(1)}/day` : '0/day'}
-                  </span>
+                  <span className="text-sm">Cancelled Tickets</span>
+                  <span className="font-mono text-red-600">{analytics.currentDrawCancelled?.toLocaleString() || 0}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm">Current Draw</span>
-                  <span className="font-mono font-medium">{analytics.currentDrawConfirmed?.toLocaleString() || 0} tickets</span>
+                  <span className="text-sm">Total Draws</span>
+                  <span className="font-mono font-medium">{analytics.totalDraws?.toLocaleString() || 0}</span>
                 </div>
               </>
             )}
@@ -352,19 +350,19 @@ export default function AdminDashboard() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Ticket className="h-5 w-5" />
-                Active Tickets Analytics
+                Lifetime Tickets Analytics
               </CardTitle>
               <CardDescription>
-                Statistics for all active (non-archived) tickets
+                All-time statistics including archived tickets
               </CardDescription>
             </div>
             <Button
               onClick={fetchAnalytics}
-              disabled={analyticsLoading}
+              disabled={currentDrawLoading || lifetimeStatsLoading}
               variant="outline"
               size="sm"
             >
-              {analyticsLoading ? (
+              {(currentDrawLoading || lifetimeStatsLoading) ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   Loading...
@@ -379,7 +377,7 @@ export default function AdminDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          {analyticsLoading ? (
+          {lifetimeStatsLoading ? (
             <div className="grid md:grid-cols-2 gap-6">
               {[1, 2].map(i => (
                 <div key={i} className="space-y-4">
