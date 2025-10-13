@@ -150,7 +150,7 @@ export class BlobStorageService {
 
       // Paginate through all results (1000 at a time)
       while (hasMore) {
-        const result = await list({
+        const result: Awaited<ReturnType<typeof list>> = await list({
           prefix: LOTTERY_RESULTS_PREFIX,
           token: this.token,
           cursor,
@@ -269,7 +269,7 @@ export class BlobStorageService {
 
       // Paginate through all results (1000 at a time)
       while (hasMore) {
-        const result = await list({
+        const result: Awaited<ReturnType<typeof list>> = await list({
           prefix: LOTTERY_TICKETS_PREFIX,
           token: this.token,
           cursor,
@@ -312,7 +312,7 @@ export class BlobStorageService {
 
       // Paginate through all results (1000 at a time)
       while (hasMore) {
-        const result = await list({
+        const result: Awaited<ReturnType<typeof list>> = await list({
           prefix: LOTTERY_TICKETS_PREFIX,
           token: this.token,
           cursor,
@@ -352,7 +352,7 @@ export class BlobStorageService {
 
       // Paginate through all results (1000 at a time)
       while (hasMore) {
-        const result = await list({
+        const result: Awaited<ReturnType<typeof list>> = await list({
           prefix: LOTTERY_TICKETS_PREFIX,
           token: this.token,
           cursor,
@@ -558,7 +558,7 @@ export class BlobStorageService {
 
       // Paginate through all results (1000 at a time)
       while (hasMore) {
-        const result = await list({
+        const result: Awaited<ReturnType<typeof list>> = await list({
           prefix: LOTTERY_TICKETS_PREFIX,
           token: this.token,
           cursor,

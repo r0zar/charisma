@@ -12,9 +12,25 @@ const Skeleton = ({ className = "" }: { className?: string }) => (
   <div className={`animate-pulse bg-muted rounded ${className}`} />
 )
 
+interface Analytics {
+  currentDrawTickets?: number
+  currentDrawConfirmed?: number
+  currentDrawPending?: number
+  currentDrawCancelled?: number
+  currentDrawUniqueWallets?: number
+  totalTickets?: number
+  confirmedTickets?: number
+  pendingTickets?: number
+  cancelledTickets?: number
+  uniqueWallets?: number
+  totalDraws?: number
+  completedDraws?: number
+  averageTicketsPerDraw?: number
+}
+
 export default function AdminDashboard() {
   const [config, setConfig] = useState<LotteryConfig | null>(null)
-  const [analytics, setAnalytics] = useState<any>({})
+  const [analytics, setAnalytics] = useState<Analytics>({})
   const [configLoading, setConfigLoading] = useState(true)
   const [currentDrawLoading, setCurrentDrawLoading] = useState(true)
   const [lifetimeStatsLoading, setLifetimeStatsLoading] = useState(true)
@@ -120,12 +136,12 @@ export default function AdminDashboard() {
     await Promise.all([fetchCurrentDrawStats(), fetchLifetimeStats()])
   }
 
-  const currentDrawRevenue = analytics.currentDrawConfirmed * (config?.ticketPrice || 0)
-  const conversionRate = analytics.currentDrawTickets > 0
-    ? ((analytics.currentDrawConfirmed / analytics.currentDrawTickets) * 100).toFixed(1)
+  const currentDrawRevenue = (analytics.currentDrawConfirmed || 0) * (config?.ticketPrice || 0)
+  const conversionRate = (analytics.currentDrawTickets || 0) > 0
+    ? (((analytics.currentDrawConfirmed || 0) / (analytics.currentDrawTickets || 0)) * 100).toFixed(1)
     : '0'
-  const avgTicketsPerWallet = analytics.currentDrawUniqueWallets > 0
-    ? (analytics.currentDrawTickets / analytics.currentDrawUniqueWallets).toFixed(1)
+  const avgTicketsPerWallet = (analytics.currentDrawUniqueWallets || 0) > 0
+    ? ((analytics.currentDrawTickets || 0) / (analytics.currentDrawUniqueWallets || 0)).toFixed(1)
     : '0'
 
   return (
