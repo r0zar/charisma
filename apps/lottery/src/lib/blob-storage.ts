@@ -144,24 +144,35 @@ export class BlobStorageService {
 
   async getAllLotteryDraws(): Promise<LotteryDraw[]> {
     try {
-      const { blobs } = await list({
-        prefix: LOTTERY_RESULTS_PREFIX,
-        token: this.token,
-      })
-
       const draws: LotteryDraw[] = []
-      
-      for (const blob of blobs) {
-        try {
-          const response = await fetch(blob.url)
-          if (response.ok) {
-            const drawData = await response.json()
-            draws.push(drawData as LotteryDraw)
+      let cursor: string | undefined = undefined
+      let hasMore = true
+
+      // Paginate through all results (1000 at a time)
+      while (hasMore) {
+        const result = await list({
+          prefix: LOTTERY_RESULTS_PREFIX,
+          token: this.token,
+          cursor,
+        })
+
+        for (const blob of result.blobs) {
+          try {
+            const response = await fetch(blob.url)
+            if (response.ok) {
+              const drawData = await response.json()
+              draws.push(drawData as LotteryDraw)
+            }
+          } catch (error) {
+            console.error(`Failed to fetch draw from ${blob.url}:`, error)
           }
-        } catch (error) {
-          console.error(`Failed to fetch draw from ${blob.url}:`, error)
         }
+
+        hasMore = result.hasMore
+        cursor = result.cursor
       }
+
+      console.log(`Fetched ${draws.length} total draws from blob storage`)
 
       // Sort by draw date (newest first)
       return draws.sort((a, b) => new Date(b.drawDate).getTime() - new Date(a.drawDate).getTime())
