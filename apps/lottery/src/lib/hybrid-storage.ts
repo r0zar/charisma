@@ -242,12 +242,23 @@ export class HybridStorageService {
         kvTicketStorage.getTicketsByWallet('*').catch(() => []), // This won't work as expected, but that's ok
         blobStorage.getAllLotteryTickets().catch(() => [])
       ])
-      
+
       // For now, just return blob storage tickets since getting all from KV is complex
       // In production, we'd implement a proper admin query method
       return blobTickets
     } catch (error) {
       console.error('Failed to get all tickets with hybrid storage:', error)
+      throw error
+    }
+  }
+
+  // Get all active tickets (uses KV global index for fast admin queries)
+  async getAllActiveTickets(): Promise<LotteryTicket[]> {
+    try {
+      // Use KV storage for fast active ticket queries via global index
+      return await kvTicketStorage.getAllActiveTickets()
+    } catch (error) {
+      console.error('Failed to get all active tickets with hybrid storage:', error)
       throw error
     }
   }

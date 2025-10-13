@@ -16,6 +16,7 @@ function validateAdminAuth(request: NextRequest): boolean {
 
 export async function GET(request: NextRequest) {
   try {
+    // Admin authentication required
     if (!validateAdminAuth(request)) {
       return NextResponse.json(
         { error: 'Unauthorized' },
