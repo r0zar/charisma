@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Play, Download, Trophy, Ticket, Loader2, AlertCircle, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink, RefreshCw } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Play, Download, Trophy, Ticket, Loader2, AlertCircle, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink, RefreshCw, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
 import { useAdmin } from "../admin-context"
 import { LotteryTicket, LotteryConfig } from "@/types/lottery"
 import { getTransactionUrl } from "@/lib/stacks-explorer"
@@ -26,6 +27,10 @@ export default function CurrentDrawPage() {
   const [processingWinner, setProcessingWinner] = useState(false)
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null)
   const [verifyingTickets, setVerifyingTickets] = useState<Set<string>>(new Set())
+  const [currentPage, setCurrentPage] = useState(1)
+  const [sortBy, setSortBy] = useState<'ticketId' | 'date' | 'status' | 'wallet'>('ticketId')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const ticketsPerPage = 50
 
   useEffect(() => {
     fetchConfig()
@@ -376,6 +381,34 @@ export default function CurrentDrawPage() {
   const confirmedTickets = tickets.filter(t => t.status === 'confirmed')
   const confirmedCount = stats.currentDrawConfirmed || 0
   const pendingCount = stats.currentDrawPending || 0
+
+  // Sorting logic
+  const sortedTickets = [...tickets].sort((a, b) => {
+    let compareValue = 0
+
+    switch (sortBy) {
+      case 'ticketId':
+        compareValue = parseInt(a.id) - parseInt(b.id)
+        break
+      case 'date':
+        compareValue = new Date(a.purchaseDate).getTime() - new Date(b.purchaseDate).getTime()
+        break
+      case 'status':
+        compareValue = a.status.localeCompare(b.status)
+        break
+      case 'wallet':
+        compareValue = a.walletAddress.localeCompare(b.walletAddress)
+        break
+    }
+
+    return sortOrder === 'asc' ? compareValue : -compareValue
+  })
+
+  // Pagination calculations
+  const totalPages = Math.ceil(sortedTickets.length / ticketsPerPage)
+  const startIndex = (currentPage - 1) * ticketsPerPage
+  const endIndex = startIndex + ticketsPerPage
+  const paginatedTickets = sortedTickets.slice(startIndex, endIndex)
   const cancelledCount = stats.currentDrawCancelled || 0
   const uniqueWalletsCount = stats.currentDrawUniqueWallets || 0
   const totalTicketsCount = stats.currentDrawTickets || 0
@@ -518,13 +551,40 @@ export default function CurrentDrawPage() {
       {/* Ticket List */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Ticket className="h-5 w-5" />
-            Active Tickets {!ticketsLoading && `(${tickets.length})`}
-          </CardTitle>
-          <CardDescription>
-            All tickets in the current draw
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Ticket className="h-5 w-5" />
+                Active Tickets {!ticketsLoading && `(${tickets.length})`}
+              </CardTitle>
+              <CardDescription>
+                All tickets in the current draw
+              </CardDescription>
+            </div>
+            {!ticketsLoading && tickets.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ticketId">Ticket ID</SelectItem>
+                    <SelectItem value="date">Date</SelectItem>
+                    <SelectItem value="status">Status</SelectItem>
+                    <SelectItem value="wallet">Wallet</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                  title={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
+                >
+                  <ArrowUpDown className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {ticketsLoading ? (
@@ -538,8 +598,8 @@ export default function CurrentDrawPage() {
               No tickets in current draw
             </div>
           ) : (
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {tickets.slice(0, 50).map((ticket) => {
+            <div className="space-y-2">
+              {paginatedTickets.map((ticket) => {
                 const isExpanded = expandedTicket === ticket.id
                 return (
                   <div
@@ -658,9 +718,36 @@ export default function CurrentDrawPage() {
                   </div>
                 )
               })}
-              {tickets.length > 50 && (
-                <div className="text-center text-sm text-muted-foreground py-2">
-                  Showing first 50 of {tickets.length} tickets
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-border/40">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {startIndex + 1}-{Math.min(endIndex, tickets.length)} of {tickets.length} tickets
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <div className="text-sm text-muted-foreground">
+                      Page {currentPage} of {totalPages}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
