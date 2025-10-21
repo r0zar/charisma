@@ -6,10 +6,10 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Trophy, ExternalLink } from 'lucide-react'
 import { DrawCountdown } from './draw-countdown'
-import { PhysicalJackpot } from '@/types/lottery'
+import { PhysicalJackpot, Jackpot } from '@/types/lottery'
 import { Carousel } from '@/components/ui/carousel'
 
-async function getCurrentJackpot(): Promise<PhysicalJackpot> {
+async function getCurrentJackpot(): Promise<PhysicalJackpot | Jackpot> {
   try {
     const response = await fetch('/api/v1/lottery/jackpot')
     const result = await response.json()
@@ -44,7 +44,7 @@ async function getNextDrawTime(): Promise<string> {
 export function JackpotSection() {
   const [jackpotError, setJackpotError] = useState<string | null>(null)
   const [drawTimeError, setDrawTimeError] = useState<string | null>(null)
-  const [jackpot, setJackpot] = useState<PhysicalJackpot | null>(null)
+  const [jackpot, setJackpot] = useState<PhysicalJackpot | Jackpot | null>(null)
   const [nextDrawDate, setNextDrawDate] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -158,8 +158,8 @@ export function JackpotSection() {
               {/* Jackpot Image Carousel - Enhanced */}
               <div className="flex justify-center lg:justify-start order-1 lg:order-1">
                 <div className="w-full max-w-xs sm:max-w-md lg:max-w-lg aspect-[4/3]">
-                  <Carousel 
-                    images={jackpot.imageUrls || []}
+                  <Carousel
+                    images={'imageUrls' in jackpot ? jackpot.imageUrls : [jackpot.imageUrl]}
                     alt={jackpot.title}
                     autoSlideInterval={5000}
                     className="w-full h-full border-2 border-primary/30 shadow-2xl rounded-xl overflow-hidden"
@@ -179,24 +179,31 @@ export function JackpotSection() {
                     {jackpot.title}
                   </h3>
 
-                  {jackpot.estimatedValue && (
+                  {'description' in jackpot && jackpot.description && (
+                    <div className="text-lg sm:text-2xl lg:text-3xl text-muted-foreground font-medium px-2 sm:px-0">
+                      {jackpot.description}
+                    </div>
+                  )}
+                  {'estimatedValue' in jackpot && jackpot.estimatedValue && (
                     <div className="text-lg sm:text-2xl lg:text-3xl text-muted-foreground font-medium px-2 sm:px-0">
                       Estimated value: <span className="text-green-600 font-bold">${(jackpot.estimatedValue / 1000).toLocaleString()} USD</span>
                     </div>
                   )}
                 </div>
 
-                <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 sm:gap-4 pt-2 sm:pt-4">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="flex items-center gap-2 px-4 sm:px-8 py-3 sm:py-4 text-sm sm:text-lg hover:bg-primary/10 hover:border-primary/50 transition-all"
-                    onClick={() => window.open(jackpot.linkUrl, '_blank')}
-                  >
-                    <ExternalLink className="h-4 w-4 sm:h-5 sm:w-5" />
-                    View Prize Details
-                  </Button>
-                </div>
+                {'linkUrl' in jackpot && jackpot.linkUrl && (
+                  <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3 sm:gap-4 pt-2 sm:pt-4">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="flex items-center gap-2 px-4 sm:px-8 py-3 sm:py-4 text-sm sm:text-lg hover:bg-primary/10 hover:border-primary/50 transition-all"
+                      onClick={() => window.open(jackpot.linkUrl, '_blank')}
+                    >
+                      <ExternalLink className="h-4 w-4 sm:h-5 sm:w-5" />
+                      View Prize Details
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           )}

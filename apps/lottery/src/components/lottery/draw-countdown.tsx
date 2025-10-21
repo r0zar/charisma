@@ -11,9 +11,18 @@ export function DrawCountdown({ targetDate }: DrawCountdownProps) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
 
   useEffect(() => {
-    const timer = setInterval(() => {
+    const updateCountdown = () => {
       const now = new Date().getTime()
-      const distance = targetDate.getTime() - now
+      const target = targetDate.getTime()
+      const distance = target - now
+
+      console.log('Countdown Debug:', {
+        now: new Date(now).toISOString(),
+        target: new Date(target).toISOString(),
+        targetInput: targetDate.toISOString(),
+        distance,
+        distanceHours: (distance / (1000 * 60 * 60)).toFixed(2)
+      })
 
       if (distance > 0) {
         setTimeLeft({
@@ -22,8 +31,15 @@ export function DrawCountdown({ targetDate }: DrawCountdownProps) {
           minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
           seconds: Math.floor((distance % (1000 * 60)) / 1000)
         })
+      } else {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 })
       }
-    }, 1000)
+    }
+
+    // Run immediately on mount
+    updateCountdown()
+
+    const timer = setInterval(updateCountdown, 1000)
 
     return () => clearInterval(timer)
   }, [targetDate])

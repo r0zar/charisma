@@ -45,7 +45,18 @@ export default function ConfigurationPage() {
       setConfig(data)
       setIsActive(data.isActive)
       setTicketPrice(data.ticketPrice)
-      setNextDrawDate(data.nextDrawDate ? new Date(data.nextDrawDate).toISOString().slice(0, 16) : "")
+      // Convert UTC date to local datetime-local format
+      if (data.nextDrawDate) {
+        const date = new Date(data.nextDrawDate)
+        const year = date.getFullYear()
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const day = String(date.getDate()).padStart(2, '0')
+        const hours = String(date.getHours()).padStart(2, '0')
+        const minutes = String(date.getMinutes()).padStart(2, '0')
+        setNextDrawDate(`${year}-${month}-${day}T${hours}:${minutes}`)
+      } else {
+        setNextDrawDate("")
+      }
 
       // Handle migration from old PhysicalJackpot format to new Jackpot array format
       let jackpotsArray = data.jackpots || []
@@ -89,6 +100,7 @@ export default function ConfigurationPage() {
       const updatedConfig: LotteryConfig = {
         isActive,
         ticketPrice,
+        // Convert local datetime to UTC ISO string
         nextDrawDate: nextDrawDate ? new Date(nextDrawDate).toISOString() : null,
         jackpots,
         currentJackpot,
