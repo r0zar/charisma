@@ -99,6 +99,70 @@ export default function CurrentDrawPage() {
     }
   }
 
+  const handleVerifyBatch = async (batch: typeof batchGroupsArray[0]) => {
+    const pendingTickets = batch.tickets.filter(t => t.status === 'pending' && t.transactionId)
+
+    if (pendingTickets.length === 0) {
+      setError('No pending tickets with transaction IDs in this batch')
+      return
+    }
+
+    setVerifyingTickets(prev => {
+      const next = new Set(prev)
+      pendingTickets.forEach(t => next.add(t.id))
+      return next
+    })
+
+    let successCount = 0
+    let failCount = 0
+
+    try {
+      for (const ticket of pendingTickets) {
+        try {
+          const response = await fetch('/api/v1/lottery/confirm-ticket', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              ticketId: ticket.id,
+              transactionId: ticket.transactionId,
+              walletAddress: ticket.walletAddress,
+              expectedAmount: ticket.purchasePrice,
+              isBulkValidation: batch.tickets.length > 1,
+              totalBulkAmount: batch.totalAmount
+            })
+          })
+
+          const result = await response.json()
+
+          if (result.success) {
+            successCount++
+          } else {
+            failCount++
+            console.log(`Failed to verify ticket ${ticket.id}:`, result.error)
+          }
+        } catch (err) {
+          failCount++
+          console.error(`Error verifying ticket ${ticket.id}:`, err)
+        }
+      }
+
+      if (successCount > 0) {
+        setSuccess(`Verified ${successCount} tickets in batch${failCount > 0 ? `, ${failCount} failed` : ''}`)
+        await fetchTickets()
+      } else {
+        setError(`Failed to verify all ${failCount} tickets in batch`)
+      }
+    } finally {
+      setVerifyingTickets(prev => {
+        const next = new Set(prev)
+        pendingTickets.forEach(t => next.delete(t.id))
+        return next
+      })
+    }
+  }
+
   const handleVerifyAllPending = async () => {
     const pendingWithTx = tickets.filter(t => t.status === 'pending' && t.transactionId)
 
@@ -796,9 +860,9 @@ export default function CurrentDrawPage() {
 
                     {isExpanded && (
                       <div className="px-4 pb-4 border-t border-border/40">
-                        <div className="mt-3 space-y-2">
+                        <div className="mt-3 space-y-3">
                           {batch.transactionId !== 'no-tx' && (
-                            <div className="mb-3">
+                            <div>
                               <div className="text-sm text-muted-foreground mb-1">Transaction ID</div>
                               <a
                                 href={getTransactionUrl(batch.transactionId)}
@@ -811,6 +875,7 @@ export default function CurrentDrawPage() {
                               </a>
                             </div>
                           )}
+
                           <div className="space-y-1">
                             {batch.tickets.map(ticket => (
                               <div key={ticket.id} className="flex items-center justify-between p-2 bg-muted/30 rounded text-sm">
@@ -831,6 +896,31 @@ export default function CurrentDrawPage() {
                               </div>
                             ))}
                           </div>
+
+                          {batch.pendingCount > 0 && batch.transactionId !== 'no-tx' && (
+                            <Button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleVerifyBatch(batch)
+                              }}
+                              disabled={batch.tickets.some(t => verifyingTickets.has(t.id))}
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                            >
+                              {batch.tickets.some(t => verifyingTickets.has(t.id)) ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Verifying {batch.pendingCount} Pending Tickets...
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="h-4 w-4 mr-2" />
+                                  Verify {batch.pendingCount} Pending Ticket{batch.pendingCount > 1 ? 's' : ''} in Batch
+                                </>
+                              )}
+                            </Button>
+                          )}
                         </div>
                       </div>
                     )}
