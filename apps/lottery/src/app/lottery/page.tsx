@@ -63,38 +63,32 @@ function MyTicketsPreview({ refreshTrigger }: { refreshTrigger: number }) {
 
   if (!walletState.connected) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Ticket className="h-5 w-5" />
-            My Tickets
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-6 text-muted-foreground">
-            Connect your wallet to view tickets
-          </div>
-        </CardContent>
-      </Card>
+      <div className="bg-card border border-border rounded-xl p-6 shadow-lg space-y-4">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Ticket className="h-5 w-5" />
+          My Tickets
+        </h3>
+        <div className="text-center py-6 text-muted-foreground">
+          Connect your wallet to view tickets
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Ticket className="h-5 w-5" />
-            My Tickets ({totalCount})
-          </CardTitle>
-          <Link href="/my-tickets">
-            <Button variant="outline" size="sm">
-              View All
-            </Button>
-          </Link>
-        </div>
-      </CardHeader>
-      <CardContent>
+    <div className="bg-card border border-border rounded-xl p-6 shadow-lg space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <Ticket className="h-5 w-5" />
+          My Tickets ({totalCount})
+        </h3>
+        <Link href="/my-tickets">
+          <Button variant="outline" size="sm">
+            View All
+          </Button>
+        </Link>
+      </div>
+      <div>
         {loading ? (
           <div className="text-center py-6">
             <Loader2 className="h-6 w-6 animate-spin mx-auto mb-2" />
@@ -145,8 +139,8 @@ function MyTicketsPreview({ refreshTrigger }: { refreshTrigger: number }) {
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
@@ -252,17 +246,17 @@ function SimplifiedPurchase({ onTicketPurchased }: { onTicketPurchased?: () => v
 
   return (
     <>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="flex items-center justify-center gap-2">
+      <div className="bg-card border border-border rounded-xl p-6 shadow-lg space-y-6">
+        <div className="text-center">
+          <h3 className="text-xl font-semibold mb-2 flex items-center justify-center gap-2">
             <Ticket className="h-5 w-5" />
             Burn STONE for Tickets
-          </CardTitle>
-          <CardDescription>
+          </h3>
+          <p className="text-sm text-muted-foreground">
             Burn {config?.ticketPrice || 100} STONE per ticket to enter the lottery. More tickets = better odds!
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+          </p>
+        </div>
+        <div className="space-y-6">
           {/* Quantity Input */}
           <div className="text-center space-y-4">
             <div className="text-sm font-medium text-muted-foreground">
@@ -328,7 +322,7 @@ function SimplifiedPurchase({ onTicketPurchased }: { onTicketPurchased?: () => v
 
           {/* Purchase Error Display */}
           {purchaseError && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-md text-sm text-red-500">
               {purchaseError}
             </div>
           )}
@@ -357,8 +351,8 @@ function SimplifiedPurchase({ onTicketPurchased }: { onTicketPurchased?: () => v
               )}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <ConfirmationDialog
         isOpen={confirmationDialog.isOpen}
@@ -400,25 +394,18 @@ export default function LotteryPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="container mx-auto p-6 space-y-12 flex-1">
-        {/* Hero Section - Jackpot */}
-        <div className="space-y-8">
-
-          {/* Enhanced Jackpot Section */}
-          <div className="relative">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 max-w-[1600px] mx-auto">
+        {/* Left Panel: Full-height Jackpot */}
+        <div className="min-h-[60vh] lg:min-h-screen flex items-center p-6 lg:p-8">
+          <div className="w-full">
             <JackpotSection />
           </div>
         </div>
 
-        {/* Two Column Layout for Purchase and My Tickets */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 max-w-6xl mx-auto">
-          {/* Purchase Section */}
-          <div className="order-1">
+        {/* Right Panel: Floating Cards */}
+        <div className="p-6 lg:p-8 space-y-6 flex flex-col justify-center">
+          <div className="max-w-lg mx-auto w-full space-y-6">
             <SimplifiedPurchase onTicketPurchased={handleTicketPurchased} />
-          </div>
-
-          {/* My Tickets Preview */}
-          <div className="order-2">
             <MyTicketsPreview refreshTrigger={refreshTrigger} />
           </div>
         </div>
