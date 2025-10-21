@@ -39,13 +39,7 @@ export async function POST(request: NextRequest) {
     await kv.set('ticket_counter', 0)
     console.log('Reset KV ticket counter to 0')
 
-    // 2. Reset blob storage ticket counter
-    try {
-      await blobStorage.resetTicketCounter()
-      console.log('Reset blob storage ticket counter')
-    } catch (error) {
-      console.warn('Failed to reset blob storage counter:', error)
-    }
+    // 2. Blob storage is deprecated (no longer used for active data)
 
     // 3. Get all ticket keys from KV storage and delete them
     try {
@@ -103,15 +97,29 @@ export async function POST(request: NextRequest) {
       // Continue with reset even if KV cleanup fails
     }
 
-    // 4. Clear blob storage ticket data
+    // 4. Clear all active tickets index
     try {
-      await blobStorage.clearAllTickets()
-      console.log('Cleared blob storage ticket data')
+      await kv.del('all_active_tickets', 'all_tickets')
+      console.log('Cleared active tickets indexes')
     } catch (error) {
-      console.warn('Failed to clear blob storage tickets:', error)
+      console.warn('Failed to clear ticket indexes:', error)
     }
 
-    // 5. Clear all lottery drawings for complete clean slate
+    // 5. Reset stats counters
+    try {
+      await kv.del(
+        'stats:total_tickets',
+        'stats:confirmed_tickets',
+        'stats:pending_tickets',
+        'stats:cancelled_tickets',
+        'stats:unique_wallets'
+      )
+      console.log('Reset stats counters')
+    } catch (error) {
+      console.warn('Failed to reset stats counters:', error)
+    }
+
+    // 6. Clear all lottery drawings for complete clean slate
     let drawsDeleted = 0
     try {
       const allDraws = await hybridStorage.getAllLotteryDraws()
