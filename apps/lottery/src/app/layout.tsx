@@ -25,8 +25,14 @@ const orbitron = Orbitron({
 });
 
 export const metadata: Metadata = {
-  title: "🎰 STONE LOTTERY - JACKPOT CITY 🎰",
-  description: "🔥 VEGAS-STYLE BLOCKCHAIN LOTTERY! 🔥 Massive jackpots, instant wins, provably fair draws! Every ticket burns STONE tokens FOREVER! 💎",
+  title: "Charisma Lottery | Blockchain-Powered Prize Draws",
+  description: "Participate in provably fair lottery draws on the Stacks blockchain. Purchase tickets with STONE tokens and win exclusive prizes. Transparent, secure, and decentralized.",
+  keywords: ["lottery", "blockchain", "Stacks", "STONE", "Web3", "cryptocurrency", "prize draw", "decentralized lottery"],
+  openGraph: {
+    title: "Charisma Lottery",
+    description: "Blockchain-powered lottery with provably fair draws and exclusive prizes",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
