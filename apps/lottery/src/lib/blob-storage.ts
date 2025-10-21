@@ -7,6 +7,19 @@ const LOTTERY_TICKETS_PREFIX = 'lottery-tickets/'
 const TICKET_COUNTER_KEY = 'ticket-counter.json'
 const DRAW_COUNTER_KEY = 'draw-counter.json'
 
+/**
+ * @deprecated Blob Storage Service - READ-ONLY ARCHIVE
+ *
+ * ⚠️  WARNING: This service is DEPRECATED and should only be used for reading historical data.
+ *
+ * All new data is stored in KV (kv-storage.ts).
+ * This service is kept only for:
+ * - Reading old blob storage data during migration
+ * - Backup/archive access to historical data
+ *
+ * DO NOT use write methods - they will log warnings.
+ * Use kvStorage or hybridStorage instead.
+ */
 export class BlobStorageService {
   private token: string
 
@@ -18,6 +31,7 @@ export class BlobStorageService {
   }
 
   async saveLotteryConfig(config: LotteryConfig): Promise<void> {
+    console.warn('⚠️  DEPRECATED: saveLotteryConfig() called on blob storage. Use kvStorage instead!')
     try {
       console.log('Attempting to save config to blob storage:', config)
       const configJson = JSON.stringify(config, null, 2)
@@ -86,6 +100,7 @@ export class BlobStorageService {
 
   // Lottery Results Methods
   async saveLotteryDraw(draw: LotteryDraw): Promise<void> {
+    console.warn('⚠️  DEPRECATED: saveLotteryDraw() called on blob storage. Use kvStorage instead!')
     try {
       console.log('Attempting to save draw to blob storage:', draw)
       const drawKey = `${LOTTERY_RESULTS_PREFIX}${draw.id}.json`
@@ -205,6 +220,7 @@ export class BlobStorageService {
 
   // Lottery Tickets Methods
   async saveLotteryTicket(ticket: LotteryTicket): Promise<void> {
+    console.warn('⚠️  DEPRECATED: saveLotteryTicket() called on blob storage. Use kvStorage instead!')
     try {
       console.log('Attempting to save ticket to blob storage:', ticket)
       const ticketKey = `${LOTTERY_TICKETS_PREFIX}${ticket.id}.json`

@@ -231,7 +231,7 @@ export default function ConfigurationPage() {
           ) : (
             <div className="space-y-4">
               {jackpots.map((jackpot, index) => (
-                <div key={jackpot.id} className="p-4 border rounded-lg space-y-4">
+                <div key={jackpot.id} className="p-4 border border-border/40 rounded-lg space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <input

@@ -1,11 +1,19 @@
 import { kv } from '@vercel/kv'
-import { LotteryTicket } from '@/types/lottery'
+import { LotteryTicket, LotteryConfig, LotteryDraw } from '@/types/lottery'
 
+// Ticket keys
 const TICKET_PREFIX = 'ticket:'
 const WALLET_TICKETS_PREFIX = 'wallet_tickets:'
 const DRAW_TICKETS_PREFIX = 'draw_tickets:'
 const ALL_ACTIVE_TICKETS_KEY = 'all_active_tickets'
+const ALL_TICKETS_KEY = 'all_tickets'
 const TICKET_COUNTER_KEY = 'ticket_counter'
+
+// Config and Draws keys
+const LOTTERY_CONFIG_KEY = 'lottery:config'
+const DRAW_PREFIX = 'draw:'
+const ALL_DRAWS_KEY = 'all_draws'
+const DRAW_COUNTER_KEY = 'draw_counter'
 
 // Stats counters for fast analytics
 const STATS_TOTAL_TICKETS = 'stats:total_tickets'
@@ -14,7 +22,11 @@ const STATS_PENDING_TICKETS = 'stats:pending_tickets'
 const STATS_CANCELLED_TICKETS = 'stats:cancelled_tickets'
 const STATS_UNIQUE_WALLETS = 'stats:unique_wallets'
 
-export class KVTicketStorageService {
+/**
+ * KV Storage Service - Single source of truth for all lottery data
+ * Stores tickets, config, and draws in Vercel KV (no TTL - keeps data forever)
+ */
+export class KVStorageService {
   // Save a lottery ticket with immediate consistency
   async saveLotteryTicket(ticket: LotteryTicket): Promise<void> {
     try {
@@ -36,7 +48,8 @@ export class KVTicketStorageService {
       // 3. Add to draw index (for fast draw-based queries)
       pipeline.sadd(`${DRAW_TICKETS_PREFIX}${ticket.drawId}`, ticket.id)
 
-      // 4. Add to global active tickets index (for fast admin queries)
+      // 4. Add to global tickets indexes (for fast admin queries)
+      pipeline.sadd(ALL_TICKETS_KEY, ticket.id)
       if (ticket.drawStatus !== 'archived') {
         pipeline.sadd(ALL_ACTIVE_TICKETS_KEY, ticket.id)
       } else {
@@ -76,10 +89,7 @@ export class KVTicketStorageService {
         }
       }
 
-      // 6. Set expiration for active tickets (24 hours), archived tickets (30 days)
-      const ttl = ticket.drawStatus === 'archived' ? 30 * 24 * 60 * 60 : 24 * 60 * 60
-      pipeline.expire(`${TICKET_PREFIX}${ticket.id}`, ttl)
-
+      // 6. Execute all operations atomically (no TTL - keep forever)
       await pipeline.exec()
 
       console.log('Ticket saved to KV successfully:', ticket.id)
@@ -171,6 +181,7 @@ export class KVTicketStorageService {
         pipeline.srem(`${WALLET_TICKETS_PREFIX}${ticket.walletAddress}`, ticketId)
         pipeline.srem(`${DRAW_TICKETS_PREFIX}${ticket.drawId}`, ticketId)
         pipeline.srem(ALL_ACTIVE_TICKETS_KEY, ticketId)
+        pipeline.srem(ALL_TICKETS_KEY, ticketId)
 
         // Update stats counters
         pipeline.decr(STATS_TOTAL_TICKETS)
@@ -209,50 +220,44 @@ export class KVTicketStorageService {
     }
   }
 
-  // Clean up expired data from indexes (should be run periodically)
-  async cleanupExpiredIndexes(): Promise<void> {
+  // Get all lottery tickets (uses global index)
+  async getAllLotteryTickets(): Promise<LotteryTicket[]> {
     try {
-      console.log('Starting KV index cleanup...')
-      
-      // This is a maintenance operation that could be run via cron
-      // For now, we'll rely on TTL to clean up the main ticket data
-      // The indexes will have stale references but they'll be filtered out during queries
-      
-      console.log('KV index cleanup completed')
-    } catch (error) {
-      console.error('Failed to cleanup KV indexes:', error)
-    }
-  }
+      console.log('Getting all tickets from KV')
 
-  // Archive tickets (extend TTL and update status)
-  async archiveTickets(ticketIds: string[]): Promise<void> {
-    try {
-      console.log('Archiving tickets in KV:', ticketIds)
-      
-      const pipeline = kv.pipeline()
-      
-      for (const ticketId of ticketIds) {
-        // Get the ticket first
-        const ticket = await this.getLotteryTicket(ticketId)
-        if (ticket) {
-          // Update status to archived
-          const archivedTicket: LotteryTicket = {
-            ...ticket,
-            drawStatus: 'archived',
-            archivedAt: new Date().toISOString()
-          }
-          
-          // Save with extended TTL (30 days)
-          pipeline.set(`${TICKET_PREFIX}${ticketId}`, archivedTicket)
-          pipeline.expire(`${TICKET_PREFIX}${ticketId}`, 30 * 24 * 60 * 60)
-        }
+      // Get all ticket IDs from the global index
+      const ticketIds = await kv.smembers(ALL_TICKETS_KEY)
+
+      if (!ticketIds || ticketIds.length === 0) {
+        console.log('No tickets found in KV')
+        return []
       }
-      
-      await pipeline.exec()
-      console.log('Tickets archived in KV successfully')
+
+      console.log(`Found ${ticketIds.length} ticket IDs`)
+
+      // Batch get tickets in chunks to avoid Redis mget limits (100 keys per batch)
+      const BATCH_SIZE = 100
+      const allTickets: LotteryTicket[] = []
+
+      for (let i = 0; i < ticketIds.length; i += BATCH_SIZE) {
+        const batchIds = ticketIds.slice(i, i + BATCH_SIZE)
+        const ticketKeys = batchIds.map(id => `${TICKET_PREFIX}${id}`)
+        const batchTickets = await kv.mget<LotteryTicket[]>(...ticketKeys)
+
+        // Filter out null values and add to results
+        const validBatchTickets = batchTickets.filter((ticket): ticket is LotteryTicket => ticket !== null)
+        allTickets.push(...validBatchTickets)
+
+        console.log(`Fetched batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(ticketIds.length / BATCH_SIZE)}: ${validBatchTickets.length} tickets`)
+      }
+
+      console.log(`Total tickets fetched: ${allTickets.length}`)
+
+      // Sort by purchase date (newest first)
+      return allTickets.sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime())
     } catch (error) {
-      console.error('Failed to archive tickets in KV:', error)
-      throw new Error(`Failed to archive tickets in KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      console.error('Failed to get all tickets from KV:', error)
+      throw new Error(`Failed to get all tickets from KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -320,7 +325,155 @@ export class KVTicketStorageService {
       throw new Error(`Failed to get stats from KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
+
+  // ===== LOTTERY CONFIG METHODS =====
+
+  async saveLotteryConfig(config: LotteryConfig): Promise<void> {
+    try {
+      console.log('Saving lottery config to KV')
+      await kv.set(LOTTERY_CONFIG_KEY, config)
+      console.log('Lottery config saved to KV successfully')
+    } catch (error) {
+      console.error('Failed to save lottery config to KV:', error)
+      throw new Error(`Failed to save lottery config to KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  async getLotteryConfig(): Promise<LotteryConfig | null> {
+    try {
+      const config = await kv.get<LotteryConfig>(LOTTERY_CONFIG_KEY)
+      return config
+    } catch (error) {
+      console.error('Failed to get lottery config from KV:', error)
+      throw new Error(`Failed to get lottery config from KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  async configExists(): Promise<boolean> {
+    try {
+      const config = await kv.get(LOTTERY_CONFIG_KEY)
+      return config !== null
+    } catch (error) {
+      console.error('Failed to check if config exists in KV:', error)
+      return false
+    }
+  }
+
+  // ===== LOTTERY DRAWS METHODS =====
+
+  async saveLotteryDraw(draw: LotteryDraw): Promise<void> {
+    try {
+      console.log('Saving lottery draw to KV:', draw.id)
+
+      const pipeline = kv.pipeline()
+
+      // 1. Save the draw data
+      pipeline.set(`${DRAW_PREFIX}${draw.id}`, draw)
+
+      // 2. Add to global draws index
+      pipeline.sadd(ALL_DRAWS_KEY, draw.id)
+
+      await pipeline.exec()
+
+      console.log('Lottery draw saved to KV successfully:', draw.id)
+    } catch (error) {
+      console.error('Failed to save lottery draw to KV:', error)
+      throw new Error(`Failed to save lottery draw to KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  async getLotteryDraw(drawId: string): Promise<LotteryDraw | null> {
+    try {
+      const draw = await kv.get<LotteryDraw>(`${DRAW_PREFIX}${drawId}`)
+      return draw
+    } catch (error) {
+      console.error('Failed to get lottery draw from KV:', error)
+      throw new Error(`Failed to get lottery draw from KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  async getAllLotteryDraws(): Promise<LotteryDraw[]> {
+    try {
+      console.log('Getting all lottery draws from KV')
+
+      // Get all draw IDs from the global index
+      const drawIds = await kv.smembers(ALL_DRAWS_KEY)
+
+      if (!drawIds || drawIds.length === 0) {
+        console.log('No draws found in KV')
+        return []
+      }
+
+      console.log(`Found ${drawIds.length} draw IDs`)
+
+      // Batch get all draws
+      const drawKeys = drawIds.map(id => `${DRAW_PREFIX}${id}`)
+      const draws = await kv.mget<LotteryDraw[]>(...drawKeys)
+
+      // Filter out null values and sort by draw date (newest first)
+      const validDraws = draws.filter((draw): draw is LotteryDraw => draw !== null)
+      return validDraws.sort((a, b) => new Date(b.drawDate).getTime() - new Date(a.drawDate).getTime())
+    } catch (error) {
+      console.error('Failed to get all lottery draws from KV:', error)
+      throw new Error(`Failed to get all lottery draws from KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  async getLatestLotteryDraw(): Promise<LotteryDraw | null> {
+    try {
+      const draws = await this.getAllLotteryDraws()
+      return draws.length > 0 ? draws[0] : null
+    } catch (error) {
+      console.error('Failed to get latest lottery draw from KV:', error)
+      return null
+    }
+  }
+
+  async deleteLotteryDraw(drawId: string): Promise<void> {
+    try {
+      const pipeline = kv.pipeline()
+
+      // Remove the draw data
+      pipeline.del(`${DRAW_PREFIX}${drawId}`)
+
+      // Remove from global index
+      pipeline.srem(ALL_DRAWS_KEY, drawId)
+
+      await pipeline.exec()
+
+      console.log('Lottery draw deleted from KV successfully:', drawId)
+    } catch (error) {
+      console.error('Failed to delete lottery draw from KV:', error)
+      throw new Error(`Failed to delete lottery draw from KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  // ===== COUNTER METHODS =====
+
+  async getDrawCounter(): Promise<number> {
+    try {
+      const counter = await kv.get<number>(DRAW_COUNTER_KEY)
+      return counter || 1
+    } catch (error) {
+      console.error('Failed to get draw counter from KV:', error)
+      throw new Error(`Failed to get draw counter from KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
+  async incrementDrawCounter(): Promise<number> {
+    try {
+      const counter = await kv.incr(DRAW_COUNTER_KEY)
+      // Return the value before increment (the one to use for this draw)
+      return counter - 1 || 1
+    } catch (error) {
+      console.error('Failed to increment draw counter in KV:', error)
+      throw new Error(`Failed to increment draw counter in KV: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
 }
 
 // Singleton instance
-export const kvTicketStorage = new KVTicketStorageService()
+export const kvStorage = new KVStorageService()
+
+// Legacy exports for backward compatibility
+export const kvTicketStorage = kvStorage

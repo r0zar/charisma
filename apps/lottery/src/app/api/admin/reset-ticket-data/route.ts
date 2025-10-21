@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { hybridStorage } from '@/lib/hybrid-storage'
-import { kvTicketStorage } from '@/lib/kv-ticket-storage'
-import { blobStorage } from '@/lib/blob-storage'
+import { kvStorage } from '@/lib/kv-storage'
 import { kv } from '@vercel/kv'
 
 function validateAdminAuth(request: NextRequest): boolean {

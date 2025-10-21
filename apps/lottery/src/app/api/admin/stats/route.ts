@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { kvTicketStorage } from '@/lib/kv-ticket-storage'
+import { kvStorage } from '@/lib/kv-storage'
 import { hybridStorage } from '@/lib/hybrid-storage'
 
 function validateAdminAuth(request: NextRequest): boolean {
@@ -28,10 +28,10 @@ export async function GET(request: NextRequest) {
     const currentOnly = searchParams.get('currentOnly') === 'true'
 
     // Get instant current draw stats from KV counters (always fast)
-    const kvStats = await kvTicketStorage.getStats()
+    const kvStats = await kvStorage.getStats()
 
     const stats: any = {
-      // Current draw stats (from KV - instant)
+      // Current draw stats (from KV counters - instant)
       currentDrawTickets: kvStats.totalTickets,
       currentDrawConfirmed: kvStats.confirmedTickets,
       currentDrawPending: kvStats.pendingTickets,
@@ -39,18 +39,18 @@ export async function GET(request: NextRequest) {
       currentDrawUniqueWallets: kvStats.uniqueWallets,
     }
 
-    // Only fetch lifetime stats if requested (slow blob storage queries)
+    // Only fetch lifetime stats if requested (now queries KV on-demand)
     if (!currentOnly) {
-      // Get draw count from blob storage
+      // Get draw count from KV
       const draws = await hybridStorage.getAllLotteryDraws()
       const completedDraws = draws.filter(d => d.status === 'completed').length
 
-      // Get total lifetime ticket count from blob storage (includes archived)
+      // Get total lifetime ticket count from KV (all tickets, no blob storage)
       const allTickets = await hybridStorage.getAllLotteryTickets()
       const lifetimeConfirmed = allTickets.filter(t => t.status === 'confirmed').length
       const lifetimeUniqueWallets = new Set(allTickets.map(t => t.walletAddress)).size
 
-      // Add lifetime stats
+      // Add lifetime stats (now fast - all from KV)
       stats.totalTickets = allTickets.length
       stats.confirmedTickets = lifetimeConfirmed
       stats.uniqueWallets = lifetimeUniqueWallets

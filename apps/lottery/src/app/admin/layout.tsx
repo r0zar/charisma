@@ -120,7 +120,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </div>
 
             {localError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-md text-sm text-red-500">
                 {localError}
               </div>
             )}
@@ -165,7 +165,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center justify-between border-b">
+      <div className="flex items-center justify-between border-b border-border/40">
         <div className="flex gap-1">
           {ADMIN_TABS.map((tab) => {
             const Icon = tab.icon
@@ -179,7 +179,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   "flex items-center gap-2 px-4 py-3 border-b-2 transition-colors",
                   isActive
                     ? "border-primary text-primary font-medium"
-                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border/40"
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -200,14 +200,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* Global Status Messages */}
       {(error || localError) && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-md text-sm text-red-700 flex items-center gap-2">
+        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-md text-sm text-red-500 flex items-center gap-2">
           <AlertTriangle className="h-4 w-4" />
           {error || localError}
         </div>
       )}
 
       {success && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-md text-sm text-green-700 flex items-center gap-2">
+        <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-md text-sm text-green-500 flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4" />
           {success}
         </div>

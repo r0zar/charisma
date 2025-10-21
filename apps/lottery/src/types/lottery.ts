@@ -91,7 +91,7 @@ export interface BulkTicketPurchaseRequest {
 }
 
 export const DEFAULT_LOTTERY_CONFIG: LotteryConfig = {
-  ticketPrice: 1,
+  ticketPrice: 100,
   drawFrequency: "twice_weekly",
   nextDrawDate: "2025-01-26T20:00:00Z", // Next Saturday 8 PM
   currentJackpot: {

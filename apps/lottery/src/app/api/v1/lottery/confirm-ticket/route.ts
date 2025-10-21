@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { hybridStorage } from '@/lib/hybrid-storage'
 import { ticketService } from '@/lib/ticket-service'
-import { createTxMonitorClient } from '@repo/tx-monitor-client'
-import { getTransactionEvents, getTransactionDetails } from '@repo/polyglot'
-import { getHostUrl } from '@modules/discovery'
+import { verifyTicketTransaction } from '@/lib/transaction-verification'
 
 export interface TicketConfirmationRequest {
   ticketId: string
@@ -24,261 +22,6 @@ export interface TicketConfirmationResponse {
   }
   error?: string
   retryable?: boolean
-}
-
-// Constants for validation
-const STONE_CONTRACT_ADDRESS = 'SPQ5CEHETP8K4Q2FSNNK9ANMPAVBSA9NN86YSN59'
-const STONE_CONTRACT_NAME = 'stone-bonding-curve'
-const BURN_ADDRESS = 'SP000000000000000000002Q6VF78'
-
-// Create tx-monitor client with proper configuration using service discovery
-const txMonitorClient = createTxMonitorClient({
-  baseUrl: getHostUrl('tx-monitor'),
-  timeout: 10000, // Shorter timeout to fail faster
-  retryAttempts: 1, // Single retry to avoid long delays
-  retryDelay: 1000
-})
-
-async function validateBurnTransaction(txId: string, expectedAmount: number, walletAddress: string, isBulkValidation: boolean = false) {
-  try {
-    console.log(`Starting burn transaction validation for ${txId} (bulk: ${isBulkValidation})`)
-    
-    // First wait for transaction confirmation using tx-monitor
-    try {
-      await txMonitorClient.addToQueue([txId])
-      console.log(`Added transaction ${txId} to monitoring queue`)
-    } catch (queueError) {
-      console.error(`Failed to add transaction to monitoring queue:`)
-      
-      if (queueError instanceof Error) {
-        console.error(`Error type: ${queueError.constructor.name}`)
-        console.error(`Error message: ${queueError.message}`)
-        
-        // Check if it's a TxMonitorError with additional properties
-        if ('status' in queueError && queueError.status) {
-          console.error(`HTTP status: ${queueError.status}`)
-        }
-        if ('cause' in queueError && queueError.cause) {
-          console.error(`Underlying cause: ${queueError.cause}`)
-        }
-      } else {
-        console.error(`Unknown error:`, queueError)
-      }
-      
-      // Continue with direct validation if queue fails
-      console.log(`Proceeding with direct transaction validation...`)
-    }
-    
-    // Try to poll for transaction status, but fall back to direct check if it fails
-    let txStatus = 'unknown'
-    let blockHeight: number | undefined
-    let blockTime: number | undefined
-    
-    try {
-      const result = await txMonitorClient.pollTransactionStatus(txId, {
-        interval: 2000,
-        timeout: 10000, // Short timeout for polling API
-        maxAttempts: 5,
-        onStatusChange: (status) => {
-          console.log(`Transaction ${txId} status: ${status.status}`)
-        }
-      })
-      
-      txStatus = result.status
-      blockHeight = result.blockHeight
-      blockTime = result.blockTime
-      
-      if (result.status !== 'success') {
-        return {
-          success: false,
-          error: `Transaction failed with status: ${result.status}`,
-          status: result.status,
-          retryable: result.status === 'pending'
-        }
-      }
-      
-      console.log(`Transaction ${txId} confirmed via tx-monitor, now validating burn transfer...`)
-    } catch (pollError) {
-      console.warn(`Failed to poll transaction status via tx-monitor:`, pollError)
-      console.log(`Proceeding with direct transaction validation...`)
-      
-      // Try direct validation without tx-monitor
-      try {
-        const directTxDetails = await getTransactionDetails(txId)
-        if (directTxDetails.tx_status === 'success') {
-          txStatus = 'success'
-          blockHeight = directTxDetails.block_height
-          blockTime = directTxDetails.block_time
-          console.log(`Transaction ${txId} validated directly, now checking burn transfer...`)
-        } else {
-          return {
-            success: false,
-            error: `Transaction not yet confirmed or failed. Status: ${directTxDetails.tx_status}. Please wait a moment and try again.`,
-            retryable: directTxDetails.tx_status === 'pending'
-          }
-        }
-      } catch (directError) {
-        console.error(`Failed to validate transaction directly:`, directError)
-        return {
-          success: false,
-          error: 'Unable to validate transaction status. The transaction monitoring service may be temporarily unavailable. Please try again in a few minutes.',
-          retryable: true
-        }
-      }
-    }
-    
-    // Get transaction details and events to validate the STONE transfer
-    const [txDetails, txEvents] = await Promise.all([
-      getTransactionDetails(txId),
-      getTransactionEvents({ tx_id: txId, type: ['fungible_token_asset'] })
-    ])
-    
-    // Log full transaction details for debugging
-    console.log(`=== FULL TRANSACTION DETAILS ===`)
-    console.log(JSON.stringify(txDetails, null, 2))
-    
-    console.log(`=== TRANSACTION EVENTS ===`)
-    console.log(JSON.stringify(txEvents, null, 2))
-    
-    console.log(`Transaction summary:`, {
-      tx_type: txDetails.tx_type,
-      tx_status: txDetails.tx_status,
-      sender_address: txDetails.sender_address,
-      contract_call: txDetails.tx_type === 'contract_call' ? (txDetails as any).contract_call : undefined,
-      tx_result: txDetails.tx_result
-    })
-    console.log(`Found ${txEvents.events?.length || 0} fungible token events`)
-    
-    // Also try to get ALL event types to see what's available
-    const allEvents = await getTransactionEvents({ tx_id: txId })
-    console.log(`=== ALL EVENTS (${allEvents.events?.length || 0} total) ===`)
-    console.log(JSON.stringify(allEvents, null, 2))
-    
-    // Validate sender address
-    if (txDetails.sender_address !== walletAddress) {
-      return {
-        success: false,
-        error: `Transaction sender ${txDetails.sender_address} does not match expected wallet ${walletAddress}`
-      }
-    }
-    
-    // Look for STONE transfer to burn address
-    const expectedAmountMicro = expectedAmount * 1000000 // Convert to microSTONE
-    let foundValidTransfer = false
-    let actualTransferAmount = 0
-    
-    console.log(`=== SEARCHING FOR STONE TRANSFER ===`)
-    console.log(`Expected:`, {
-      assetId: `${STONE_CONTRACT_ADDRESS}.${STONE_CONTRACT_NAME}::stone`.toLowerCase(),
-      amount: expectedAmountMicro,
-      sender: walletAddress,
-      recipient: BURN_ADDRESS,
-      isBulkValidation
-    })
-    
-    // Check fungible token events first
-    console.log(`Checking ${txEvents.events?.length || 0} fungible token events...`)
-    for (const event of txEvents.events || []) {
-      console.log(`Event ${event.event_index}:`, {
-        event_type: event.event_type,
-        asset: event.asset
-      })
-      
-      if (event.event_type === 'fungible_token_asset' && event.asset) {
-        const asset = event.asset
-        const assetId = `${asset.asset_id}`.toLowerCase()
-        const stoneAssetId = `${STONE_CONTRACT_ADDRESS}.${STONE_CONTRACT_NAME}::STONE`.toLowerCase()
-        
-        console.log(`Checking asset transfer:`, {
-          assetId,
-          expectedAssetId: stoneAssetId,
-          amount: asset.amount,
-          expectedAmount: expectedAmountMicro,
-          sender: asset.sender,
-          recipient: asset.recipient,
-          matches: {
-            assetId: assetId === stoneAssetId,
-            sender: asset.sender === walletAddress,
-            recipient: asset.recipient === BURN_ADDRESS,
-            amount: parseInt(asset.amount) === expectedAmountMicro
-          }
-        })
-        
-        if (assetId === stoneAssetId &&
-            asset.sender === walletAddress &&
-            asset.recipient === BURN_ADDRESS) {
-          
-          actualTransferAmount = parseInt(asset.amount)
-          
-          if (isBulkValidation) {
-            // For bulk validation, we need to find ANY STONE transfer to burn address
-            // The amount validation will be done at the ticket level
-            foundValidTransfer = true
-            console.log(`✅ Found valid STONE burn transfer for bulk validation! Amount: ${actualTransferAmount} microSTONE`)
-            break
-          } else {
-            // For single ticket validation, exact amount match is required
-            if (actualTransferAmount === expectedAmountMicro) {
-              foundValidTransfer = true
-              console.log(`✅ Found valid STONE burn transfer!`)
-              break
-            }
-          }
-        }
-      }
-    }
-    
-    // Also check ALL events for any STONE-related activity
-    console.log(`Checking ${allEvents.events?.length || 0} total events for STONE activity...`)
-    for (const event of allEvents.events || []) {
-      const eventStr = JSON.stringify(event, null, 2)
-      if (eventStr.toLowerCase().includes('stone') || 
-          eventStr.includes(STONE_CONTRACT_ADDRESS) ||
-          eventStr.includes(BURN_ADDRESS)) {
-        console.log(`Found STONE-related event:`, event)
-      }
-    }
-    
-    if (!foundValidTransfer) {
-      return {
-        success: false,
-        error: `No valid STONE transfer to burn address found. Expected ${expectedAmount} STONE (${expectedAmountMicro} microSTONE) from ${walletAddress} to ${BURN_ADDRESS}`
-      }
-    }
-    
-    return {
-      success: true,
-      status: txStatus,
-      blockHeight: blockHeight,
-      blockTime: blockTime,
-      validatedAmount: expectedAmount,
-      actualTransferAmount: actualTransferAmount,
-      burnAddress: BURN_ADDRESS
-    }
-    
-  } catch (error) {
-    console.error('Burn transaction validation error:', error)
-    
-    // Provide more helpful error messages based on the error type
-    let errorMessage = 'Transaction validation failed'
-    
-    if (error instanceof Error) {
-      if (error.message.includes('TxMonitorError')) {
-        errorMessage = 'Transaction monitoring service is temporarily unavailable. Please try again in a few minutes.'
-      } else if (error.message.includes('timeout') || error.message.includes('TIMEOUT')) {
-        errorMessage = 'Transaction validation timed out. Your transaction may still be processing. Please try again in a few minutes.'
-      } else if (error.message.includes('network') || error.message.includes('fetch')) {
-        errorMessage = 'Network error occurred while validating transaction. Please check your connection and try again.'
-      } else {
-        errorMessage = error.message
-      }
-    }
-    
-    return {
-      success: false,
-      error: errorMessage
-    }
-  }
 }
 
 export async function POST(request: NextRequest) {
@@ -319,16 +62,20 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Use the ticket's stored purchase price for validation instead of frontend expectedAmount
-    // This handles cases where the lottery config was updated after the ticket was purchased
+    // Use the ticket's stored purchase price for validation
     console.log(`Using ticket's stored price ${ticket.purchasePrice} STONE instead of frontend expected amount ${expectedAmount} STONE`)
-    
+
     // For bulk validation, use the total bulk amount, otherwise use individual ticket price
     const validationAmount = isBulkValidation && totalBulkAmount ? totalBulkAmount : ticket.purchasePrice
-    
-    // Validate the burn transaction using tx-monitor-client and polyglot
-    console.log(`Validating burn transaction ${transactionId} for ticket ${ticketId} (bulk: ${isBulkValidation}, amount: ${validationAmount})`)
-    const validationResult = await validateBurnTransaction(transactionId, validationAmount, walletAddress, isBulkValidation || false)
+
+    // Verify the transaction using the new service
+    console.log(`Verifying transaction ${transactionId} for ticket ${ticketId} (bulk: ${isBulkValidation}, amount: ${validationAmount})`)
+    const validationResult = await verifyTicketTransaction({
+      transactionId,
+      walletAddress,
+      expectedAmount: validationAmount,
+      isBulkValidation: isBulkValidation || false
+    })
     
     if (!validationResult.success) {
       console.log(`Transaction validation failed for ${ticketId}:`, validationResult.error)

@@ -13,6 +13,7 @@ export default function SystemPage() {
   const [confirmText, setConfirmText] = useState("")
   const [resetting, setResetting] = useState(false)
   const [seeding, setSeeding] = useState(false)
+  const [migrating, setMigrating] = useState(false)
 
   const handleResetLottery = async () => {
     if (confirmText !== "RESET LOTTERY") {
@@ -46,6 +47,36 @@ export default function SystemPage() {
       setError(err instanceof Error ? err.message : 'Failed to reset lottery')
     } finally {
       setResetting(false)
+    }
+  }
+
+  const handleMigrateBlobToKV = async () => {
+    if (!confirm('This will migrate all data (config, draws, tickets) from blob storage to KV. This is a one-time operation. Continue?')) {
+      return
+    }
+
+    setMigrating(true)
+    try {
+      const response = await fetch('/api/admin/migrate-blob-to-kv', {
+        method: 'POST',
+        headers: {
+          'x-admin-key': adminKey,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Migration failed')
+      }
+
+      const result = await response.json()
+      setSuccess(`Successfully migrated: ${result.migrated.config} config, ${result.migrated.draws} draws, ${result.migrated.tickets} tickets`)
+    } catch (err) {
+      console.error('Migration failed:', err)
+      setError(err instanceof Error ? err.message : 'Failed to migrate data')
+    } finally {
+      setMigrating(false)
     }
   }
 
@@ -89,38 +120,38 @@ export default function SystemPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="p-4 border rounded-lg">
-            <div className="text-sm font-medium mb-2">Storage Information</div>
-            <div className="space-y-1 text-sm text-muted-foreground">
-              <div>Active tickets are stored in KV with 60-day TTL</div>
-              <div>Archived tickets are stored in Blob with 90-day TTL</div>
-              <div>Automatic cleanup runs on data access</div>
-            </div>
-          </div>
-
-          <div className="p-4 border rounded-lg">
-            <div className="text-sm font-medium mb-2">Migrate Active Tickets to KV Storage</div>
+          <div className="p-4 border rounded-lg bg-blue-500/10 border-blue-500/20">
+            <div className="text-sm font-medium mb-2">⚡ Migrate ALL Data from Blob Storage to KV</div>
             <div className="text-sm text-muted-foreground mb-3">
-              If you've updated the system or existing active tickets aren't showing up, run this migration to copy all active tickets from blob storage to fast KV storage. This will enable instant loading on dashboard and current draw pages.
+              <strong>Run this first!</strong> This migrates ALL existing data (config, draws, and tickets) from blob storage to the new KV-only architecture. This is required after upgrading to KV-only storage.
             </div>
             <Button
-              onClick={handleSeedActiveIndex}
-              disabled={seeding}
-              variant="outline"
+              onClick={handleMigrateBlobToKV}
+              disabled={migrating}
+              variant="default"
               size="sm"
             >
-              {seeding ? (
+              {migrating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Migrating Tickets...
+                  Migrating All Data...
                 </>
               ) : (
                 <>
                   <Database className="h-4 w-4 mr-2" />
-                  Migrate Active Tickets to KV
+                  Migrate Blob → KV
                 </>
               )}
             </Button>
+          </div>
+
+          <div className="p-4 border border-border/40 rounded-lg">
+            <div className="text-sm font-medium mb-2">Storage Information</div>
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <div>✓ All data now stored in KV (no TTL - permanent)</div>
+              <div>✓ Blob storage deprecated (read-only archive)</div>
+              <div>✓ Instant queries with no eventual consistency delays</div>
+            </div>
           </div>
 
           <div className="text-sm text-muted-foreground">
@@ -130,20 +161,20 @@ export default function SystemPage() {
       </Card>
 
       {/* Warning Banner */}
-      <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg">
+      <div className="p-4 bg-red-500/10 border-2 border-red-500/30 rounded-lg">
         <div className="flex items-center gap-3 mb-2">
-          <AlertTriangle className="h-6 w-6 text-red-600" />
-          <h3 className="text-lg font-semibold text-red-900">Danger Zone</h3>
+          <AlertTriangle className="h-6 w-6 text-red-500" />
+          <h3 className="text-lg font-semibold text-red-500">Danger Zone</h3>
         </div>
-        <p className="text-sm text-red-700">
+        <p className="text-sm text-muted-foreground">
           These operations are irreversible and will permanently delete data. Use with extreme caution.
         </p>
       </div>
 
       {/* Reset Lottery */}
-      <Card className="border-red-200">
+      <Card className="border-red-500/30">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-red-600">
+          <CardTitle className="flex items-center gap-2 text-red-500">
             <Trash2 className="h-5 w-5" />
             Reset Entire Lottery System
           </CardTitle>
@@ -165,9 +196,9 @@ export default function SystemPage() {
             />
           </div>
 
-          <div className="p-3 bg-red-50 rounded-md text-sm text-red-700">
-            <div className="font-semibold mb-2">This will delete:</div>
-            <ul className="list-disc list-inside space-y-1">
+          <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-md text-sm">
+            <div className="font-semibold mb-2 text-red-500">This will delete:</div>
+            <ul className="list-disc list-inside space-y-1 text-muted-foreground">
               <li>All lottery tickets (active and archived)</li>
               <li>All draw results and history</li>
               <li>All lottery configuration settings</li>

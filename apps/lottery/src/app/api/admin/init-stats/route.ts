@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { kv } from '@vercel/kv'
-import { kvTicketStorage } from '@/lib/kv-ticket-storage'
+import { kvStorage } from '@/lib/kv-storage'
 
 function validateAdminAuth(request: NextRequest): boolean {
   const adminKey = process.env.ADMIN_API_KEY
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     console.log('Initializing stats counters from existing KV data...')
 
     // Get all active tickets from KV
-    const tickets = await kvTicketStorage.getAllActiveTickets()
+    const tickets = await kvStorage.getAllActiveTickets()
 
     console.log(`Found ${tickets.length} active tickets in KV`)
 

@@ -5,9 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Play, Download, Trophy, Ticket, Loader2, AlertCircle, CheckCircle2, XCircle } from "lucide-react"
+import { Play, Download, Trophy, Ticket, Loader2, AlertCircle, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink, RefreshCw } from "lucide-react"
 import { useAdmin } from "../admin-context"
 import { LotteryTicket, LotteryConfig } from "@/types/lottery"
+import { getTransactionUrl } from "@/lib/stacks-explorer"
 
 const Skeleton = ({ className = "" }: { className?: string }) => (
   <div className={`animate-pulse bg-muted rounded ${className}`} />
@@ -23,6 +24,8 @@ export default function CurrentDrawPage() {
   const [ticketsLoading, setTicketsLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [processingWinner, setProcessingWinner] = useState(false)
+  const [expandedTicket, setExpandedTicket] = useState<string | null>(null)
+  const [verifyingTickets, setVerifyingTickets] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchConfig()
@@ -86,6 +89,68 @@ export default function CurrentDrawPage() {
       setTickets([])
     } finally {
       setTicketsLoading(false)
+    }
+  }
+
+  const handleVerifyTicket = async (ticket: LotteryTicket) => {
+    if (!ticket.transactionId) {
+      setError('No transaction ID to verify')
+      return
+    }
+
+    setVerifyingTickets(prev => new Set(prev).add(ticket.id))
+
+    try {
+      // Check if this is a bulk purchase (multiple tickets with same transaction ID)
+      const ticketsWithSameTx = tickets.filter(t => t.transactionId === ticket.transactionId)
+      const isBulkPurchase = ticketsWithSameTx.length > 1
+      const totalBulkAmount = isBulkPurchase
+        ? ticketsWithSameTx.reduce((sum, t) => sum + t.purchasePrice, 0)
+        : undefined
+
+      console.log('Verifying ticket:', {
+        ticketId: ticket.id,
+        isBulk: isBulkPurchase,
+        ticketsInBulk: ticketsWithSameTx.length,
+        totalAmount: totalBulkAmount
+      })
+
+      const response = await fetch('/api/v1/lottery/confirm-ticket', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ticketId: ticket.id,
+          transactionId: ticket.transactionId,
+          walletAddress: ticket.walletAddress,
+          expectedAmount: ticket.purchasePrice,
+          isBulkValidation: isBulkPurchase,
+          totalBulkAmount: totalBulkAmount
+        })
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        setSuccess(`Ticket ${ticket.id} verified and confirmed on blockchain!`)
+        await fetchTickets()
+      } else {
+        if (result.retryable) {
+          setError(`Verification incomplete: ${result.error}. You can try again.`)
+        } else {
+          setError(`Verification failed: ${result.error}`)
+        }
+      }
+    } catch (err) {
+      console.error('Verify ticket error:', err)
+      setError('Failed to verify ticket. Please try again.')
+    } finally {
+      setVerifyingTickets(prev => {
+        const next = new Set(prev)
+        next.delete(ticket.id)
+        return next
+      })
     }
   }
 
@@ -440,7 +505,7 @@ export default function CurrentDrawPage() {
               </div>
 
               {confirmedCount === 0 && (
-                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-md text-sm text-yellow-700 flex items-center gap-2">
+                <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-md text-sm text-yellow-500 flex items-center gap-2">
                   <AlertCircle className="h-4 w-4" />
                   No confirmed tickets available for winner selection
                 </div>
@@ -474,36 +539,125 @@ export default function CurrentDrawPage() {
             </div>
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {tickets.slice(0, 50).map((ticket) => (
-                <div
-                  key={ticket.id}
-                  className="flex items-center justify-between p-3 border rounded-md hover:bg-muted/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="font-mono text-sm font-medium">#{ticket.id}</div>
-                    <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                      {ticket.walletAddress}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(ticket.purchaseDate).toLocaleDateString()}
-                    </div>
-                    <Badge
-                      variant={
-                        ticket.status === 'confirmed' ? 'default' :
-                        ticket.status === 'pending' ? 'secondary' :
-                        'destructive'
-                      }
+              {tickets.slice(0, 50).map((ticket) => {
+                const isExpanded = expandedTicket === ticket.id
+                return (
+                  <div
+                    key={ticket.id}
+                    className="border border-border/40 rounded-md hover:bg-muted/50 transition-colors"
+                  >
+                    <div
+                      className="flex items-center justify-between p-3 cursor-pointer"
+                      onClick={() => setExpandedTicket(isExpanded ? null : ticket.id)}
                     >
-                      {ticket.status === 'confirmed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
-                      {ticket.status === 'pending' && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
-                      {ticket.status === 'cancelled' && <XCircle className="h-3 w-3 mr-1" />}
-                      {ticket.status}
-                    </Badge>
+                      <div className="flex items-center gap-3">
+                        <div className="font-mono text-sm font-medium">#{ticket.id}</div>
+                        <div className="text-sm text-muted-foreground font-mono">
+                          {ticket.walletAddress}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-xs text-muted-foreground">
+                          {new Date(ticket.purchaseDate).toLocaleDateString()}
+                        </div>
+                        <Badge
+                          variant={
+                            ticket.status === 'confirmed' ? 'default' :
+                            ticket.status === 'pending' ? 'secondary' :
+                            'destructive'
+                          }
+                        >
+                          {ticket.status === 'confirmed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
+                          {ticket.status === 'pending' && <Loader2 className="h-3 w-3 mr-1 animate-spin" />}
+                          {ticket.status === 'cancelled' && <XCircle className="h-3 w-3 mr-1" />}
+                          {ticket.status}
+                        </Badge>
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="px-3 pb-3 pt-0 border-t border-border/40 mt-2">
+                        <div className="grid grid-cols-2 gap-3 mt-3 text-sm">
+                          <div>
+                            <div className="text-muted-foreground mb-1">Draw ID</div>
+                            <div className="font-mono">{ticket.drawId}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground mb-1">Purchase Price</div>
+                            <div className="font-mono">{ticket.purchasePrice} STONE</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground mb-1">Purchase Date</div>
+                            <div>{new Date(ticket.purchaseDate).toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground mb-1">Draw Status</div>
+                            <div>{ticket.drawStatus || 'active'}</div>
+                          </div>
+                          {ticket.transactionId && (
+                            <div className="col-span-2">
+                              <div className="text-muted-foreground mb-1">Transaction ID</div>
+                              <a
+                                href={getTransactionUrl(ticket.transactionId)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-mono text-xs break-all text-blue-500 hover:text-blue-600 hover:underline flex items-center gap-1"
+                              >
+                                {ticket.transactionId}
+                                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                              </a>
+                            </div>
+                          )}
+                          {ticket.confirmedAt && (
+                            <div>
+                              <div className="text-muted-foreground mb-1">Confirmed At</div>
+                              <div className="text-xs">{new Date(ticket.confirmedAt).toLocaleString()}</div>
+                            </div>
+                          )}
+                          {ticket.blockHeight && (
+                            <div>
+                              <div className="text-muted-foreground mb-1">Block Height</div>
+                              <div className="font-mono">{ticket.blockHeight}</div>
+                            </div>
+                          )}
+                        </div>
+
+                        {ticket.status === 'pending' && ticket.transactionId && (
+                          <div className="mt-4 pt-3 border-t border-border/40">
+                            <Button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleVerifyTicket(ticket)
+                              }}
+                              disabled={verifyingTickets.has(ticket.id)}
+                              variant="outline"
+                              size="sm"
+                              className="w-full"
+                            >
+                              {verifyingTickets.has(ticket.id) ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Verifying on Blockchain...
+                                </>
+                              ) : (
+                                <>
+                                  <RefreshCw className="h-4 w-4 mr-2" />
+                                  Verify on Blockchain
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
               {tickets.length > 50 && (
                 <div className="text-center text-sm text-muted-foreground py-2">
                   Showing first 50 of {tickets.length} tickets
