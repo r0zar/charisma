@@ -20,9 +20,9 @@ export async function GET() {
       }
     })
 
-    // Cache for 1 minute to allow quick updates from admin
-    response.headers.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=30')
-    response.headers.set('CDN-Cache-Control', 'public, max-age=60')
+    // Cache for 5 seconds to allow near-instant updates from admin
+    response.headers.set('Cache-Control', 'public, max-age=5, stale-while-revalidate=5')
+    response.headers.set('CDN-Cache-Control', 'public, max-age=5')
 
     return response
   } catch (error) {
