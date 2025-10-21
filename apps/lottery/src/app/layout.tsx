@@ -26,12 +26,12 @@ const orbitron = Orbitron({
 
 export const metadata: Metadata = {
   title: "Stone Lottery | Blockchain-Powered Prize Draws",
-  description: "Participate in provably fair lottery draws on the Stacks blockchain. Purchase tickets with STONE tokens and win exclusive prizes. Transparent, secure, and decentralized.",
+  description: "Burn STONE tokens to enter blockchain-powered lottery draws for real-world collectibles and prizes",
   keywords: ["lottery", "blockchain", "Stacks", "STONE", "Web3", "cryptocurrency", "prize draw", "decentralized lottery"],
   metadataBase: new URL('https://stonelottery.com'),
   openGraph: {
     title: "Stone Lottery",
-    description: "Blockchain-powered lottery with provably fair draws and exclusive prizes",
+    description: "Burn STONE tokens to enter blockchain-powered lottery draws for real-world collectibles and prizes",
     type: "website",
     url: "https://stonelottery.com",
   },
