@@ -795,11 +795,12 @@ export default function CurrentDrawPage() {
               No tickets in current draw
             </div>
           ) : viewMode === 'batch' ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {paginatedBatches.map((batch) => {
                 const isExpanded = expandedTicket === batch.transactionId
                 const allConfirmed = batch.confirmedCount === batch.tickets.length
                 const allPending = batch.pendingCount === batch.tickets.length
+                const confirmedPercentage = ((batch.confirmedCount / batch.tickets.length) * 100).toFixed(0)
 
                 return (
                   <div
@@ -807,39 +808,17 @@ export default function CurrentDrawPage() {
                     className="border border-border/40 rounded-md hover:bg-muted/50 transition-colors"
                   >
                     <div
-                      className="flex items-center justify-between p-4 cursor-pointer"
+                      className="p-3 cursor-pointer"
                       onClick={() => setExpandedTicket(isExpanded ? null : batch.transactionId)}
                     >
-                      <div className="flex items-center gap-4 flex-1">
+                      <div className="flex items-start justify-between mb-2">
                         <div className="space-y-1">
                           <div className="font-mono text-sm font-medium">
-                            {batch.tickets.length} Ticket{batch.tickets.length > 1 ? 's' : ''}
+                            {batch.tickets.length}x Tickets
                           </div>
                           <div className="text-xs text-muted-foreground">
                             {batch.totalAmount.toLocaleString()} STONE
                           </div>
-                        </div>
-                        <div className="text-sm text-muted-foreground font-mono truncate max-w-[300px]">
-                          {batch.walletAddress}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="text-right space-y-1">
-                          {batch.confirmedCount > 0 && (
-                            <div className="text-xs text-green-600">
-                              {batch.confirmedCount} confirmed ({((batch.confirmedCount / batch.tickets.length) * 100).toFixed(0)}%)
-                            </div>
-                          )}
-                          {batch.pendingCount > 0 && (
-                            <div className="text-xs text-yellow-600">
-                              {batch.pendingCount} pending
-                            </div>
-                          )}
-                          {batch.cancelledCount > 0 && (
-                            <div className="text-xs text-red-600">
-                              {batch.cancelledCount} cancelled
-                            </div>
-                          )}
                         </div>
                         <Badge
                           variant={
@@ -847,15 +826,42 @@ export default function CurrentDrawPage() {
                             allPending ? 'secondary' :
                             'outline'
                           }
+                          className="text-xs"
                         >
-                          {allConfirmed ? 'All Confirmed' : allPending ? 'All Pending' : 'Mixed'}
+                          {allConfirmed ? '✓' : allPending ? '○' : '◐'}
                         </Badge>
-                        {isExpanded ? (
-                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </div>
+
+                      <div className="text-xs text-muted-foreground font-mono truncate mb-2">
+                        {batch.walletAddress}
+                      </div>
+
+                      <div className="space-y-1 text-xs">
+                        {batch.confirmedCount > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-green-600">Confirmed:</span>
+                            <span className="font-mono text-green-600">{batch.confirmedCount} ({confirmedPercentage}%)</span>
+                          </div>
+                        )}
+                        {batch.pendingCount > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-yellow-600">Pending:</span>
+                            <span className="font-mono text-yellow-600">{batch.pendingCount}</span>
+                          </div>
+                        )}
+                        {batch.cancelledCount > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-red-600">Cancelled:</span>
+                            <span className="font-mono text-red-600">{batch.cancelledCount}</span>
+                          </div>
                         )}
                       </div>
+
+                      {!isExpanded && (
+                        <div className="mt-2 pt-2 border-t border-border/40 flex items-center justify-center">
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        </div>
+                      )}
                     </div>
 
                     {isExpanded && (
@@ -876,22 +882,19 @@ export default function CurrentDrawPage() {
                             </div>
                           )}
 
-                          <div className="space-y-1">
+                          <div className="grid grid-cols-2 sm:grid-cols-5 md:grid-cols-8 lg:grid-cols-10 gap-2">
                             {batch.tickets.map(ticket => (
-                              <div key={ticket.id} className="flex items-center justify-between p-2 bg-muted/30 rounded text-sm">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-mono">#{ticket.id}</span>
-                                  <span className="text-muted-foreground text-xs">{ticket.purchasePrice} STONE</span>
-                                </div>
+                              <div key={ticket.id} className="p-2 bg-muted/30 rounded text-xs space-y-1">
+                                <div className="font-mono font-medium">#{ticket.id}</div>
                                 <Badge
                                   variant={
                                     ticket.status === 'confirmed' ? 'default' :
                                     ticket.status === 'pending' ? 'secondary' :
                                     'destructive'
                                   }
-                                  className="text-xs"
+                                  className="text-xs w-full justify-center"
                                 >
-                                  {ticket.status}
+                                  {ticket.status === 'confirmed' ? '✓' : ticket.status === 'pending' ? '○' : '✕'}
                                 </Badge>
                               </div>
                             ))}
