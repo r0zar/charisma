@@ -27,6 +27,7 @@ export default function CurrentDrawPage() {
   const [processingWinner, setProcessingWinner] = useState(false)
   const [expandedTicket, setExpandedTicket] = useState<string | null>(null)
   const [verifyingTickets, setVerifyingTickets] = useState<Set<string>>(new Set())
+  const [verifyingAll, setVerifyingAll] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
   const [sortBy, setSortBy] = useState<'ticketId' | 'date' | 'status' | 'wallet'>('ticketId')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
@@ -94,6 +95,71 @@ export default function CurrentDrawPage() {
       setTickets([])
     } finally {
       setTicketsLoading(false)
+    }
+  }
+
+  const handleVerifyAllPending = async () => {
+    const pendingWithTx = tickets.filter(t => t.status === 'pending' && t.transactionId)
+
+    if (pendingWithTx.length === 0) {
+      setError('No pending tickets with transaction IDs to verify')
+      return
+    }
+
+    if (!confirm(`This will verify ${pendingWithTx.length} pending tickets. Continue?`)) {
+      return
+    }
+
+    setVerifyingAll(true)
+    let successCount = 0
+    let failCount = 0
+
+    try {
+      for (const ticket of pendingWithTx) {
+        try {
+          const ticketsWithSameTx = tickets.filter(t => t.transactionId === ticket.transactionId)
+          const isBulkPurchase = ticketsWithSameTx.length > 1
+          const totalBulkAmount = isBulkPurchase
+            ? ticketsWithSameTx.reduce((sum, t) => sum + t.purchasePrice, 0)
+            : undefined
+
+          const response = await fetch('/api/v1/lottery/confirm-ticket', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              ticketId: ticket.id,
+              transactionId: ticket.transactionId,
+              walletAddress: ticket.walletAddress,
+              expectedAmount: ticket.purchasePrice,
+              isBulkValidation: isBulkPurchase,
+              totalBulkAmount: totalBulkAmount
+            })
+          })
+
+          const result = await response.json()
+
+          if (result.success) {
+            successCount++
+          } else {
+            failCount++
+            console.log(`Failed to verify ticket ${ticket.id}:`, result.error)
+          }
+        } catch (err) {
+          failCount++
+          console.error(`Error verifying ticket ${ticket.id}:`, err)
+        }
+      }
+
+      if (successCount > 0) {
+        setSuccess(`Verified ${successCount} tickets successfully${failCount > 0 ? `, ${failCount} failed` : ''}`)
+        await fetchTickets()
+      } else {
+        setError(`Failed to verify all ${failCount} tickets`)
+      }
+    } finally {
+      setVerifyingAll(false)
     }
   }
 
@@ -563,6 +629,26 @@ export default function CurrentDrawPage() {
             </div>
             {!ticketsLoading && tickets.length > 0 && (
               <div className="flex items-center gap-2">
+                {pendingCount > 0 && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleVerifyAllPending}
+                    disabled={verifyingAll}
+                  >
+                    {verifyingAll ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Verifying...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Verify All Pending
+                      </>
+                    )}
+                  </Button>
+                )}
                 <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
                   <SelectTrigger className="w-[140px]">
                     <SelectValue />
