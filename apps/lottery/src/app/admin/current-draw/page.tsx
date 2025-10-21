@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Play, Download, Trophy, Ticket, Loader2, AlertCircle, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink, RefreshCw, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
+import { Play, Download, Trophy, Ticket, Loader2, AlertCircle, CheckCircle2, XCircle, ChevronDown, ChevronUp, ExternalLink, RefreshCw, ChevronLeft, ChevronRight, ArrowUpDown, Grid, List } from "lucide-react"
 import { useAdmin } from "../admin-context"
 import { LotteryTicket, LotteryConfig } from "@/types/lottery"
 import { getTransactionUrl } from "@/lib/stacks-explorer"
@@ -31,6 +31,7 @@ export default function CurrentDrawPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [sortBy, setSortBy] = useState<'ticketId' | 'date' | 'status' | 'wallet'>('ticketId')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [viewMode, setViewMode] = useState<'single' | 'batch'>('single')
   const ticketsPerPage = 50
 
   useEffect(() => {
@@ -470,11 +471,33 @@ export default function CurrentDrawPage() {
     return sortOrder === 'asc' ? compareValue : -compareValue
   })
 
+  // Group tickets by transaction ID for batch view
+  const batchGroups = sortedTickets.reduce((groups, ticket) => {
+    const txId = ticket.transactionId || 'no-tx'
+    if (!groups[txId]) {
+      groups[txId] = []
+    }
+    groups[txId].push(ticket)
+    return groups
+  }, {} as Record<string, LotteryTicket[]>)
+
+  const batchGroupsArray = Object.entries(batchGroups).map(([txId, tickets]) => ({
+    transactionId: txId,
+    tickets,
+    totalAmount: tickets.reduce((sum, t) => sum + t.purchasePrice, 0),
+    confirmedCount: tickets.filter(t => t.status === 'confirmed').length,
+    pendingCount: tickets.filter(t => t.status === 'pending').length,
+    cancelledCount: tickets.filter(t => t.status === 'cancelled').length,
+    walletAddress: tickets[0].walletAddress
+  }))
+
   // Pagination calculations
-  const totalPages = Math.ceil(sortedTickets.length / ticketsPerPage)
+  const itemsToDisplay = viewMode === 'batch' ? batchGroupsArray : sortedTickets
+  const totalPages = Math.ceil(itemsToDisplay.length / ticketsPerPage)
   const startIndex = (currentPage - 1) * ticketsPerPage
   const endIndex = startIndex + ticketsPerPage
-  const paginatedTickets = sortedTickets.slice(startIndex, endIndex)
+  const paginatedTickets = viewMode === 'single' ? sortedTickets.slice(startIndex, endIndex) : []
+  const paginatedBatches = viewMode === 'batch' ? batchGroupsArray.slice(startIndex, endIndex) : []
   const cancelledCount = stats.currentDrawCancelled || 0
   const uniqueWalletsCount = stats.currentDrawUniqueWallets || 0
   const totalTicketsCount = stats.currentDrawTickets || 0
@@ -649,25 +672,49 @@ export default function CurrentDrawPage() {
                     )}
                   </Button>
                 )}
-                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
-                  <SelectTrigger className="w-[140px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ticketId">Ticket ID</SelectItem>
-                    <SelectItem value="date">Date</SelectItem>
-                    <SelectItem value="status">Status</SelectItem>
-                    <SelectItem value="wallet">Wallet</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
-                  title={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
-                >
-                  <ArrowUpDown className="h-4 w-4" />
-                </Button>
+                <div className="flex border border-border/40 rounded-md">
+                  <Button
+                    variant={viewMode === 'single' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('single')}
+                    className="rounded-r-none"
+                  >
+                    <List className="h-4 w-4 mr-1" />
+                    Single
+                  </Button>
+                  <Button
+                    variant={viewMode === 'batch' ? 'default' : 'ghost'}
+                    size="sm"
+                    onClick={() => setViewMode('batch')}
+                    className="rounded-l-none"
+                  >
+                    <Grid className="h-4 w-4 mr-1" />
+                    Batch
+                  </Button>
+                </div>
+                {viewMode === 'single' && (
+                  <>
+                    <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ticketId">Ticket ID</SelectItem>
+                        <SelectItem value="date">Date</SelectItem>
+                        <SelectItem value="status">Status</SelectItem>
+                        <SelectItem value="wallet">Wallet</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                      title={sortOrder === 'asc' ? 'Sort descending' : 'Sort ascending'}
+                    >
+                      <ArrowUpDown className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -682,6 +729,146 @@ export default function CurrentDrawPage() {
           ) : tickets.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No tickets in current draw
+            </div>
+          ) : viewMode === 'batch' ? (
+            <div className="space-y-2">
+              {paginatedBatches.map((batch) => {
+                const isExpanded = expandedTicket === batch.transactionId
+                const allConfirmed = batch.confirmedCount === batch.tickets.length
+                const allPending = batch.pendingCount === batch.tickets.length
+
+                return (
+                  <div
+                    key={batch.transactionId}
+                    className="border border-border/40 rounded-md hover:bg-muted/50 transition-colors"
+                  >
+                    <div
+                      className="flex items-center justify-between p-4 cursor-pointer"
+                      onClick={() => setExpandedTicket(isExpanded ? null : batch.transactionId)}
+                    >
+                      <div className="flex items-center gap-4 flex-1">
+                        <div className="space-y-1">
+                          <div className="font-mono text-sm font-medium">
+                            {batch.tickets.length} Ticket{batch.tickets.length > 1 ? 's' : ''}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {batch.totalAmount.toLocaleString()} STONE
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground font-mono truncate max-w-[300px]">
+                          {batch.walletAddress}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right space-y-1">
+                          {batch.confirmedCount > 0 && (
+                            <div className="text-xs text-green-600">
+                              {batch.confirmedCount} confirmed ({((batch.confirmedCount / batch.tickets.length) * 100).toFixed(0)}%)
+                            </div>
+                          )}
+                          {batch.pendingCount > 0 && (
+                            <div className="text-xs text-yellow-600">
+                              {batch.pendingCount} pending
+                            </div>
+                          )}
+                          {batch.cancelledCount > 0 && (
+                            <div className="text-xs text-red-600">
+                              {batch.cancelledCount} cancelled
+                            </div>
+                          )}
+                        </div>
+                        <Badge
+                          variant={
+                            allConfirmed ? 'default' :
+                            allPending ? 'secondary' :
+                            'outline'
+                          }
+                        >
+                          {allConfirmed ? 'All Confirmed' : allPending ? 'All Pending' : 'Mixed'}
+                        </Badge>
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </div>
+                    </div>
+
+                    {isExpanded && (
+                      <div className="px-4 pb-4 border-t border-border/40">
+                        <div className="mt-3 space-y-2">
+                          {batch.transactionId !== 'no-tx' && (
+                            <div className="mb-3">
+                              <div className="text-sm text-muted-foreground mb-1">Transaction ID</div>
+                              <a
+                                href={getTransactionUrl(batch.transactionId)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-mono text-xs break-all text-blue-500 hover:text-blue-600 hover:underline flex items-center gap-1"
+                              >
+                                {batch.transactionId}
+                                <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                              </a>
+                            </div>
+                          )}
+                          <div className="space-y-1">
+                            {batch.tickets.map(ticket => (
+                              <div key={ticket.id} className="flex items-center justify-between p-2 bg-muted/30 rounded text-sm">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono">#{ticket.id}</span>
+                                  <span className="text-muted-foreground text-xs">{ticket.purchasePrice} STONE</span>
+                                </div>
+                                <Badge
+                                  variant={
+                                    ticket.status === 'confirmed' ? 'default' :
+                                    ticket.status === 'pending' ? 'secondary' :
+                                    'destructive'
+                                  }
+                                  className="text-xs"
+                                >
+                                  {ticket.status}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-border/40">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {startIndex + 1}-{Math.min(endIndex, itemsToDisplay.length)} of {itemsToDisplay.length} batches
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Previous
+                    </Button>
+                    <div className="text-sm text-muted-foreground">
+                      Page {currentPage} of {totalPages}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -809,7 +996,7 @@ export default function CurrentDrawPage() {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-4 border-t border-border/40">
                   <div className="text-sm text-muted-foreground">
-                    Showing {startIndex + 1}-{Math.min(endIndex, tickets.length)} of {tickets.length} tickets
+                    Showing {startIndex + 1}-{Math.min(endIndex, itemsToDisplay.length)} of {itemsToDisplay.length} tickets
                   </div>
                   <div className="flex items-center gap-2">
                     <Button
