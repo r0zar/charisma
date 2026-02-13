@@ -100,19 +100,21 @@ const calculateUsdValue = (amount: number, decimals: number, contractId: string,
 
 interface Props {
     vaults: Vault[];
+    prices?: KraxelPriceData;
 }
 
-export default function PoolList({ vaults }: Props) {
+export default function PoolList({ vaults, prices: serverPrices }: Props) {
     const [refreshing, setRefreshing] = useState<string | null>(null);
     const [removing, setRemoving] = useState<string | null>(null);
     const [blacklisting, setBlacklisting] = useState<string | null>(null);
     const [expandedVault, setExpandedVault] = useState<string | null>(null);
-    const [prices, setPrices] = useState<KraxelPriceData | null>(null);
+    const [prices, setPrices] = useState<KraxelPriceData | null>(serverPrices || null);
     const [sortBy, setSortBy] = useState<'fee' | 'tvl' | null>(null);
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
     const isDev = process.env.NODE_ENV === 'development';
 
     useEffect(() => {
+        if (serverPrices) return;
         const fetchPrices = async () => {
             try {
                 const priceData = await listPrices();
@@ -122,7 +124,7 @@ export default function PoolList({ vaults }: Props) {
             }
         };
         fetchPrices();
-    }, []);
+    }, [serverPrices]);
 
     const handleRefresh = async (id: string) => {
         setRefreshing(id);

@@ -308,14 +308,13 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
     const sourceNames: string[] = [];
 
     if (finalConfig.sources.stxtools) {
-        // skip if we're in a browser
-        // @ts-ignore
         if (typeof window !== 'undefined') {
-            throw new Error('STXTools API is not available in the browser');
+            // STXTools API is server-only (CORS restricted), skip in browser
+            console.log('STXTools API skipped in browser, using internal API only');
+        } else {
+            promises.push(Promise.race([fetchSTXToolsPrices(), createTimeoutPromise<KraxelPriceData>(finalConfig.timeout)]));
+            sourceNames.push('stxtools');
         }
-
-        promises.push(Promise.race([fetchSTXToolsPrices(), createTimeoutPromise<KraxelPriceData>(finalConfig.timeout)]));
-        sourceNames.push('stxtools');
     }
 
     if (finalConfig.sources.internal) {
