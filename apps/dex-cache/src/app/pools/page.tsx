@@ -8,7 +8,7 @@ import { AddLiquidityWizard } from '@/components/pool/add-liquidity-wizard-dialo
 import { listPrices } from '@repo/tokens';
 import { getHostUrl } from '@modules/discovery';
 
-// export const dynamic = "force-dynamic";
+export const revalidate = 300; // Re-fetch prices every 5 minutes
 
 // Define metadata for better SEO
 export const metadata: Metadata = {
