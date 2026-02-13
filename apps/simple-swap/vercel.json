@@ -2,7 +2,7 @@
     "crons": [
         {
             "path": "/api/cron/hoot-farmer",
-            "schedule": "*/30 * * * *"
+            "schedule": "0 12 * * *"
         },
         {
             "path": "/api/cron/orders",
