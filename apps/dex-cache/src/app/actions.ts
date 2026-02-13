@@ -360,6 +360,34 @@ export async function getTokenTotalSupply(tokenContractId: string): Promise<{ su
 }
 
 /**
+ * Server action to fetch total LP supply for multiple vaults in parallel.
+ * Returns a map of contractId → totalSupply.
+ */
+export async function getBatchLpTotalSupplies(
+    vaultContractIds: string[]
+): Promise<Record<string, number>> {
+    const result: Record<string, number> = {};
+    const batchSize = 10;
+
+    for (let i = 0; i < vaultContractIds.length; i += batchSize) {
+        const batch = vaultContractIds.slice(i, i + batchSize);
+        const settled = await Promise.allSettled(
+            batch.map(async (id) => {
+                const supply = await getLpTokenTotalSupply(id);
+                return { id, supply };
+            })
+        );
+        for (const entry of settled) {
+            if (entry.status === 'fulfilled') {
+                result[entry.value.id] = entry.value.supply;
+            }
+        }
+    }
+
+    return result;
+}
+
+/**
  * Server action to fetch token metadata for a contract ID
  */
 export async function getTokenMetadata(contractId: string): Promise<{ success: boolean; data?: any; error?: string }> {

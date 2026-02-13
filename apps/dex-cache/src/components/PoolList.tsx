@@ -10,14 +10,8 @@ import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers, Ban, ArrowUp,
 import Link from 'next/link';
 import { Vault } from '@/lib/pool-service';
 import Image from 'next/image';
-
-// Utility to truncate contract id for display
-const truncateContractId = (id: string, prefix = 4, suffix = 4) => {
-    const [addr, name] = id.split('.');
-    if (!addr) return id;
-    if (addr.length <= prefix + suffix + 3) return id;
-    return `${addr.slice(0, prefix)}...${addr.slice(-suffix)}.${name}`;
-};
+import { useApp } from '@/lib/context/app-context';
+import { useUserPoolPositions } from '@/hooks/useUserPoolPositions';
 
 // Format token amount with proper decimals
 const formatTokenAmount = (amount: number, decimals: number): string => {
@@ -112,6 +106,9 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
     const [sortBy, setSortBy] = useState<'fee' | 'tvl' | null>(null);
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
     const isDev = process.env.NODE_ENV === 'development';
+
+    const { stxAddress } = useApp();
+    const { positions, loading: positionsLoading } = useUserPoolPositions(stxAddress, vaults, prices);
 
     useEffect(() => {
         if (serverPrices) return;
@@ -216,7 +213,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                         <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider">
                             <tr>
                                 <th className="p-4 font-semibold text-muted-foreground">Name</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Contract</th>
+                                <th className="p-4 font-semibold text-muted-foreground">My TVL</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Tokens</th>
                                 <th className="p-4 font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => handleSort('fee')}>
                                     Fee
@@ -289,8 +286,16 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                                 </button>
                                             </td>
-                                            <td className="p-4 whitespace-nowrap font-mono text-xs">
-                                                <Badge variant="outline">{truncateContractId(v.contractId)}</Badge>
+                                            <td className="p-4 whitespace-nowrap text-sm">
+                                                {!stxAddress ? (
+                                                    <span className="text-muted-foreground">—</span>
+                                                ) : positionsLoading ? (
+                                                    <div className="h-4 w-16 bg-muted/50 rounded animate-pulse" />
+                                                ) : positions[v.contractId] != null ? (
+                                                    <span className="font-medium">{formatUsdValue(positions[v.contractId])}</span>
+                                                ) : (
+                                                    <span className="text-muted-foreground">—</span>
+                                                )}
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-2">
@@ -379,6 +384,11 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                 <td colSpan={7} className="px-6 py-5">
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                                         <div className="space-y-3">
+                                                            <div className="space-y-1">
+                                                                <h4 className="text-sm font-medium text-muted-foreground">Contract</h4>
+                                                                <p className="text-sm font-mono bg-muted/50 px-2 py-1 rounded inline-block">{v.contractId}</p>
+                                                            </div>
+
                                                             <div className="space-y-1">
                                                                 <h4 className="text-sm font-medium text-muted-foreground">Description</h4>
                                                                 <p className="text-sm">{v.description || 'N/A'}</p>
