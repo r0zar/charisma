@@ -103,7 +103,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
     const [blacklisting, setBlacklisting] = useState<string | null>(null);
     const [expandedVault, setExpandedVault] = useState<string | null>(null);
     const [prices, setPrices] = useState<KraxelPriceData | null>(serverPrices || null);
-    const [sortBy, setSortBy] = useState<'fee' | 'tvl' | null>(null);
+    const [sortBy, setSortBy] = useState<'fee' | 'tvl' | 'myTvl' | null>(null);
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
     const isDev = process.env.NODE_ENV === 'development';
 
@@ -170,12 +170,18 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                 const tvlB = getTvl(b) ?? 0;
                 return sortDir === 'asc' ? tvlA - tvlB : tvlB - tvlA;
             });
+        } else if (sortBy === 'myTvl') {
+            sorted.sort((a, b) => {
+                const myA = positions[a.contractId] ?? 0;
+                const myB = positions[b.contractId] ?? 0;
+                return sortDir === 'asc' ? myA - myB : myB - myA;
+            });
         }
         return sorted;
-    }, [vaults, sortBy, sortDir, prices]);
+    }, [vaults, sortBy, sortDir, prices, positions]);
 
     // Handle sort toggling
-    const handleSort = (col: 'fee' | 'tvl') => {
+    const handleSort = (col: 'fee' | 'tvl' | 'myTvl') => {
         if (sortBy === col) {
             setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
         } else {
@@ -213,7 +219,6 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                         <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider">
                             <tr>
                                 <th className="p-4 font-semibold text-muted-foreground">Name</th>
-                                <th className="p-4 font-semibold text-muted-foreground">My TVL</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Tokens</th>
                                 <th className="p-4 font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => handleSort('fee')}>
                                     Fee
@@ -222,6 +227,10 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                 <th className="p-4 font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => handleSort('tvl')}>
                                     Liquidity
                                     {sortBy === 'tvl' && (sortDir === 'asc' ? <ArrowUp className="inline w-3 h-3 ml-1" /> : <ArrowDown className="inline w-3 h-3 ml-1" />)}
+                                </th>
+                                <th className="p-4 font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => handleSort('myTvl')}>
+                                    My TVL
+                                    {sortBy === 'myTvl' && (sortDir === 'asc' ? <ArrowUp className="inline w-3 h-3 ml-1" /> : <ArrowDown className="inline w-3 h-3 ml-1" />)}
                                 </th>
                                 <th className="p-4 font-semibold text-muted-foreground">Status</th>
                                 <th className="p-4 font-semibold text-muted-foreground text-right">Actions</th>
@@ -286,17 +295,6 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                                 </button>
                                             </td>
-                                            <td className="p-4 whitespace-nowrap text-sm">
-                                                {!stxAddress ? (
-                                                    <span className="text-muted-foreground">—</span>
-                                                ) : positionsLoading ? (
-                                                    <div className="h-4 w-16 bg-muted/50 rounded animate-pulse" />
-                                                ) : positions[v.contractId] != null ? (
-                                                    <span className="font-medium">{formatUsdValue(positions[v.contractId])}</span>
-                                                ) : (
-                                                    <span className="text-muted-foreground">—</span>
-                                                )}
-                                            </td>
                                             <td className="p-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-2">
                                                     <span className="flex items-center">
@@ -334,6 +332,17 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                         {formattedReservesA} {v.tokenA?.symbol} / {formattedReservesB} {v.tokenB?.symbol}
                                                     </span>
                                                 </div>
+                                            </td>
+                                            <td className="p-4 whitespace-nowrap text-sm">
+                                                {!stxAddress ? (
+                                                    <span className="text-muted-foreground">—</span>
+                                                ) : positionsLoading ? (
+                                                    <div className="h-4 w-16 bg-muted/50 rounded animate-pulse" />
+                                                ) : positions[v.contractId] != null ? (
+                                                    <span className="font-medium">{formatUsdValue(positions[v.contractId])}</span>
+                                                ) : (
+                                                    <span className="text-muted-foreground">—</span>
+                                                )}
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
                                                 <Badge
