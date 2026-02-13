@@ -307,9 +307,11 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
     const promises: Promise<KraxelPriceData>[] = [];
     const sourceNames: string[] = [];
 
+    // Track whether stxtools was actually fetched (skipped in browser due to CORS)
+    const stxtoolsSkipped = finalConfig.sources.stxtools && typeof window !== 'undefined';
+
     if (finalConfig.sources.stxtools) {
-        if (typeof window !== 'undefined') {
-            // STXTools API is server-only (CORS restricted), skip in browser
+        if (stxtoolsSkipped) {
             console.log('STXTools API skipped in browser, using internal API only');
         } else {
             promises.push(Promise.race([fetchSTXToolsPrices(), createTimeoutPromise<KraxelPriceData>(finalConfig.timeout)]));
@@ -325,27 +327,27 @@ export async function listPrices(config: Partial<PriceAggregationConfig> = {}): 
     // Fetch from enabled APIs concurrently
     const results = await Promise.allSettled(promises);
 
-    // Process results based on which sources were enabled
+    // Process results based on which sources were actually fetched
     let resultIndex = 0;
 
-    if (finalConfig.sources.stxtools) {
-        if (results[resultIndex].status === 'fulfilled') {
+    if (finalConfig.sources.stxtools && !stxtoolsSkipped) {
+        if (results[resultIndex]?.status === 'fulfilled') {
             stxToolsPrices = (results[resultIndex] as PromiseFulfilledResult<KraxelPriceData>).value;
             console.log(`Successfully fetched ${Object.keys(stxToolsPrices).length} prices from STXTools API`);
-        } else {
+        } else if (results[resultIndex]) {
             const reason = (results[resultIndex] as PromiseRejectedResult).reason;
             console.warn('Failed to fetch from STXTools API:', reason && reason.message ? reason.message : reason);
         }
         resultIndex++;
-    } else {
+    } else if (!finalConfig.sources.stxtools) {
         console.log('STXTools API disabled');
     }
 
     if (finalConfig.sources.internal) {
-        if (results[resultIndex].status === 'fulfilled') {
+        if (results[resultIndex]?.status === 'fulfilled') {
             internalPrices = (results[resultIndex] as PromiseFulfilledResult<KraxelPriceData>).value;
             console.log(`Successfully fetched ${Object.keys(internalPrices).length} prices from Internal API`);
-        } else {
+        } else if (results[resultIndex]) {
             const reason = (results[resultIndex] as PromiseRejectedResult).reason;
             console.warn('Failed to fetch from Internal API:', reason && reason.message ? reason.message : reason);
         }
