@@ -35,7 +35,7 @@
 | `src/lib/range/match-legs.ts` (+ test) | Pure: orders → per-leg outcome, run status, realized, open position, cycles, hit rate. |
 | `src/lib/charts/simple-chart-utils.ts` (+ test) | `includeTargetsInRange` for several prices. |
 | `src/components/condition-token-chart.tsx` | Optional `band` prop: two band series, future extension, drag. |
-| `src/hooks/useRouterTrading.tsx` | `createRangeLeg`. |
+| `src/lib/range/create-leg.ts` | `createRangeLeg`: sign one leg and POST it. Plain async function, no hook, so the page needs no swap providers. |
 | `src/components/layout/header.tsx` | Advanced menu. |
 | `src/components/range/SubnetPairSelector.tsx` | Token picker limited to subnet-funded tokens. |
 | `src/components/range/RangeControls.tsx` | The rail: pair, band %, per swap, interval, run, tilt. |
@@ -498,11 +498,9 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Add the failing test**
 
-Append to `src/lib/charts/simple-chart-utils.test.ts`:
+In `src/lib/charts/simple-chart-utils.test.ts`, change the existing import to `import { includeTargetInRange, includeTargetsInRange } from './simple-chart-utils';` and append:
 
 ```ts
-import { includeTargetsInRange } from './simple-chart-utils';
-
 describe('includeTargetsInRange', () => {
   it('widens the range to cover every valid target', () => {
     const info = { priceRange: { minValue: 1.0, maxValue: 1.2 } };
@@ -670,6 +668,7 @@ Add a new effect after the colour effect:
         s.sell.setData(bandPoints(band.sell, band, lastTime));
         s.buy.setData(bandPoints(band.buy, band, lastTime));
         chartRef.current?.priceScale('left').applyOptions({ autoScale: true });
+        chartRef.current?.timeScale().fitContent();
     }, [band?.sell, band?.buy, band?.tilt, band?.windows, band?.intervalHours, data]);
 ```
 
@@ -742,7 +741,10 @@ Add an effect that attaches pointer listeners to the container when a band exist
             container.removeEventListener('pointerup', onUp);
             container.removeEventListener('pointercancel', onUp);
         };
-    }, [band, data]);
+        // Depend on whether a band exists, not the band object: the page passes a new
+        // object every render and re-running this effect mid-drag would drop the drag.
+        // All band values are read through bandRef.
+    }, [!!band, data]);
 ```
 
 Also set `style={{ touchAction: band ? 'none' : undefined }}` on the container div.
@@ -763,83 +765,90 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 ---
 
-### Task 6: `createRangeLeg` in `useRouterTrading`
+### Task 6: `createRangeLeg` (plain function)
 
 **Files:**
-- Modify: `src/hooks/useRouterTrading.tsx` (add after `createSingleOrder`, export in the return block at line ~1158)
+- Create: `src/lib/range/create-leg.ts`
+
+Why not inside `useRouterTrading`: that hook calls `useSwapTokens()` and `useOrderConditions()`, whose providers are only mounted on the swap page. The range page has neither, so the hook would throw. Signing and the POST are the only things this needs.
 
 No unit test (signing needs a wallet). Verified on preview in Task 12.
 
-- [ ] **Step 1: Add the function**
-
-Import at the top: `import type { RangeLegSpec, RangeSettings } from '@/lib/range/types';`
-
-After `createSingleOrder` add:
+- [ ] **Step 1: Implement**
 
 ```ts
-  /**
-   * Create one leg of a range swap. Takes explicit tokens and condition so it never
-   * depends on the swap card's selected tokens. Reuses signing and the orders POST only.
-   */
-  const createRangeLeg = useCallback(async (leg: RangeLegSpec, run: { strategyId: string; strategySize: number; range: RangeSettings }) => {
-    if (!walletAddress) throw new Error('Connect wallet');
+// src/lib/range/create-leg.ts
+import { signTriggeredSwap } from 'blaze-sdk';
+import { convertToMicroUnits } from '@/lib/swap-utils';
+import type { RangeLegSpec, RangeSettings } from './types';
 
-    const uuid = globalThis.crypto?.randomUUID() ?? Date.now().toString();
-    const micro = convertToMicroUnits(leg.amountDisplay, leg.inputDecimals);
-    const signature = await signTriggeredSwap({ subnet: leg.inputToken, uuid, amount: BigInt(micro) });
+export interface RangeRun {
+  strategyId: string;
+  strategySize: number;
+  range: RangeSettings;
+}
 
-    const payload = {
-      owner: walletAddress,
-      inputToken: leg.inputToken,
-      outputToken: leg.outputToken,
-      amountIn: micro,
-      conditionToken: leg.conditionToken,
-      baseAsset: leg.baseAsset,
-      targetPrice: leg.targetPrice,
-      direction: leg.direction,
-      recipient: walletAddress,
-      signature,
-      uuid,
-      validFrom: leg.validFrom,
-      validTo: leg.validTo,
-      strategyId: run.strategyId,
-      strategyType: 'range',
-      strategySize: run.strategySize,
-      strategyPosition: leg.position,
-      leg: leg.leg,
-      metadata: { range: run.range },
-    };
+/**
+ * Sign one leg of a range swap with the wallet and submit it as a triggered order.
+ * Takes explicit tokens and condition, so it never depends on the swap card's state.
+ */
+export async function createRangeLeg(walletAddress: string, leg: RangeLegSpec, run: RangeRun): Promise<unknown> {
+  if (!walletAddress) throw new Error('Connect wallet');
 
-    const res = await fetch('/api/v1/orders/new', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    if (!res.ok) {
-      const j = await res.json().catch(() => ({ error: 'unknown' }));
-      throw new Error(j.error || `Order create failed (${res.status})`);
-    }
-    return res.json();
-  }, [walletAddress]);
+  const uuid = globalThis.crypto?.randomUUID() ?? Date.now().toString();
+  const micro = convertToMicroUnits(leg.amountDisplay, leg.inputDecimals);
+  const signature = await signTriggeredSwap({ subnet: leg.inputToken, uuid, amount: BigInt(micro) });
+
+  const payload = {
+    owner: walletAddress,
+    inputToken: leg.inputToken,
+    outputToken: leg.outputToken,
+    amountIn: micro,
+    conditionToken: leg.conditionToken,
+    baseAsset: leg.baseAsset,
+    targetPrice: leg.targetPrice,
+    direction: leg.direction,
+    recipient: walletAddress,
+    signature,
+    uuid,
+    validFrom: leg.validFrom,
+    validTo: leg.validTo,
+    strategyId: run.strategyId,
+    strategyType: 'range',
+    strategySize: run.strategySize,
+    strategyPosition: leg.position,
+    leg: leg.leg,
+    metadata: { range: run.range },
+  };
+
+  const res = await fetch('/api/v1/orders/new', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({ error: 'unknown' }));
+    throw new Error(j.error || `Order create failed (${res.status})`);
+  }
+  return res.json();
+}
 ```
-
-Add `createRangeLeg,` to the return object right after `createSingleOrder,`.
 
 - [ ] **Step 2: Confirm the API accepts the extra fields**
 
-Run: `grep -n "passthrough\|leg\|metadata" src/app/api/v1/orders/new/route.ts`
-Expected: the zod schema uses `.passthrough()`. If it does not, add `leg: z.enum(['sell', 'buy']).optional()` and `metadata: z.record(z.any()).optional()` to the schema in that route and include the file in the commit.
+Run: `grep -n "passthrough" src/app/api/v1/orders/new/route.ts`
+Expected: the zod schema uses `.passthrough()`, so `leg` and `metadata` land without a route change. If it does not, add `leg: z.enum(['sell', 'buy']).optional()` and `metadata: z.record(z.any()).optional()` to the schema and include the route in the commit.
 
 - [ ] **Step 3: Type check**
 
-Run: `pnpm check-types 2>&1 | grep useRouterTrading`
-Expected: nothing new versus baseline.
+Run: `pnpm check-types 2>&1 | grep create-leg`
+Expected: no output.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add src/hooks/useRouterTrading.tsx
-git commit -m "feat(simple-swap): createRangeLeg for explicit-token triggered orders
+git add src/lib/range/create-leg.ts
+git commit -m "feat(simple-swap): createRangeLeg signs and submits one range leg
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 ```
@@ -872,8 +881,8 @@ In the desktop `<nav>` after the `navigationLinks.map(...)` block insert:
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
                                 {advancedLinks.map((link) => (
-                                    <DropdownMenuItem key={link.href} asChild>
-                                        <Link href={link.href} className="flex flex-col items-start gap-0.5">
+                                    <DropdownMenuItem key={link.href}>
+                                        <Link href={link.href} className="flex flex-col items-start gap-0.5 w-full">
                                             <span className="text-sm text-white/90">{link.label}</span>
                                             <span className="text-xs text-white/50">{link.hint}</span>
                                         </Link>
@@ -883,7 +892,7 @@ In the desktop `<nav>` after the `navigationLinks.map(...)` block insert:
                         </DropdownMenu>
 ```
 
-If `DropdownMenuItem` in `src/components/ui/dropdown-menu.tsx` does not accept `asChild`, render `<DropdownMenuItem onSelect={() => router.push(link.href)}>` with `useRouter` from `next/navigation` instead.
+`DropdownMenuItem` in `src/components/ui/dropdown-menu.tsx` is a plain div with an `onClick` that closes the menu; the nested `Link` handles navigation and the click bubbles up to close. Do not use `asChild` or `onSelect`, neither exists on it.
 
 In the mobile `<nav className="flex flex-col space-y-2">`, after the `navigationLinks.map(...)` block insert:
 
@@ -1228,7 +1237,7 @@ import { usePrices } from '@/contexts/token-price-context';
 import { useSubnetTokens } from '@/contexts/subnet-tokens-context';
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
-import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { createRangeLeg } from '@/lib/range/create-leg';
 import { generateRangeLegs } from '@/lib/range/generate-legs';
 import { rangeProfitPreview, runwayFor, windowsFor } from '@/lib/range/profit-preview';
 import type { RangeLegSpec, RangeSettings } from '@/lib/range/types';
@@ -1253,7 +1262,6 @@ export default function RangePage() {
     const { getPrice } = usePrices();
     const { getSubnetContractId } = useSubnetTokens();
     const { getSubnetBalance } = useBalances(address ? [address] : []);
-    const { createRangeLeg } = useRouterTrading();
 
     const priceA = tokenA ? getPrice(tokenA.contractId) : null;
     const priceB = tokenB ? getPrice(tokenB.contractId) : null;
@@ -1282,7 +1290,7 @@ export default function RangePage() {
     };
 
     const create = async () => {
-        if (!ready || !tokenA || !tokenB || !subnetA || !subnetB || preview.reasons.length) return;
+        if (!ready || !tokenA || !tokenB || !subnetA || !subnetB || !address || preview.reasons.length) return;
         setError(null);
         const settings: RangeSettings = {
             pair: { a: tokenA.contractId, b: tokenB.contractId },
@@ -1300,7 +1308,7 @@ export default function RangePage() {
         for (let i = 0; i < specs.length; i++) {
             setStatuses((s) => s.map((v, k) => (k === i ? 'signing' : v)));
             try {
-                await createRangeLeg(specs[i], { strategyId, strategySize: specs.length, range: settings });
+                await createRangeLeg(address, specs[i], { strategyId, strategySize: specs.length, range: settings });
                 setStatuses((s) => s.map((v, k) => (k === i ? 'done' : v)));
             } catch (err) {
                 setStatuses((s) => s.map((v, k) => (k === i ? 'error' : v)));
@@ -1442,7 +1450,7 @@ describe('matchRangeLegs', () => {
     const orders = [
       hit('sell', 1, '735000000', '54400000', '2026-09-24T01:00:00.000Z'),   // sold CHA, received 54.4 sUSDh
       hit('buy', 2, '50000000', '790000000', '2026-09-24T09:00:00.000Z'),    // spent 50 sUSDh
-      hit('sell', 3, '735000000', '55000000', '2026-09-25T01:00:00.000Z'),   // unmatched
+      { ...hit('sell', 3, '735000000', '55000000', '2026-09-25T01:00:00.000Z'), validFrom: '2026-09-24T12:00:00.000Z', validTo: '2026-09-25T12:00:00.000Z' },   // unmatched
       order({ leg: 'buy', strategyPosition: 4, status: 'cancelled', cancelledAt: '2026-09-26T12:00:01.000Z', validFrom: '2026-09-25T12:00:00.000Z', validTo: '2026-09-26T12:00:00.000Z' }),
       order({ leg: 'sell', strategyPosition: 5, validFrom: '2026-10-01T12:00:00.000Z', validTo: '2026-10-02T12:00:00.000Z' }),
       order({ leg: 'buy', strategyPosition: 6, validFrom: '2026-10-01T12:00:00.000Z', validTo: '2026-10-02T12:00:00.000Z' }),
@@ -1458,7 +1466,7 @@ describe('matchRangeLegs', () => {
     expect(m.openPositionB).toBeCloseTo(55, 6);
     expect(m.legsEnded).toBe(4);
     expect(m.legsHit).toBe(3);
-    expect(m.windowsElapsed).toBe(2);
+    expect(m.windowsElapsed).toBe(3);
     expect(m.status).toBe('live');
   });
 
@@ -1587,7 +1595,7 @@ export function matchRangeLegs(
 - [ ] **Step 4: Run to verify it passes**
 
 Run: `pnpm test -- src/lib/range/match-legs.test.ts`
-Expected: 4 passed. If `windowsElapsed` comes out as 3 instead of 2, the fourth order's `validTo` (Sep 26) is ≤ NOW (Sep 30); adjust the expectation to the set size of distinct past `validTo` values in the fixture (Sep 24, Sep 26 → 2). Keep the assertion honest against the fixture, do not change the implementation to fit.
+Expected: 4 passed. (`windowsElapsed` counts distinct past `validTo` values in the fixture: Sep 24, Sep 25, Sep 26.)
 
 - [ ] **Step 5: Commit**
 
@@ -1604,10 +1612,41 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 **Files:**
 - Create: `src/components/orders/strategy-cards/types/RangeStrategyCard.tsx`
+- Modify: `src/components/orders/strategy-cards/base/shared-types.ts`
+- Modify: `src/components/orders/orders-panel.tsx` (around lines 640, 986, 1323, 1346)
 - Modify: `src/components/orders/strategy-cards/StrategyCardFactory.tsx`
 - Modify: `src/components/orders/strategy-cards/index.ts`
 
-- [ ] **Step 1: The card**
+- [ ] **Step 1: Bulk cancel plumbing**
+
+The existing `onCancelOrder` prop only opens a single-order confirm modal (`setConfirmUuid`), so calling it in a loop cancels at most one order. Add a bulk path:
+
+In `shared-types.ts`, add to `BaseStrategyCardProps`:
+
+```ts
+    /** Cancel several open orders behind one confirmation. */
+    onCancelOrders?: (uuids: string[]) => void;
+```
+
+In `orders-panel.tsx`:
+
+- Next to `const [confirmUuid, setConfirmUuid] = useState<string | null>(null);` add `const [confirmBulk, setConfirmBulk] = useState<string[] | null>(null);`.
+- After `cancelOrder` add:
+
+```ts
+    const cancelOrders = async (uuids: string[]) => {
+        for (const uuid of uuids) {
+            await cancelOrder(uuid);
+        }
+    };
+```
+
+- Where the factory is rendered (line ~1323, `onCancelOrder={(uuid) => setConfirmUuid(uuid)}`) add `onCancelOrders={(uuids) => setConfirmBulk(uuids)}`.
+- Duplicate the existing confirm modal block (starts at `{confirmUuid && (`, line ~1346) as a `{confirmBulk && (` block with the text `Cancel ${confirmBulk.length} open orders? Filled legs are kept.` and the confirm button calling `cancelOrders(confirmBulk).finally(() => setConfirmBulk(null))`. Keep the same styling and the same cancel/close button wiring.
+
+`StrategyCardFactory` spreads `props`, so nothing else is needed for the prop to reach the card.
+
+- [ ] **Step 2: The card**
 
 ```tsx
 // src/components/orders/strategy-cards/types/RangeStrategyCard.tsx
@@ -1642,7 +1681,7 @@ function priceAtFrom(series: LineData[]): (isoTime: string) => number | null {
 const OUTCOME_LABEL: Record<LegOutcome, string> = { hit: 'filled', expired: 'expired', cancelled: 'cancelled', open: 'open', future: 'upcoming' };
 
 export const RangeStrategyCard: React.FC<RangeStrategyCardProps> = (props) => {
-    const { strategyData, expandedStrategies, onToggleExpansion, onCancelOrder, formatTokenAmount } = props;
+    const { strategyData, expandedStrategies, onToggleExpansion, onCancelOrder, onCancelOrders, formatTokenAmount } = props;
     const { id, orders } = strategyData;
     const first = orders[0];
     const range = first.metadata?.range as RangeSettings | undefined;
@@ -1752,9 +1791,9 @@ export const RangeStrategyCard: React.FC<RangeStrategyCardProps> = (props) => {
                             ) : <span key={k} className="text-white/30">—</span>)}
                         </div>
                     ))}
-                    {openUuids.length > 0 && (
+                    {openUuids.length > 0 && onCancelOrders && (
                         <button
-                            onClick={() => { if (window.confirm(`Cancel ${openUuids.length} open orders?`)) openUuids.forEach(onCancelOrder); }}
+                            onClick={() => onCancelOrders(openUuids)}
                             className="mt-2 px-3 py-1.5 rounded-lg border border-red-500/40 text-red-300 hover:bg-red-500/10"
                         >
                             Cancel remaining · {openUuids.length} open
@@ -1767,23 +1806,23 @@ export const RangeStrategyCard: React.FC<RangeStrategyCardProps> = (props) => {
 };
 ```
 
-Note: `window.confirm` is a browser dialog. Check how `onCancelOrder` in `orders-panel.tsx` confirms today (line ~995). If it already confirms per order, drop the `window.confirm` here and call `openUuids.forEach(onCancelOrder)` directly; do not double-confirm.
+Note: the price series request is `'30d'`, so a run older than 30 days shows its early cycles as unpriced. Acceptable for v1; the label says how many pairs are unpriced.
 
-- [ ] **Step 2: Register it**
+- [ ] **Step 3: Register it**
 
 `StrategyCardFactory.tsx`: import `RangeStrategyCard`, add `case 'range': return <RangeStrategyCard {...props} strategyData={strategyData as StrategyDisplayData & { type: 'range' }} />;`, add `range: React.ComponentType<any>;` to `StrategyComponentRegistry` and `range: RangeStrategyCard,` to `defaultRegistry`.
 
 `index.ts`: export `RangeStrategyCard`, `RangeStrategyCardProps`, and `isRangeStrategy`.
 
-- [ ] **Step 3: Type check and lint**
+- [ ] **Step 4: Type check and lint**
 
-Run: `pnpm check-types 2>&1 | grep -E "RangeStrategyCard|StrategyCardFactory|strategy-cards/index"; pnpm exec eslint src/components/orders/strategy-cards`
+Run: `pnpm check-types 2>&1 | grep -E "RangeStrategyCard|StrategyCardFactory|strategy-cards/index|shared-types|orders-panel"; pnpm exec eslint src/components/orders/strategy-cards src/components/orders/orders-panel.tsx`
 Expected: clean.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add src/components/orders/strategy-cards
+git add src/components/orders/strategy-cards src/components/orders/orders-panel.tsx
 git commit -m "feat(simple-swap): Range strategy card on the Orders page
 
 Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"

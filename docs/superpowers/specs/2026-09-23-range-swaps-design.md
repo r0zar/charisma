@@ -151,7 +151,7 @@ On `LimitOrder` (`src/lib/orders/types.ts`):
 - New `metadata.range`, written on every leg at creation:
 
 ```
-{ pair: { a, b }, sellStart, buyStart, tilt, intervalHours, windows, perSwapUsd, createdAt }
+{ pair: { a, b }, subnet: { a, b }, sellStart, buyStart, tilt, intervalHours, windows, perSwapUsd, createdAt }
 ```
 
 The band settings ride on the signed orders themselves, so there is no separate strategy record, no new store, and no new route. The card reads `metadata.range` from the first order in the group. Repeating it on every leg keeps the group self-describing after partial cancels.
