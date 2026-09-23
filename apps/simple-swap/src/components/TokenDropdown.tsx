@@ -44,7 +44,7 @@ export default function TokenDropdown({
     // Get balance data for enhanced display
     const { address } = useWallet();
     
-    const { getFormattedBalanceWithSubnet, getTokenBalance, getStxBalance, balances, isLoading, error } = useBalances(address ? [address] : []);
+    const { getFormattedBalanceWithSubnet, getFormattedSubnetBalance, getTokenBalance, getStxBalance, balances, isLoading, error } = useBalances(address ? [address] : []);
     const { prices } = useTokenPrices();
     const { getTokenDecimals } = useTokenMetadata();
     const { getSubnetContractId } = useSubnetTokens();
@@ -330,6 +330,10 @@ export default function TokenDropdown({
                                                             
                                                             
                                                             if (balanceMode === 'subnet') {
+                                                                // Same lookup path as calculateTokenUSDValue/the funded-token filter:
+                                                                // pairings map, not the base-scan getFormattedBalanceWithSubnet does.
+                                                                const subnetId = getSubnetContractId(token.contractId);
+                                                                const subnetBalance = subnetId ? getFormattedSubnetBalance(address, subnetId) : '0';
                                                                 return (
                                                                     <>
                                                                         {/* USD Value */}
@@ -346,7 +350,7 @@ export default function TokenDropdown({
 
                                                                         {/* Subnet Balance (primary in subnet mode) */}
                                                                         <div className="text-sm sm:text-base font-semibold text-white/90">
-                                                                            {subnet || '0'}
+                                                                            {subnetBalance || '0'}
                                                                         </div>
                                                                         <div className="text-xs text-white/40">
                                                                             on subnet
