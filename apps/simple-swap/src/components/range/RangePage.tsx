@@ -125,20 +125,23 @@ export default function RangePage() {
                 <p className="text-sm text-white/60">Sell at the top line, buy back at the bottom line, every window, for as long as you choose.</p>
             </div>
             <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
-                    {ready && tokenA && tokenB ? (
-                        <ConditionTokenChart
-                            token={tokenA}
-                            baseToken={tokenB}
-                            targetPrice=""
-                            onTargetPriceChange={() => {}}
-                            band={{ sell, buy, tilt: form.tilt, windows, intervalHours: form.intervalHours, onDrag }}
-                        />
-                    ) : (
-                        <div className="h-[220px] flex items-center justify-center text-sm text-white/50">
-                            {bothPicked ? 'Waiting for prices' : 'Pick two tokens to see the chart.'}
-                        </div>
-                    )}
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 flex flex-col">
+                    <div className="flex-1 min-h-[560px]">
+                        {ready && tokenA && tokenB ? (
+                            <ConditionTokenChart
+                                token={tokenA}
+                                baseToken={tokenB}
+                                targetPrice=""
+                                onTargetPriceChange={() => {}}
+                                band={{ sell, buy, tilt: form.tilt, windows, intervalHours: form.intervalHours, onDrag }}
+                                className="flex-1 min-h-[560px]"
+                            />
+                        ) : (
+                            <div className="h-full min-h-[560px] flex items-center justify-center text-sm text-white/50">
+                                {bothPicked ? 'Waiting for prices' : 'Pick two tokens to see the chart.'}
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div className="space-y-4">
                     <RangeControls

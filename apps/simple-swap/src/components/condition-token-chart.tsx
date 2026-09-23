@@ -54,6 +54,8 @@ interface Props {
     onTargetPriceChange: (price: string) => void;
     colour?: string;
     band?: ChartBand;
+    /** Height classes for the chart area (and its loading/error/empty states). */
+    className?: string;
 }
 
 const HOUR = 3600;
@@ -80,9 +82,9 @@ function bandPoints(start: number, band: ChartBand, from: number): LineData[] {
     return points;
 }
 
-function ChartSkeleton() {
+function ChartSkeleton({ className }: { className: string }) {
     return (
-        <div className="w-full h-[220px] bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm rounded-lg flex items-center justify-center">
+        <div className={`w-full ${className} bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm rounded-lg flex items-center justify-center`}>
             <div className="flex items-center space-x-2 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span className="text-sm">Loading chart data...</span>
@@ -91,9 +93,9 @@ function ChartSkeleton() {
     );
 }
 
-function ChartError({ error, onRetry }: { error: string; onRetry: () => void }) {
+function ChartError({ error, onRetry, className }: { error: string; onRetry: () => void; className: string }) {
     return (
-        <div className="w-full h-[220px] bg-white/[0.03] border border-red-500/[0.15] rounded-lg flex flex-col items-center justify-center space-y-3">
+        <div className={`w-full ${className} bg-white/[0.03] border border-red-500/[0.15] rounded-lg flex flex-col items-center justify-center space-y-3`}>
             <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
                 <AlertCircle className="h-5 w-5" />
                 <span className="text-sm font-medium">Failed to load chart</span>
@@ -110,9 +112,9 @@ function ChartError({ error, onRetry }: { error: string; onRetry: () => void }) 
     );
 }
 
-function EmptyChart({ token }: { token: TokenCacheData }) {
+function EmptyChart({ token, className }: { token: TokenCacheData; className: string }) {
     return (
-        <div className="w-full h-[220px] bg-white/[0.03] border border-white/[0.08] rounded-lg flex flex-col items-center justify-center space-y-2">
+        <div className={`w-full ${className} bg-white/[0.03] border border-white/[0.08] rounded-lg flex flex-col items-center justify-center space-y-2`}>
             <div className="text-muted-foreground text-sm">No price data available</div>
             <div className="text-xs text-muted-foreground/70">No historical data found for {token.symbol}</div>
         </div>
@@ -127,6 +129,7 @@ export default function ConditionTokenChart({
     onTargetPriceChange,
     colour = "#3b82f6",
     band,
+    className = 'h-[220px]',
 }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
@@ -290,7 +293,7 @@ export default function ConditionTokenChart({
         if (!container || !chart || !bandRef.current || !data || data.length === 0) return;
 
         const HIT_PX = 10;
-        let dragging: { line: 'sell' | 'buy'; frac: number } | null = null;
+        let dragging: { line: 'sell' | 'buy'; frac: number; pointerId: number; captured: boolean } | null = null;
 
         const lineValueAt = (line: 'sell' | 'buy', x: number) => {
             const b = bandRef.current!;
@@ -312,25 +315,36 @@ export default function ConditionTokenChart({
                 const { value, frac } = lineValueAt(line, x);
                 const ly = s[line].priceToCoordinate(value);
                 if (ly !== null && Math.abs(ly - y) <= HIT_PX) {
-                    dragging = { line, frac };
+                    // Capture first: an inactive pointer id (stray or synthetic event) throws, and then no drag starts
+                    try { container.setPointerCapture(e.pointerId); } catch { return; }
+                    dragging = { line, frac, pointerId: e.pointerId, captured: false };
                     draggingRef.current = true;
                     chart.priceScale('left').applyOptions({ autoScale: false });
                     chart.applyOptions({ handleScroll: false, handleScale: false });
-                    container.setPointerCapture(e.pointerId);
                     container.style.cursor = 'ns-resize';
                     e.preventDefault();
                     return;
                 }
             }
         };
+        // Moves count only once the browser confirms capture, and only from the captured pointer
+        const onCapture = (e: PointerEvent) => {
+            if (dragging && e.pointerId === dragging.pointerId) dragging.captured = true;
+        };
         const onMove = (e: PointerEvent) => {
-            if (!dragging) return;
+            if (!dragging || !dragging.captured || e.pointerId !== dragging.pointerId) return;
+            // The pane's top edge is the container's top edge (price scales sit beside it, the time scale below),
+            // so this y is pane-relative, the same frame priceToCoordinate used in onDown
             const rect = container.getBoundingClientRect();
             const price = seriesRef.current?.coordinateToPrice(e.clientY - rect.top);
             if (price === null || price === undefined || !isValidPrice(price)) return;
             const b = bandRef.current!;
             // The pointer sits at `frac` along the line; solve back to the start price.
-            b.onDrag(dragging.line, price / (1 + b.tilt * dragging.frac));
+            const next = price / (1 + b.tilt * dragging.frac);
+            const current = dragging.line === 'sell' ? b.sell : b.buy;
+            // No real move changes a line by more than half its price in one event; drop stray or synthetic jumps
+            if (Math.abs(next - current) > current * 0.5) return;
+            b.onDrag(dragging.line, next);
         };
         const onUp = () => {
             if (!dragging) return;
@@ -343,6 +357,7 @@ export default function ConditionTokenChart({
 
         // Capture phase so the hit test runs before the chart's own canvas handlers see the pointer
         container.addEventListener('pointerdown', onDown, true);
+        container.addEventListener('gotpointercapture', onCapture);
         container.addEventListener('pointermove', onMove);
         container.addEventListener('pointerup', onUp);
         container.addEventListener('pointercancel', onUp);
@@ -350,6 +365,7 @@ export default function ConditionTokenChart({
             // A teardown mid-drag must not leave clicks ignored or autoscale frozen
             draggingRef.current = false;
             container.removeEventListener('pointerdown', onDown, true);
+            container.removeEventListener('gotpointercapture', onCapture);
             container.removeEventListener('pointermove', onMove);
             container.removeEventListener('pointerup', onUp);
             container.removeEventListener('pointercancel', onUp);
@@ -404,7 +420,7 @@ export default function ConditionTokenChart({
     }, [livePrice, liveBasePrice, baseContractId, data]);
 
     return (
-        <div>
+        <div className="flex flex-col h-full">
             <div className="flex justify-end gap-1 mb-2">
                 {TIMEFRAMES.map(({ value, label }) => (
                     <button
@@ -420,13 +436,13 @@ export default function ConditionTokenChart({
                 ))}
             </div>
             {loading ? (
-                <ChartSkeleton />
+                <ChartSkeleton className={className} />
             ) : error ? (
-                <ChartError error={error} onRetry={() => setReloadKey((k) => k + 1)} />
+                <ChartError error={error} onRetry={() => setReloadKey((k) => k + 1)} className={className} />
             ) : !data || data.length === 0 ? (
-                <EmptyChart token={token} />
+                <EmptyChart token={token} className={className} />
             ) : (
-                <div ref={containerRef} className="w-full h-[220px]" style={{ touchAction: band ? 'none' : undefined }} />
+                <div ref={containerRef} className={`w-full ${className}`} style={{ touchAction: band ? 'none' : undefined }} />
             )}
         </div>
     );
