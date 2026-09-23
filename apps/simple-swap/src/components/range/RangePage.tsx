@@ -23,7 +23,7 @@ import { useSubnetFundedTokens } from './SubnetPairSelector';
 
 const ConditionTokenChart = dynamic(() => import('@/components/condition-token-chart'), { ssr: false });
 
-const DEFAULT_FORM: RangeForm = { sellPct: 8, buyPct: 8, perSwapUsd: 50, intervalHours: 24, runDays: 30, tilt: 0 };
+const DEFAULT_FORM: RangeForm = { sellPct: 20, buyPct: 20, perSwapUsd: 5, intervalHours: 24, runDays: 30, tilt: 0 };
 
 /** Dragged line → tenths of a percent, clamped to the matching input's min/max so the field never shows an out-of-range value. */
 const dragPct = (x: number, max: number) => Math.min(max, Math.max(0.5, Math.round(x * 10) / 10));
