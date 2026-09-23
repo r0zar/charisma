@@ -479,7 +479,7 @@ export function rangeProfitPreview({ price, sell, buy, perSwapUsd, windows }: Pr
 - [ ] **Step 4: Run to verify it passes**
 
 Run: `pnpm test -- src/lib/range/profit-preview.test.ts`
-Expected: 9 passed.
+Expected: 8 passed.
 
 - [ ] **Step 5: Commit**
 
