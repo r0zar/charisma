@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useOrderConditions } from '@/contexts/order-conditions-context';
 import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { InfoTooltip } from '../ui/tooltip';
+import { formatTokenAmount } from '@/lib/swap-utils';
+import { estimateSplitOutput } from '@/lib/split-estimate';
 
 export const DcaDialog: React.FC = () => {
     const EASY_PRESET = { slices: 4, intervalHours: 24 } as const;
@@ -33,6 +36,7 @@ export const DcaDialog: React.FC = () => {
 
     const {
         createSingleOrder,
+        quote,
     } = useRouterTrading();
 
     // Use context values
@@ -81,6 +85,8 @@ export const DcaDialog: React.FC = () => {
     }
 
     const perSliceAmount = parseFloat(defaultAmount || '0') / finalSlices;
+    const estimate = estimateSplitOutput({ amountOut: quote?.amountOut, slices: finalSlices });
+    const toDecimals = selectedToToken?.decimals ?? 6;
 
     const startProcessing = async () => {
         if (phase !== 'setup') return;
@@ -321,6 +327,18 @@ export const DcaDialog: React.FC = () => {
                                 <span className="text-sm font-medium text-white/95">{toToken.symbol}</span>
                             </div>
                         </div>
+                        {estimate && (
+                            <div className="flex items-start justify-between gap-3 text-xs text-white/70">
+                                <div className="flex items-center gap-1.5">
+                                    <span>Est. you receive</span>
+                                    <InfoTooltip content={`Estimated from the current quote. Each order's post conditions guarantee at least ${formatTokenAmount(estimate.minPerOrder, toDecimals)} ${toToken.symbol} per order (1% slippage) against the quote at the moment it executes. Orders execute at any point in their window, so the final total will differ from this estimate.`} />
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-white/95 font-medium">≈ {formatTokenAmount(estimate.total, toDecimals)} {toToken.symbol}</div>
+                                    <div className="text-white/50">min ≈ {formatTokenAmount(estimate.minTotal, toDecimals)} · ≈ {formatTokenAmount(estimate.perOrder, toDecimals)} per order</div>
+                                </div>
+                            </div>
+                        )}
                         {conditionToken && (
                             <div className="text-xs text-white/60 bg-blue-500/[0.08] border border-blue-500/[0.15] rounded-lg px-2 py-1">
                                 Orders execute when <span className="text-blue-400 font-medium">{conditionToken.symbol}/{baseToken ? baseToken.symbol : 'USD'}</span> {direction === 'lt' ? '≤' : '≥'} {targetPrice}
