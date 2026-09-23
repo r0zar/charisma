@@ -49,7 +49,10 @@ export const RangeStrategyCard: React.FC<RangeStrategyCardProps> = (props) => {
     const isExpanded = expandedStrategies.has(id);
 
     const { address } = useWallet();
-    const { getSubnetBalance, isLoading: balancesLoading } = useBalances(address ? [address] : []);
+    const { getSubnetBalance, balances } = useBalances(address ? [address] : []);
+    // Gate on whether this wallet's balances have arrived, not on the refresh flag:
+    // the provider flips isLoading every 60s, which would unmount the runway meter on each tick.
+    const hasBalances = Boolean(address && balances[address]);
     const priceSeries = usePriceSeriesService();
     const [seriesB, setSeriesB] = useState<LineData[] | null>(null);
     const [seriesError, setSeriesError] = useState<string | null>(null);
@@ -97,7 +100,7 @@ export const RangeStrategyCard: React.FC<RangeStrategyCardProps> = (props) => {
     const buyLeg = orders.find((o) => o.leg === 'buy');
     const sellAmt = sellLeg ? Number(sellLeg.amountIn) / 10 ** decA : 0;
     const buyAmt = buyLeg ? Number(buyLeg.amountIn) / 10 ** decB : 0;
-    const runway = m.status === 'live' && address && !balancesLoading ? {
+    const runway = m.status === 'live' && address && hasBalances ? {
         sells: runwayFor(getSubnetBalance(address, range.subnet.a) / 10 ** decA, sellAmt),
         buys: runwayFor(getSubnetBalance(address, range.subnet.b) / 10 ** decB, buyAmt),
     } : null;
