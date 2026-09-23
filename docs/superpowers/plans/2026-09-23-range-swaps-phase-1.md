@@ -1473,7 +1473,7 @@ describe('matchRangeLegs', () => {
       order({ leg: 'buy', strategyPosition: 6, validFrom: '2026-10-01T12:00:00.000Z', validTo: '2026-10-02T12:00:00.000Z' }),
     ];
 
-    const m = matchRangeLegs(orders, { b: B, decimalsB: DEC_B }, priceAt, NOW);
+    const m = matchRangeLegs(orders, { b: B, decimalsB: DEC_B, decimalsA: 6 }, priceAt, NOW);
 
     expect(m.realizedUsd).toBeCloseTo(4.4, 6);
     expect(m.cyclesDone).toBe(1);
@@ -1492,7 +1492,7 @@ describe('matchRangeLegs', () => {
       hit('sell', 1, '1', '54400000', '2026-09-24T01:00:00.000Z'),
       hit('buy', 2, '50000000', '1', '2026-09-24T09:00:00.000Z'),
     ];
-    const m = matchRangeLegs(orders, { b: B, decimalsB: DEC_B }, () => null, NOW);
+    const m = matchRangeLegs(orders, { b: B, decimalsB: DEC_B, decimalsA: 6 }, () => null, NOW);
     expect(m.realizedUsd).toBe(0);
     expect(m.unpricedPairs).toBe(1);
   });
@@ -1561,7 +1561,7 @@ const units = (raw: string | undefined, decimals: number) => Number(raw ?? '0') 
  */
 export function matchRangeLegs(
   orders: LimitOrder[],
-  pair: { b: string; decimalsB: number; decimalsA?: number },
+  pair: { b: string; decimalsB: number; decimalsA: number },
   usdPriceAt: (contractId: string, isoTime: string) => number | null,
   now: number = Date.now(),
 ): RangeMetrics {
@@ -1577,7 +1577,7 @@ export function matchRangeLegs(
     if (o.leg !== 'buy') continue;
     buysHit++;
     const sell = sells.shift();
-    if (!sell) { unmatchedBuys++; openPositionA += units(o.metadata?.quote?.amountOut, pair.decimalsA ?? 6); continue; }
+    if (!sell) { unmatchedBuys++; openPositionA += units(o.metadata?.quote?.amountOut, pair.decimalsA); continue; }
     const sellTs = sell.metadata?.quote?.timestamp ?? sell.confirmedAt ?? sell.createdAt;
     const buyTs = o.metadata?.quote?.timestamp ?? o.confirmedAt ?? o.createdAt;
     const pSell = usdPriceAt(pair.b, sellTs), pBuy = usdPriceAt(pair.b, buyTs);
