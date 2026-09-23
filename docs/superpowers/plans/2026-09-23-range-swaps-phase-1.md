@@ -752,6 +752,13 @@ Add an effect that attaches pointer listeners to the container when a band exist
 
 Also set `style={{ touchAction: band ? 'none' : undefined }}` on the container div.
 
+Review-driven refinements applied during execution (keep them):
+- Freeze the price scale while dragging: a `draggingRef`, `priceScale('left').applyOptions({ autoScale: false })` on hit and `true` on release, and the redraw effect only re-enables autoscale when not dragging. Without this, autoscale refits under the pointer and the line runs away.
+- Hit-test x is pane-relative: subtract `chart.priceScale('left').width()` from the container-relative x before `coordinateToTime`.
+- The drawn tilt matches the orders: a shared `tiltFrac(t, from, band)` = `(t − from) / ((windows − 1) × intervalHours × HOUR)` is used by both `bandPoints` and the drag hit test, so full tilt lands at the start of the last window, and the autoscale ends come from the last drawn point.
+- `subscribeClick` ignores clicks while `draggingRef` is set (touch drags would otherwise set the target price on release).
+- `band` must be present from the chart's first render; adding or removing it later is unsupported and documented on `ChartBand`.
+
 If the chart still pans slightly at drag start on the preview, lightweight-charts' own canvas handlers are winning; register `onDown` in the capture phase (`container.addEventListener('pointerdown', onDown, true)` and the matching `removeEventListener(..., true)`).
 
 - [ ] **Step 6: Type check and lint**
