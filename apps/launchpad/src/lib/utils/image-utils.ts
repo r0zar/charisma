@@ -73,25 +73,45 @@ export const generateMinimalDataUri = (): string => {
  * @returns A 1x1 colored pixel data URI (~45-50 chars)
  */
 export const generate1x1ColorPixel = (color: string | 'random' = '#666666'): string => {
-    if (typeof document === 'undefined') {
-        // Fallback to transparent pixel for SSR
-        return generateMinimalDataUri();
-    }
-
     const actualColor = color === 'random' ? generateRandomColor() : color;
-
-    const canvas = document.createElement('canvas');
-    canvas.width = 1;
-    canvas.height = 1;
-    const ctx = canvas.getContext('2d');
-
-    if (ctx) {
-        ctx.fillStyle = actualColor;
-        ctx.fillRect(0, 0, 1, 1);
-    }
-
-    return canvas.toDataURL('image/png');
+    const hex = actualColor.replace('#', '');
+    const full = hex.length === 3 ? hex.split('').map((c) => c + c).join('') : hex;
+    if (!/^[0-9a-fA-F]{6}$/.test(full)) throw new Error(`Expected a hex color, got "${actualColor}"`);
+    const rgb = [0, 2, 4].map((i) => parseInt(full.slice(i, i + 2), 16));
+    return `data:image/png;base64,${toBase64(minimalPng(rgb))}`;
 };
+
+// A hand-built 1x1 RGB PNG is ~72 bytes. Canvas-generated PNGs carry extra chunks and push the
+// 256-char on-chain metadata limit, so the pixel is assembled byte by byte here instead.
+const CRC_TABLE = Array.from({ length: 256 }, (_, n) => {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    return c >>> 0;
+});
+const crc32 = (bytes: number[]): number => {
+    let c = 0xffffffff;
+    for (const b of bytes) c = CRC_TABLE[(c ^ b) & 0xff] ^ (c >>> 8);
+    return (c ^ 0xffffffff) >>> 0;
+};
+const be32 = (n: number): number[] => [(n >>> 24) & 0xff, (n >>> 16) & 0xff, (n >>> 8) & 0xff, n & 0xff];
+const pngChunk = (type: string, data: number[]): number[] => {
+    const typeBytes = Array.from(type, (ch) => ch.charCodeAt(0));
+    return [...be32(data.length), ...typeBytes, ...data, ...be32(crc32([...typeBytes, ...data]))];
+};
+const minimalPng = (rgb: number[]): number[] => {
+    const scanline = [0, ...rgb]; // filter byte 0 + one RGB pixel
+    let a = 1, b = 0;
+    for (const x of scanline) { a = (a + x) % 65521; b = (b + a) % 65521; }
+    const zlib = [0x78, 0x01, 0x01, scanline.length, 0, 0xff - scanline.length, 0xff, ...scanline, ...be32((b << 16) | a)];
+    return [
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+        ...pngChunk('IHDR', [...be32(1), ...be32(1), 8, 2, 0, 0, 0]),
+        ...pngChunk('IDAT', zlib),
+        ...pngChunk('IEND', []),
+    ];
+};
+const toBase64 = (bytes: number[]): string =>
+    typeof Buffer !== 'undefined' ? Buffer.from(bytes).toString('base64') : btoa(String.fromCharCode(...bytes));
 
 /**
  * Generates a compact SVG data URI for on-chain metadata.
