@@ -22,7 +22,7 @@ describe('PriceSeriesService timeframes', () => {
   it.each([
     ['24h', 'hour', '24'],
     ['7d', 'hour', '168'],
-    ['30d', 'day', '30'],
+    ['30d', 'hour', '720'],
   ])('%s requests %s buckets with limit %s', async (timeframe, interval, limit) => {
     await new PriceSeriesService().fetchSingleSeries('SP1.token', timeframe);
 
