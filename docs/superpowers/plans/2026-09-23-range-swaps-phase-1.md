@@ -792,6 +792,7 @@ No unit test (signing needs a wallet). Verified on preview in Task 12.
 // src/lib/range/create-leg.ts
 import { signTriggeredSwap } from 'blaze-sdk';
 import { convertToMicroUnits } from '@/lib/swap-utils';
+import type { LimitOrder, NewOrderRequest } from '@/lib/orders/types';
 import type { RangeLegSpec, RangeSettings } from './types';
 
 export interface RangeRun {
@@ -804,14 +805,15 @@ export interface RangeRun {
  * Sign one leg of a range swap with the wallet and submit it as a triggered order.
  * Takes explicit tokens and condition, so it never depends on the swap card's state.
  */
-export async function createRangeLeg(walletAddress: string, leg: RangeLegSpec, run: RangeRun): Promise<unknown> {
+export async function createRangeLeg(walletAddress: string, leg: RangeLegSpec, run: RangeRun): Promise<LimitOrder> {
   if (!walletAddress) throw new Error('Connect wallet');
 
-  const uuid = globalThis.crypto?.randomUUID() ?? Date.now().toString();
+  const uuid = crypto.randomUUID();
   const micro = convertToMicroUnits(leg.amountDisplay, leg.inputDecimals);
+  if (micro === '0') throw new Error(`Invalid amount for ${leg.leg} leg ${leg.position}: ${leg.amountDisplay}`);
   const signature = await signTriggeredSwap({ subnet: leg.inputToken, uuid, amount: BigInt(micro) });
 
-  const payload = {
+  const payload: NewOrderRequest = {
     owner: walletAddress,
     inputToken: leg.inputToken,
     outputToken: leg.outputToken,
@@ -842,7 +844,8 @@ export async function createRangeLeg(walletAddress: string, leg: RangeLegSpec, r
     const j = await res.json().catch(() => ({ error: 'unknown' }));
     throw new Error(j.error || `Order create failed (${res.status})`);
   }
-  return res.json();
+  const { data } = (await res.json()) as { data: LimitOrder };
+  return data;
 }
 ```
 
