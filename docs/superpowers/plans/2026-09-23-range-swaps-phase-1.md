@@ -497,7 +497,6 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 **Files:**
 - Modify: `src/lib/charts/simple-chart-utils.ts` (`includeTargetInRange` at the bottom)
 - Modify: `src/lib/charts/simple-chart-utils.test.ts`
-- Modify: `src/components/condition-token-chart.tsx` (one call site, line 168)
 
 - [ ] **Step 1: Add the failing test**
 
