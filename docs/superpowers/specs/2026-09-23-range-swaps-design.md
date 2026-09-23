@@ -165,12 +165,12 @@ Collapsed row: pair, cadence, "window i of N", realized profit, a runway warning
 Expanded card:
 
 - Header: pair, cadence, window count, start date, status pill, next-window countdown.
-- Chart: price so far with the band drawn from the strategy record, filled legs as solid dots, expired legs as hollow dots, future windows greyed.
+- Chart: price so far with the band drawn from `metadata.range`, filled legs as solid dots, expired legs as hollow dots, future windows greyed.
 - Stats: Realized, Cycles done ("2 of 8 so far"), Sells hit with unmatched count, Buys hit, Open position, Hit rate. Completed runs add Best window and Avg per cycle.
 - Runway: per side, `floor(subnetBalance / legAmount)` recomputed from the live balance context. Amber under 3 with a banner and a "Top up" action that opens the swap page pre-filled to move that token to the subnet; red at 0.
 - Window list: every window with both legs, hit / expired / open / future, fill amount and tx id on hits, per-order cancel on open legs. "Cancel remaining" cancels every open order in the strategy and confirms with the count.
 
-States: Live, Low runway (Live + banner), Completed ("Run again with these settings" links to the page with the record pre-filled), Cancelled.
+States: Live, Low runway (Live + banner), Completed ("Run again with these settings" links to the page with `metadata.range` pre-filled), Cancelled.
 
 ### Metric definitions
 
@@ -182,7 +182,7 @@ Leg outcome, derived from existing order fields (no executor change):
 - **Open.** `status === 'open'` or `'broadcasted'` inside its window.
 - **Future.** `status === 'open'` and `validFrom` is ahead.
 
-Run status: **Cancelled** if any leg is Cancelled; else **Completed** once every window's `validTo` has passed; else **Live**.
+Run status: **Live** while any leg is Open or Future; otherwise **Cancelled** if at least one leg was user-cancelled, else **Completed**. Cancelling a single leg leaves the run Live.
 
 Fill amounts and prices: the executor stores `metadata.quote` (`amountIn`, `amountOut`, `timestamp`) before broadcasting. Treat `amountOut` as the fill amount and price it in USD from the hourly price series at `quote.timestamp` (the same series the chart loads). This is an approximation and the card labels it "at quote".
 
@@ -205,7 +205,7 @@ Pure functions get unit tests in vitest (node environment, no DOM):
 - `generateRangeOrders(settings, prices, now)` → the ordered list of leg specs. Cases: window count, tilt at first and last window, both legs' amounts, cap at 200.
 - `rangeProfitPreview(settings)` → spread, net, break-even, disabled reasons.
 - `countBandCycles(series, bandPct)` → crossings for the wizard.
-- `matchRangeLegs(orders)` → realized, open position, cycles, hit rate, from a list of orders with fill data.
+- `matchRangeLegs(orders, usdPriceAt)` → realized, open position, cycles, hit rate, from a list of orders with fill data and a `(contractId, timestamp) => number` price lookup.
 - `runwayFor(balance, legAmount)`.
 - `includeTargetInRange` extended to multiple targets.
 
