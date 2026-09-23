@@ -14,7 +14,7 @@ function order(p: Partial<LimitOrder> & { leg: 'sell' | 'buy'; strategyPosition:
     ...p,
   } as LimitOrder;
 }
-const hit = (leg: 'sell' | 'buy', pos: number, amountIn: string, amountOut: string, ts: string) =>
+const hit = (leg: 'sell' | 'buy', pos: number, amountIn: string, amountOut: string | number, ts: string) =>
   order({ leg, strategyPosition: pos, status: 'confirmed', amountIn, metadata: { quote: { amountIn, amountOut, timestamp: ts } } });
 
 const priceAt = () => 1; // sUSDh is $1 whenever asked
@@ -41,7 +41,7 @@ describe('runStatus', () => {
 describe('matchRangeLegs', () => {
   it('pairs each hit buy with the earliest unmatched sell before it and prices in USD', () => {
     const orders = [
-      hit('sell', 1, '735000000', '54400000', '2026-09-24T01:00:00.000Z'),   // sold CHA, received 54.4 sUSDh
+      hit('sell', 1, '735000000', 54400000, '2026-09-24T01:00:00.000Z'),   // sold CHA, received 54.4 sUSDh
       hit('buy', 2, '50000000', '790000000', '2026-09-24T09:00:00.000Z'),    // spent 50 sUSDh
       { ...hit('sell', 3, '735000000', '55000000', '2026-09-25T01:00:00.000Z'), validFrom: '2026-09-24T12:00:00.000Z', validTo: '2026-09-25T12:00:00.000Z' },   // unmatched
       order({ leg: 'buy', strategyPosition: 4, status: 'cancelled', cancelledAt: '2026-09-26T12:00:01.000Z', validFrom: '2026-09-25T12:00:00.000Z', validTo: '2026-09-26T12:00:00.000Z' }),
@@ -81,5 +81,62 @@ describe('matchRangeLegs', () => {
     expect(m.openPositionA).toBeCloseTo(7.9, 6);
     expect(m.unmatchedBuys).toBe(1);
     expect(m.realizedUsd).toBe(0);
+  });
+
+  it('counts a hit leg without a quote as unpriced instead of valuing it at zero', () => {
+    const orders = [
+      order({ leg: 'sell', strategyPosition: 1, status: 'confirmed' }),
+    ];
+    const m = matchRangeLegs(orders, { b: B, decimalsB: DEC_B, decimalsA: 6 }, priceAt, NOW);
+    expect(m.unpricedLegs).toBe(1);
+    expect(m.realizedUsd).toBe(0);
+    expect(m.openPositionB).toBe(0);
+    expect(m.legsHit).toBe(1);
+  });
+
+  it('does not pair a sell with a buy that filled before it', () => {
+    const orders = [
+      hit('buy', 1, '50000000', '790000000', '2026-09-24T09:00:00.000Z'),
+      hit('sell', 2, '735000000', '54400000', '2026-09-24T10:00:00.000Z'),
+    ];
+    const m = matchRangeLegs(orders, { b: B, decimalsB: DEC_B, decimalsA: 6 }, priceAt, NOW);
+    expect(m.cyclesDone).toBe(0);
+    expect(m.unmatchedBuys).toBe(1);
+    expect(m.unmatchedSells).toBe(1);
+  });
+
+  it('treats a broadcasted order as open even after its window', () => {
+    const o = order({
+      leg: 'sell', strategyPosition: 1, status: 'broadcasted',
+      validFrom: '2026-09-01T00:00:00.000Z', validTo: '2026-09-02T00:00:00.000Z',
+    });
+    expect(legOutcome(o, NOW)).toBe('open');
+  });
+
+  it('prices a fill at its confirmedAt when the quote has no timestamp', () => {
+    const orders = [
+      order({
+        leg: 'sell', strategyPosition: 1, status: 'confirmed',
+        confirmedAt: '2026-09-24T05:00:00.000Z',
+        metadata: { quote: { amountIn: '735000000', amountOut: '54400000' } },
+      }),
+      hit('buy', 2, '50000000', '790000000', '2026-09-24T09:00:00.000Z'),
+    ];
+    const calledWith: string[] = [];
+    const spyPriceAt = (_contractId: string, iso: string) => { calledWith.push(iso); return 1; };
+    matchRangeLegs(orders, { b: B, decimalsB: DEC_B, decimalsA: 6 }, spyPriceAt, NOW);
+    expect(calledWith).toContain('2026-09-24T05:00:00.000Z');
+  });
+
+  it('throws on a cancelled order without cancelledAt', () => {
+    const o = order({ leg: 'sell', strategyPosition: 1, status: 'cancelled' });
+    expect(() => legOutcome(o, NOW)).toThrow();
+  });
+
+  it('throws on a hit range order without a leg', () => {
+    const orders = [
+      { ...hit('sell', 1, '735000000', '54400000', '2026-09-24T01:00:00.000Z'), leg: undefined },
+    ] as unknown as LimitOrder[];
+    expect(() => matchRangeLegs(orders, { b: B, decimalsB: DEC_B, decimalsA: 6 }, priceAt, NOW)).toThrow();
   });
 });

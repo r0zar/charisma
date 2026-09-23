@@ -18,6 +18,8 @@ export interface RangeMetrics {
   legsEnded: number;
   windowsElapsed: number;
   unpricedPairs: number;
+  /** Hit legs with no usable quote (no amountOut/timestamp), excluded from matching. */
+  unpricedLegs: number;
   outcomes: Record<string, LegOutcome>;
   status: RunStatus;
 }
@@ -25,10 +27,12 @@ export interface RangeMetrics {
 export function legOutcome(o: LimitOrder, now: number): LegOutcome {
   const validFrom = o.validFrom ? Date.parse(o.validFrom) : 0;
   const validTo = o.validTo ? Date.parse(o.validTo) : Infinity;
+  if (o.status === 'broadcasted') return 'open';
   if (o.status === 'confirmed' || o.status === 'filled') return 'hit';
   if (o.status === 'failed') return 'expired';
   if (o.status === 'cancelled') {
-    const at = o.cancelledAt ? Date.parse(o.cancelledAt) : now;
+    if (!o.cancelledAt) throw new Error(`Order ${o.uuid} is cancelled without cancelledAt`);
+    const at = Date.parse(o.cancelledAt);
     return at >= validTo ? 'expired' : 'cancelled';
   }
   if (now < validFrom) return 'future';
@@ -42,8 +46,10 @@ export function runStatus(outcomes: LegOutcome[]): RunStatus {
   return 'completed';
 }
 
-const quoteTime = (o: LimitOrder) => Date.parse(o.metadata?.quote?.timestamp ?? o.confirmedAt ?? o.createdAt);
-const units = (raw: string | undefined, decimals: number) => Number(raw ?? '0') / 10 ** decimals;
+const quoteIso = (o: LimitOrder): string | null => o.metadata?.quote?.timestamp ?? o.confirmedAt ?? null;
+const quoteTime = (o: LimitOrder) => Date.parse(quoteIso(o)!);
+const isUnquoted = (o: LimitOrder) => quoteIso(o) === null || o.metadata?.quote?.amountOut === undefined;
+const units = (raw: string | number | undefined, decimals: number) => Number(raw ?? '0') / 10 ** decimals;
 
 /**
  * Realized profit counts matched cycles only: each hit buy pairs with the earliest
@@ -58,18 +64,20 @@ export function matchRangeLegs(
   const outcomes: Record<string, LegOutcome> = {};
   for (const o of orders) outcomes[o.uuid] = legOutcome(o, now);
 
-  const hits = orders.filter((o) => outcomes[o.uuid] === 'hit').sort((a, b) => quoteTime(a) - quoteTime(b));
+  const allHits = orders.filter((o) => outcomes[o.uuid] === 'hit');
+  const unpricedLegs = allHits.filter(isUnquoted).length;
+  const hits = allHits.filter((o) => !isUnquoted(o)).sort((a, b) => quoteTime(a) - quoteTime(b));
   const sells: LimitOrder[] = [];
   let realizedUsd = 0, cyclesDone = 0, unpricedPairs = 0, buysHit = 0, unmatchedBuys = 0, openPositionA = 0;
 
   for (const o of hits) {
     if (o.leg === 'sell') { sells.push(o); continue; }
-    if (o.leg !== 'buy') continue;
+    if (o.leg !== 'buy') throw new Error(`Range order ${o.uuid} has no leg`);
     buysHit++;
     const sell = sells.shift();
     if (!sell) { unmatchedBuys++; openPositionA += units(o.metadata?.quote?.amountOut, pair.decimalsA); continue; }
-    const sellTs = sell.metadata?.quote?.timestamp ?? sell.confirmedAt ?? sell.createdAt;
-    const buyTs = o.metadata?.quote?.timestamp ?? o.confirmedAt ?? o.createdAt;
+    const sellTs = quoteIso(sell)!;
+    const buyTs = quoteIso(o)!;
     const pSell = usdPriceAt(pair.b, sellTs), pBuy = usdPriceAt(pair.b, buyTs);
     if (pSell === null || pBuy === null) { unpricedPairs++; continue; }
     realizedUsd += units(sell.metadata?.quote?.amountOut, pair.decimalsB) * pSell - units(o.amountIn, pair.decimalsB) * pBuy;
@@ -89,10 +97,11 @@ export function matchRangeLegs(
     unmatchedBuys,
     openPositionB,
     openPositionA,
-    legsHit: hits.length,
+    legsHit: allHits.length,
     legsEnded: ended.length,
     windowsElapsed,
     unpricedPairs,
+    unpricedLegs,
     outcomes,
     status: runStatus(Object.values(outcomes)),
   };
