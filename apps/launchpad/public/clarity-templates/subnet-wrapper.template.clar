@@ -51,7 +51,7 @@
   (let ((sender tx-sender)
         (recv   (default-to sender recipient))
         (prev   (balance-of recv)))
-    (try! (contract-call? '{{TOKEN_CONTRACT}} transfer amount sender (as-contract tx-sender) none))
+    (try! (contract-call? '{{TOKEN_CONTRACT}} transfer amount sender current-contract none))
     (map-set balances recv (+ prev amount))
     (print {event: "deposit", sender: sender, recipient: recv, amount: amount})
     (ok true)))
@@ -62,7 +62,8 @@
         (bal   (balance-of owner)))
     (asserts! (>= bal amount) ERR_INSUFFICIENT_BALANCE)
     (map-set balances owner (- bal amount))
-    (try! (as-contract (contract-call? '{{TOKEN_CONTRACT}} transfer amount tx-sender recv none)))
+    (try! (as-contract? ((with-ft '{{TOKEN_CONTRACT}} "{{TOKEN_IDENTIFIER}}" amount))
+      (try! (contract-call? '{{TOKEN_CONTRACT}} transfer amount tx-sender recv none))))
     (print {event: "withdraw", owner: owner, recipient: recv, amount: amount})
     (ok true)))
 

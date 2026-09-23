@@ -18,6 +18,9 @@
 export interface LiquidityPoolOptions {
     tokenA: string;
     tokenB: string;
+    /** On-chain fungible token names (define-fungible-token); required for non-STX tokens, used by Clarity 4 outflow allowances. */
+    tokenAIdentifier?: string;
+    tokenBIdentifier?: string;
     lpTokenName: string;
     lpTokenSymbol: string;
     swapFee: number;
@@ -40,6 +43,8 @@ export interface LiquidityPoolOptions {
 export function generateLiquidityPoolContract({
     tokenA,
     tokenB,
+    tokenAIdentifier,
+    tokenBIdentifier,
     lpTokenName,
     lpTokenSymbol,
     swapFee,
@@ -59,10 +64,17 @@ export function generateLiquidityPoolContract({
             : `(try! (contract-call? '${tokenContract} transfer ${amount} ${sender} ${recipient} none))`;
     };
 
-    const generateTransferOut = (isStx: boolean, tokenContract: string, amount: string, sender: string, recipient: string): string => {
-        return isStx
-            ? `(try! (as-contract (stx-transfer? ${amount} ${sender} ${recipient})))`
-            : `(try! (as-contract (contract-call? '${tokenContract} transfer ${amount} ${sender} ${recipient} none)))`;
+    // Clarity 4: the contract may only send what the allowance names, so each payout declares its own asset and amount.
+    const generateTransferOut = (isStx: boolean, tokenContract: string, tokenIdentifier: string | undefined, amount: string, sender: string, recipient: string): string => {
+        if (isStx) {
+            return `(try! (as-contract? ((with-stx ${amount}))
+          (try! (stx-transfer? ${amount} ${sender} ${recipient}))))`;
+        }
+        if (!tokenIdentifier || tokenIdentifier === '*') {
+            throw new Error(`Token cache has no asset identifier for ${tokenContract}; cannot build the payout allowance`);
+        }
+        return `(try! (as-contract? ((with-ft '${tokenContract} "${tokenIdentifier}" ${amount}))
+          (try! (contract-call? '${tokenContract} transfer ${amount} ${sender} ${recipient} none))))`;
     };
 
     const getBalance = (isStx: boolean, tokenContract: string, owner: string): string => {
@@ -90,7 +102,7 @@ export function generateLiquidityPoolContract({
 
 ;; Constants
 (define-constant DEPLOYER tx-sender)
-(define-constant CONTRACT (as-contract tx-sender))
+(define-constant CONTRACT current-contract)
 (define-constant ERR_UNAUTHORIZED (err u403))
 (define-constant ERR_INVALID_OPERATION (err u400))
 (define-constant PRECISION u1000000)
@@ -170,7 +182,7 @@ export function generateLiquidityPoolContract({
         ;; Transfer token A to pool
         ${generateTransferIn(isTokenAStx, tokenA, 'amount', 'sender', 'CONTRACT')}
         ;; Transfer token B to sender
-        ${generateTransferOut(isTokenBStx, tokenB, '(get dy delta)', 'CONTRACT', 'sender')}
+        ${generateTransferOut(isTokenBStx, tokenB, tokenBIdentifier, '(get dy delta)', 'CONTRACT', 'sender')}
         (print {op: "swap-a-to-b", sender: sender, amount: amount, delta: delta})
         (ok delta)))
 
@@ -181,7 +193,7 @@ export function generateLiquidityPoolContract({
         ;; Transfer token B to pool
         ${generateTransferIn(isTokenBStx, tokenB, 'amount', 'sender', 'CONTRACT')}
         ;; Transfer token A to sender
-        ${generateTransferOut(isTokenAStx, tokenA, '(get dy delta)', 'CONTRACT', 'sender')}
+        ${generateTransferOut(isTokenAStx, tokenA, tokenAIdentifier, '(get dy delta)', 'CONTRACT', 'sender')}
         (print {op: "swap-b-to-a", sender: sender, amount: amount, delta: delta})
         (ok delta)))
 
@@ -200,8 +212,8 @@ export function generateLiquidityPoolContract({
         (sender tx-sender)
         (delta (get-liquidity-quote amount)))
         (try! (ft-burn? ${lpTokenIdentifier} (get dk delta) sender))
-        ${generateTransferOut(isTokenAStx, tokenA, '(get dx delta)', 'CONTRACT', 'sender')}
-        ${generateTransferOut(isTokenBStx, tokenB, '(get dy delta)', 'CONTRACT', 'sender')}
+        ${generateTransferOut(isTokenAStx, tokenA, tokenAIdentifier, '(get dx delta)', 'CONTRACT', 'sender')}
+        ${generateTransferOut(isTokenBStx, tokenB, tokenBIdentifier, '(get dy delta)', 'CONTRACT', 'sender')}
         (print {op: "remove-liquidity", sender: sender, amount: amount, delta: delta})
         (ok delta)))
 

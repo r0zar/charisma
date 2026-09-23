@@ -184,7 +184,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             const response = await request('stx_deployContract', {
                 name: contractName,
                 clarityCode: contractCode,
-                clarityVersion: 3,
+                clarityVersion: 4,
                 postConditionMode: 'allow',
                 postConditions: options?.postConditions || [],
             });

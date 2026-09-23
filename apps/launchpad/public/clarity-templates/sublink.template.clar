@@ -6,7 +6,7 @@
 
 ;; Constants
 (define-constant DEPLOYER tx-sender)
-(define-constant CONTRACT (as-contract tx-sender))
+(define-constant CONTRACT current-contract)
 (define-constant ERR_INVALID_OPERATION (err u4002))
 
 ;; Opcodes

@@ -137,6 +137,8 @@ export async function POST(request: NextRequest) {
         const liquidityPoolOptions: LiquidityPoolOptions = {
             tokenA: metadataToPost.properties.tokenAContract,
             tokenB: metadataToPost.properties.tokenBContract,
+            tokenAIdentifier: baseTokens.token1Meta?.identifier,
+            tokenBIdentifier: baseTokens.token2Meta?.identifier,
             lpTokenName: metadataToPost.name,
             lpTokenSymbol: metadataToPost.symbol,
             swapFee: metadataToPost.properties.swapFeePercent || 1,
@@ -151,7 +153,7 @@ export async function POST(request: NextRequest) {
         const poolCodeBody = generateLiquidityPoolContract(liquidityPoolOptions);
 
         const txOptions = {
-            clarityVersion: 3,
+            clarityVersion: 4,
             contractName: lpContractName,
             codeBody: poolCodeBody,
             fee: 10000,

@@ -414,6 +414,8 @@ function LiquidityPoolWizard() {
             const contractCode = generateLiquidityPoolContract({
                 tokenA: token1Details.contractId, // Use contractId from TokenCacheData
                 tokenB: token2Details.contractId, // Use contractId from TokenCacheData
+                tokenAIdentifier: token1Details.identifier,
+                tokenBIdentifier: token2Details.identifier,
                 lpTokenName: poolName,
                 lpTokenSymbol: effectiveLpTokenSymbol,
                 swapFee: Math.round(parseFloat(swapFee) * 10000), // Convert percentage to integer parts per million

@@ -896,8 +896,10 @@ export default function SubnetWrapperWizard() {
         }
 
         try {
+            const baseToken = await getTokenMetadataCached(state.tokenContract);
             const result = await generateSubnetWrapper({
                 tokenContract: state.tokenContract,
+                tokenIdentifier: baseToken?.identifier,
                 tokenName: deriveName(state.tokenContract),
                 blazeContract: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v1',
                 enableBearer: state.enableBearer,
