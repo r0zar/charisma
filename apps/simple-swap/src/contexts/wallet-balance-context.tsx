@@ -2,13 +2,11 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { AccountBalancesResponse } from '@repo/polyglot';
-import { getBalancesAction } from '@/app/actions';
-// import { balanceClient } from '@repo/tokens'; // Avoiding import to prevent SSR hang
+import { fetchAddressBalances } from '@/lib/balances';
 import { formatTokenAmount } from '@/lib/swap-utils';
 import { useTokenMetadata } from './token-metadata-context';
 import { useSubnetTokens } from './subnet-tokens-context';
 import type { BulkBalanceResponse } from '@repo/tokens';
-// Note: getAddressBalances removed - using balance service or original method
 
 interface WalletBalanceContextType {
   balances: Record<string, AccountBalancesResponse>;
@@ -50,8 +48,6 @@ export function WalletBalanceProvider({
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [watchedAddresses, setWatchedAddresses] = useState<string[]>([]);
-  const [useBalanceService, setUseBalanceService] = useState(true); // Default to using the new balance service
-  const [tryDataClient, setTryDataClient] = useState(true); // Simple flag to try data client
 
   const { tokens, getTokenDecimals } = useTokenMetadata();
   const { getSubnetContractId } = useSubnetTokens();
@@ -100,151 +96,37 @@ export function WalletBalanceProvider({
   };
 
   const refreshBalances = async (addresses?: string[]) => {
-    const addressesToUpdate = addresses || watchedAddresses;
+    const addressesToUpdate = (addresses || watchedAddresses).filter(
+      (address) => isValidStacksAddress(address) && !activeRequests.current.has(address)
+    );
     if (addressesToUpdate.length === 0) return;
 
     setIsLoading(true);
     setError(null);
+    addressesToUpdate.forEach((address) => activeRequests.current.add(address));
 
     try {
-      // Skip data client - no longer available
+      const results = await Promise.allSettled(
+        addressesToUpdate.map(async (address) => ({ address, balanceData: await fetchAddressBalances(address) }))
+      );
 
-      // Use balance service if enabled, otherwise fall back to original method
-      if (useBalanceService) {
-
-        const response = await getBalancesAction(addressesToUpdate, undefined, true); // Include zero balances
-
-        if (response.success && response.balances) {
-          const newBalances = { ...balances };
-
-          // Convert service balance data to AccountBalancesResponse format
-          Object.entries(response.balances).forEach(([address, balanceResponse]) => {
-            if (balanceResponse) {
-              newBalances[address] = {
-                stx: {
-                  balance: balanceResponse.stxBalance,
-                  total_sent: balanceResponse.metadata.stxTotalSent,
-                  total_received: balanceResponse.metadata.stxTotalReceived,
-                  total_fees_sent: '0',
-                  total_miner_rewards_received: '0',
-                  lock_tx_id: '',
-                  locked: balanceResponse.metadata.stxLocked,
-                  lock_height: 0,
-                  burnchain_lock_height: 0,
-                  burnchain_unlock_height: 0
-                },
-                fungible_tokens: Object.fromEntries(
-                  Object.entries(balanceResponse.fungibleTokens).map(([contractId, token]) => [
-                    contractId,
-                    {
-                      balance: token.balance,
-                      total_sent: '0',
-                      total_received: token.balance
-                    }
-                  ])
-                ),
-                non_fungible_tokens: balanceResponse.nonFungibleTokens
-              };
-            }
-          });
-
-          setBalances(newBalances);
-          setLastUpdate(Date.now());
+      const newBalances = { ...balances };
+      const failures: string[] = [];
+      results.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          newBalances[result.value.address] = result.value.balanceData;
         } else {
-          console.warn('[WalletBalanceContext] Balance service failed, falling back to original method');
-          setUseBalanceService(false);
-          // Fall through to original method
+          failures.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
         }
-      }
+      });
 
-      // Original method (fallback or when balance service is disabled)
-      if (!useBalanceService) {
-
-        const results = await Promise.allSettled(
-          addressesToUpdate.map(async (address) => {
-            // Skip if request is already active for this address
-            if (activeRequests.current.has(address)) {
-              return null;
-            }
-
-            if (!isValidStacksAddress(address)) {
-              return null;
-            }
-
-            activeRequests.current.add(address);
-
-            try {
-              // Use direct API call instead of balance client to avoid SSR hang
-              const cacheBuster = Date.now();
-              const baseUrl = typeof window !== 'undefined' ? '' : (process.env.NODE_ENV === 'development' ? 'http://localhost:3002' : '');
-              const response = await fetch(`${baseUrl}/api/v1/balances/${address}?includeZero=true&_t=${cacheBuster}`, {
-                headers: {
-                  'Accept': 'application/json',
-                  'Cache-Control': 'no-cache'
-                },
-                signal: AbortSignal.timeout(15000)
-              });
-              const balanceResponse = response.ok ? await response.json() : null;
-              if (!balanceResponse) {
-                return null;
-              }
-
-              // Convert balance client response to AccountBalancesResponse format
-              const balanceData: AccountBalancesResponse = {
-                stx: {
-                  balance: balanceResponse.stxBalance,
-                  total_sent: balanceResponse.metadata.stxTotalSent,
-                  total_received: balanceResponse.metadata.stxTotalReceived,
-                  total_fees_sent: '0',
-                  total_miner_rewards_received: '0',
-                  lock_tx_id: '',
-                  locked: balanceResponse.metadata.stxLocked,
-                  lock_height: 0,
-                  burnchain_lock_height: 0,
-                  burnchain_unlock_height: 0
-                },
-                fungible_tokens: Object.fromEntries(
-                  Object.entries(balanceResponse.fungibleTokens).map(([contractId, token]) => [
-                    contractId,
-                    {
-                      balance: token.balance,
-                      total_sent: '0',
-                      total_received: token.balance
-                    }
-                  ])
-                ),
-                non_fungible_tokens: balanceResponse.nonFungibleTokens
-              };
-
-              return { address, balanceData };
-            } catch (err) {
-              console.error(`Failed to fetch balance for ${address}:`, err);
-              return null;
-            } finally {
-              activeRequests.current.delete(address);
-            }
-          })
-        );
-
-        const newBalances = { ...balances };
-        results.forEach((result) => {
-          if (result.status === 'fulfilled' && result.value && result.value.balanceData) {
-            newBalances[result.value.address] = result.value.balanceData;
-          }
-        });
-
-        setBalances(newBalances);
-        setLastUpdate(Date.now());
-      }
-    } catch (err) {
-      console.error('Failed to refresh balances:', err);
-      setError(err instanceof Error ? err.message : 'Failed to refresh balances');
-
-      // If balance service failed, try falling back to original method
-      if (useBalanceService) {
-        setUseBalanceService(false);
+      setBalances(newBalances);
+      setLastUpdate(Date.now());
+      if (failures.length > 0) {
+        setError(failures.join('; '));
       }
     } finally {
+      addressesToUpdate.forEach((address) => activeRequests.current.delete(address));
       setIsLoading(false);
     }
   };

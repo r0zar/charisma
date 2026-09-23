@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAccountBalancesWithSubnet, getBalancesAction } from '@/app/actions';
+import { getAccountBalancesWithSubnet } from '@/app/actions';
 import { balanceClient } from '@repo/tokens';
 
 export const runtime = 'nodejs';
@@ -44,27 +44,6 @@ export async function GET(request: NextRequest) {
       };
     } catch (error) {
       debugData.tests.balanceClient = {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-
-    // Test 2: Server action call
-    try {
-      console.log('[DEBUG] Testing server action...');
-      const actionResult = await getBalancesAction([address], undefined, true);
-      debugData.tests.serverAction = {
-        success: actionResult.success,
-        hasBalances: !!actionResult.balances,
-        addressExists: !!(actionResult.balances && actionResult.balances[address]),
-        tokenCount: actionResult.balances?.[address] ? Object.keys(actionResult.balances[address].fungibleTokens).length : 0,
-        sampleTokens: actionResult.balances?.[address] ? Object.entries(actionResult.balances[address].fungibleTokens)
-          .slice(0, 5)
-          .map(([contractId, data]) => ({ contractId, balance: data.balance })) : [],
-        fullResult: actionResult
-      };
-    } catch (error) {
-      debugData.tests.serverAction = {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       };

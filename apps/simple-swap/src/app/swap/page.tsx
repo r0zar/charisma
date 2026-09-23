@@ -1,6 +1,6 @@
 import React from 'react';
 import { Metadata } from 'next';
-import { listTokens, getBalancesAction } from '../actions';
+import { listTokens } from '../actions';
 import SwapPageClient from './swap-page-client';
 import type { BulkBalanceResponse } from '@repo/tokens';
 
