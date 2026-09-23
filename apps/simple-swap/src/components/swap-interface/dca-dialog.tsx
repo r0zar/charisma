@@ -148,7 +148,7 @@ export const DcaDialog: React.FC = () => {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-background border border-border backdrop-blur-xl">
+            <DialogContent className="bg-background border border-border backdrop-blur-xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader className="space-y-3">
                     <DialogTitle className="text-xl font-semibold text-white/95">Split Swap</DialogTitle>
                     <DialogDescription className="text-white/70 leading-relaxed">
