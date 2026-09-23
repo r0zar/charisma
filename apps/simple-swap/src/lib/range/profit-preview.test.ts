@@ -47,6 +47,12 @@ describe('rangeProfitPreview', () => {
     expect(rangeProfitPreview({ ...base, sell: 0.068 * 1.003 }).reasons).toContain('Sell line must be above current price');
   });
 
+  it('allows lines exactly 0.5% from current price', () => {
+    const { reasons } = rangeProfitPreview({ ...base, sell: 0.068 * 1.005, buy: 0.068 * 0.995 });
+    expect(reasons).not.toContain('Sell line must be above current price');
+    expect(reasons).not.toContain('Buy line must be below current price');
+  });
+
   it('flags a run shorter than one window', () => {
     expect(rangeProfitPreview({ ...base, windows: 0 }).reasons).toContain('Run is shorter than one window');
   });

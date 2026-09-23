@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { usePrices } from '@/contexts/token-price-context';
@@ -19,6 +19,9 @@ const ConditionTokenChart = dynamic(() => import('@/components/condition-token-c
 
 const DEFAULT_FORM: RangeForm = { sellPct: 8, buyPct: 8, perSwapUsd: 50, intervalHours: 24, runDays: 30, tilt: 0 };
 
+/** Dragged line → whole-percent-tenths, matching the inputs' step, never inside the gap. */
+const dragPct = (x: number) => Math.max(0.5, Math.round(x * 10) / 10);
+
 export default function RangePage() {
     const [tokenA, setTokenA] = useState<TokenCacheData | null>(null);
     const [tokenB, setTokenB] = useState<TokenCacheData | null>(null);
@@ -26,7 +29,10 @@ export default function RangePage() {
     const [phase, setPhase] = useState<'setup' | 'signing' | 'done'>('setup');
     const [legs, setLegs] = useState<RangeLegSpec[]>([]);
     const [statuses, setStatuses] = useState<LegStatus[]>([]);
+    const [symbols, setSymbols] = useState<{ a: string; b: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const aliveRef = useRef(true);
+    useEffect(() => () => { aliveRef.current = false; }, []);
 
     const { address } = useWallet();
     const { getPrice } = usePrices();
@@ -37,13 +43,15 @@ export default function RangePage() {
     const priceB = tokenB ? getPrice(tokenB.contractId) : null;
     // One nullable object so TypeScript narrows both prices together.
     const prices = priceA !== null && priceB !== null && priceA > 0 && priceB > 0 ? { a: priceA, b: priceB } : null;
-    const ready = !!tokenA && !!tokenB && prices !== null;
+    const bothPicked = !!tokenA && !!tokenB;
+    const ready = bothPicked && prices !== null;
     const ratio = prices ? prices.a / prices.b : 0;
     const sell = ratio * (1 + form.sellPct / 100);
     const buy = ratio * (1 - form.buyPct / 100);
     const windows = windowsFor(form.runDays * 24, form.intervalHours);
     const preview = rangeProfitPreview({ price: ratio, sell, buy, perSwapUsd: form.perSwapUsd, windows });
 
+    // Display-only formatting before a token is picked; `create` requires real decimals.
     const decA = tokenA?.decimals ?? 6, decB = tokenB?.decimals ?? 6;
     const amountA = prices ? form.perSwapUsd / prices.a : 0;
     const amountB = prices ? form.perSwapUsd / prices.b : 0;
@@ -57,27 +65,43 @@ export default function RangePage() {
     const patch = (p: Partial<RangeForm>) => setForm((f) => ({ ...f, ...p }));
     const onDrag = (line: 'sell' | 'buy', price: number) => {
         if (!ratio) return;
-        if (line === 'sell') patch({ sellPct: Math.max(0.5, (price / ratio - 1) * 100) });
-        else patch({ buyPct: Math.max(0.5, (1 - price / ratio) * 100) });
+        if (line === 'sell') patch({ sellPct: dragPct((price / ratio - 1) * 100) });
+        else patch({ buyPct: dragPct((1 - price / ratio) * 100) });
     };
 
     const create = async () => {
+        if (phase === 'signing') return;
         if (!prices || !tokenA || !tokenB || !subnetA || !subnetB || !address || preview.reasons.length) return;
         setError(null);
-        const settings: RangeSettings = {
-            pair: { a: tokenA.contractId, b: tokenB.contractId },
-            subnet: { a: subnetA, b: subnetB },
-            sellStart: sell, buyStart: buy, tilt: form.tilt,
-            intervalHours: form.intervalHours, windows, perSwapUsd: form.perSwapUsd,
-            createdAt: new Date().toISOString(),
-        };
-        const specs = generateRangeLegs(settings, prices, { a: decA, b: decB }, Date.now());
+
+        let specs: RangeLegSpec[];
+        let settings: RangeSettings;
+        try {
+            if (tokenA.decimals === undefined || tokenB.decimals === undefined) {
+                throw new Error(`Missing decimals for ${tokenA.symbol} or ${tokenB.symbol}`);
+            }
+            const now = Date.now();
+            settings = {
+                pair: { a: tokenA.contractId, b: tokenB.contractId },
+                subnet: { a: subnetA, b: subnetB },
+                sellStart: sell, buyStart: buy, tilt: form.tilt,
+                intervalHours: form.intervalHours, windows, perSwapUsd: form.perSwapUsd,
+                createdAt: new Date(now).toISOString(),
+            };
+            specs = generateRangeLegs(settings, prices, { a: tokenA.decimals, b: tokenB.decimals }, now);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : String(err));
+            return;
+        }
+
         setLegs(specs);
         setStatuses(specs.map(() => 'pending'));
+        setSymbols({ a: tokenA.symbol, b: tokenB.symbol });
         setPhase('signing');
-        const strategyId = globalThis.crypto?.randomUUID() ?? Date.now().toString();
+        const strategyId = crypto.randomUUID();
 
         for (let i = 0; i < specs.length; i++) {
+            if (!aliveRef.current) return;
             setStatuses((s) => s.map((v, k) => (k === i ? 'signing' : v)));
             try {
                 await createRangeLeg(address, specs[i], { strategyId, strategySize: specs.length, range: settings });
@@ -88,7 +112,7 @@ export default function RangePage() {
                 break;
             }
         }
-        setPhase('done');
+        if (aliveRef.current) setPhase('done');
     };
 
     return (
@@ -108,7 +132,9 @@ export default function RangePage() {
                             band={{ sell, buy, tilt: form.tilt, windows, intervalHours: form.intervalHours, onDrag }}
                         />
                     ) : (
-                        <div className="h-[220px] flex items-center justify-center text-sm text-white/50">Pick two tokens to see the chart.</div>
+                        <div className="h-[220px] flex items-center justify-center text-sm text-white/50">
+                            {bothPicked ? 'Waiting for prices' : 'Pick two tokens to see the chart.'}
+                        </div>
                     )}
                 </div>
                 <div className="space-y-4">
@@ -118,12 +144,17 @@ export default function RangePage() {
                         sellPrice={sell} buyPrice={buy}
                         amountA={amountA.toFixed(Math.min(decA, 4))} amountB={amountB.toFixed(Math.min(decB, 4))}
                     />
-                    <RangePreview preview={ready ? preview : { ...preview, reasons: ['Pick two tokens with a price'] }} runway={runway} busy={phase === 'signing'} onCreate={create} />
+                    <RangePreview
+                        preview={ready ? preview : { ...preview, reasons: [bothPicked ? 'Waiting for prices' : 'Pick two tokens'] }}
+                        runway={runway}
+                        busy={phase === 'signing'}
+                        onCreate={create}
+                    />
                     {error && <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">{error}</div>}
                 </div>
             </div>
-            {legs.length > 0 && tokenA && tokenB && (
-                <RangeSchedule legs={legs} statuses={statuses} symbols={{ a: tokenA.symbol, b: tokenB.symbol }} />
+            {legs.length > 0 && symbols && (
+                <RangeSchedule legs={legs} statuses={statuses} symbols={symbols} />
             )}
         </div>
     );

@@ -42,8 +42,8 @@ export function rangeProfitPreview({ price, sell, buy, perSwapUsd, windows }: Pr
   const reasons: string[] = [];
   if (![price, sell, buy, windows, perSwapUsd].every(Number.isFinite)) reasons.push('Fill in every field');
   if (!(perSwapUsd > 0)) reasons.push('Per swap must be more than $0');
-  if (sell <= price * (1 + MIN_GAP)) reasons.push('Sell line must be above current price');
-  if (buy >= price * (1 - MIN_GAP)) reasons.push('Buy line must be below current price');
+  if (sell < price * (1 + MIN_GAP)) reasons.push('Sell line must be above current price');
+  if (buy > price * (1 - MIN_GAP)) reasons.push('Buy line must be below current price');
   if (spread <= breakEven) reasons.push(`Spread is below break-even (${breakEven * 100}%)`);
   if (windows < 1) reasons.push('Run is shorter than one window');
   if (orderCount > MAX_ORDERS) {
