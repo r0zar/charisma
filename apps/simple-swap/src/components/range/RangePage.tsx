@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { usePrices } from '@/contexts/token-price-context';
 import { useSubnetTokens } from '@/contexts/subnet-tokens-context';
+import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
 import { getQuote } from '@/app/actions';
@@ -13,10 +14,12 @@ import { createRangeLeg } from '@/lib/range/create-leg';
 import { generateRangeLegs } from '@/lib/range/generate-legs';
 import { rangeProfitPreview, runwayFor, windowsFor } from '@/lib/range/profit-preview';
 import { routeCostPerCycle } from '@/lib/range/route-cost';
+import { loadRangeSettings, saveRangeSettings } from '@/lib/range/settings-storage';
 import type { RangeLegSpec, RangeSettings } from '@/lib/range/types';
 import RangeControls, { type RangeForm } from './RangeControls';
 import RangePreview from './RangePreview';
 import RangeSchedule, { type LegStatus } from './RangeSchedule';
+import { useSubnetFundedTokens } from './SubnetPairSelector';
 
 const ConditionTokenChart = dynamic(() => import('@/components/condition-token-chart'), { ssr: false });
 
@@ -37,6 +40,9 @@ export default function RangePage() {
     /** One quoted cycle in display units: what each leg sent and what the router quoted back (sell: A→B, buy: B→A). */
     const [quotes, setQuotes] = useState<{ sellIn: number; sellOut: number; buyIn: number; buyOut: number } | null>(null);
     const [quoteError, setQuoteError] = useState<string | null>(null);
+    /** Stored token ids still waiting for metadata and balances; null once resolved (or nothing was stored). */
+    const [pendingIds, setPendingIds] = useState<{ a: string | null; b: string | null } | null>(null);
+    const [storageLoaded, setStorageLoaded] = useState(false);
     const aliveRef = useRef(true);
     useEffect(() => {
         aliveRef.current = true;
@@ -46,7 +52,42 @@ export default function RangePage() {
     const { address } = useWallet();
     const { getPrice } = usePrices();
     const { getSubnetContractId } = useSubnetTokens();
-    const { getSubnetBalance } = useBalances(address ? [address] : []);
+    const { getSubnetBalance, getBalance } = useBalances(address ? [address] : []);
+    const { tokens, isLoading: metadataLoading } = useTokenMetadata();
+    const funded = useSubnetFundedTokens();
+
+    // Restore settings once on mount. The form applies immediately; tokens wait for metadata and balances below.
+    useEffect(() => {
+        const stored = loadRangeSettings();
+        if (stored) {
+            setForm(stored.form);
+            if (stored.tokenA || stored.tokenB) setPendingIds({ a: stored.tokenA, b: stored.tokenB });
+        }
+        setStorageLoaded(true);
+    }, []);
+
+    // Resolve stored token ids once metadata and this wallet's balances exist, then stop.
+    // A token the wallet no longer holds on the subnet is dropped rather than restored.
+    const balancesLoaded = !!address && getBalance(address) !== null;
+    useEffect(() => {
+        if (!pendingIds || metadataLoading || !balancesLoaded) return;
+        const pick = (id: string | null) => (id && tokens[id] ? funded.find((t) => t.contractId === id) ?? null : null);
+        const a = pick(pendingIds.a);
+        const b = pick(pendingIds.b);
+        if (a) setTokenA(a);
+        if (b) setTokenB(b);
+        setPendingIds(null);
+    }, [pendingIds, metadataLoading, balancesLoaded, tokens, funded]);
+
+    // Persist whenever the form or pair changes; unresolved stored ids are carried until they resolve or drop.
+    useEffect(() => {
+        if (!storageLoaded) return;
+        saveRangeSettings({
+            form,
+            tokenA: tokenA?.contractId ?? pendingIds?.a ?? null,
+            tokenB: tokenB?.contractId ?? pendingIds?.b ?? null,
+        });
+    }, [storageLoaded, form, tokenA, tokenB, pendingIds]);
 
     const priceA = tokenA ? getPrice(tokenA.contractId) : null;
     const priceB = tokenB ? getPrice(tokenB.contractId) : null;
