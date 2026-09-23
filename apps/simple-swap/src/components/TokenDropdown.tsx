@@ -18,6 +18,10 @@ interface TokenDropdownProps {
     showBalances?: boolean;
     forceOpen?: boolean;
     onForceOpenChange?: (open: boolean) => void;
+    /** Prepend the synthetic STX row when it isn't already in `tokens`. Default true. */
+    includeStx?: boolean;
+    /** 'subnet' shows only the subnet balance/value, for flows that only spend subnet funds. Default 'combined'. */
+    balanceMode?: 'combined' | 'subnet';
 }
 
 export default function TokenDropdown({
@@ -29,6 +33,8 @@ export default function TokenDropdown({
     showBalances = false,
     forceOpen = false,
     onForceOpenChange,
+    includeStx = true,
+    balanceMode = 'combined',
 }: TokenDropdownProps) {
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
@@ -45,40 +51,41 @@ export default function TokenDropdown({
 
     /* ---------------- helpers ---------------- */
     
-    // Calculate USD value for a token (mainnet + subnet)
+    // Calculate USD value for a token (mainnet + subnet, or subnet-only in 'subnet' mode)
     const calculateTokenUSDValue = (token: TokenCacheData): number => {
         if (!address || !showBalances) return 0;
-        
+
         // Special price lookup for STX
         let price = prices[token.contractId] || 0;
         if (token.contractId === 'STX' && price === 0) {
             price = prices['.stx'] || 0; // STX prices are stored under '.stx' key
         }
-        
+
         if (price === 0) return 0;
-        
+
         // Special handling for STX
         if (token.contractId === 'STX' || token.contractId.toLowerCase() === 'stx') {
+            if (balanceMode === 'subnet') return 0;
             const stxBalance = getStxBalance(address);
             return stxBalance * price;
         }
-        
+
         // Use raw balances and convert to decimal-adjusted values for USD calculation
         const rawMainnetBalance = getTokenBalance(address, token.contractId);
-        
+
         // Get subnet balance if applicable
         let rawSubnetBalance = 0;
         const subnetContractId = getSubnetContractId(token.contractId);
         if (subnetContractId) {
             rawSubnetBalance = getTokenBalance(address, subnetContractId);
         }
-        
+
         // Convert raw balances to decimal-adjusted values
         const decimals = getTokenDecimals(token.contractId) || 6;
         const mainnetValue = rawMainnetBalance / Math.pow(10, decimals);
         const subnetValue = rawSubnetBalance / Math.pow(10, decimals);
-        const totalBalance = mainnetValue + subnetValue;
-        
+        const totalBalance = balanceMode === 'subnet' ? subnetValue : mainnetValue + subnetValue;
+
         return totalBalance * price;
     };
 
@@ -86,8 +93,8 @@ export default function TokenDropdown({
         // Add STX as a synthetic token if not already present
         const hasSTX = tokens.some(t => t.contractId === 'STX' || t.contractId.toLowerCase() === 'stx');
         let result = tokens;
-        
-        if (!hasSTX) {
+
+        if (includeStx && !hasSTX) {
             const stxToken: TokenCacheData = {
                 type: 'token',
                 contractId: 'STX',
@@ -144,7 +151,7 @@ export default function TokenDropdown({
         }
         
         return result;
-    }, [tokens, search, showBalances, address, getFormattedBalanceWithSubnet, getTokenBalance, getStxBalance, getTokenDecimals, getSubnetContractId, prices]);
+    }, [tokens, search, showBalances, address, includeStx, balanceMode, getFormattedBalanceWithSubnet, getTokenBalance, getStxBalance, getTokenDecimals, getSubnetContractId, prices]);
 
     const close = () => {
         setOpen(false);
@@ -322,20 +329,46 @@ export default function TokenDropdown({
                                                             const usdValue = calculateTokenUSDValue(token);
                                                             
                                                             
+                                                            if (balanceMode === 'subnet') {
+                                                                return (
+                                                                    <>
+                                                                        {/* USD Value */}
+                                                                        {usdValue > 0 && (
+                                                                            <div className="text-sm sm:text-base font-bold text-green-400 mb-1">
+                                                                                ${usdValue >= 1000000
+                                                                                    ? `${(usdValue / 1000000).toFixed(2)}M`
+                                                                                    : usdValue >= 1000
+                                                                                        ? `${(usdValue / 1000).toFixed(2)}K`
+                                                                                        : usdValue.toFixed(2)
+                                                                                }
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Subnet Balance (primary in subnet mode) */}
+                                                                        <div className="text-sm sm:text-base font-semibold text-white/90">
+                                                                            {subnet || '0'}
+                                                                        </div>
+                                                                        <div className="text-xs text-white/40">
+                                                                            on subnet
+                                                                        </div>
+                                                                    </>
+                                                                );
+                                                            }
+
                                                             return (
                                                                 <>
                                                                     {/* USD Value */}
                                                                     {usdValue > 0 && (
                                                                         <div className="text-sm sm:text-base font-bold text-green-400 mb-1">
-                                                                            ${usdValue >= 1000000 
+                                                                            ${usdValue >= 1000000
                                                                                 ? `${(usdValue / 1000000).toFixed(2)}M`
-                                                                                : usdValue >= 1000 
+                                                                                : usdValue >= 1000
                                                                                     ? `${(usdValue / 1000).toFixed(2)}K`
                                                                                     : usdValue.toFixed(2)
                                                                             }
                                                                         </div>
                                                                     )}
-                                                                    
+
                                                                     {/* Token Balance */}
                                                                     <div className="text-sm sm:text-base font-semibold text-white/90">
                                                                         {mainnet || '0'}

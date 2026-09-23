@@ -19,7 +19,7 @@ interface Props {
  * Mainnet tokens that have a subnet version the connected wallet actually holds.
  * A range swap sends from both sides, so anything unfunded is not offered.
  */
-export function useSubnetFundedTokens(exclude?: string | null): TokenCacheData[] {
+export function useSubnetFundedTokens(): TokenCacheData[] {
     const { tokens } = useTokenMetadata();
     const { getSubnetContractId } = useSubnetTokens();
     const { address } = useWallet();
@@ -27,25 +27,43 @@ export function useSubnetFundedTokens(exclude?: string | null): TokenCacheData[]
 
     if (!address) return [];
     return Object.values(tokens).filter((t) => {
-        if (t.type === 'SUBNET' || t.contractId === exclude) return false;
+        if (t.type === 'SUBNET') return false;
         const subnetId = getSubnetContractId(t.contractId);
         return !!subnetId && getSubnetBalance(address, subnetId) > 0;
     });
 }
 
 export default function SubnetPairSelector({ label, selected, onSelect, exclude }: Props) {
-    const tokens = useSubnetFundedTokens(exclude);
+    const funded = useSubnetFundedTokens();
+    const tokens = funded.filter((t) => t.contractId !== exclude);
     const { address } = useWallet();
 
     if (!address) {
         return <div className="text-sm text-white/60">Connect a wallet to pick tokens.</div>;
     }
-    if (tokens.length === 0) {
+    if (funded.length === 0) {
         return (
             <div className="text-sm text-white/60">
                 Range Swaps need tokens on the subnet. Move some over from the swap page.
             </div>
         );
     }
-    return <TokenDropdown tokens={tokens} selected={selected} onSelect={onSelect} label={label} showBalances />;
+    if (tokens.length === 0) {
+        return (
+            <div className="text-sm text-white/60">
+                Range Swaps need two subnet-funded tokens. Move another over from the swap page.
+            </div>
+        );
+    }
+    return (
+        <TokenDropdown
+            tokens={tokens}
+            selected={selected}
+            onSelect={onSelect}
+            label={label}
+            showBalances
+            includeStx={false}
+            balanceMode="subnet"
+        />
+    );
 }
