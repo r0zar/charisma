@@ -113,7 +113,7 @@ Strategy fields on every leg: one `strategyId` for the run, `strategyPosition` 1
 ### Guardrails
 
 - Both tokens must have subnet versions. The selector only lists tokens the wallet holds on the subnet.
-- Sell line must be above current price and buy line below, with a 0.5% minimum gap. Otherwise the button disables and says why.
+- Sell line must be at least 0.5% above current price and buy line at least 0.5% below (exactly 0.5% is allowed, matching the inputs' minimum). Otherwise the button disables and says why.
 - Spread must exceed break-even, else the button disables.
 - `2N > 200` disables the button: "Too many orders (2N). Cap is 200 in one sitting. Widen the interval or shorten the run."
 - Balance coverage is shown, not enforced: "sells cover A windows, buys cover B", where A = floor(balanceA / amountA).
@@ -228,6 +228,8 @@ The wizard only fills the page's controls, so the implementation plan should tre
 
 ## Out of scope for the first plan
 
+- Custom hours for "Trigger every" and custom days for "Run for" (phase 1 ships the fixed presets only).
+- The "Guide me" button and wizard (phase 2).
 - Adopting `SubnetPairSelector` in Triggered Swaps.
 - A comparable volatility score across pairs.
 - Any change to the executor.
