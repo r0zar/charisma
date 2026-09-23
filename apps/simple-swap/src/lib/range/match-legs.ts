@@ -51,7 +51,7 @@ const units = (raw: string | undefined, decimals: number) => Number(raw ?? '0') 
  */
 export function matchRangeLegs(
   orders: LimitOrder[],
-  pair: { b: string; decimalsB: number; decimalsA?: number },
+  pair: { b: string; decimalsB: number; decimalsA: number },
   usdPriceAt: (contractId: string, isoTime: string) => number | null,
   now: number = Date.now(),
 ): RangeMetrics {
@@ -67,7 +67,7 @@ export function matchRangeLegs(
     if (o.leg !== 'buy') continue;
     buysHit++;
     const sell = sells.shift();
-    if (!sell) { unmatchedBuys++; openPositionA += units(o.metadata?.quote?.amountOut, pair.decimalsA ?? 6); continue; }
+    if (!sell) { unmatchedBuys++; openPositionA += units(o.metadata?.quote?.amountOut, pair.decimalsA); continue; }
     const sellTs = sell.metadata?.quote?.timestamp ?? sell.confirmedAt ?? sell.createdAt;
     const buyTs = o.metadata?.quote?.timestamp ?? o.confirmedAt ?? o.createdAt;
     const pSell = usdPriceAt(pair.b, sellTs), pBuy = usdPriceAt(pair.b, buyTs);

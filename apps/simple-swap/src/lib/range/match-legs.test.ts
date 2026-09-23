@@ -49,7 +49,7 @@ describe('matchRangeLegs', () => {
       order({ leg: 'buy', strategyPosition: 6, validFrom: '2026-10-01T12:00:00.000Z', validTo: '2026-10-02T12:00:00.000Z' }),
     ];
 
-    const m = matchRangeLegs(orders, { b: B, decimalsB: DEC_B }, priceAt, NOW);
+    const m = matchRangeLegs(orders, { b: B, decimalsB: DEC_B, decimalsA: 6 }, priceAt, NOW);
 
     expect(m.realizedUsd).toBeCloseTo(4.4, 6);
     expect(m.cyclesDone).toBe(1);
@@ -68,8 +68,18 @@ describe('matchRangeLegs', () => {
       hit('sell', 1, '1', '54400000', '2026-09-24T01:00:00.000Z'),
       hit('buy', 2, '50000000', '1', '2026-09-24T09:00:00.000Z'),
     ];
-    const m = matchRangeLegs(orders, { b: B, decimalsB: DEC_B }, () => null, NOW);
+    const m = matchRangeLegs(orders, { b: B, decimalsB: DEC_B, decimalsA: 6 }, () => null, NOW);
     expect(m.realizedUsd).toBe(0);
     expect(m.unpricedPairs).toBe(1);
+  });
+
+  it('values an unmatched buy in token A with the given decimals', () => {
+    const orders = [
+      hit('buy', 2, '50000000', '790000000', '2026-09-24T09:00:00.000Z'),
+    ];
+    const m = matchRangeLegs(orders, { b: B, decimalsB: 6, decimalsA: 8 }, priceAt, NOW);
+    expect(m.openPositionA).toBeCloseTo(7.9, 6);
+    expect(m.unmatchedBuys).toBe(1);
+    expect(m.realizedUsd).toBe(0);
   });
 });
