@@ -22,7 +22,6 @@ import {
     includeTargetsInRange,
     isValidPrice,
 } from "@/lib/charts/simple-chart-utils";
-import { lineAt } from "@/lib/range/generate-legs";
 import { usePrices } from '@/contexts/token-price-context';
 import { usePriceSeriesService } from '@/lib/charts/price-series-service';
 
@@ -33,6 +32,10 @@ const TIMEFRAMES: { value: Timeframe; label: string }[] = [
     { value: '30d', label: '30D' },
 ];
 
+/**
+ * Sell and buy lines drawn from "now" to the end of the run with a shared tilt.
+ * Must be present from the chart's first render; the band cannot be added or removed after the chart is built.
+ */
 export interface ChartBand {
     sell: number;
     buy: number;
@@ -55,13 +58,24 @@ interface Props {
 
 const HOUR = 3600;
 
+/**
+ * Fraction of the tilt applied at unix time `t`. Matches the orders (`lineAt`): full tilt is reached at the
+ * START of the last window, so the line keeps its slope through the last window to run end (no clamp).
+ */
+function tiltFrac(t: number, from: number, band: ChartBand): number {
+    return band.windows > 1 ? (t - from) / ((band.windows - 1) * band.intervalHours * HOUR) : 0;
+}
+
 /** Points for one band line from `from` (unix s) to the end of the run, one per hour so the future is drawn to scale. */
 function bandPoints(start: number, band: ChartBand, from: number): LineData[] {
     const endTime = from + band.windows * band.intervalHours * HOUR;
     const points: LineData[] = [];
-    for (let t = from; t <= endTime; t += HOUR) {
-        const frac = endTime > from ? (t - from) / (endTime - from) : 0;
-        points.push({ time: t as UTCTimestamp, value: start * (1 + band.tilt * frac) });
+    let t = from;
+    for (; t <= endTime; t += HOUR) {
+        points.push({ time: t as UTCTimestamp, value: start * (1 + band.tilt * tiltFrac(t, from, band)) });
+    }
+    if (t - HOUR < endTime) {
+        points.push({ time: endTime as UTCTimestamp, value: start * (1 + band.tilt * tiltFrac(endTime, from, band)) });
     }
     return points;
 }
@@ -124,6 +138,7 @@ export default function ConditionTokenChart({
     const bandRef = useRef<ChartBand | undefined>(band);
     bandRef.current = band;
     const bandSeriesRef = useRef<{ sell: ISeriesApi<'Line'>; buy: ISeriesApi<'Line'> } | null>(null);
+    const draggingRef = useRef(false);
     // Horizontal extent of the band last drawn, so only a change in run length refits the time axis
     const bandExtentRef = useRef<string | null>(null);
     const onTargetPriceChangeRef = useRef(onTargetPriceChange);
@@ -199,7 +214,10 @@ export default function ConditionTokenChart({
             lineWidth: 2,
             autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
                 const b = bandRef.current;
-                const ends = b ? [lineAt(b.sell, b.tilt, b.windows - 1, b.windows), lineAt(b.buy, b.tilt, b.windows - 1, b.windows)] : [];
+                // Band end values keep the whole band in the vertical range even when it is scrolled out of view horizontally
+                const lastTime = Number(data[data.length - 1].time);
+                const endValue = (start: number) => { const pts = bandPoints(start, b!, lastTime); return pts[pts.length - 1].value; };
+                const ends = b ? [endValue(b.sell), endValue(b.buy)] : [];
                 return includeTargetsInRange(original(), [targetRef.current, b?.sell ?? null, b?.buy ?? null, ...ends]);
             },
         });
@@ -219,7 +237,7 @@ export default function ConditionTokenChart({
         chart.timeScale().fitContent();
 
         chart.subscribeClick((param) => {
-            if (!param.point) return;
+            if (!param.point || draggingRef.current) return;
             const price = series.coordinateToPrice(param.point.y);
             if (price !== null && isValidPrice(price)) {
                 onTargetPriceChangeRef.current(price.toString());
@@ -252,7 +270,7 @@ export default function ConditionTokenChart({
         const lastTime = Number(data[data.length - 1].time);
         s.sell.setData(bandPoints(band.sell, band, lastTime));
         s.buy.setData(bandPoints(band.buy, band, lastTime));
-        chartRef.current?.priceScale('left').applyOptions({ autoScale: true });
+        if (!draggingRef.current) chartRef.current?.priceScale('left').applyOptions({ autoScale: true });
 
         // Refit the time axis only when the run length changes, so dragging a line keeps the user's zoom
         const extent = `${band.windows}:${band.intervalHours}`;
@@ -277,17 +295,17 @@ export default function ConditionTokenChart({
         const lineValueAt = (line: 'sell' | 'buy', x: number) => {
             const b = bandRef.current!;
             const lastTime = Number(data[data.length - 1].time);
-            const endTime = lastTime + b.windows * b.intervalHours * HOUR;
             const t = chart.timeScale().coordinateToTime(x);
             const time = t === null ? lastTime : Number(t);
-            const frac = Math.min(1, Math.max(0, (time - lastTime) / Math.max(1, endTime - lastTime)));
+            const frac = Math.max(0, tiltFrac(time, lastTime, b));
             const start = line === 'sell' ? b.sell : b.buy;
             return { value: start * (1 + b.tilt * frac), frac };
         };
 
         const onDown = (e: PointerEvent) => {
             const rect = container.getBoundingClientRect();
-            const x = e.clientX - rect.left, y = e.clientY - rect.top;
+            // Time-scale coordinates are pane-relative, so skip the left price scale's width
+            const x = e.clientX - rect.left - chart.priceScale('left').width(), y = e.clientY - rect.top;
             const s = bandSeriesRef.current;
             if (!s) return;
             for (const line of ['sell', 'buy'] as const) {
@@ -295,6 +313,8 @@ export default function ConditionTokenChart({
                 const ly = s[line].priceToCoordinate(value);
                 if (ly !== null && Math.abs(ly - y) <= HIT_PX) {
                     dragging = { line, frac };
+                    draggingRef.current = true;
+                    chart.priceScale('left').applyOptions({ autoScale: false });
                     chart.applyOptions({ handleScroll: false, handleScale: false });
                     container.setPointerCapture(e.pointerId);
                     container.style.cursor = 'ns-resize';
@@ -315,6 +335,8 @@ export default function ConditionTokenChart({
         const onUp = () => {
             if (!dragging) return;
             dragging = null;
+            draggingRef.current = false;
+            chart.priceScale('left').applyOptions({ autoScale: true });
             chart.applyOptions({ handleScroll: true, handleScale: true });
             container.style.cursor = '';
         };
