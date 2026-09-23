@@ -7,9 +7,12 @@ import { usePrices } from '@/contexts/token-price-context';
 import { useSubnetTokens } from '@/contexts/subnet-tokens-context';
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
+import { getQuote } from '@/app/actions';
+import { convertToMicroUnits } from '@/lib/swap-utils';
 import { createRangeLeg } from '@/lib/range/create-leg';
 import { generateRangeLegs } from '@/lib/range/generate-legs';
 import { rangeProfitPreview, runwayFor, windowsFor } from '@/lib/range/profit-preview';
+import { routeCostPerCycle } from '@/lib/range/route-cost';
 import type { RangeLegSpec, RangeSettings } from '@/lib/range/types';
 import RangeControls, { type RangeForm } from './RangeControls';
 import RangePreview from './RangePreview';
@@ -31,6 +34,9 @@ export default function RangePage() {
     const [statuses, setStatuses] = useState<LegStatus[]>([]);
     const [symbols, setSymbols] = useState<{ a: string; b: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
+    /** Router output for one cycle, in display units: B back from the sell leg, A back from the buy leg. */
+    const [quotes, setQuotes] = useState<{ sellOut: number; buyOut: number } | null>(null);
+    const [quoteError, setQuoteError] = useState<string | null>(null);
     const aliveRef = useRef(true);
     useEffect(() => {
         aliveRef.current = true;
@@ -52,14 +58,44 @@ export default function RangePage() {
     const sell = ratio * (1 + form.sellPct / 100);
     const buy = ratio * (1 - form.buyPct / 100);
     const windows = windowsFor(form.runDays * 24, form.intervalHours);
-    const preview = rangeProfitPreview({ price: ratio, sell, buy, perSwapUsd: form.perSwapUsd, windows });
 
-    // Display-only formatting before a token is picked; `create` requires real decimals.
+    // Display-only formatting before a token is picked; `create` and quoting require real decimals.
     const decA = tokenA?.decimals ?? 6, decB = tokenB?.decimals ?? 6;
     const amountA = prices ? form.perSwapUsd / prices.a : 0;
     const amountB = prices ? form.perSwapUsd / prices.b : 0;
     const subnetA = tokenA ? getSubnetContractId(tokenA.contractId) : null;
     const subnetB = tokenB ? getSubnetContractId(tokenB.contractId) : null;
+    const perSwapUsd = form.perSwapUsd;
+    const realDecA = tokenA?.decimals, realDecB = tokenB?.decimals;
+
+    // Quote both legs through the router (same one the swap page uses), debounced, dropping stale responses.
+    useEffect(() => {
+        setQuotes(null);
+        setQuoteError(null);
+        if (!subnetA || !subnetB || priceA === null || priceB === null || !(priceA > 0) || !(priceB > 0) || !(perSwapUsd > 0)) return;
+        if (realDecA === undefined || realDecB === undefined) return;
+        let cancelled = false;
+        const timer = setTimeout(async () => {
+            try {
+                const microA = convertToMicroUnits((perSwapUsd / priceA).toFixed(realDecA), realDecA);
+                const microB = convertToMicroUnits((perSwapUsd / priceB).toFixed(realDecB), realDecB);
+                if (microA === '0' || microB === '0') throw new Error('Per-swap amount rounds to zero for one token');
+                const [sellQ, buyQ] = await Promise.all([getQuote(subnetA, subnetB, microA), getQuote(subnetB, subnetA, microB)]);
+                if (cancelled) return;
+                if (!sellQ.data) throw new Error(`Sell leg: ${sellQ.error ?? 'no route'}`);
+                if (!buyQ.data) throw new Error(`Buy leg: ${buyQ.error ?? 'no route'}`);
+                setQuotes({ sellOut: sellQ.data.amountOut / 10 ** realDecB, buyOut: buyQ.data.amountOut / 10 ** realDecA });
+            } catch (err) {
+                if (!cancelled) setQuoteError(err instanceof Error ? err.message : String(err));
+            }
+        }, 400);
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [subnetA, subnetB, perSwapUsd, priceA, priceB, realDecA, realDecB]);
+
+    const routeCostUsd = prices && quotes
+        ? routeCostPerCycle({ sellIn: amountA, sellOut: quotes.sellOut, buyIn: amountB, buyOut: quotes.buyOut, priceA: prices.a, priceB: prices.b }).totalUsd
+        : null;
+    const preview = rangeProfitPreview({ price: ratio, sell, buy, perSwapUsd, windows, routeCostUsd });
     const runway = {
         sells: address && subnetA ? runwayFor(getSubnetBalance(address, subnetA) / 10 ** decA, amountA) : 0,
         buys: address && subnetB ? runwayFor(getSubnetBalance(address, subnetB) / 10 ** decB, amountB) : 0,
@@ -152,6 +188,7 @@ export default function RangePage() {
                     />
                     <RangePreview
                         preview={ready ? preview : { ...preview, reasons: [bothPicked ? 'Waiting for prices' : 'Pick two tokens'] }}
+                        quoteError={quoteError}
                         runway={runway}
                         busy={phase === 'signing'}
                         onCreate={create}
