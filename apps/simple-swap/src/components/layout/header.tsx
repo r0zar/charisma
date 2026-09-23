@@ -3,10 +3,11 @@
 import React from "react";
 import Link from "next/link";
 import { WalletButton } from "../wallet-button";
-import { Coins, Menu, Settings, Shield } from "lucide-react";
+import { ChevronDown, Coins, Menu, Settings, Shield } from "lucide-react";
 import { useWallet } from "@/contexts/wallet-context";
 import { Drawer } from "vaul";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
 
 // Navigation links array for reuse in both desktop and mobile views
 const navigationLinks = [
@@ -14,6 +15,10 @@ const navigationLinks = [
     { href: "/swap", label: "Swap" },
     { href: "/orders", label: "Orders" },
     // { href: "/tokens", label: "Tokens" },
+];
+
+const advancedLinks = [
+    { href: "/advanced/range", label: "Range Swaps", hint: "Sell high, buy back low, on a schedule" },
 ];
 
 export function Header() {
@@ -51,6 +56,21 @@ export function Header() {
                                 {link.label}
                             </Link>
                         ))}
+                        <DropdownMenu>
+                            <DropdownMenuTrigger className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.05] rounded-xl transition-all duration-200">
+                                Advanced <ChevronDown className="h-3.5 w-3.5" />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                                {advancedLinks.map((link) => (
+                                    <DropdownMenuItem key={link.href}>
+                                        <Link href={link.href} className="flex flex-col items-start gap-0.5 w-full">
+                                            <span className="text-sm text-white/90">{link.label}</span>
+                                            <span className="text-xs text-white/50">{link.hint}</span>
+                                        </Link>
+                                    </DropdownMenuItem>
+                                ))}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                         {isDev && (
                             <Link href="/admin" className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-orange-400/90 hover:text-orange-300 hover:bg-orange-500/[0.08] rounded-xl transition-all duration-200">
                                 <Shield className="h-3.5 w-3.5" />
@@ -98,6 +118,18 @@ export function Header() {
 
                                     <nav className="flex flex-col space-y-2">
                                         {navigationLinks.map((link) => (
+                                            <Link
+                                                key={link.href}
+                                                href={link.href}
+                                                className="flex items-center py-3 px-4 rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] transition-all duration-200"
+                                                onClick={() => setIsOpen(false)}
+                                            >
+                                                {link.label}
+                                            </Link>
+                                        ))}
+
+                                        <div className="px-4 pt-2 text-xs uppercase tracking-wider text-white/40">Advanced</div>
+                                        {advancedLinks.map((link) => (
                                             <Link
                                                 key={link.href}
                                                 href={link.href}
