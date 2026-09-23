@@ -150,6 +150,8 @@ export default function RangePage() {
     };
 
     const patch = (p: Partial<RangeForm>) => setForm((f) => ({ ...f, ...p }));
+    // Form stays as is: the band percentages are relative to the new ratio, so chart, quotes and preview re-derive.
+    const swapPair = () => { setTokenA(tokenB); setTokenB(tokenA); };
     const onDrag = (line: 'sell' | 'buy', price: number) => {
         if (!ratio) return;
         if (line === 'sell') patch({ sellPct: dragPct((price / ratio - 1) * 100, 200) });
@@ -229,7 +231,7 @@ export default function RangePage() {
                 </div>
                 <div className="space-y-4">
                     <RangeControls
-                        tokenA={tokenA} tokenB={tokenB} onTokenA={setTokenA} onTokenB={setTokenB}
+                        tokenA={tokenA} tokenB={tokenB} onTokenA={setTokenA} onTokenB={setTokenB} onSwap={swapPair}
                         form={form} onChange={patch}
                         sellPrice={sell} buyPrice={buy}
                         amountA={amountA.toFixed(Math.min(decA, 4))} amountB={amountB.toFixed(Math.min(decB, 4))}

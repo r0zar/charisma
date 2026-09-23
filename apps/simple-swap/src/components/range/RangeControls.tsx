@@ -19,6 +19,7 @@ interface Props {
     tokenB: TokenCacheData | null;
     onTokenA: (t: TokenCacheData) => void;
     onTokenB: (t: TokenCacheData) => void;
+    onSwap: () => void;
     form: RangeForm;
     onChange: (patch: Partial<RangeForm>) => void;
     sellPrice: number;
@@ -96,7 +97,7 @@ function BandInput({ id, label, name, sign, className, value, min, max, onValue 
 /** Orders a run would create: two per window. Mirrors the preview's cap check so presets that cannot work are greyed out. */
 const orderCountFor = (intervalHours: number, runDays: number) => windowsFor(runDays * 24, intervalHours) * 2;
 
-export default function RangeControls({ tokenA, tokenB, onTokenA, onTokenB, form, onChange, sellPrice, buyPrice, amountA, amountB }: Props) {
+export default function RangeControls({ tokenA, tokenB, onTokenA, onTokenB, onSwap, form, onChange, sellPrice, buyPrice, amountA, amountB }: Props) {
     const intervalOptions = INTERVALS.map((i) => ({
         v: i.h, label: i.label,
         disabled: orderCountFor(i.h, form.runDays) > MAX_ORDERS,
@@ -118,7 +119,15 @@ export default function RangeControls({ tokenA, tokenB, onTokenA, onTokenB, form
                 <div id="range-pair-label" className="text-xs text-white/60">Pair</div>
                 <div role="group" aria-labelledby="range-pair-label" className="flex items-center gap-2">
                     <SubnetPairSelector label="Sell" selected={tokenA} onSelect={onTokenA} exclude={tokenB?.contractId} />
-                    <span className="text-white/40">⇄</span>
+                    <button
+                        type="button"
+                        aria-label="Swap sell and buy tokens"
+                        onClick={onSwap}
+                        disabled={!tokenA || !tokenB}
+                        className="rounded-md px-1.5 py-1 text-white/50 hover:text-white/90 hover:bg-white/[0.05] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white/50"
+                    >
+                        ⇄
+                    </button>
                     <SubnetPairSelector label="For" selected={tokenB} onSelect={onTokenB} exclude={tokenA?.contractId} />
                 </div>
             </div>
