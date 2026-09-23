@@ -14,6 +14,8 @@ export interface BaseStrategyCardProps {
     onCopyToClipboard: (text: string, id: string) => void;
     onExecuteNow: (uuid: string) => void;
     onCancelOrder: (uuid: string) => void;
+    /** Cancel several open orders behind one confirmation. */
+    onCancelOrders?: (uuids: string[]) => void;
     copiedId: string | null;
     formatTokenAmount: (amount: string | number, decimals: number) => string;
 }

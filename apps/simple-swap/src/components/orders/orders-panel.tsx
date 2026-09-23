@@ -638,6 +638,7 @@ export default function OrdersPanel() {
         return null;
     }, [getToken, getTokenWithDiscovery]);
     const [confirmUuid, setConfirmUuid] = useState<string | null>(null);
+    const [confirmBulk, setConfirmBulk] = useState<string[] | null>(null);
     const [activeFilter, setActiveFilter] = useState<string>("all");
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -1015,6 +1016,12 @@ export default function OrdersPanel() {
         }
     };
 
+    const cancelOrders = async (uuids: string[]) => {
+        for (const uuid of uuids) {
+            await cancelOrder(uuid);
+        }
+    };
+
     const executeNow = async (uuid: string) => {
         const orderToExecute = displayOrders.find(o => o.uuid === uuid);
         if (!orderToExecute) return;
@@ -1321,6 +1328,7 @@ export default function OrdersPanel() {
                                         onCopyToClipboard={copyToClipboard}
                                         onExecuteNow={executeNow}
                                         onCancelOrder={(uuid) => setConfirmUuid(uuid)}
+                                        onCancelOrders={(uuids) => setConfirmBulk(uuids)}
                                         copiedId={copiedId}
                                         formatTokenAmount={formatTokenAmount}
                                     />
@@ -1362,6 +1370,35 @@ export default function OrdersPanel() {
                             </Button>
                             <Button
                                 onClick={() => cancelOrder(confirmUuid)}
+                                className="bg-red-500/[0.15] border border-red-500/[0.3] text-red-400 hover:bg-red-500/[0.25] hover:border-red-400/[0.5]"
+                            >
+                                Confirm Cancellation
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            {/* Bulk cancel confirmation dialog */}
+            {confirmBulk && (
+                <Dialog open onOpenChange={(open) => { if (!open) setConfirmBulk(null); }}>
+                    <DialogContent className="border-white/[0.08] bg-black/40 backdrop-blur-xl">
+                        <DialogHeader>
+                            <DialogTitle className="text-white/95">Cancel Orders</DialogTitle>
+                            <DialogDescription className="text-white/60">
+                                Cancel {confirmBulk.length} open orders? Filled legs are kept.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="flex justify-end gap-3 pt-4">
+                            <Button
+                                variant="outline"
+                                onClick={() => setConfirmBulk(null)}
+                                className="border-white/[0.08] bg-white/[0.03] text-white/80 hover:bg-white/[0.08] hover:text-white"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={() => cancelOrders(confirmBulk).finally(() => setConfirmBulk(null))}
                                 className="bg-red-500/[0.15] border border-red-500/[0.3] text-red-400 hover:bg-red-500/[0.25] hover:border-red-400/[0.5]"
                             >
                                 Confirm Cancellation

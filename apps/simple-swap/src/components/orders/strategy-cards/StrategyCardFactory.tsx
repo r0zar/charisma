@@ -7,6 +7,7 @@ import { detectStrategyType } from './utils/strategy-detector';
 import { SingleOrderCard } from './types/SingleOrderCard';
 import { DCAStrategyCard } from './types/DCAStrategyCard';
 import { TwitterStrategyCard } from './types/TwitterStrategyCard';
+import { RangeStrategyCard } from './types/RangeStrategyCard';
 
 /**
  * Factory component that renders the appropriate strategy card based on the strategy type
@@ -23,6 +24,8 @@ export const StrategyCardFactory: React.FC<BaseStrategyCardProps> = (props) => {
             return <DCAStrategyCard {...props} strategyData={strategyData as StrategyDisplayData & { type: 'dca' }} />;
         case 'twitter':
             return <TwitterStrategyCard {...props} strategyData={strategyData as StrategyDisplayData & { type: 'twitter' }} />;
+        case 'range':
+            return <RangeStrategyCard {...props} strategyData={strategyData as StrategyDisplayData & { type: 'range' }} />;
         default:
             // This should never happen with our current types, but provides a fallback
             console.warn('Unknown strategy type:', strategyType, 'falling back to SingleOrderCard');
@@ -38,12 +41,14 @@ interface StrategyComponentRegistry {
     single: React.ComponentType<any>;
     dca: React.ComponentType<any>;
     twitter: React.ComponentType<any>;
+    range: React.ComponentType<any>;
 }
 
 const defaultRegistry: StrategyComponentRegistry = {
     single: SingleOrderCard,
     dca: DCAStrategyCard,
     twitter: TwitterStrategyCard,
+    range: RangeStrategyCard,
 };
 
 /**
