@@ -6,6 +6,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { isSubnetFromActive } from '@/lib/subnet-from';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { saveSwapPreferences, loadBasicPreferences, loadTokenPreferences as loadTokenPreferencesFromStorage, clearTokenPreferences } from '../lib/swap-storage';
 import { listTokens as fetchAllTokensServerAction } from '../app/actions';
@@ -604,7 +605,7 @@ export function SwapTokensProvider({
 
     // Mode and UI state
     mode,
-    useSubnetFrom,
+    useSubnetFrom: isSubnetFromActive(mode, useSubnetFrom),
     useSubnetTo,
     targetPrice,
     conditionDir,
