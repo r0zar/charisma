@@ -19,8 +19,8 @@ const ConditionTokenChart = dynamic(() => import('@/components/condition-token-c
 
 const DEFAULT_FORM: RangeForm = { sellPct: 8, buyPct: 8, perSwapUsd: 50, intervalHours: 24, runDays: 30, tilt: 0 };
 
-/** Dragged line → whole-percent-tenths, matching the inputs' step, never inside the gap. */
-const dragPct = (x: number) => Math.max(0.5, Math.round(x * 10) / 10);
+/** Dragged line → tenths of a percent, clamped to the matching input's min/max so the field never shows an out-of-range value. */
+const dragPct = (x: number, max: number) => Math.min(max, Math.max(0.5, Math.round(x * 10) / 10));
 
 export default function RangePage() {
     const [tokenA, setTokenA] = useState<TokenCacheData | null>(null);
@@ -32,7 +32,10 @@ export default function RangePage() {
     const [symbols, setSymbols] = useState<{ a: string; b: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
     const aliveRef = useRef(true);
-    useEffect(() => () => { aliveRef.current = false; }, []);
+    useEffect(() => {
+        aliveRef.current = true;
+        return () => { aliveRef.current = false; };
+    }, []);
 
     const { address } = useWallet();
     const { getPrice } = usePrices();
@@ -65,8 +68,8 @@ export default function RangePage() {
     const patch = (p: Partial<RangeForm>) => setForm((f) => ({ ...f, ...p }));
     const onDrag = (line: 'sell' | 'buy', price: number) => {
         if (!ratio) return;
-        if (line === 'sell') patch({ sellPct: dragPct((price / ratio - 1) * 100) });
-        else patch({ buyPct: dragPct((1 - price / ratio) * 100) });
+        if (line === 'sell') patch({ sellPct: dragPct((price / ratio - 1) * 100, 200) });
+        else patch({ buyPct: dragPct((1 - price / ratio) * 100, 99) });
     };
 
     const create = async () => {
