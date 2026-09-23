@@ -209,21 +209,21 @@ export default function ConditionTokenChart({
             localization: { priceFormatter: formatPrice },
         });
 
+        // The chart is rebuilt whenever `data` changes, so the last data time is fixed for this chart's lifetime
+        const lastTime = Number(data[data.length - 1].time);
         const series = chart.addSeries(LineSeries, {
             color: colour,
             lineWidth: 2,
             autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
                 const b = bandRef.current;
                 // Band end values keep the whole band in the vertical range even when it is scrolled out of view horizontally
-                const lastTime = Number(data[data.length - 1].time);
-                const endValue = (start: number) => { const pts = bandPoints(start, b!, lastTime); return pts[pts.length - 1].value; };
-                const ends = b ? [endValue(b.sell), endValue(b.buy)] : [];
+                const endFrac = b ? tiltFrac(lastTime + b.windows * b.intervalHours * HOUR, lastTime, b) : 0;
+                const ends = b ? [b.sell * (1 + b.tilt * endFrac), b.buy * (1 + b.tilt * endFrac)] : [];
                 return includeTargetsInRange(original(), [targetRef.current, b?.sell ?? null, b?.buy ?? null, ...ends]);
             },
         });
         series.setData(data);
 
-        const lastTime = Number(data[data.length - 1].time);
         if (bandRef.current) {
             const opts = { lineWidth: 2 as const, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false };
             const sell = chart.addSeries(LineSeries, { ...opts, color: '#f97316' });
