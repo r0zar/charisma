@@ -303,6 +303,7 @@ export default function ConditionTokenChart({
             const paneHeight = container.clientHeight - chart.timeScale().height();
             const step = Math.ceil(b.windows / 90);
             const lines: string[] = [];
+            // timeToCoordinate only resolves times present in the hourly band points, so intervals must be whole hours.
             for (let i = step; i <= b.windows; i += step) {
                 const x = chart.timeScale().timeToCoordinate((lastTime + i * b.intervalHours * HOUR) as UTCTimestamp);
                 if (x === null) continue;
@@ -317,7 +318,8 @@ export default function ConditionTokenChart({
         const observer = new ResizeObserver(draw);
         observer.observe(container);
         return () => {
-            chart.timeScale().unsubscribeVisibleLogicalRangeChange(draw);
+            // The chart may already have been removed by the build effect's cleanup; unsubscribing then throws.
+            if (chartRef.current === chart) chart.timeScale().unsubscribeVisibleLogicalRangeChange(draw);
             observer.disconnect();
             svg.innerHTML = '';
         };

@@ -1,5 +1,7 @@
 export const MAX_ORDERS = 200;
 export const WAITING_FOR_QUOTES = 'Waiting for route quotes';
+/** Post-condition floor the executor applies when an order carries no slippage (see src/lib/orders/executor.ts ~line 225). */
+export const EXECUTOR_DEFAULT_SLIPPAGE = 0.01;
 const MIN_GAP = 0.005;
 
 export interface PreviewInput {
@@ -48,8 +50,11 @@ export function rangeProfitPreview({ price, sell, buy, perSwapUsd, windows, rout
   if (!(perSwapUsd > 0)) reasons.push('Per swap must be more than $0');
   if (sell < price * (1 + MIN_GAP)) reasons.push('Sell line must be above current price');
   if (buy > price * (1 - MIN_GAP)) reasons.push('Buy line must be below current price');
-  if (routeCostUsd === null) reasons.push(WAITING_FOR_QUOTES);
-  else if (spread <= breakEven) reasons.push(`Spread is below route cost (${(breakEven * 100).toFixed(1)}%)`);
+  if (routeCostUsd === null) {
+    if (perSwapUsd > 0) reasons.push(WAITING_FOR_QUOTES);
+  } else if (spread <= breakEven) {
+    reasons.push(`Spread is below route cost (${(breakEven * 100).toFixed(1)}%)`);
+  }
   if (windows < 1) reasons.push('Run is shorter than one window');
   if (orderCount > MAX_ORDERS) {
     reasons.push(`Too many orders (${orderCount}). Cap is ${MAX_ORDERS} in one sitting. Widen the interval or shorten the run.`);

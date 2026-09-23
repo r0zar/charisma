@@ -34,8 +34,8 @@ export default function RangePage() {
     const [statuses, setStatuses] = useState<LegStatus[]>([]);
     const [symbols, setSymbols] = useState<{ a: string; b: string } | null>(null);
     const [error, setError] = useState<string | null>(null);
-    /** Router output for one cycle, in display units: B back from the sell leg, A back from the buy leg. */
-    const [quotes, setQuotes] = useState<{ sellOut: number; buyOut: number } | null>(null);
+    /** One quoted cycle in display units: what each leg sent and what the router quoted back (sell: A→B, buy: B→A). */
+    const [quotes, setQuotes] = useState<{ sellIn: number; sellOut: number; buyIn: number; buyOut: number } | null>(null);
     const [quoteError, setQuoteError] = useState<string | null>(null);
     const aliveRef = useRef(true);
     useEffect(() => {
@@ -52,6 +52,10 @@ export default function RangePage() {
     const priceB = tokenB ? getPrice(tokenB.contractId) : null;
     // One nullable object so TypeScript narrows both prices together.
     const prices = priceA !== null && priceB !== null && priceA > 0 && priceB > 0 ? { a: priceA, b: priceB } : null;
+    // Latest prices for the debounced quote, so a price tick neither re-quotes nor drops the quote we have.
+    const pricesRef = useRef(prices);
+    pricesRef.current = prices;
+    const hasPrices = prices !== null;
     const bothPicked = !!tokenA && !!tokenB;
     const ready = bothPicked && prices !== null;
     const ratio = prices ? prices.a / prices.b : 0;
@@ -61,40 +65,43 @@ export default function RangePage() {
 
     // Display-only formatting before a token is picked; `create` and quoting require real decimals.
     const decA = tokenA?.decimals ?? 6, decB = tokenB?.decimals ?? 6;
-    const amountA = prices ? form.perSwapUsd / prices.a : 0;
-    const amountB = prices ? form.perSwapUsd / prices.b : 0;
+    // Rounded to the token's decimals so display, runway and the quote request all describe the same amount.
+    const amountA = prices ? Number((form.perSwapUsd / prices.a).toFixed(decA)) : 0;
+    const amountB = prices ? Number((form.perSwapUsd / prices.b).toFixed(decB)) : 0;
     const subnetA = tokenA ? getSubnetContractId(tokenA.contractId) : null;
     const subnetB = tokenB ? getSubnetContractId(tokenB.contractId) : null;
     const perSwapUsd = form.perSwapUsd;
     const realDecA = tokenA?.decimals, realDecB = tokenB?.decimals;
 
     // Quote both legs through the router (same one the swap page uses), debounced, dropping stale responses.
+    // Keyed on the inputs that change the request; prices are read through the ref when the timer fires.
     useEffect(() => {
         setQuotes(null);
         setQuoteError(null);
-        if (!subnetA || !subnetB || priceA === null || priceB === null || !(priceA > 0) || !(priceB > 0) || !(perSwapUsd > 0)) return;
-        if (realDecA === undefined || realDecB === undefined) return;
+        if (!subnetA || !subnetB || !hasPrices || !(perSwapUsd > 0) || realDecA === undefined || realDecB === undefined) return;
         let cancelled = false;
         const timer = setTimeout(async () => {
+            const p = pricesRef.current;
+            if (!p) return;
             try {
-                const microA = convertToMicroUnits((perSwapUsd / priceA).toFixed(realDecA), realDecA);
-                const microB = convertToMicroUnits((perSwapUsd / priceB).toFixed(realDecB), realDecB);
+                const sellIn = Number((perSwapUsd / p.a).toFixed(realDecA));
+                const buyIn = Number((perSwapUsd / p.b).toFixed(realDecB));
+                const microA = convertToMicroUnits(sellIn.toFixed(realDecA), realDecA);
+                const microB = convertToMicroUnits(buyIn.toFixed(realDecB), realDecB);
                 if (microA === '0' || microB === '0') throw new Error('Per-swap amount rounds to zero for one token');
                 const [sellQ, buyQ] = await Promise.all([getQuote(subnetA, subnetB, microA), getQuote(subnetB, subnetA, microB)]);
                 if (cancelled) return;
                 if (!sellQ.data) throw new Error(`Sell leg: ${sellQ.error ?? 'no route'}`);
                 if (!buyQ.data) throw new Error(`Buy leg: ${buyQ.error ?? 'no route'}`);
-                setQuotes({ sellOut: sellQ.data.amountOut / 10 ** realDecB, buyOut: buyQ.data.amountOut / 10 ** realDecA });
+                setQuotes({ sellIn, sellOut: sellQ.data.amountOut / 10 ** realDecB, buyIn, buyOut: buyQ.data.amountOut / 10 ** realDecA });
             } catch (err) {
                 if (!cancelled) setQuoteError(err instanceof Error ? err.message : String(err));
             }
         }, 400);
         return () => { cancelled = true; clearTimeout(timer); };
-    }, [subnetA, subnetB, perSwapUsd, priceA, priceB, realDecA, realDecB]);
+    }, [subnetA, subnetB, perSwapUsd, hasPrices, realDecA, realDecB]);
 
-    const routeCostUsd = prices && quotes
-        ? routeCostPerCycle({ sellIn: amountA, sellOut: quotes.sellOut, buyIn: amountB, buyOut: quotes.buyOut, priceA: prices.a, priceB: prices.b }).totalUsd
-        : null;
+    const routeCostUsd = prices && quotes ? routeCostPerCycle({ ...quotes, priceA: prices.a, priceB: prices.b }).totalUsd : null;
     const preview = rangeProfitPreview({ price: ratio, sell, buy, perSwapUsd, windows, routeCostUsd });
     const runway = {
         sells: address && subnetA ? runwayFor(getSubnetBalance(address, subnetA) / 10 ** decA, amountA) : 0,

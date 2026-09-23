@@ -25,6 +25,18 @@ describe('rangeProfitPreview', () => {
     expect(p.breakEven).toBe(0);
   });
 
+  it('does not also wait for quotes when the amount is already invalid', () => {
+    const { reasons } = rangeProfitPreview({ ...base, perSwapUsd: 0, routeCostUsd: null });
+    expect(reasons).toContain('Per swap must be more than $0');
+    expect(reasons).not.toContain(WAITING_FOR_QUOTES);
+  });
+
+  it('treats a better-than-mid route as a gain, never as below cost', () => {
+    const p = rangeProfitPreview({ ...base, routeCostUsd: -0.4 });
+    expect(p.reasons.some((r) => r.startsWith('Spread is below route cost'))).toBe(false);
+    expect(p.netPerCycle).toBeGreaterThan(p.grossPerCycle);
+  });
+
   it('flags a sell line at or below current price', () => {
     expect(rangeProfitPreview({ ...base, sell: 0.068 }).reasons).toContain('Sell line must be above current price');
   });

@@ -1,7 +1,7 @@
 "use client";
 
 import { InfoTooltip } from '@/components/ui/tooltip';
-import { WAITING_FOR_QUOTES, type RangePreview as Preview } from '@/lib/range/profit-preview';
+import { EXECUTOR_DEFAULT_SLIPPAGE, WAITING_FOR_QUOTES, type RangePreview as Preview } from '@/lib/range/profit-preview';
 
 interface Props {
     preview: Preview;
@@ -30,7 +30,7 @@ export default function RangePreview({ preview, quoteError, runway, busy, onCrea
                     </span>
                     <span className={`font-mono text-right ${preview.routeCostUsd === null ? (quoteError ? 'text-red-300' : 'text-white/50') : ''}`}>{costText}</span>
                 </div>
-                <div className="text-xs text-white/50">Guaranteed minimum: 99% of the quote at execution (1% slippage post-condition)</div>
+                <div className="text-xs text-white/50">Guaranteed minimum: {(1 - EXECUTOR_DEFAULT_SLIPPAGE) * 100}% of the quote at execution ({EXECUTOR_DEFAULT_SLIPPAGE * 100}% slippage post-condition)</div>
                 <div className="pt-1">
                     <span className="text-2xl font-semibold">{usd(preview.ifAll)}</span>
                     <span className="ml-2 text-xs text-white/50">if every window completes a cycle</span>

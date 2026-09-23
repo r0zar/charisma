@@ -2,6 +2,7 @@
 
 import type { ChangeEvent } from 'react';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
+import { MAX_ORDERS, windowsFor } from '@/lib/range/profit-preview';
 import SubnetPairSelector from './SubnetPairSelector';
 
 export interface RangeForm {
@@ -29,7 +30,9 @@ interface Props {
 const INTERVALS = [{ h: 6, label: '6 hours' }, { h: 24, label: 'Day' }, { h: 168, label: 'Week' }];
 const RUNS = [{ d: 7, label: '1 week' }, { d: 30, label: '1 month' }, { d: 90, label: '3 months' }];
 
-function Seg<T extends number>({ options, value, onPick, labelId }: { options: { v: T; label: string }[]; value: T; onPick: (v: T) => void; labelId: string }) {
+interface SegOption<T> { v: T; label: string; disabled?: boolean; title?: string }
+
+function Seg<T extends number>({ options, value, onPick, labelId }: { options: SegOption<T>[]; value: T; onPick: (v: T) => void; labelId: string }) {
     return (
         <div role="group" aria-labelledby={labelId} className="grid grid-flow-col gap-1 bg-white/[0.03] border border-white/[0.08] rounded-lg p-0.5">
             {options.map((o) => (
@@ -37,8 +40,10 @@ function Seg<T extends number>({ options, value, onPick, labelId }: { options: {
                     key={o.v}
                     type="button"
                     aria-pressed={value === o.v}
+                    disabled={o.disabled}
+                    title={o.disabled ? o.title : undefined}
                     onClick={() => onPick(o.v)}
-                    className={`px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${value === o.v ? 'bg-white/[0.1] text-white/95' : 'text-white/60 hover:text-white/80'}`}
+                    className={`px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${value === o.v ? 'bg-white/[0.1] text-white/95' : 'text-white/60 hover:text-white/80'} ${o.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                 >
                     {o.label}
                 </button>
@@ -88,7 +93,20 @@ function BandInput({ id, label, name, sign, className, value, min, max, onValue 
     );
 }
 
+/** Orders a run would create: two per window. Mirrors the preview's cap check so presets that cannot work are greyed out. */
+const orderCountFor = (intervalHours: number, runDays: number) => windowsFor(runDays * 24, intervalHours) * 2;
+
 export default function RangeControls({ tokenA, tokenB, onTokenA, onTokenB, form, onChange, sellPrice, buyPrice, amountA, amountB }: Props) {
+    const intervalOptions = INTERVALS.map((i) => ({
+        v: i.h, label: i.label,
+        disabled: orderCountFor(i.h, form.runDays) > MAX_ORDERS,
+        title: `Over the ${MAX_ORDERS}-order cap with the current run length`,
+    }));
+    const runOptions = RUNS.map((r) => ({
+        v: r.d, label: r.label,
+        disabled: orderCountFor(form.intervalHours, r.d) > MAX_ORDERS,
+        title: `Over the ${MAX_ORDERS}-order cap with the current interval`,
+    }));
     /** Number input handler; a cleared field (NaN) is ignored so the value does not snap to 0 mid-edit. */
     const set = (key: keyof RangeForm, scale = 1) => (e: ChangeEvent<HTMLInputElement>) => {
         const v = e.target.valueAsNumber;
@@ -128,12 +146,12 @@ export default function RangeControls({ tokenA, tokenB, onTokenA, onTokenB, form
 
             <div className="space-y-2">
                 <div id="range-interval-label" className="text-xs text-white/60">Trigger every</div>
-                <Seg labelId="range-interval-label" options={INTERVALS.map((i) => ({ v: i.h, label: i.label }))} value={form.intervalHours} onPick={(h) => onChange({ intervalHours: h })} />
+                <Seg labelId="range-interval-label" options={intervalOptions} value={form.intervalHours} onPick={(h) => onChange({ intervalHours: h })} />
             </div>
 
             <div className="space-y-2">
                 <div id="range-run-label" className="text-xs text-white/60">Run for</div>
-                <Seg labelId="range-run-label" options={RUNS.map((r) => ({ v: r.d, label: r.label }))} value={form.runDays} onPick={(d) => onChange({ runDays: d })} />
+                <Seg labelId="range-run-label" options={runOptions} value={form.runDays} onPick={(d) => onChange({ runDays: d })} />
             </div>
 
             <div className="space-y-2">
