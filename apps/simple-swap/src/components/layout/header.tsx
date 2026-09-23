@@ -7,7 +7,7 @@ import { ChevronDown, Coins, Menu, Settings, Shield } from "lucide-react";
 import { useWallet } from "@/contexts/wallet-context";
 import { Drawer } from "vaul";
 import { Button } from "@/components/ui/button";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 // Navigation links array for reuse in both desktop and mobile views
 const navigationLinks = [
@@ -57,7 +57,7 @@ export function Header() {
                             </Link>
                         ))}
                         <DropdownMenu>
-                            <DropdownMenuTrigger className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.05] rounded-xl transition-all duration-200">
+                            <DropdownMenuTrigger aria-haspopup="menu" className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.05] rounded-xl transition-all duration-200">
                                 Advanced <ChevronDown className="h-3.5 w-3.5" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
