@@ -328,14 +328,21 @@ export const DcaDialog: React.FC = () => {
                             </div>
                         </div>
                         {estimate && (
-                            <div className="flex items-start justify-between gap-3 text-xs text-white/70">
-                                <div className="flex items-center gap-1.5">
-                                    <span>Est. you receive</span>
-                                    <InfoTooltip content={`Estimated from the current quote. Each order's post conditions guarantee at least ${formatTokenAmount(estimate.minPerOrder, toDecimals)} ${toToken.symbol} per order (1% slippage) against the quote at the moment it executes. Orders execute at any point in their window, so the final total will differ from this estimate.`} />
+                            <div className="space-y-1 text-xs">
+                                <div className="flex items-center justify-between gap-3">
+                                    <div className="flex items-center gap-1.5 text-white/70">
+                                        <span>Est. you receive</span>
+                                        <InfoTooltip content={`Estimated from the current quote. Each order's post conditions guarantee at least 99% of the quote at the moment it executes (1% slippage). Orders execute at any point in their window, so the final total will differ from this estimate.`} />
+                                    </div>
+                                    <span className="text-white/95 font-medium whitespace-nowrap">≈ {formatTokenAmount(estimate.total, toDecimals)} {toToken.symbol}</span>
                                 </div>
-                                <div className="text-right">
-                                    <div className="text-white/95 font-medium">≈ {formatTokenAmount(estimate.total, toDecimals)} {toToken.symbol}</div>
-                                    <div className="text-white/50">min ≈ {formatTokenAmount(estimate.minTotal, toDecimals)} · ≈ {formatTokenAmount(estimate.perOrder, toDecimals)} per order</div>
+                                <div className="flex items-center justify-between gap-3 text-white/50">
+                                    <span>Minimum</span>
+                                    <span className="whitespace-nowrap">≈ {formatTokenAmount(estimate.minTotal, toDecimals)} {toToken.symbol}</span>
+                                </div>
+                                <div className="flex items-center justify-between gap-3 text-white/50">
+                                    <span>Per order</span>
+                                    <span className="whitespace-nowrap">≈ {formatTokenAmount(estimate.perOrder, toDecimals)} {toToken.symbol}</span>
                                 </div>
                             </div>
                         )}

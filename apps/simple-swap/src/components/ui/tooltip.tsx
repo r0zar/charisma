@@ -14,6 +14,7 @@ const Tooltip = TooltipPrimitive.Root as any
 const TooltipTrigger = TooltipPrimitive.Trigger as any
 
 const TooltipContent = (({ className, sideOffset = 4, ...props }: any, ref: any) => (
+    <TooltipPrimitive.Portal>
     <TooltipPrimitive.Content
         ref={ref}
         sideOffset={sideOffset}
@@ -33,6 +34,7 @@ const TooltipContent = (({ className, sideOffset = 4, ...props }: any, ref: any)
         )}
         {...props}
     />
+    </TooltipPrimitive.Portal>
 )) as any
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
