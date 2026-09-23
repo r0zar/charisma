@@ -55,14 +55,14 @@ Extends the trigger chart (`condition-token-chart.tsx`) rather than forking it:
 - The band is two extra line series (not price lines, which lightweight-charts draws horizontal): sell (orange, existing target colour) and buy (green), each spanning from "now" to run end with the tilt applied. Two points per series.
 - Both lines are draggable as a whole, up or down, via pointer events on the chart container: hit-test the pointer against each band series' y at that x, capture the pointer, and convert vertical movement with `series.coordinateToPrice`. There are no point handles. `condition-token-chart.tsx` has no drag handling today; this is new work.
 - Autoscale includes both lines (extend `includeTargetInRange` to take a list of prices).
-- A faint vertical tick per window across the future region, capped visually at 30 ticks.
+- Faint dotted vertical lines at each window boundary across the future region, so the number of sell/buy opportunities is visible; when a run has more than ~90 windows, draw every k-th boundary so at most ~90 lines show.
 
 ### Controls rail, top to bottom
 
 1. **Pair.** Two subnet-pair selectors (see below). Swapping order is allowed.
 2. **Band.** "Sell above +X%" and "Buy below −Y%" numeric inputs, percent of current price, two-way bound with the lines. Resulting prices shown beside them.
 3. **Per swap.** USD amount. Shows the resulting token amounts for each leg.
-4. **Trigger every.** Hour, Day, Week, Custom hours. Same options as Split Swap.
+4. **Trigger every.** 6 hours, Day, Week (hourly was judged too frequent; custom hours deferred).
 5. **Run for.** 1 week, 1 month, 3 months, Custom days.
 6. **Tilt.** Slider from −40% to +40%, labelled "+10% by the end".
 7. **Profit preview** card (below).
