@@ -179,12 +179,12 @@ Leg outcome, derived from existing order fields (no executor change):
 - **Hit.** `status === 'confirmed'`.
 - **Expired.** `status === 'cancelled'` and `cancelledAt >= validTo` (the executor cancels past-window orders this way), or `status === 'failed'`.
 - **Cancelled.** `status === 'cancelled'` and `cancelledAt < validTo` (a user cancel).
-- **Open.** `status === 'open'` or `'broadcasted'` inside its window.
+- **Open.** `status === 'open'` inside its window, or `status === 'broadcasted'` at any time (a transaction is in flight, confirmations can land after the window ends).
 - **Future.** `status === 'open'` and `validFrom` is ahead.
 
 Run status: **Live** while any leg is Open or Future; otherwise **Cancelled** if at least one leg was user-cancelled, else **Completed**. Cancelling a single leg leaves the run Live.
 
-Fill amounts and prices: the executor stores `metadata.quote` (`amountIn`, `amountOut`, `timestamp`) before broadcasting. Treat `amountOut` as the fill amount and price it in USD from the hourly price series at `quote.timestamp` (the same series the chart loads). This is an approximation and the card labels it "at quote".
+Fill amounts and prices: the executor stores `metadata.quote` (`amountIn`, `amountOut`, `timestamp`) before broadcasting. Treat `amountOut` as the fill amount and price it in USD from the hourly price series at `quote.timestamp`, falling back only to `confirmedAt` when the quote has no timestamp (never `createdAt`, which is the run's creation time). A hit leg with no quote or no usable time is counted as an unpriced leg and excluded from realized and open position; a pair whose price lookup returns null is counted as an unpriced pair. The card shows both counts. This is an approximation and the card labels it "at quote".
 
 - **Realized.** Match each hit buy with the earliest unmatched hit sell before it. Realized = Σ (sell `amountOut` × USD price of B at its quote time − buy `amountIn` × USD price of B at its quote time) over matched pairs. Unmatched legs contribute nothing.
 - **Open position.** Unmatched hit legs, expressed in the token received.
