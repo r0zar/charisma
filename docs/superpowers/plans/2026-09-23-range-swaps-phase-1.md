@@ -678,6 +678,7 @@ Add an effect that attaches pointer listeners to the container when a band exist
 
 ```ts
     // Drag a band line up or down as a whole
+    const hasBand = !!band;
     useEffect(() => {
         const container = containerRef.current;
         const chart = chartRef.current;
@@ -744,10 +745,12 @@ Add an effect that attaches pointer listeners to the container when a band exist
         // Depend on whether a band exists, not the band object: the page passes a new
         // object every render and re-running this effect mid-drag would drop the drag.
         // All band values are read through bandRef.
-    }, [!!band, data]);
+    }, [hasBand, data]);
 ```
 
 Also set `style={{ touchAction: band ? 'none' : undefined }}` on the container div.
+
+If the chart still pans slightly at drag start on the preview, lightweight-charts' own canvas handlers are winning; register `onDown` in the capture phase (`container.addEventListener('pointerdown', onDown, true)` and the matching `removeEventListener(..., true)`).
 
 - [ ] **Step 6: Type check and lint**
 
