@@ -73,19 +73,23 @@ export function formatPrice(price: number): string {
 }
 
 /**
+ * Widen an autoscale range so every target price line is on screen.
+ */
+export function includeTargetsInRange(info: AutoscaleInfo | null, targets: Array<number | null>): AutoscaleInfo | null {
+  if (!info?.priceRange) return info;
+  const valid = targets.filter((t): t is number => t !== null && isValidPrice(t));
+  if (valid.length === 0) return info;
+
+  const minValue = Math.min(info.priceRange.minValue, ...valid);
+  const maxValue = Math.max(info.priceRange.maxValue, ...valid);
+  if (minValue === info.priceRange.minValue && maxValue === info.priceRange.maxValue) return info;
+
+  return { ...info, priceRange: { minValue, maxValue } };
+}
+
+/**
  * Widen an autoscale range so a target price line is always on screen.
  */
 export function includeTargetInRange(info: AutoscaleInfo | null, target: number | null): AutoscaleInfo | null {
-  if (!info?.priceRange || target === null || !isValidPrice(target)) return info;
-
-  const { minValue, maxValue } = info.priceRange;
-  if (target >= minValue && target <= maxValue) return info;
-
-  return {
-    ...info,
-    priceRange: {
-      minValue: Math.min(minValue, target),
-      maxValue: Math.max(maxValue, target),
-    },
-  };
+  return includeTargetsInRange(info, [target]);
 }
