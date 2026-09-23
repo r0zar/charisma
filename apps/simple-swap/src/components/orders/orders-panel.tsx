@@ -984,15 +984,17 @@ export default function OrdersPanel() {
         return (num / (10 ** decimals)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 });
     };
 
-    const cancelOrder = async (uuid: string) => {
+    /** Returns true when the cancel succeeded. Errors are toasted here, not thrown. */
+    const cancelOrder = async (uuid: string): Promise<boolean> => {
         const orderToCancel = displayOrders.find(o => o.uuid === uuid);
-        if (!orderToCancel) return;
+        if (!orderToCancel) return false;
 
         // Optimistic update - mark as cancelled immediately
         const originalStatus = orderToCancel.status;
+        const originalCancelledAt = orderToCancel.cancelledAt;
         setDisplayOrders(prevOrders =>
             prevOrders.map(order =>
-                order.uuid === uuid ? { ...order, status: 'cancelled' } : order
+                order.uuid === uuid ? { ...order, status: 'cancelled', cancelledAt: new Date().toISOString() } : order
             )
         );
 
@@ -1003,23 +1005,27 @@ export default function OrdersPanel() {
                 throw new Error(j.error || "Cancel failed");
             }
             toast.success("Order cancelled successfully.");
+            return true;
         } catch (err) {
             // Revert optimistic update on error
             setDisplayOrders(prevOrders =>
                 prevOrders.map(order =>
-                    order.uuid === uuid ? { ...order, status: originalStatus } : order
+                    order.uuid === uuid ? { ...order, status: originalStatus, cancelledAt: originalCancelledAt } : order
                 )
             );
             toast.error((err as Error).message || "Failed to cancel order.");
+            return false;
         } finally {
             setConfirmUuid(null);
         }
     };
 
     const cancelOrders = async (uuids: string[]) => {
+        let cancelled = 0;
         for (const uuid of uuids) {
-            await cancelOrder(uuid);
+            if (await cancelOrder(uuid)) cancelled++;
         }
+        toast(`Cancelled ${cancelled} of ${uuids.length} orders`);
     };
 
     const executeNow = async (uuid: string) => {
@@ -1386,7 +1392,7 @@ export default function OrdersPanel() {
                         <DialogHeader>
                             <DialogTitle className="text-white/95">Cancel Orders</DialogTitle>
                             <DialogDescription className="text-white/60">
-                                Cancel {confirmBulk.length} open orders? Filled legs are kept.
+                                Cancel {confirmBulk.length} open orders? Each one needs a wallet signature, one after another. Filled legs are kept.
                             </DialogDescription>
                         </DialogHeader>
                         <DialogFooter className="flex justify-end gap-3 pt-4">
