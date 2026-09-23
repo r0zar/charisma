@@ -305,9 +305,7 @@ export const DcaDialog: React.FC = () => {
                             </div>
                         ) : null}
                 </div>
-                </div>
 
-                <div className="space-y-6">
                 {/* Order summary */}
                 {fromToken && toToken && (
                     <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
@@ -349,7 +347,9 @@ export const DcaDialog: React.FC = () => {
                         </div>
                     </div>
                 </div>
+                </div>
 
+                <div className="space-y-6">
                 {/* Preview */}
                 {preview.length > 0 && (
                     <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
