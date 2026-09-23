@@ -8,6 +8,9 @@ export function lineAt(start: number, tilt: number, i: number, windows: number):
   return start * (1 + tilt * (windows > 1 ? i / (windows - 1) : 0));
 }
 
+/** Plain decimal string (no exponent notation) for the orders API's targetPrice validation. */
+export const priceString = (n: number) => n.toFixed(18).replace(/\.?0+$/, '');
+
 export function generateRangeLegs(
   settings: RangeSettings,
   prices: PairPrices,
@@ -37,7 +40,7 @@ export function generateRangeLegs(
       outputToken: settings.subnet.b,
       inputDecimals: decimals.a,
       amountDisplay: sellAmount,
-      targetPrice: String(lineAt(settings.sellStart, settings.tilt, i, settings.windows)),
+      targetPrice: priceString(lineAt(settings.sellStart, settings.tilt, i, settings.windows)),
       direction: 'gt',
     });
     legs.push({
@@ -48,7 +51,7 @@ export function generateRangeLegs(
       outputToken: settings.subnet.a,
       inputDecimals: decimals.b,
       amountDisplay: buyAmount,
-      targetPrice: String(lineAt(settings.buyStart, settings.tilt, i, settings.windows)),
+      targetPrice: priceString(lineAt(settings.buyStart, settings.tilt, i, settings.windows)),
       direction: 'lt',
     });
   }

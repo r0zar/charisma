@@ -66,4 +66,22 @@ describe('generateRangeLegs', () => {
   it('refuses invalid prices instead of guessing', () => {
     expect(() => generateRangeLegs(settings, { a: 0, b: 1 }, decimals, now)).toThrow('price');
   });
+
+  it('formats target prices as plain decimals the orders API accepts', () => {
+    const tinySettings: RangeSettings = { ...settings, sellStart: 0.0000007, buyStart: 0.0000005 };
+    const legs = generateRangeLegs(tinySettings, prices, decimals, now);
+
+    for (const leg of legs) {
+      expect(leg.targetPrice).toMatch(/^\d+(?:\.\d{1,18})?$/);
+      expect(leg.targetPrice).not.toContain('e');
+    }
+  });
+
+  it('a single window uses the start price with no tilt', () => {
+    const singleWindowSettings: RangeSettings = { ...settings, windows: 1, tilt: 0.1 };
+    const legs = generateRangeLegs(singleWindowSettings, prices, decimals, now);
+
+    expect(Number(legs[0].targetPrice)).toBeCloseTo(0.074, 6);
+    expect(Number(legs[1].targetPrice)).toBeCloseTo(0.063, 6);
+  });
 });
