@@ -142,6 +142,7 @@ export default function ConditionTokenChart({
     bandRef.current = band;
     const bandSeriesRef = useRef<{ sell: ISeriesApi<'Line'>; buy: ISeriesApi<'Line'> } | null>(null);
     const draggingRef = useRef(false);
+    const overlayRef = useRef<SVGSVGElement>(null);
     // Horizontal extent of the band last drawn, so only a change in run length refits the time axis
     const bandExtentRef = useRef<string | null>(null);
     const onTargetPriceChangeRef = useRef(onTargetPriceChange);
@@ -285,8 +286,45 @@ export default function ConditionTokenChart({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [band?.sell, band?.buy, band?.tilt, band?.windows, band?.intervalHours, data]);
 
-    // Drag a band line up or down as a whole
+    // Dotted vertical lines at every window boundary, so the run's sell/buy opportunities are countable.
+    // lightweight-charts has no vertical lines, so an SVG overlay is redrawn from the time scale.
     const hasBand = !!band;
+    useEffect(() => {
+        const svg = overlayRef.current;
+        const container = containerRef.current;
+        const chart = chartRef.current;
+        if (!svg || !container || !chart || !bandRef.current || !data || data.length === 0) return;
+
+        const lastTime = Number(data[data.length - 1].time);
+        const draw = () => {
+            const b = bandRef.current;
+            if (!b) return;
+            const left = chart.priceScale('left').width();
+            const paneHeight = container.clientHeight - chart.timeScale().height();
+            const step = Math.ceil(b.windows / 90);
+            const lines: string[] = [];
+            for (let i = step; i <= b.windows; i += step) {
+                const x = chart.timeScale().timeToCoordinate((lastTime + i * b.intervalHours * HOUR) as UTCTimestamp);
+                if (x === null) continue;
+                const px = (x + left).toFixed(1);
+                lines.push(`<line x1="${px}" y1="0" x2="${px}" y2="${paneHeight}" stroke="rgba(255,255,255,0.18)" stroke-width="1" stroke-dasharray="2 4" />`);
+            }
+            svg.innerHTML = lines.join('');
+        };
+
+        draw();
+        chart.timeScale().subscribeVisibleLogicalRangeChange(draw);
+        const observer = new ResizeObserver(draw);
+        observer.observe(container);
+        return () => {
+            chart.timeScale().unsubscribeVisibleLogicalRangeChange(draw);
+            observer.disconnect();
+            svg.innerHTML = '';
+        };
+        // Boundaries depend only on the run length; sell/buy/tilt are read through bandRef when drawing
+    }, [hasBand, band?.windows, band?.intervalHours, data]);
+
+    // Drag a band line up or down as a whole
     useEffect(() => {
         const container = containerRef.current;
         const chart = chartRef.current;
@@ -442,7 +480,10 @@ export default function ConditionTokenChart({
             ) : !data || data.length === 0 ? (
                 <EmptyChart token={token} className={className} />
             ) : (
-                <div ref={containerRef} className={`w-full ${className}`} style={{ touchAction: band ? 'none' : undefined }} />
+                <div className={`relative w-full ${className}`}>
+                    <div ref={containerRef} className="absolute inset-0" style={{ touchAction: band ? 'none' : undefined }} />
+                    {band && <svg ref={overlayRef} className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true" />}
+                </div>
             )}
         </div>
     );

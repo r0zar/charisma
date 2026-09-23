@@ -26,7 +26,7 @@ interface Props {
     amountB: string;
 }
 
-const INTERVALS = [{ h: 1, label: 'Hour' }, { h: 24, label: 'Day' }, { h: 168, label: 'Week' }];
+const INTERVALS = [{ h: 6, label: '6 hours' }, { h: 24, label: 'Day' }, { h: 168, label: 'Week' }];
 const RUNS = [{ d: 7, label: '1 week' }, { d: 30, label: '1 month' }, { d: 90, label: '3 months' }];
 
 function Seg<T extends number>({ options, value, onPick, labelId }: { options: { v: T; label: string }[]; value: T; onPick: (v: T) => void; labelId: string }) {
