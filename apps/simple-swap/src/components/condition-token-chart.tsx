@@ -19,9 +19,10 @@ import {
     calculateSimpleRatio,
     cleanPriceData,
     formatPrice,
-    includeTargetInRange,
+    includeTargetsInRange,
     isValidPrice,
 } from "@/lib/charts/simple-chart-utils";
+import { lineAt } from "@/lib/range/generate-legs";
 import { usePrices } from '@/contexts/token-price-context';
 import { usePriceSeriesService } from '@/lib/charts/price-series-service';
 
@@ -32,6 +33,16 @@ const TIMEFRAMES: { value: Timeframe; label: string }[] = [
     { value: '30d', label: '30D' },
 ];
 
+export interface ChartBand {
+    sell: number;
+    buy: number;
+    tilt: number;
+    windows: number;
+    intervalHours: number;
+    /** Called while dragging a line, with the new start price for that line. */
+    onDrag: (line: 'sell' | 'buy', price: number) => void;
+}
+
 interface Props {
     token: TokenCacheData;
     baseToken?: TokenCacheData | null;
@@ -39,6 +50,20 @@ interface Props {
     direction?: 'lt' | 'gt';
     onTargetPriceChange: (price: string) => void;
     colour?: string;
+    band?: ChartBand;
+}
+
+const HOUR = 3600;
+
+/** Points for one band line from `from` (unix s) to the end of the run, one per hour so the future is drawn to scale. */
+function bandPoints(start: number, band: ChartBand, from: number): LineData[] {
+    const endTime = from + band.windows * band.intervalHours * HOUR;
+    const points: LineData[] = [];
+    for (let t = from; t <= endTime; t += HOUR) {
+        const frac = endTime > from ? (t - from) / (endTime - from) : 0;
+        points.push({ time: t as UTCTimestamp, value: start * (1 + band.tilt * frac) });
+    }
+    return points;
 }
 
 function ChartSkeleton() {
@@ -86,7 +111,8 @@ export default function ConditionTokenChart({
     targetPrice,
     direction = 'gt',
     onTargetPriceChange,
-    colour = "#3b82f6"
+    colour = "#3b82f6",
+    band,
 }: Props) {
     const containerRef = useRef<HTMLDivElement>(null);
     const chartRef = useRef<IChartApi | null>(null);
@@ -95,6 +121,9 @@ export default function ConditionTokenChart({
 
     // Latest values read from inside chart callbacks, so changing them never rebuilds the chart
     const targetRef = useRef<number | null>(null);
+    const bandRef = useRef<ChartBand | undefined>(band);
+    bandRef.current = band;
+    const bandSeriesRef = useRef<{ sell: ISeriesApi<'Line'>; buy: ISeriesApi<'Line'> } | null>(null);
     const onTargetPriceChangeRef = useRef(onTargetPriceChange);
     onTargetPriceChangeRef.current = onTargetPriceChange;
 
@@ -166,9 +195,25 @@ export default function ConditionTokenChart({
         const series = chart.addSeries(LineSeries, {
             color: colour,
             lineWidth: 2,
-            autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => includeTargetInRange(original(), targetRef.current),
+            autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => {
+                const b = bandRef.current;
+                const ends = b ? [lineAt(b.sell, b.tilt, b.windows - 1, b.windows), lineAt(b.buy, b.tilt, b.windows - 1, b.windows)] : [];
+                return includeTargetsInRange(original(), [targetRef.current, b?.sell ?? null, b?.buy ?? null, ...ends]);
+            },
         });
         series.setData(data);
+
+        const lastTime = Number(data[data.length - 1].time);
+        if (bandRef.current) {
+            const opts = { lineWidth: 2 as const, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false };
+            const sell = chart.addSeries(LineSeries, { ...opts, color: '#f97316' });
+            const buy = chart.addSeries(LineSeries, { ...opts, color: '#22c55e' });
+            sell.setData(bandPoints(bandRef.current.sell, bandRef.current, lastTime));
+            buy.setData(bandPoints(bandRef.current.buy, bandRef.current, lastTime));
+            bandSeriesRef.current = { sell, buy };
+        } else {
+            bandSeriesRef.current = null;
+        }
         chart.timeScale().fitContent();
 
         chart.subscribeClick((param) => {
@@ -188,6 +233,7 @@ export default function ConditionTokenChart({
             chartRef.current = null;
             seriesRef.current = null;
             priceLineRef.current = null;
+            bandSeriesRef.current = null;
         };
         // colour is applied by its own effect below
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,6 +242,90 @@ export default function ConditionTokenChart({
     useEffect(() => {
         seriesRef.current?.applyOptions({ color: colour });
     }, [colour]);
+
+    // Redraw the band when its numbers change
+    useEffect(() => {
+        const s = bandSeriesRef.current;
+        if (!s || !band || !data || data.length === 0) return;
+        const lastTime = Number(data[data.length - 1].time);
+        s.sell.setData(bandPoints(band.sell, band, lastTime));
+        s.buy.setData(bandPoints(band.buy, band, lastTime));
+        chartRef.current?.priceScale('left').applyOptions({ autoScale: true });
+        chartRef.current?.timeScale().fitContent();
+        // Keyed on the band's numbers, not the object: the page passes a new object every render
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [band?.sell, band?.buy, band?.tilt, band?.windows, band?.intervalHours, data]);
+
+    // Drag a band line up or down as a whole
+    const hasBand = !!band;
+    useEffect(() => {
+        const container = containerRef.current;
+        const chart = chartRef.current;
+        if (!container || !chart || !bandRef.current || !data || data.length === 0) return;
+
+        const HIT_PX = 10;
+        let dragging: { line: 'sell' | 'buy'; frac: number } | null = null;
+
+        const lineValueAt = (line: 'sell' | 'buy', x: number) => {
+            const b = bandRef.current!;
+            const lastTime = Number(data[data.length - 1].time);
+            const endTime = lastTime + b.windows * b.intervalHours * HOUR;
+            const t = chart.timeScale().coordinateToTime(x);
+            const time = t === null ? lastTime : Number(t);
+            const frac = Math.min(1, Math.max(0, (time - lastTime) / Math.max(1, endTime - lastTime)));
+            const start = line === 'sell' ? b.sell : b.buy;
+            return { value: start * (1 + b.tilt * frac), frac };
+        };
+
+        const onDown = (e: PointerEvent) => {
+            const rect = container.getBoundingClientRect();
+            const x = e.clientX - rect.left, y = e.clientY - rect.top;
+            const s = bandSeriesRef.current;
+            if (!s) return;
+            for (const line of ['sell', 'buy'] as const) {
+                const { value, frac } = lineValueAt(line, x);
+                const ly = s[line].priceToCoordinate(value);
+                if (ly !== null && Math.abs(ly - y) <= HIT_PX) {
+                    dragging = { line, frac };
+                    chart.applyOptions({ handleScroll: false, handleScale: false });
+                    container.setPointerCapture(e.pointerId);
+                    container.style.cursor = 'ns-resize';
+                    e.preventDefault();
+                    return;
+                }
+            }
+        };
+        const onMove = (e: PointerEvent) => {
+            if (!dragging) return;
+            const rect = container.getBoundingClientRect();
+            const price = seriesRef.current?.coordinateToPrice(e.clientY - rect.top);
+            if (price === null || price === undefined || !isValidPrice(price)) return;
+            const b = bandRef.current!;
+            // The pointer sits at `frac` along the line; solve back to the start price.
+            b.onDrag(dragging.line, price / (1 + b.tilt * dragging.frac));
+        };
+        const onUp = () => {
+            if (!dragging) return;
+            dragging = null;
+            chart.applyOptions({ handleScroll: true, handleScale: true });
+            container.style.cursor = '';
+        };
+
+        // Capture phase so the hit test runs before the chart's own canvas handlers see the pointer
+        container.addEventListener('pointerdown', onDown, true);
+        container.addEventListener('pointermove', onMove);
+        container.addEventListener('pointerup', onUp);
+        container.addEventListener('pointercancel', onUp);
+        return () => {
+            container.removeEventListener('pointerdown', onDown, true);
+            container.removeEventListener('pointermove', onMove);
+            container.removeEventListener('pointerup', onUp);
+            container.removeEventListener('pointercancel', onUp);
+        };
+        // Depend on whether a band exists, not the band object: the page passes a new
+        // object every render and re-running this effect mid-drag would drop the drag.
+        // All band values are read through bandRef.
+    }, [hasBand, data]);
 
     // Draw the target line. Depends on `data` so it re-runs after the chart is rebuilt.
     useEffect(() => {
@@ -264,7 +394,7 @@ export default function ConditionTokenChart({
             ) : !data || data.length === 0 ? (
                 <EmptyChart token={token} />
             ) : (
-                <div ref={containerRef} className="w-full h-[220px]" />
+                <div ref={containerRef} className="w-full h-[220px]" style={{ touchAction: band ? 'none' : undefined }} />
             )}
         </div>
     );
