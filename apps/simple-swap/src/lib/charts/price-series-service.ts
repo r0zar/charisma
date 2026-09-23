@@ -51,16 +51,15 @@ export class PriceSeriesService {
       console.log(`[PRICE-SERVICE] Fetching ${timeframe} data for ${contractId.substring(0, 10)}`);
       
       // Map timeframe to lakehouse intervals
-      const intervalMap: Record<string, 'hour' | 'day' | 'week'> = {
-        '1h': 'hour',
-        '24h': 'hour',
-        '7d': 'day',
-        '30d': 'day',
-        '1y': 'week'
+      const timeframes: Record<string, { interval: 'hour' | 'day' | 'week'; limit: number }> = {
+        '1h': { interval: 'hour', limit: 24 },
+        '24h': { interval: 'hour', limit: 24 },
+        '7d': { interval: 'hour', limit: 7 * 24 },
+        '30d': { interval: 'day', limit: 30 },
+        '1y': { interval: 'week', limit: 52 }
       };
-      
-      const interval = intervalMap[timeframe] || 'hour';
-      const limit = timeframe === '1h' ? 24 : timeframe === '24h' ? 24 : timeframe === '7d' ? 7 * 24 : 30;
+
+      const { interval, limit } = timeframes[timeframe] ?? timeframes['24h'];
       
       // Use lakehouse client (no fake fallback data)
       const history = await lakehouseClient.getPriceHistoryWithFallback(contractId, {

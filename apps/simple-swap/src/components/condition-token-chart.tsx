@@ -1,23 +1,36 @@
 "use client";
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
     createChart,
     type IChartApi,
     type ISeriesApi,
+    type IPriceLine,
+    type AutoscaleInfo,
     type LineData,
+    type UTCTimestamp,
     LineSeries,
     ColorType,
-    type IPriceLine,
     LineStyle,
 } from "lightweight-charts";
 import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
-import { calculateSimpleRatio, cleanPriceData, formatPrice as formatPriceUtil } from "@/lib/charts/simple-chart-utils";
+import {
+    calculateSimpleRatio,
+    cleanPriceData,
+    formatPrice,
+    includeTargetInRange,
+    isValidPrice,
+} from "@/lib/charts/simple-chart-utils";
 import { usePrices } from '@/contexts/token-price-context';
-import { useWallet } from '@/contexts/wallet-context';
 import { usePriceSeriesService } from '@/lib/charts/price-series-service';
-import { perfMonitor } from '@/lib/performance-monitor';
+
+type Timeframe = '24h' | '7d' | '30d';
+const TIMEFRAMES: { value: Timeframe; label: string }[] = [
+    { value: '24h', label: '24H' },
+    { value: '7d', label: '7D' },
+    { value: '30d', label: '30D' },
+];
 
 interface Props {
     token: TokenCacheData;
@@ -28,12 +41,6 @@ interface Props {
     colour?: string;
 }
 
-// Removed unnecessary data conversion functions - charts now work directly with LineData
-
-// Use the simplified formatPrice from utils
-const formatPrice = formatPriceUtil;
-
-// UI Components
 function ChartSkeleton() {
     return (
         <div className="w-full h-[220px] bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm rounded-lg flex items-center justify-center">
@@ -52,9 +59,7 @@ function ChartError({ error, onRetry }: { error: string; onRetry: () => void }) 
                 <AlertCircle className="h-5 w-5" />
                 <span className="text-sm font-medium">Failed to load chart</span>
             </div>
-            <p className="text-xs text-red-600/80 dark:text-red-400/80 text-center max-w-xs">
-                {error}
-            </p>
+            <p className="text-xs text-red-600/80 dark:text-red-400/80 text-center max-w-xs">{error}</p>
             <button
                 onClick={onRetry}
                 className="flex items-center space-x-1 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
@@ -70,14 +75,11 @@ function EmptyChart({ token }: { token: TokenCacheData }) {
     return (
         <div className="w-full h-[220px] bg-white/[0.03] border border-white/[0.08] rounded-lg flex flex-col items-center justify-center space-y-2">
             <div className="text-muted-foreground text-sm">No price data available</div>
-            <div className="text-xs text-muted-foreground/70">
-                No historical data found for {token.symbol}
-            </div>
+            <div className="text-xs text-muted-foreground/70">No historical data found for {token.symbol}</div>
         </div>
     );
 }
 
-// Main component
 export default function ConditionTokenChart({
     token,
     baseToken,
@@ -91,432 +93,179 @@ export default function ConditionTokenChart({
     const seriesRef = useRef<ISeriesApi<'Line'> | null>(null);
     const priceLineRef = useRef<IPriceLine | null>(null);
 
+    // Latest values read from inside chart callbacks, so changing them never rebuilds the chart
+    const targetRef = useRef<number | null>(null);
+    const onTargetPriceChangeRef = useRef(onTargetPriceChange);
+    onTargetPriceChangeRef.current = onTargetPriceChange;
+
+    const [timeframe, setTimeframe] = useState<Timeframe>('7d');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<LineData[] | null>(null);
-    const [lastUpdateTime, setLastUpdateTime] = useState<number>(0);
+    const [reloadKey, setReloadKey] = useState(0);
 
-    // Real-time price data
     const { getPrice } = usePrices();
     const priceSeriesService = usePriceSeriesService();
 
-    // For subnet tokens, use their base token's price for real-time updates
-    const getTokenPriceFromFeed = useCallback((tokenData: TokenCacheData) => {
-        // If it's a subnet token, use the base token's price
-        if (tokenData.type === 'SUBNET' && tokenData.base) {
-            return getPrice(tokenData.base);
-        }
-        // Otherwise use the token's own price
-        return getPrice(tokenData.contractId);
-    }, [getPrice]);
+    // Subnet tokens share their base token's price feed
+    const priceOf = (t: TokenCacheData) => getPrice(t.type === 'SUBNET' && t.base ? t.base : t.contractId);
+    const livePrice = priceOf(token);
+    const liveBasePrice = baseToken ? priceOf(baseToken) : null;
 
-    const currentTokenPrice = getTokenPriceFromFeed(token);
-    const currentBasePrice = baseToken ? getTokenPriceFromFeed(baseToken) : null;
+    const baseContractId = baseToken?.contractId ?? null;
 
-
-    // Ref to track last prices to avoid duplicate updates
-    const lastPricesRef = useRef<{ token: number | null, base: number | null }>({ token: null, base: null });
-
-    // Fetch data and initialize chart
-    const loadChart = useCallback(async () => {
-        if (!token?.contractId) return;
-
-        const timer = perfMonitor.startTiming('condition-chart-load-data');
-        setLoading(true);
-        setError(null);
-
-        try {
-            // Use bulk fetching for efficiency
-            const contractIds = baseToken?.contractId
-                ? [token.contractId, baseToken.contractId]
-                : [token.contractId];
-
-            const bulkData = await priceSeriesService.fetchBulkPriceSeries(contractIds);
-            const tokenData = bulkData[token.contractId] || [];
-
-            if (!Array.isArray(tokenData)) {
-                throw new Error("Invalid price data format");
-            }
-
-            // Simplified data processing - no unnecessary transformations
-            let chartData: LineData[];
-
-            if (baseToken?.contractId && bulkData[baseToken.contractId]) {
-                // Calculate simple ratio for base token pairs
-                const baseData = bulkData[baseToken.contractId];
-                const cleanTokenData = cleanPriceData(tokenData);
-                const cleanBaseData = cleanPriceData(baseData);
-                chartData = calculateSimpleRatio(cleanTokenData, cleanBaseData);
-            } else {
-                // Single token chart - just clean the data
-                chartData = cleanPriceData(tokenData);
-            }
-
-            // Data is already properly formatted - no additional processing needed
-            const deduplicatedData = chartData;
-
-            setData(deduplicatedData);
-
-            timer.end({
-                success: true,
-                dataPoints: deduplicatedData.length,
-                hasBaseToken: !!baseToken?.contractId,
-                tokenId: token.contractId.substring(0, 10)
-            });
-
-            console.log('[CONDITION-CHART] Data loaded successfully:', {
-                token: token.symbol,
-                baseToken: baseToken?.symbol || null,
-                mode: baseToken ? 'ratio' : 'single',
-                dataPoints: deduplicatedData.length
-            });
-
-        } catch (err) {
-            const message = err instanceof Error ? err.message : "Failed to load chart data";
-            timer.end({ success: false, error: message });
-            console.error('[CONDITION-CHART] Failed to load data:', err);
-            setError(message);
-            setData(null);
-        } finally {
-            setLoading(false);
-        }
-    }, [token.contractId, baseToken?.contractId, priceSeriesService]);
-
-    // Effect to handle price updates from token price context
+    // Load historical data whenever the pair or timeframe changes
     useEffect(() => {
-        console.log('[REAL-TIME] Price update triggered:', {
-            token: token.symbol,
-            baseToken: baseToken?.symbol || null,
-            hasSeriesRef: !!seriesRef.current,
-            currentTokenPrice,
-            currentBasePrice,
-            lastTokenPrice: lastPricesRef.current.token,
-            lastBasePrice: lastPricesRef.current.base
+        let cancelled = false;
+
+        (async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const ids = baseContractId ? [token.contractId, baseContractId] : [token.contractId];
+                const bulk = await priceSeriesService.fetchBulkPriceSeries(ids, timeframe);
+                const tokenData = cleanPriceData(bulk[token.contractId] ?? []);
+                const chartData = baseContractId
+                    ? calculateSimpleRatio(tokenData, cleanPriceData(bulk[baseContractId] ?? []))
+                    : tokenData;
+                if (!cancelled) setData(chartData);
+            } catch (err) {
+                if (!cancelled) {
+                    setError(err instanceof Error ? err.message : "Failed to load chart data");
+                    setData(null);
+                }
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        })();
+
+        return () => { cancelled = true; };
+    }, [token.contractId, baseContractId, timeframe, priceSeriesService, reloadKey]);
+
+    // Build the chart once per dataset
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container || !data || data.length === 0) return;
+
+        const chart = createChart(container, {
+            autoSize: true,
+            layout: {
+                background: { type: ColorType.Solid, color: "transparent" },
+                textColor: "#9ca3af",
+            },
+            grid: {
+                vertLines: { color: "rgba(133,133,133,0.1)" },
+                horzLines: { color: "rgba(133,133,133,0.1)" },
+            },
+            timeScale: { timeVisible: true, secondsVisible: false, borderVisible: false },
+            leftPriceScale: { visible: true, borderVisible: false, scaleMargins: { top: 0.2, bottom: 0.2 } },
+            rightPriceScale: { visible: false },
+            localization: { priceFormatter: formatPrice },
         });
 
-        if (!seriesRef.current) {
-            console.log('[REAL-TIME] No series ref, skipping update');
-            return;
-        }
+        const series = chart.addSeries(LineSeries, {
+            color: colour,
+            lineWidth: 2,
+            autoscaleInfoProvider: (original: () => AutoscaleInfo | null) => includeTargetInRange(original(), targetRef.current),
+        });
+        series.setData(data);
+        chart.timeScale().fitContent();
 
-        // Extract price values from price objects
-        const tokenPriceValue = currentTokenPrice;
-        const basePriceValue = currentBasePrice;
-
-        // Check if prices have actually changed (similar to token chart pattern)
-        const hasTokenPriceChanged = lastPricesRef.current.token !== tokenPriceValue;
-        const hasBasePriceChanged = lastPricesRef.current.base !== basePriceValue;
-
-        console.log('[REAL-TIME] Price change analysis:', {
-            hasTokenPriceChanged,
-            hasBasePriceChanged,
-            tokenChange: hasTokenPriceChanged ? `${lastPricesRef.current.token} → ${tokenPriceValue}` : 'no change',
-            baseChange: hasBasePriceChanged ? `${lastPricesRef.current.base} → ${basePriceValue}` : 'no change',
-            tokenPriceObject: currentTokenPrice,
-            basePriceObject: currentBasePrice
+        chart.subscribeClick((param) => {
+            if (!param.point) return;
+            const price = series.coordinateToPrice(param.point.y);
+            if (price !== null && isValidPrice(price)) {
+                onTargetPriceChangeRef.current(price.toString());
+            }
         });
 
-        if (!hasTokenPriceChanged && !hasBasePriceChanged) {
-            console.log('[REAL-TIME] No price changes detected, skipping update');
-            return;
-        }
-
-        if (!tokenPriceValue || typeof tokenPriceValue !== 'number' || tokenPriceValue <= 0) {
-            console.log('[REAL-TIME] Invalid token price, skipping update:', {
-                tokenPriceValue,
-                currentTokenPrice,
-                isNumber: typeof tokenPriceValue === 'number',
-                isPositive: (tokenPriceValue as number) > 0
-            });
-            return;
-        }
-
-        const now = Math.floor(Date.now() / 1000); // Convert to seconds for lightweight-charts
-        let newPrice = tokenPriceValue;
-
-        // If we have a base token, calculate the ratio
-        if (baseToken && basePriceValue && typeof basePriceValue === 'number' && basePriceValue > 0) {
-            const oldPrice = newPrice;
-            newPrice = tokenPriceValue / basePriceValue;
-            console.log('[REAL-TIME] Ratio calculation:', {
-                tokenPrice: tokenPriceValue,
-                basePrice: basePriceValue,
-                calculatedRatio: newPrice,
-                ratioChange: `${oldPrice.toFixed(6)} → ${newPrice.toFixed(6)}`
-            });
-        } else if (baseToken) {
-            console.log('[REAL-TIME] Base token mode but invalid base price:', {
-                baseToken: baseToken.symbol,
-                basePriceValue,
-                currentBasePrice,
-                isNumber: typeof basePriceValue === 'number',
-                isPositive: basePriceValue ? (basePriceValue as number) > 0 : false
-            });
-        } else {
-            console.log('[REAL-TIME] Single token mode, using raw price:', {
-                rawPrice: tokenPriceValue
-            });
-        }
-
-        try {
-            console.log('[REAL-TIME] Updating chart with:', {
-                time: now,
-                value: newPrice,
-                formattedValue: newPrice.toFixed(8),
-                timestamp: new Date(now * 1000).toISOString()
-            });
-
-            // Use the update API to add the new data point (same as token chart)
-            seriesRef.current.update({
-                time: now as any,
-                value: newPrice
-            });
-
-            // Update our refs
-            lastPricesRef.current = {
-                token: tokenPriceValue as number,
-                base: basePriceValue as number | null
-            };
-            setLastUpdateTime(now);
-
-            console.log('[REAL-TIME] Chart update successful:', {
-                newPrice: newPrice.toFixed(6),
-                timestamp: now,
-                mode: baseToken ? 'ratio' : 'single'
-            });
-        } catch (error) {
-            console.error('[REAL-TIME] Chart update failed:', {
-                error: error instanceof Error ? error.message : error,
-                time: now,
-                value: newPrice,
-                seriesExists: !!seriesRef.current
-            });
-        }
-    }, [currentTokenPrice, currentBasePrice, baseToken, token.symbol]);
-
-    // Initialize chart when container and data are ready
-    useEffect(() => {
-        if (!containerRef.current || !data || data.length === 0) {
-            return;
-        }
-
-        let handleKeyDown: ((event: KeyboardEvent) => void) | null = null;
-        let handleResize: (() => void) | null = null;
-
-        const chartTimer = perfMonitor.startTiming('condition-chart-initialization');
-
-        try {
-            // Clean up existing chart
-            if (chartRef.current) {
-                chartRef.current.remove();
-                chartRef.current = null;
-                seriesRef.current = null;
-                priceLineRef.current = null;
-            }
-
-            // Create new chart with minimal configuration for maximum zoom freedom
-            chartRef.current = createChart(containerRef.current, {
-                height: 220,
-                layout: {
-                    background: { type: ColorType.Solid, color: "transparent" },
-                    textColor: "#9ca3af",
-                },
-                grid: {
-                    vertLines: { color: "rgba(133,133,133,0.1)" },
-                    horzLines: { color: "rgba(133,133,133,0.1)" },
-                },
-                timeScale: {
-                    timeVisible: true,
-                    secondsVisible: false,
-                    borderVisible: false,
-                    rightOffset: 12,
-                    barSpacing: 3,
-                    fixLeftEdge: false, // Allow showing recent data like token chart
-                    fixRightEdge: false, // Allow flexible zoom like token chart
-                    lockVisibleTimeRangeOnResize: false,
-                    rightBarStaysOnScroll: false,
-                    shiftVisibleRangeOnNewBar: false, // Don't auto-follow to allow free zoom
-                    allowShiftVisibleRangeOnWhitespaceReplacement: true, // Allow clicking to move
-                },
-                leftPriceScale: {
-                    visible: true,
-                    borderVisible: false,
-                    scaleMargins: { top: 0.2, bottom: 0.2 },
-                },
-                rightPriceScale: { visible: false },
-                localization: {
-                    priceFormatter: formatPrice,
-                },
-                handleScroll: {
-                    mouseWheel: true,
-                    pressedMouseMove: true,
-                    horzTouchDrag: true,
-                    vertTouchDrag: true,
-                },
-                handleScale: {
-                    axisPressedMouseMove: {
-                        time: true,
-                        price: true,
-                    },
-                    axisDoubleClickReset: {
-                        time: true,
-                        price: true,
-                    },
-                    mouseWheel: true,
-                    pinch: true,
-                },
-            });
-
-            seriesRef.current = chartRef.current.addSeries(LineSeries, {
-                color: colour,
-                lineWidth: 2,
-            }) as ISeriesApi<'Line'>;
-
-            // Set data
-            seriesRef.current.setData(data);
-
-            // Set initial view to show all data without restrictions
-            setTimeout(() => {
-                if (chartRef.current && data.length > 0) {
-                    // First reset any potential range locks
-                    chartRef.current.timeScale().resetTimeScale();
-                    // Then fit all content
-                    chartRef.current.timeScale().fitContent();
-                }
-            }, 100);
-
-            // Handle clicks
-            const handleClick = (param: any) => {
-                if (!param.point || !seriesRef.current) return;
-                const price = seriesRef.current.coordinateToPrice(param.point.y);
-                if (price && !isNaN(price)) {
-                    // Use toString() to avoid scientific notation from toPrecision()
-                    onTargetPriceChange(price.toString());
-                }
-            };
-
-            chartRef.current.subscribeClick(handleClick);
-
-            // Handle resize
-            handleResize = () => {
-                if (containerRef.current && chartRef.current) {
-                    chartRef.current.applyOptions({
-                        width: containerRef.current.clientWidth
-                    });
-                }
-            };
-
-            // Add keyboard shortcuts for chart navigation
-            handleKeyDown = (event: KeyboardEvent) => {
-                if (!chartRef.current) return;
-
-                switch (event.key) {
-                    case 'r':
-                    case 'R':
-                        // Reset zoom to fit all data
-                        chartRef.current.timeScale().fitContent();
-                        event.preventDefault();
-                        break;
-                    case 'f':
-                    case 'F':
-                        // Fit to recent data (last 30%)
-                        if (data.length > 0) {
-                            const startIndex = Math.max(0, Math.floor(data.length * 0.7));
-                            const startTime = data[startIndex].time;
-                            const endTime = data[data.length - 1].time;
-
-                            chartRef.current.timeScale().setVisibleRange({
-                                from: startTime,
-                                to: endTime,
-                            });
-                        }
-                        event.preventDefault();
-                        break;
-                    case 'z':
-                    case 'Z':
-                        // Force unlock zoom by resetting visible range to full data
-                        if (data.length > 0) {
-                            chartRef.current.timeScale().setVisibleRange({
-                                from: data[0].time,
-                                to: data[data.length - 1].time,
-                            });
-                            // Then immediately fit content to allow free zooming
-                            setTimeout(() => {
-                                if (chartRef.current) {
-                                    chartRef.current.timeScale().fitContent();
-                                }
-                            }, 10);
-                        }
-                        event.preventDefault();
-                        break;
-                }
-            };
-
-            // Add event listeners
-            window.addEventListener("keydown", handleKeyDown);
-            window.addEventListener("resize", handleResize);
-            handleResize();
-
-            chartTimer.end({ success: true, dataPoints: data.length });
-
-        } catch (error) {
-            chartTimer.end({ success: false, error: String(error) });
-            console.error('[CONDITION-CHART] Chart initialization failed:', error);
-        }
+        chartRef.current = chart;
+        seriesRef.current = series;
+        priceLineRef.current = null;
 
         return () => {
-            if (handleKeyDown) {
-                window.removeEventListener("keydown", handleKeyDown);
-            }
-            if (handleResize) {
-                window.removeEventListener("resize", handleResize);
-            }
-            if (chartRef.current) {
-                chartRef.current.remove();
-                chartRef.current = null;
-                seriesRef.current = null;
-                priceLineRef.current = null;
-            }
+            chart.remove();
+            chartRef.current = null;
+            seriesRef.current = null;
+            priceLineRef.current = null;
         };
-    }, [data, colour, onTargetPriceChange]);
+        // colour is applied by its own effect below
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [data]);
 
-    // Update target price line
     useEffect(() => {
-        if (!seriesRef.current) return;
+        seriesRef.current?.applyOptions({ color: colour });
+    }, [colour]);
 
-        try {
-            // Remove existing price line
-            if (priceLineRef.current) {
-                seriesRef.current.removePriceLine(priceLineRef.current);
-                priceLineRef.current = null;
-            }
+    // Draw the target line. Depends on `data` so it re-runs after the chart is rebuilt.
+    useEffect(() => {
+        const series = seriesRef.current;
+        if (!series) return;
 
-            // Add new price line if valid price
-            const price = parseFloat(targetPrice);
-            if (!isNaN(price) && price > 0) {
-                const directionSymbol = direction === 'gt' ? '≥' : '≤';
-                priceLineRef.current = seriesRef.current.createPriceLine({
-                    price,
-                    color: "#f97316",
-                    lineWidth: 2,
-                    lineStyle: LineStyle.Solid,
-                    axisLabelVisible: true,
-                    title: `Target ${directionSymbol}`,
-                });
-            }
-        } catch (error) {
-            console.warn("Failed to update price line:", error);
+        if (priceLineRef.current) {
+            series.removePriceLine(priceLineRef.current);
+            priceLineRef.current = null;
         }
-    }, [targetPrice, direction]);
 
-    // Load data on mount and when dependencies change
+        const price = parseFloat(targetPrice);
+        targetRef.current = isValidPrice(price) ? price : null;
+
+        if (targetRef.current !== null) {
+            priceLineRef.current = series.createPriceLine({
+                price: targetRef.current,
+                color: "#f97316",
+                lineWidth: 2,
+                lineStyle: LineStyle.Solid,
+                axisLabelVisible: true,
+                title: `Target ${direction === 'gt' ? '≥' : '≤'}`,
+            });
+        }
+
+        // Re-run autoscale so the line is always on screen
+        chartRef.current?.priceScale('left').applyOptions({ autoScale: true });
+    }, [targetPrice, direction, data]);
+
+    // Append the live price as the newest point
     useEffect(() => {
-        loadChart();
-    }, [loadChart]);
+        const series = seriesRef.current;
+        if (!series || !data || data.length === 0 || !isValidPrice(livePrice ?? NaN)) return;
 
-    if (loading) return <ChartSkeleton />;
-    if (error) return <ChartError error={error} onRetry={loadChart} />;
-    if (!data || data.length === 0) return <EmptyChart token={token} />;
+        let value = livePrice as number;
+        if (baseContractId) {
+            if (!isValidPrice(liveBasePrice ?? NaN)) return;
+            value = value / (liveBasePrice as number);
+        }
 
-    return <div ref={containerRef} className="w-full h-[220px]" />;
-} 
+        const now = Math.floor(Date.now() / 1000) as UTCTimestamp;
+        if (now < Number(data[data.length - 1].time)) return;
+        series.update({ time: now, value });
+    }, [livePrice, liveBasePrice, baseContractId, data]);
+
+    return (
+        <div>
+            <div className="flex justify-end gap-1 mb-2">
+                {TIMEFRAMES.map(({ value, label }) => (
+                    <button
+                        key={value}
+                        onClick={() => setTimeframe(value)}
+                        className={`px-2 py-0.5 text-xs rounded transition-colors ${timeframe === value
+                            ? 'bg-white/[0.1] text-white/95'
+                            : 'text-white/50 hover:text-white/80'
+                            }`}
+                    >
+                        {label}
+                    </button>
+                ))}
+            </div>
+            {loading ? (
+                <ChartSkeleton />
+            ) : error ? (
+                <ChartError error={error} onRetry={() => setReloadKey((k) => k + 1)} />
+            ) : !data || data.length === 0 ? (
+                <EmptyChart token={token} />
+            ) : (
+                <div ref={containerRef} className="w-full h-[220px]" />
+            )}
+        </div>
+    );
+}

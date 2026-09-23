@@ -1,4 +1,4 @@
-import { type LineData } from 'lightweight-charts';
+import { type AutoscaleInfo, type LineData } from 'lightweight-charts';
 
 /**
  * Simple chart utilities that work directly with LineData
@@ -70,4 +70,22 @@ export function formatPrice(price: number): string {
   } else {
     return price.toFixed(6);
   }
+}
+
+/**
+ * Widen an autoscale range so a target price line is always on screen.
+ */
+export function includeTargetInRange(info: AutoscaleInfo | null, target: number | null): AutoscaleInfo | null {
+  if (!info?.priceRange || target === null || !isValidPrice(target)) return info;
+
+  const { minValue, maxValue } = info.priceRange;
+  if (target >= minValue && target <= maxValue) return info;
+
+  return {
+    ...info,
+    priceRange: {
+      minValue: Math.min(minValue, target),
+      maxValue: Math.max(maxValue, target),
+    },
+  };
 }

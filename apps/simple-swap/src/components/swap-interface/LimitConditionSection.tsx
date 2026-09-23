@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import TokenDropdown from '../TokenDropdown';
 import { ChevronDown, Info, DollarSign } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
+import { getTriggerChartProps } from '@/lib/trigger-chart-props';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useOrderConditions } from '@/contexts/order-conditions-context';
@@ -113,14 +114,19 @@ export default function LimitConditionSection() {
         getTimeTriggerDisplay,
     } = useOrderConditions();
 
-    // Determine the primary token for chart display - prefer price trigger token, then ratio, then default
-    const selectedToken = priceTriggerToken || ratioTriggerToken || displayedToToken;
+    // Chart inputs come from the active trigger mode only
+    const chart = getTriggerChartProps({
+        hasPriceTrigger, hasRatioTrigger,
+        priceTriggerToken, priceTargetPrice, priceDirection,
+        ratioTriggerToken, ratioBaseToken, ratioTargetPrice, ratioDirection,
+        displayedToToken,
+    });
+    const selectedToken = chart.token;
 
-    // Stable callback for chart price changes to prevent chart reinitialization
-    const handleTargetPriceChange = useCallback((price: string) => {
-        if (hasPriceTrigger) setPriceTargetPrice(price);
+    const handleTargetPriceChange = (price: string) => {
         if (hasRatioTrigger) setRatioTargetPrice(price);
-    }, [hasPriceTrigger, hasRatioTrigger, setPriceTargetPrice, setRatioTargetPrice]);
+        else setPriceTargetPrice(price);
+    };
 
     // Render wizard step content
     const renderWizardContent = () => {
@@ -798,10 +804,10 @@ export default function LimitConditionSection() {
                             </div>
                         </div>
                         <ConditionTokenChartWrapper
-                            token={selectedToken}
-                            baseToken={ratioBaseToken}
-                            targetPrice={priceTargetPrice || ratioTargetPrice}
-                            direction={hasPriceTrigger ? priceDirection : ratioDirection}
+                            token={chart.token}
+                            baseToken={chart.baseToken}
+                            targetPrice={chart.targetPrice}
+                            direction={chart.direction}
                             onTargetPriceChange={handleTargetPriceChange}
                         />
                     </div>
