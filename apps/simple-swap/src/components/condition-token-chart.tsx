@@ -347,6 +347,8 @@ export default function ConditionTokenChart({
         container.addEventListener('pointerup', onUp);
         container.addEventListener('pointercancel', onUp);
         return () => {
+            // A teardown mid-drag must not leave clicks ignored or autoscale frozen
+            draggingRef.current = false;
             container.removeEventListener('pointerdown', onDown, true);
             container.removeEventListener('pointermove', onMove);
             container.removeEventListener('pointerup', onUp);
