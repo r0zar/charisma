@@ -6,7 +6,8 @@ import { ArrowLeft, Loader2, Globe, ExternalLink, Sparkles, Info } from "lucide-
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { generateOptimizedOnChainMetadata } from "../../lib/utils/image-utils";
+import { generateOnChainMetadataUriWithinLimit, ONCHAIN_METADATA_URI_LIMIT } from "../../lib/utils/image-utils";
+import { toast as sonnerToast } from "sonner";
 import {
     Tooltip,
     TooltipContent,
@@ -106,12 +107,12 @@ const PreviewStep = ({
             return;
         }
 
-        // Use the new optimized metadata generation with random color pixels
-        // Using 'color' with 'random' to generate a new random color each time
-        const { dataUri, length } = generateOptimizedOnChainMetadata(tokenSymbol, 'color', 'random');
-
-        console.log(`Generated optimized metadata URI with random color: ${length} characters`);
-        onMetadataUriChange(dataUri);
+        try {
+            const { dataUri } = generateOnChainMetadataUriWithinLimit(`${tokenSymbol}-SL`);
+            onMetadataUriChange(dataUri);
+        } catch (err) {
+            sonnerToast.error("Metadata too long", { description: err instanceof Error ? err.message : String(err) });
+        }
     };
 
     return (
@@ -170,16 +171,18 @@ const PreviewStep = ({
                                     </Button>
                                 </div>
                                 {state.metadataUri.startsWith('data:application/json;base64,') && (
-                                    <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-700 rounded-lg p-3 mt-2">
-                                        <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium mb-1">
-                                            ✓ On-chain metadata generated - Length: {state.metadataUri.length} characters
-                                        </p>
-                                        <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                                            {state.metadataUri.length <= 256 ?
-                                                `Under 256 character limit! (${256 - state.metadataUri.length} chars remaining)` :
-                                                `⚠️ Over 256 character limit by ${state.metadataUri.length - 256} characters`
-                                            }
-                                        </p>
+                                    <div className={state.metadataUri.length <= ONCHAIN_METADATA_URI_LIMIT
+                                        ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-700 rounded-lg p-3 mt-2"
+                                        : "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-700 rounded-lg p-3 mt-2"}>
+                                        {state.metadataUri.length <= ONCHAIN_METADATA_URI_LIMIT ? (
+                                            <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+                                                ✓ On-chain metadata is {state.metadataUri.length} characters ({ONCHAIN_METADATA_URI_LIMIT - state.metadataUri.length} under the {ONCHAIN_METADATA_URI_LIMIT} limit)
+                                            </p>
+                                        ) : (
+                                            <p className="text-xs text-red-700 dark:text-red-300 font-medium">
+                                                Metadata is {state.metadataUri.length} characters, {state.metadataUri.length - ONCHAIN_METADATA_URI_LIMIT} over the {ONCHAIN_METADATA_URI_LIMIT} limit. Deployment is blocked until it fits.
+                                            </p>
+                                        )}
                                     </div>
                                 )}
                             </div>

@@ -8,6 +8,9 @@ export interface SublinkParams {
 }
 
 export async function generateSublink(params: SublinkParams) {
+    if (!params.subnetContract) {
+        throw new Error('No subnet contract given; a sublink must wrap a deployed subnet token');
+    }
     const templateUrl = `https://launchpad.charisma.rocks/clarity-templates/sublink.template.clar`;
 
     const response = await fetch(templateUrl);

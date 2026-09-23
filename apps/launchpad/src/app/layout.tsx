@@ -7,6 +7,7 @@ import { AppProvider } from "@/lib/context/app-context";
 import Link from "next/link";
 import { WalletConnector } from "@/components/wallet-connector";
 import { Toaster as SonnerToaster } from "sonner";
+import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
@@ -203,6 +204,7 @@ const RootLayout = ({ children }: { children: React.ReactNode }) => (
           </footer>
         </div>
         <SonnerToaster richColors position="bottom-right" />
+        <Toaster />
       </AppProvider>
     </body>
     <Analytics />

@@ -18,6 +18,7 @@ import { truncateAddress } from "@/lib/utils/token-utils";
 import { fetchSingleTokenMetadataDirectly, saveSublinkDataToDexCache, SublinkDexEntry } from '@/app/actions';
 import { TokenCacheData } from "@repo/tokens";
 import { generateSublink } from "@/lib/contract-generators/sublink";
+import { ONCHAIN_METADATA_URI_LIMIT } from "@/lib/utils/image-utils";
 import { generate1x1ColorPixel } from "@/lib/utils/image-utils";
 import TokenSelectionStep from "./token-selection-step";
 import PreviewStep from "./preview-step";
@@ -76,6 +77,12 @@ export default function SublinkWizard() {
 
             if (result.meta) {
                 const tokenData = result.meta;
+                // A subnet token (the normal case: linked here from a fresh subnet deploy) carries its own base,
+                // so it goes through the same path as picking it from the list.
+                if (tokenData.type === 'SUBNET') {
+                    await handleSelectToken(tokenData);
+                    return;
+                }
                 setTokenDetails(tokenData);
                 setSelectedToken({
                     symbol: tokenData.symbol || "",
@@ -189,6 +196,16 @@ export default function SublinkWizard() {
             });
             return;
         }
+        if (!config.subnetContract) {
+            sonnerToast.error("No subnet selected", { description: "Pick the subnet token this sublink should wrap." });
+            return;
+        }
+        if (config.metadataUri.length > ONCHAIN_METADATA_URI_LIMIT) {
+            sonnerToast.error("Metadata too long", {
+                description: `The token URI is ${config.metadataUri.length} characters; the contract allows ${ONCHAIN_METADATA_URI_LIMIT}. Regenerate it or use a shorter URI.`
+            });
+            return;
+        }
         try {
             setIsDeploying(true);
             sonnerToast.info("Preparing Deployment", {
@@ -264,12 +281,17 @@ export default function SublinkWizard() {
     useEffect(() => {
         const updateContractCode = async () => {
             if (currentStep === WizardStep.PREVIEW) {
-                const generatedCode = await generateSublink({
-                    tokenName: selectedToken?.symbol || "",
-                    subnetContract: config.subnetContract,
-                    metadataUri: config.metadataUri
-                });
-                setContractCode(generatedCode.code);
+                try {
+                    const generatedCode = await generateSublink({
+                        tokenName: selectedToken?.symbol || "",
+                        subnetContract: config.subnetContract,
+                        metadataUri: config.metadataUri
+                    });
+                    setContractCode(generatedCode.code);
+                } catch (err) {
+                    setContractCode("");
+                    sonnerToast.error("Could not generate contract", { description: err instanceof Error ? err.message : String(err) });
+                }
             }
         };
         updateContractCode();

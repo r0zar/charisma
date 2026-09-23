@@ -5,33 +5,6 @@ function deriveName(principal: string) {
     return (parts.length > 1 ? parts[1] : principal).toLowerCase().replace(/[^a-z0-9-]/g, '-');
 }
 
-// Generate bold, vibrant colors for dynamic metadata
-function generateBoldRandomColor(): string {
-    const boldColors = [
-        // Bright blues
-        '#0066FF', '#00AAFF', '#0088FF', '#0099FF', '#0077CC',
-        // Vibrant reds
-        '#FF3333', '#FF1744', '#FF0066', '#CC0000', '#E91E63',
-        // Electric greens
-        '#00FF66', '#00CC44', '#00AA33', '#33FF33', '#66FF66',
-        // Bright oranges
-        '#FF6600', '#FF8800', '#FF9900', '#FF7722', '#FF5500',
-        // Deep purples
-        '#6600FF', '#8800FF', '#9933FF', '#7700CC', '#AA33FF',
-        // Cyan/Teal
-        '#00FFFF', '#00CCCC', '#00AAAA', '#0099AA', '#00BBBB',
-        // Bright yellows
-        '#FFDD00', '#FFCC00', '#FFBB00', '#FFD700', '#FFC107',
-        // Hot pinks
-        '#FF0099', '#FF1177', '#FF3388', '#FF0088', '#E91E63',
-        // Electric lime
-        '#CCFF00', '#AAFF00', '#88FF00', '#99FF00', '#BBFF00',
-        // Bold magentas
-        '#FF00AA', '#FF0077', '#CC0066', '#DD0088', '#FF00CC'
-    ];
-    return boldColors[Math.floor(Math.random() * boldColors.length)];
-}
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
@@ -73,7 +46,7 @@ import { generateSublink } from '@/lib/contract-generators/sublink';
 import { getTokenMetadataCached, listTokens, TokenCacheData } from '@repo/tokens'
 import Image from 'next/image';
 import { createSubnetMetadataAction } from '@/lib/actions/metadataActions';
-import { generateCustomOptimizedMetadata } from '@/lib/utils/image-utils';
+import { generateOnChainMetadataUriWithinLimit } from '@/lib/utils/image-utils';
 
 // Schema for form validation
 const schema = z.object({
@@ -755,27 +728,8 @@ export default function SubnetWrapperWizard() {
             const baseTokenMetadata = await getTokenMetadataCached(state.tokenContract);
             const tokenSymbol = baseTokenMetadata?.symbol || deriveName(state.tokenContract);
 
-            // Generate bold, vibrant metadata with dynamic colors that stays under 256 character limit
-            const boldColor = generateBoldRandomColor();
-            let metadataResult = generateCustomOptimizedMetadata(
-                tokenSymbol,
-                'svg', // Use SVG for better compression with colors
-                boldColor
-            );
-
-            console.log(`Generated dynamic colored metadata URI: ${metadataResult.length} characters (limit: 256), color: ${boldColor}`);
-
-            if (metadataResult.length > 256) {
-                // Fallback to simpler color pixel if SVG is too long
-                metadataResult = generateCustomOptimizedMetadata(tokenSymbol, 'color', boldColor);
-                if (metadataResult.length <= 256) {
-                    console.log(`Fallback to color pixel: ${metadataResult.length} characters`);
-                } else {
-                    throw new Error(`Metadata URI too long even with fallback: ${metadataResult.length} characters (max 256). Try a shorter token symbol.`);
-                }
-            }
-
-            const metadataUri = metadataResult.dataUri;
+            // Colored pixel when it fits the 256-char token-uri limit, smaller forms otherwise; throws if nothing fits
+            const metadataUri = generateOnChainMetadataUriWithinLimit(tokenSymbol).dataUri;
 
             // Generate the sublink contract
             const sublinkResult = await generateSublink({

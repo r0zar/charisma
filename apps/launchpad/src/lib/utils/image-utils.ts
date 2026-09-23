@@ -156,6 +156,28 @@ export const generateOptimizedOnChainMetadata = (
     };
 };
 
+/** Clarity token-uri vars in the launchpad templates are (string-utf8 256). */
+export const ONCHAIN_METADATA_URI_LIMIT = 256;
+
+/**
+ * Builds an on-chain metadata data URI for `name` that fits the 256-char token-uri limit.
+ * Tries a colored pixel, then a transparent pixel, then the bare-symbol form; throws if none fits.
+ */
+export const generateOnChainMetadataUriWithinLimit = (name: string): { dataUri: string; length: number } => {
+    const candidates = [
+        () => generateCustomOptimizedMetadata(name, 'color', 'random'),
+        () => generateCustomOptimizedMetadata(name, 'transparent'),
+        () => generateUltraCompactMetadata(name),
+    ];
+    let shortest = Infinity;
+    for (const make of candidates) {
+        const { dataUri, length } = make();
+        if (length <= ONCHAIN_METADATA_URI_LIMIT) return { dataUri, length };
+        shortest = Math.min(shortest, length);
+    }
+    throw new Error(`On-chain metadata for "${name}" is ${shortest} characters even at its smallest; the limit is ${ONCHAIN_METADATA_URI_LIMIT}. Use a shorter name.`);
+};
+
 /**
  * Generates extremely compact metadata using only essential content.
  * Still uses standard field names for compatibility.
