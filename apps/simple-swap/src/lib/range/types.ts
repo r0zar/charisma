@@ -1,4 +1,4 @@
-import type { ConditionDirection } from '@/contexts/order-conditions-context';
+import type { LimitOrder } from '@/lib/orders/types';
 
 /** Stored on every leg as `metadata.range`. Mainnet ids feed the price service; subnet ids are what orders move. */
 export interface RangeSettings {
@@ -13,7 +13,7 @@ export interface RangeSettings {
   createdAt: string;
 }
 
-export type RangeLeg = 'sell' | 'buy';
+export type RangeLeg = NonNullable<LimitOrder['leg']>;
 
 /** One order to create. `position` is 1-based across the whole run. */
 export interface RangeLegSpec {
@@ -27,7 +27,7 @@ export interface RangeLegSpec {
   conditionToken: string;
   baseAsset: string;
   targetPrice: string;
-  direction: ConditionDirection;
+  direction: NonNullable<LimitOrder['direction']>;
   validFrom: string;
   validTo: string;
 }

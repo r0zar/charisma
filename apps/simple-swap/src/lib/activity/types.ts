@@ -73,7 +73,7 @@ export interface ActivityItem {
   targetPrice?: number;
   executionPrice?: number;
   waitTime?: string;
-  strategy?: 'single' | 'dca' | 'twitter';
+  strategy?: 'single' | 'dca' | 'twitter' | 'range';
   strategyPosition?: number;
   strategyTotal?: number;
 

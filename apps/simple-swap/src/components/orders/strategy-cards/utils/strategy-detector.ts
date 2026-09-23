@@ -18,7 +18,7 @@ export function detectStrategyType(strategyData: StrategyDisplayData): 'single' 
         return 'twitter';
     }
 
-    if (strategyData.type === 'range' || strategyData.orders[0]?.strategyType === 'range') {
+    if (strategyData.type === 'range') {
         return 'range';
     }
 

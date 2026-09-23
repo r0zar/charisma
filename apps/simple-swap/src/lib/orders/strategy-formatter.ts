@@ -267,7 +267,7 @@ function estimateStrategyCompletion(
     type: 'dca' | 'twitter' | 'range'
 ): string | undefined {
     if (type === 'dca' || type === 'range') {
-        // For DCA, estimate based on validTo times
+        // For DCA and range, estimate based on validTo times
         const validToTimes = orders
             .map(o => o.validTo ? new Date(o.validTo).getTime() : null)
             .filter(t => t !== null) as number[];
