@@ -136,9 +136,9 @@ Band crossings are computed client-side from the hourly ratio series already fet
 
 New component `SubnetPairSelector` (also adopted by Triggered Swaps in a follow-up, not this plan):
 
-- Lists only tokens that have a subnet version and that the connected wallet holds on the subnet, with subnet balance and USD value on each row.
+- Lists only tokens that have a subnet version and that the connected wallet holds on the subnet, with the subnet balance and its USD value on each row (the mainnet balance is not shown; `TokenDropdown` gains a `balanceMode: 'subnet'` option and an `includeStx: false` opt-out for its synthetic STX row).
 - Search by name, symbol, or address.
-- Empty state when the wallet holds no subnet tokens: "Range Swaps need tokens on the subnet. Move some over from the swap page."
+- Empty states: no subnet-funded tokens at all: "Range Swaps need tokens on the subnet. Move some over from the swap page."; exactly one, so the second selector is empty: "Range Swaps need two subnet-funded tokens. Move another over from the swap page."
 
 ## Orders page
 

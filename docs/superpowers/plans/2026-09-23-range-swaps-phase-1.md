@@ -1002,10 +1002,12 @@ export default function SubnetPairSelector({ label, selected, onSelect, exclude 
 }
 ```
 
+Review-driven refinements applied during execution (keep them): `TokenDropdown` gains `includeStx?: boolean` (default true; the selector passes false so the synthetic STX row cannot bypass the funded filter) and `balanceMode?: 'combined' | 'subnet'` (default combined; the selector passes `'subnet'` so rows show the subnet balance and its USD value only). The hook takes no `exclude`; the component filters and shows a distinct message when only one funded token exists.
+
 - [ ] **Step 2: Type check and lint**
 
-Run: `pnpm check-types 2>&1 | grep SubnetPairSelector; pnpm exec eslint src/components/range/SubnetPairSelector.tsx`
-Expected: clean. If `TokenDropdown` has no `label` prop effect you want, that's fine; it exists in its props.
+Run: `pnpm check-types 2>&1 | grep -E "SubnetPairSelector|TokenDropdown"; pnpm exec eslint src/components/range/SubnetPairSelector.tsx src/components/TokenDropdown.tsx`
+Expected: clean.
 
 - [ ] **Step 3: Commit**
 
