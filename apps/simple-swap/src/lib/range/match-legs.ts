@@ -24,6 +24,9 @@ export interface RangeMetrics {
   status: RunStatus;
 }
 
+// Render paths must degrade, not throw: a card on the Orders page renders these
+// results directly, so missing or malformed data is classified conservatively
+// instead of crashing the page.
 export function legOutcome(o: LimitOrder, now: number): LegOutcome {
   const validFrom = o.validFrom ? Date.parse(o.validFrom) : 0;
   const validTo = o.validTo ? Date.parse(o.validTo) : Infinity;
@@ -31,7 +34,9 @@ export function legOutcome(o: LimitOrder, now: number): LegOutcome {
   if (o.status === 'confirmed' || o.status === 'filled') return 'hit';
   if (o.status === 'failed') return 'expired';
   if (o.status === 'cancelled') {
-    if (!o.cancelledAt) throw new Error(`Order ${o.uuid} is cancelled without cancelledAt`);
+    // No cancelledAt means we cannot tell whether this expired or was
+    // user-cancelled; take the conservative reading rather than throwing.
+    if (!o.cancelledAt) return 'cancelled';
     const at = Date.parse(o.cancelledAt);
     return at >= validTo ? 'expired' : 'cancelled';
   }
@@ -48,7 +53,11 @@ export function runStatus(outcomes: LegOutcome[]): RunStatus {
 
 const quoteIso = (o: LimitOrder): string | null => o.metadata?.quote?.timestamp ?? o.confirmedAt ?? null;
 const quoteTime = (o: LimitOrder) => Date.parse(quoteIso(o)!);
-const isUnquoted = (o: LimitOrder) => quoteIso(o) === null || o.metadata?.quote?.amountOut === undefined;
+// A hit leg with no leg direction is corrupt data, not just an unpriced gap,
+// but a render must not crash the page: treat it the same as unpriced (skip
+// and count it) rather than throwing.
+const isUnquoted = (o: LimitOrder) =>
+  quoteIso(o) === null || o.metadata?.quote?.amountOut === undefined || (o.leg !== 'sell' && o.leg !== 'buy');
 const units = (raw: string | number | undefined, decimals: number) => Number(raw ?? '0') / 10 ** decimals;
 
 /**
@@ -72,7 +81,7 @@ export function matchRangeLegs(
 
   for (const o of hits) {
     if (o.leg === 'sell') { sells.push(o); continue; }
-    if (o.leg !== 'buy') throw new Error(`Range order ${o.uuid} has no leg`);
+    if (o.leg !== 'buy') continue; // corrupt/no-leg orders are filtered into unpricedLegs above
     buysHit++;
     const sell = sells.shift();
     if (!sell) { unmatchedBuys++; openPositionA += units(o.metadata?.quote?.amountOut, pair.decimalsA); continue; }

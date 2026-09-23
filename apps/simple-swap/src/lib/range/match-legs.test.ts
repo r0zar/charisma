@@ -128,15 +128,17 @@ describe('matchRangeLegs', () => {
     expect(calledWith).toContain('2026-09-24T05:00:00.000Z');
   });
 
-  it('throws on a cancelled order without cancelledAt', () => {
+  it('classifies a cancelled order without cancelledAt as cancelled (conservative reading)', () => {
     const o = order({ leg: 'sell', strategyPosition: 1, status: 'cancelled' });
-    expect(() => legOutcome(o, NOW)).toThrow();
+    expect(legOutcome(o, NOW)).toBe('cancelled');
   });
 
-  it('throws on a hit range order without a leg', () => {
+  it('counts a hit range order without a leg as unpriced instead of throwing', () => {
     const orders = [
       { ...hit('sell', 1, '735000000', '54400000', '2026-09-24T01:00:00.000Z'), leg: undefined },
     ] as unknown as LimitOrder[];
-    expect(() => matchRangeLegs(orders, { b: B, decimalsB: DEC_B, decimalsA: 6 }, priceAt, NOW)).toThrow();
+    const m = matchRangeLegs(orders, { b: B, decimalsB: DEC_B, decimalsA: 6 }, priceAt, NOW);
+    expect(m.unpricedLegs).toBe(1);
+    expect(m.legsHit).toBe(1);
   });
 });

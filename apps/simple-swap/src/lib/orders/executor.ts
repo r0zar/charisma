@@ -368,6 +368,7 @@ export async function processOpenOrders(): Promise<string[]> {
             const ageDays = Math.round(orderAge / (24 * 60 * 60 * 1000));
             console.log({ orderUuid: order.uuid, ageDays }, 'Order exceeded 90-day maximum age. Marking cancelled.');
             order.status = 'cancelled';
+            order.cancelledAt = new Date().toISOString();
             await updateOrder(order);
             await releaseLock(order.uuid);
             continue;
@@ -387,6 +388,7 @@ export async function processOpenOrders(): Promise<string[]> {
         if (validToMs !== undefined && now > validToMs) {
             console.log({ orderUuid: order.uuid, validTo: order.validTo }, 'Order expired. Marking cancelled.');
             order.status = 'cancelled';
+            order.cancelledAt = new Date().toISOString();
             await updateOrder(order);
             await releaseLock(order.uuid);
             continue;
@@ -399,6 +401,7 @@ export async function processOpenOrders(): Promise<string[]> {
         if (!fromTokenMetadata || fromTokenMetadata.type !== 'SUBNET') {
             console.log({ orderUuid: order.uuid, inputToken: order.inputToken, tokenType: fromTokenMetadata?.type }, 'Order has non-subnet from token. Cancelling order.');
             order.status = 'cancelled';
+            order.cancelledAt = new Date().toISOString();
             await updateOrder(order);
             await releaseLock(order.uuid);
             continue;
