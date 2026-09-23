@@ -71,18 +71,24 @@ Extends the trigger chart (`condition-token-chart.tsx`) rather than forking it:
 
 ### Profit preview
 
-Per completed cycle, where one cycle is a sell at the top line and a buy at the bottom line:
+Per completed cycle, where one cycle is a sell at the top line and a buy at the bottom line. Costs come from two live router quotes (the same `getQuote` the swap page uses), not a fixed slippage figure:
 
 ```
+sellIn      = perSwapUsd / priceA           (A sent by the sell leg)
+buyIn       = perSwapUsd / priceB           (B sent by the buy leg)
+sellOut     = router quote for sellIn A → B
+buyOut      = router quote for buyIn B → A
+routeCost   = (sellIn × priceA − sellOut × priceB) + (buyIn × priceB − buyOut × priceA)
 spread      = sell / buy − 1
 gross       = perSwapUsd × spread
-slippage    = 2 × 0.01 × perSwapUsd
-net         = gross − slippage
-breakEven   = 2 × 0.01                      (spread must exceed this)
+net         = gross − routeCost
+breakEven   = routeCost / perSwapUsd         (spread must exceed this)
 ifAll       = net × windows
 ```
 
-Shown as: band summary, net per cycle, costs per cycle, and the big number "if every window completes a cycle" with that assumption in the label. Spread below break-even turns the preview red and disables the button. The preview never estimates fill rate.
+Quotes are requested with the subnet contract ids and the same rounded micro amounts the orders will carry, debounced 400 ms on pair / amount / decimals changes only (not on price ticks). While quotes are pending the row reads "Waiting for route quotes" and the button is disabled; a router error shows its message there. The route cost may be negative when a quote beats mid price; it is not clamped.
+
+Shown as: band summary, net per cycle, route cost per cycle (with a tooltip explaining the mid-price comparison), a "Guaranteed minimum: 99% of the quote at execution" line derived from the executor's default 1% slippage post-condition, and the big number "if every window completes a cycle" with that assumption in the label. Spread below break-even turns the preview red and disables the button. The preview never estimates fill rate.
 
 ### Order generation
 
@@ -115,7 +121,7 @@ Strategy fields on every leg: one `strategyId` for the run, `strategyPosition` 1
 - Both tokens must have subnet versions. The selector only lists tokens the wallet holds on the subnet.
 - Sell line must be at least 0.5% above current price and buy line at least 0.5% below (exactly 0.5% is allowed, matching the inputs' minimum). Otherwise the button disables and says why.
 - Spread must exceed break-even, else the button disables.
-- `2N > 200` disables the button: "Too many orders (2N). Cap is 200 in one sitting. Widen the interval or shorten the run."
+- `2N > 200` disables the button: "Too many orders (2N). Cap is 200 in one sitting. Widen the interval or shorten the run." The interval and run presets that would exceed the cap with the other current setting are greyed out so the button rarely reaches that state.
 - Balance coverage is shown, not enforced: "sells cover A windows, buys cover B", where A = floor(balanceA / amountA).
 - If price only trends one way, only one leg fires. Accepted; the preview text says so.
 
