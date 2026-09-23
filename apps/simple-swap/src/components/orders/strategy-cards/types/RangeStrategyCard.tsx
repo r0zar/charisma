@@ -7,7 +7,6 @@ import { BaseStrategyCard } from '../base/BaseStrategyCard';
 import { PremiumStatusBadge } from '../../orders-panel';
 import { matchRangeLegs, LegOutcome } from '@/lib/range/match-legs';
 import { runwayFor } from '@/lib/range/profit-preview';
-import { priceString } from '@/lib/range/generate-legs';
 import type { RangeSettings } from '@/lib/range/types';
 import { usePriceSeriesService } from '@/lib/charts/price-series-service';
 import { useBalances } from '@/contexts/wallet-balance-context';
@@ -163,7 +162,7 @@ export const RangeStrategyCard: React.FC<RangeStrategyCardProps> = (props) => {
                             <span className="font-mono text-white/50">#{w}</span>
                             {[sell, buy].map((o, k) => o ? (
                                 <span key={o.uuid} className={cn(m.outcomes[o.uuid] === 'hit' ? (k === 0 ? 'text-orange-400' : 'text-green-400') : 'text-white/50')}>
-                                    {k === 0 ? 'sell ≥' : 'buy ≤'} {priceString(Number(o.targetPrice))} · {OUTCOME_LABEL[m.outcomes[o.uuid]]}
+                                    {k === 0 ? 'sell ≥' : 'buy ≤'} {Number(o.targetPrice).toLocaleString(undefined, { maximumSignificantDigits: 6 })} · {OUTCOME_LABEL[m.outcomes[o.uuid]]}
                                     {m.outcomes[o.uuid] === 'hit' && o.metadata?.quote?.amountOut !== undefined && o.outputTokenMeta.decimals !== undefined && ` · ${formatTokenAmount(o.metadata.quote.amountOut, o.outputTokenMeta.decimals)} ${o.outputTokenMeta.symbol}`}
                                     {openUuids.includes(o.uuid) && (
                                         <button type="button" aria-label={`Cancel ${k === 0 ? 'sell' : 'buy'} for window ${w}`} onClick={() => onCancelOrder(o.uuid)} className="ml-2 text-red-400/80 hover:text-red-300">cancel</button>
