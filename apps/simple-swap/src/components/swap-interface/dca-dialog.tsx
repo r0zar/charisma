@@ -148,7 +148,7 @@ export const DcaDialog: React.FC = () => {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-background border border-border backdrop-blur-xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="bg-background border border-border backdrop-blur-xl max-h-[90vh] overflow-y-auto sm:max-w-3xl">
                 <DialogHeader className="space-y-3">
                     <DialogTitle className="text-xl font-semibold text-white/95">Split Swap</DialogTitle>
                     <DialogDescription className="text-white/70 leading-relaxed">
@@ -156,6 +156,8 @@ export const DcaDialog: React.FC = () => {
                     </DialogDescription>
                 </DialogHeader>
 
+                <div className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-6">
                 {/* Time Window Info */}
                 {hasFixedTimeWindow && (
                     <div className="bg-blue-500/[0.08] border border-blue-500/[0.15] rounded-xl p-4 space-y-2">
@@ -303,7 +305,9 @@ export const DcaDialog: React.FC = () => {
                             </div>
                         ) : null}
                 </div>
+                </div>
 
+                <div className="space-y-6">
                 {/* Order summary */}
                 {fromToken && toToken && (
                     <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
@@ -384,6 +388,8 @@ export const DcaDialog: React.FC = () => {
                         </div>
                     </div>
                 )}
+                </div>
+                </div>
 
                 <DialogFooter className="mt-6 flex flex-col-reverse sm:flex-row gap-3">
                     <button
