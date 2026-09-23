@@ -37,6 +37,19 @@ describe('rangeProfitPreview', () => {
   it('flags a non-positive per-swap amount', () => {
     expect(rangeProfitPreview({ ...base, perSwapUsd: 0 }).reasons).toContain('Per swap must be more than $0');
   });
+
+  it('flags non-finite inputs instead of enabling the button', () => {
+    expect(rangeProfitPreview({ ...base, sell: NaN }).reasons).toContain('Fill in every field');
+    expect(rangeProfitPreview({ ...base, price: Infinity }).reasons).toContain('Fill in every field');
+  });
+
+  it('flags a sell line inside the 0.5% gap', () => {
+    expect(rangeProfitPreview({ ...base, sell: 0.068 * 1.003 }).reasons).toContain('Sell line must be above current price');
+  });
+
+  it('flags a run shorter than one window', () => {
+    expect(rangeProfitPreview({ ...base, windows: 0 }).reasons).toContain('Run is shorter than one window');
+  });
 });
 
 describe('windowsFor', () => {
@@ -44,6 +57,11 @@ describe('windowsFor', () => {
     expect(windowsFor(30 * 24, 24)).toBe(30);
     expect(windowsFor(7 * 24, 168)).toBe(1);
     expect(windowsFor(10, 24)).toBe(0);
+  });
+
+  it('returns 0 for non-finite inputs', () => {
+    expect(windowsFor(NaN, 24)).toBe(0);
+    expect(windowsFor(24, NaN)).toBe(0);
   });
 });
 
