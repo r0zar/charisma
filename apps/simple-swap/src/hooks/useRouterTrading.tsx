@@ -635,7 +635,7 @@ export function useRouterTrading() {
     manualDescription?: string;
     // Strategy-specific options
     strategyId?: string;
-    strategyType?: 'dca' | 'split' | 'batch';
+    strategyType?: 'dca' | 'split' | 'batch' | 'range';
     strategySize?: number;
     strategyPosition?: number;
   }) => {

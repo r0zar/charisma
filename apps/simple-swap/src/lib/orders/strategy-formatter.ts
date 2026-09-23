@@ -11,7 +11,7 @@ export interface DisplayOrder extends LimitOrder {
 
 export interface StrategyDisplayData {
     id: string;
-    type: 'dca' | 'single' | 'twitter' | 'split' | 'batch';
+    type: 'dca' | 'single' | 'twitter' | 'split' | 'batch' | 'range';
     description: string;
     orders: DisplayOrder[];
     totalOrders: number;
@@ -236,13 +236,13 @@ function determineStrategyStatus(orders: LimitOrder[]): StrategyDisplayData['sta
  * Generates human-readable description for strategy types
  */
 function generateStrategyDescription(
-    type: 'dca' | 'twitter',
+    type: 'dca' | 'twitter' | 'range',
     orders: LimitOrder[],
     totalValue: string,
     tokenSymbol: string
 ): string {
     const orderCount = orders.length;
-    
+
     switch (type) {
         case 'dca':
             return `DCA ${totalValue} ${tokenSymbol} over ${orderCount} orders`;
@@ -252,6 +252,8 @@ function generateStrategyDescription(
                 return `Twitter trigger for ${totalValue} ${tokenSymbol} (${orderCount} orders)`;
             }
             return `Tweet-triggered strategy (${orderCount} orders)`;
+        case 'range':
+            return `Range swap · ${Math.ceil(orderCount / 2)} windows`;
         default:
             return `${orderCount} related orders`;
     }
@@ -262,9 +264,9 @@ function generateStrategyDescription(
  */
 function estimateStrategyCompletion(
     orders: LimitOrder[],
-    type: 'dca' | 'twitter'
+    type: 'dca' | 'twitter' | 'range'
 ): string | undefined {
-    if (type === 'dca') {
+    if (type === 'dca' || type === 'range') {
         // For DCA, estimate based on validTo times
         const validToTimes = orders
             .map(o => o.validTo ? new Date(o.validTo).getTime() : null)

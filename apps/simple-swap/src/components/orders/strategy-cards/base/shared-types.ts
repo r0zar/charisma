@@ -40,6 +40,13 @@ export interface TwitterStrategyCardProps extends BaseStrategyCardProps {
 }
 
 /**
+ * Props specific to Range strategy cards
+ */
+export interface RangeStrategyCardProps extends BaseStrategyCardProps {
+    strategyData: StrategyDisplayData & { type: 'range' };
+}
+
+/**
  * Union type for all strategy card component props
  */
-export type StrategyCardProps = SingleOrderCardProps | DCAStrategyCardProps | TwitterStrategyCardProps;
+export type StrategyCardProps = SingleOrderCardProps | DCAStrategyCardProps | TwitterStrategyCardProps | RangeStrategyCardProps;

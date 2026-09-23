@@ -4,20 +4,24 @@ import { StrategyDisplayData } from '@/lib/orders/strategy-formatter';
  * Determines the strategy type based on the strategy data
  * This is the single source of truth for strategy type detection
  */
-export function detectStrategyType(strategyData: StrategyDisplayData): 'single' | 'dca' | 'twitter' {
+export function detectStrategyType(strategyData: StrategyDisplayData): 'single' | 'dca' | 'twitter' | 'range' {
     // If it's explicitly marked, return the explicit type
     if (strategyData.type === 'dca') {
         return 'dca';
     }
-    
+
     if (strategyData.type === 'single') {
         return 'single';
     }
-    
+
     if (strategyData.type === 'twitter') {
         return 'twitter';
     }
-    
+
+    if (strategyData.type === 'range' || strategyData.orders[0]?.strategyType === 'range') {
+        return 'range';
+    }
+
     // Fallback logic based on data characteristics
     // Check for Twitter metadata to identify Twitter strategies
     if (strategyData.twitterMetadata?.tweetUrl || strategyData.twitterMetadata?.tweetId) {
@@ -58,4 +62,11 @@ export function isDCAStrategy(strategyData: StrategyDisplayData): strategyData i
  */
 export function isTwitterStrategy(strategyData: StrategyDisplayData): strategyData is StrategyDisplayData & { type: 'twitter' } {
     return detectStrategyType(strategyData) === 'twitter';
+}
+
+/**
+ * Type guard to check if strategy data is for a Range strategy
+ */
+export function isRangeStrategy(strategyData: StrategyDisplayData): strategyData is StrategyDisplayData & { type: 'range' } {
+    return detectStrategyType(strategyData) === 'range';
 }

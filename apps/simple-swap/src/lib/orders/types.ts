@@ -57,8 +57,13 @@ export interface LimitOrder {
     /**
      * Type of order strategy for UI display purposes.
      */
-    strategyType?: 'dca' | 'twitter';
-    
+    strategyType?: 'dca' | 'twitter' | 'range';
+
+    /**
+     * Which side of a range swap this order is. Only set when strategyType is 'range'.
+     */
+    leg?: 'sell' | 'buy';
+
     /**
      * Position within the strategy (1-based index) for ordering and progress tracking.
      */
