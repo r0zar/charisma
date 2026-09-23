@@ -62,7 +62,7 @@
 
 ```ts
 // src/lib/range/types.ts
-import type { ConditionDirection } from '@/contexts/order-conditions-context';
+import type { LimitOrder } from '@/lib/orders/types';
 
 /** Stored on every leg as `metadata.range`. Mainnet ids feed the price service; subnet ids are what orders move. */
 export interface RangeSettings {
@@ -77,7 +77,7 @@ export interface RangeSettings {
   createdAt: string;
 }
 
-export type RangeLeg = 'sell' | 'buy';
+export type RangeLeg = NonNullable<LimitOrder['leg']>;
 
 /** One order to create. `position` is 1-based across the whole run. */
 export interface RangeLegSpec {
@@ -91,7 +91,7 @@ export interface RangeLegSpec {
   conditionToken: string;
   baseAsset: string;
   targetPrice: string;
-  direction: ConditionDirection;
+  direction: NonNullable<LimitOrder['direction']>;
   validFrom: string;
   validTo: string;
 }
@@ -135,7 +135,7 @@ In `src/lib/orders/strategy-formatter.ts`:
 `strategy-detector.ts`: change the return type to `'single' | 'dca' | 'twitter' | 'range'` and add after the `twitter` explicit check:
 
 ```ts
-    if (strategyData.type === 'range' || strategyData.orders[0]?.strategyType === 'range') {
+    if (strategyData.type === 'range') {
         return 'range';
     }
 ```
