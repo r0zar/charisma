@@ -124,6 +124,8 @@ export default function ConditionTokenChart({
     const bandRef = useRef<ChartBand | undefined>(band);
     bandRef.current = band;
     const bandSeriesRef = useRef<{ sell: ISeriesApi<'Line'>; buy: ISeriesApi<'Line'> } | null>(null);
+    // Horizontal extent of the band last drawn, so only a change in run length refits the time axis
+    const bandExtentRef = useRef<string | null>(null);
     const onTargetPriceChangeRef = useRef(onTargetPriceChange);
     onTargetPriceChangeRef.current = onTargetPriceChange;
 
@@ -251,7 +253,13 @@ export default function ConditionTokenChart({
         s.sell.setData(bandPoints(band.sell, band, lastTime));
         s.buy.setData(bandPoints(band.buy, band, lastTime));
         chartRef.current?.priceScale('left').applyOptions({ autoScale: true });
-        chartRef.current?.timeScale().fitContent();
+
+        // Refit the time axis only when the run length changes, so dragging a line keeps the user's zoom
+        const extent = `${band.windows}:${band.intervalHours}`;
+        if (extent !== bandExtentRef.current) {
+            bandExtentRef.current = extent;
+            chartRef.current?.timeScale().fitContent();
+        }
         // Keyed on the band's numbers, not the object: the page passes a new object every render
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [band?.sell, band?.buy, band?.tilt, band?.windows, band?.intervalHours, data]);
