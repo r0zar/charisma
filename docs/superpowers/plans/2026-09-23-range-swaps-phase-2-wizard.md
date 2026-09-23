@@ -194,11 +194,12 @@ describe('solveGoal', () => {
     const r = solveGoal({ ...base, goalUsd: 30 });
     expect(r.reachable).toBe(true);
     expect(r.bandPct).toBe(0.04);
-    expect(r.perSwapUsd).toBeCloseTo(30 / (12 * (1.04 / 0.96 - 1 - 0.01)), 2);
+    expect(r.perSwapUsd).toBe(35); // ceil(30 / (12 × (1.04/0.96 − 1 − 0.01))) = ceil(34.09)
   });
 
   it('scales the observed cycles to the run length', () => {
-    const r = solveGoal({ ...base, goalUsd: 30, runDays: 15 });
+    const r = solveGoal({ ...base, goalUsd: 30, runDays: 15, maxPerSwapUsd: 100 });
+    expect(r.bandPct).toBe(0.04);
     expect(r.expectedCycles).toBeCloseTo(6, 6); // 12 per 30d → 6 per 15d at ±4%
   });
 
@@ -288,7 +289,7 @@ export function solveGoal(input: GoalInput): GoalResult {
 }
 ```
 
-Note: `cyclesPer30d[i] ?? 0` is a guard against a short array, not a data fallback; document it in a comment.
+Note: `cyclesPer30d[i] ?? 0` is a guard against a short array, not a data fallback; document it in a comment. Note also that `fetchBulkPriceSeries` swallows per-token failures and returns `[]`, so in the wizard the `ratio.length < 2` check is the real guard; the `.catch` rarely fires.
 
 - [ ] **Step 4: Run to verify it passes**
 
@@ -331,6 +332,9 @@ import { useWallet } from '@/contexts/wallet-context';
 import { usePriceSeriesService } from '@/lib/charts/price-series-service';
 import { calculateSimpleRatio, cleanPriceData } from '@/lib/charts/simple-chart-utils';
 import { countBandCycles } from '@/lib/range/band-crossings';
+import { routeCostPerCycle } from '@/lib/range/route-cost';
+import { getQuote } from '@/app/actions';
+import { convertToMicroUnits } from '@/lib/swap-utils';
 import { BAND_OPTIONS, solveGoal, GoalResult } from '@/lib/range/goal-solver';
 import type { RangeForm } from '../RangeControls';
 import StepGoal from './StepGoal';
@@ -345,16 +349,19 @@ export interface WizardResult { tokenA: TokenCacheData; tokenB: TokenCacheData; 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Route cost per cycle as a fraction of per-swap USD, from the page's live quotes; null while unknown. */
-  routeCostFraction: number | null;
   onApply: (result: WizardResult) => void;
 }
+
+/** Reference amount used to quote the wizard's pair; the cost fraction is nearly flat across small amounts. */
+const QUOTE_REFERENCE_USD = 20;
 
 const STEPS = ['Goal', 'Pair', 'Volatility', 'Risk', 'Amount', 'Review'] as const;
 const DEADLINES = [{ days: 7, label: '1 week' }, { days: 30, label: '1 month' }, { days: 90, label: '3 months' }];
 
-export default function RangeWizard({ open, onOpenChange, routeCostFraction, onApply }: Props) {
+export default function RangeWizard({ open, onOpenChange, onApply }: Props) {
   const [step, setStep] = useState(0);
+  const [routeCostFraction, setRouteCostFraction] = useState<number | null>(null);
+  const [quoteError, setQuoteError] = useState<string | null>(null);
   const [goalUsd, setGoalUsd] = useState(50);
   const [runDays, setRunDays] = useState(30);
   const [intervalHours, setIntervalHours] = useState(24);
@@ -371,6 +378,11 @@ export default function RangeWizard({ open, onOpenChange, routeCostFraction, onA
   const { getSubnetBalance } = useBalances(address ? [address] : []);
   const priceSeries = usePriceSeriesService();
 
+  const priceA = tokenA ? getPrice(tokenA.contractId) : null;
+  const priceB = tokenB ? getPrice(tokenB.contractId) : null;
+  const subnetA = tokenA ? getSubnetContractId(tokenA.contractId) : null;
+  const subnetB = tokenB ? getSubnetContractId(tokenB.contractId) : null;
+
   // 30-day ratio series for the pair (same data the chart uses)
   const idA = tokenA?.contractId ?? null, idB = tokenB?.contractId ?? null;
   useEffect(() => {
@@ -386,11 +398,36 @@ export default function RangeWizard({ open, onOpenChange, routeCostFraction, onA
     return () => { cancelled = true; };
   }, [idA, idB, priceSeries]);
 
+  // Reset when reopened so a second run does not resume at Review with stale values
+  useEffect(() => { if (open) { setStep(0); setPerSwapUsd(null); } }, [open]);
+
+  // Quote the wizard's own pair at a reference amount, the same way RangePage does, so the
+  // cost fraction is available even when the page has no pair yet.
+  useEffect(() => {
+    if (!subnetA || !subnetB || !priceA || !priceB || tokenA?.decimals === undefined || tokenB?.decimals === undefined) { setRouteCostFraction(null); return; }
+    let cancelled = false;
+    setQuoteError(null);
+    const decA = tokenA.decimals, decB = tokenB.decimals;
+    const sellIn = Number((QUOTE_REFERENCE_USD / priceA).toFixed(decA));
+    const buyIn = Number((QUOTE_REFERENCE_USD / priceB).toFixed(decB));
+    (async () => {
+      try {
+        const [sell, buy] = await Promise.all([
+          getQuote(subnetA, subnetB, convertToMicroUnits(sellIn.toFixed(decA), decA)),
+          getQuote(subnetB, subnetA, convertToMicroUnits(buyIn.toFixed(decB), decB)),
+        ]);
+        if (cancelled) return;
+        if (!sell.data || !buy.data) throw new Error(sell.error || buy.error || 'No route for this pair');
+        const cost = routeCostPerCycle({ sellIn, sellOut: Number(sell.data.amountOut) / 10 ** decB, buyIn, buyOut: Number(buy.data.amountOut) / 10 ** decA, priceA, priceB });
+        setRouteCostFraction(cost.totalUsd / QUOTE_REFERENCE_USD);
+      } catch (err) {
+        if (!cancelled) { setRouteCostFraction(null); setQuoteError(err instanceof Error ? err.message : 'Failed to quote this pair'); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [subnetA, subnetB, priceA, priceB, tokenA?.decimals, tokenB?.decimals]);
+
   const cyclesPer30d = ratioSeries ? BAND_OPTIONS.map((p) => countBandCycles(ratioSeries, p)) : null;
-  const priceA = tokenA ? getPrice(tokenA.contractId) : null;
-  const priceB = tokenB ? getPrice(tokenB.contractId) : null;
-  const subnetA = tokenA ? getSubnetContractId(tokenA.contractId) : null;
-  const subnetB = tokenB ? getSubnetContractId(tokenB.contractId) : null;
   const balanceUsdA = address && subnetA && priceA && tokenA?.decimals !== undefined ? (getSubnetBalance(address, subnetA) / 10 ** tokenA.decimals) * priceA : 0;
   const balanceUsdB = address && subnetB && priceB && tokenB?.decimals !== undefined ? (getSubnetBalance(address, subnetB) / 10 ** tokenB.decimals) * priceB : 0;
   const maxPerSwapUsd = Math.min(balanceUsdA, balanceUsdB);
@@ -414,13 +451,18 @@ export default function RangeWizard({ open, onOpenChange, routeCostFraction, onA
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-white/95">Guide me</DialogTitle>
           <DialogDescription className="text-white/60">Step {step + 1} of {STEPS.length} · {STEPS[step]}</DialogDescription>
+          <nav className="flex gap-1 pt-2" aria-label="Wizard steps">
+            {STEPS.map((label, i) => (
+              <button key={label} type="button" disabled={i > step} onClick={() => setStep(i)} aria-current={i === step ? 'step' : undefined} className={`px-2 py-0.5 text-xs rounded-md ${i === step ? 'bg-white/[0.1] text-white/95' : i < step ? 'text-white/60 hover:text-white/90' : 'text-white/30'}`}>{label}</button>
+            ))}
+          </nav>
         </DialogHeader>
 
         {step === 0 && <StepGoal goalUsd={goalUsd} onGoal={setGoalUsd} runDays={runDays} onRunDays={setRunDays} deadlines={DEADLINES} />}
         {step === 1 && <StepPair tokenA={tokenA} tokenB={tokenB} onTokenA={setTokenA} onTokenB={setTokenB} />}
         {step === 2 && <StepVolatility series={ratioSeries} error={seriesError} cyclesPer30d={cyclesPer30d} symbols={{ a: tokenA?.symbol ?? '', b: tokenB?.symbol ?? '' }} />}
-        {step === 3 && <StepRisk bandIndex={bandIndex} onBand={setBandIndex} cyclesPer30d={cyclesPer30d} runDays={runDays} routeCostFraction={routeCostFraction} goalUsd={goalUsd} maxPerSwapUsd={maxPerSwapUsd} solved={solved} />}
-        {step === 4 && <StepAmount value={perSwapUsd ?? solved?.perSwapUsd ?? 0} onChange={setPerSwapUsd} maxPerSwapUsd={maxPerSwapUsd} intervalHours={intervalHours} onInterval={setIntervalHours} runDays={runDays} symbols={{ a: tokenA?.symbol ?? '', b: tokenB?.symbol ?? '' }} />}
+        {step === 3 && <StepRisk bandIndex={bandIndex} onBand={setBandIndex} cyclesPer30d={cyclesPer30d} runDays={runDays} routeCostFraction={routeCostFraction} quoteError={quoteError} goalUsd={goalUsd} maxPerSwapUsd={maxPerSwapUsd} solved={solved} />}
+        {step === 4 && <StepAmount value={perSwapUsd ?? solved?.perSwapUsd ?? 0} onChange={setPerSwapUsd} maxPerSwapUsd={maxPerSwapUsd} intervalHours={intervalHours} onInterval={setIntervalHours} runDays={runDays} symbols={{ a: tokenA?.symbol ?? '', b: tokenB?.symbol ?? '' }} solved={solved} />}
         {step === 5 && solved && tokenA && tokenB && <StepReview tokenA={tokenA} tokenB={tokenB} bandPct={BAND_OPTIONS[bandIndex]} perSwapUsd={perSwapUsd ?? solved.perSwapUsd} intervalHours={intervalHours} runDays={runDays} solved={solved} />}
 
         <div className="flex justify-between pt-4">
@@ -526,9 +568,10 @@ export default function StepVolatility({ series, error, cyclesPer30d, symbols }:
 "use client";
 import { BAND_OPTIONS, solveGoal, GoalResult } from '@/lib/range/goal-solver';
 import { cycleRatio } from '@/lib/range/band-crossings';
-interface Props { bandIndex: number; onBand: (i: number) => void; cyclesPer30d: number[] | null; runDays: number; routeCostFraction: number | null; goalUsd: number; maxPerSwapUsd: number; solved: GoalResult | null }
+interface Props { bandIndex: number; onBand: (i: number) => void; cyclesPer30d: number[] | null; runDays: number; routeCostFraction: number | null; quoteError: string | null; goalUsd: number; maxPerSwapUsd: number; solved: GoalResult | null }
 const usd = (n: number) => `$${n.toFixed(0)}`;
-export default function StepRisk({ bandIndex, onBand, cyclesPer30d, runDays, routeCostFraction, goalUsd, maxPerSwapUsd, solved }: Props) {
+export default function StepRisk({ bandIndex, onBand, cyclesPer30d, runDays, routeCostFraction, quoteError, goalUsd, maxPerSwapUsd, solved }: Props) {
+  if (quoteError) return <p className="text-sm text-orange-400">{quoteError}</p>;
   if (!cyclesPer30d || routeCostFraction === null) return <p className="text-sm text-white/60">Waiting for price history and route quotes…</p>;
   return (
     <div className="space-y-4">
@@ -561,9 +604,10 @@ export default function StepRisk({ bandIndex, onBand, cyclesPer30d, runDays, rou
 // StepAmount.tsx
 "use client";
 import { MAX_ORDERS, windowsFor } from '@/lib/range/profit-preview';
-interface Props { value: number; onChange: (n: number) => void; maxPerSwapUsd: number; intervalHours: number; onInterval: (h: number) => void; runDays: number; symbols: { a: string; b: string } }
+import type { GoalResult } from '@/lib/range/goal-solver';
+interface Props { value: number; onChange: (n: number) => void; maxPerSwapUsd: number; intervalHours: number; onInterval: (h: number) => void; runDays: number; symbols: { a: string; b: string }; solved: GoalResult | null }
 const INTERVALS = [{ h: 6, label: '6 hours' }, { h: 24, label: 'Day' }, { h: 168, label: 'Week' }];
-export default function StepAmount({ value, onChange, maxPerSwapUsd, intervalHours, onInterval, runDays, symbols }: Props) {
+export default function StepAmount({ value, onChange, maxPerSwapUsd, intervalHours, onInterval, runDays, symbols, solved }: Props) {
   return (
     <div className="space-y-5">
       <div>
@@ -574,6 +618,9 @@ export default function StepAmount({ value, onChange, maxPerSwapUsd, intervalHou
           <input id="wizard-per-swap" type="number" min={1} step={1} value={value} onChange={(e) => { const v = e.target.valueAsNumber; if (!Number.isNaN(v)) onChange(v); }} className="w-full bg-transparent text-lg outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none" />
           <span className="text-xs text-white/50">USD</span>
         </div>
+        {solved && !solved.reachable && (
+          <p className="mt-2 text-sm text-orange-400">Your goal is not reachable with this amount. The closest is about ${solved.expectedUsd.toFixed(0)} at ±{Math.round(solved.bandPct * 100)}%.</p>
+        )}
       </div>
       <div>
         <h3 className="text-base font-medium text-white/90">Trigger every</h3>
@@ -592,6 +639,7 @@ export default function StepAmount({ value, onChange, maxPerSwapUsd, intervalHou
 ```tsx
 // StepReview.tsx
 "use client";
+import { Fragment } from 'react';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { windowsFor } from '@/lib/range/profit-preview';
 import type { GoalResult } from '@/lib/range/goal-solver';
@@ -609,7 +657,7 @@ export default function StepReview({ tokenA, tokenB, bandPct, perSwapUsd, interv
     <div className="space-y-3">
       <h3 className="text-base font-medium text-white/90">Review</h3>
       <dl className="grid grid-cols-[110px_1fr] gap-y-2 text-sm">
-        {rows.map(([k, v]) => (<><dt key={k} className="text-white/50">{k}</dt><dd key={k + v} className="text-white/90">{v}</dd></>))}
+        {rows.map(([k, v]) => (<Fragment key={k}><dt className="text-white/50">{k}</dt><dd className="text-white/90">{v}</dd></Fragment>))}
       </dl>
       <p className="text-xs text-white/50">You can still change anything on the page before signing.</p>
     </div>
@@ -640,13 +688,11 @@ Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>"
 
 - [ ] **Step 1: Button, state, apply**
 
+- `import RangeWizard, { type WizardResult } from './wizard/RangeWizard';`
 - Add `const [wizardOpen, setWizardOpen] = useState(false);`.
-- Derive `routeCostFraction`: `routeCostUsd !== null && form.perSwapUsd > 0 ? routeCostUsd / form.perSwapUsd : null` (the page already computes `routeCostUsd` from its quotes; if it doesn't hold that exact name, use whatever the preview receives).
 - `const applyWizard = ({ tokenA, tokenB, form }: WizardResult) => { setTokenA(tokenA); setTokenB(tokenB); setForm(form); };`
 - Render a "✦ Guide me" button at the top of the controls column (right-aligned next to the page title on wide screens): `className="px-3 py-1.5 rounded-xl border border-purple-400/60 text-purple-300 text-sm hover:bg-purple-500/10"`, `onClick={() => setWizardOpen(true)}`.
-- Render `<RangeWizard open={wizardOpen} onOpenChange={setWizardOpen} routeCostFraction={routeCostFraction} onApply={applyWizard} />` (dynamic import with `ssr: false` is not needed; the dialog is client-only already).
-
-Note: the wizard's route cost fraction comes from the page's current pair and amount, which may not be the wizard's pair. Acceptable for v1 (the cost fraction is similar across pairs); document it in a code comment and in the spec's "Follow-ups".
+- Render `<RangeWizard open={wizardOpen} onOpenChange={setWizardOpen} onApply={applyWizard} />` (dynamic import with `ssr: false` is not needed; the dialog is client-only already). The wizard quotes its own pair, so it works on an empty page.
 
 - [ ] **Step 2: Type check and lint**
 
