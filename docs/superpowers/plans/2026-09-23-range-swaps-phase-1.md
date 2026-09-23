@@ -12,6 +12,14 @@
 
 **Out of this plan:** the Guide me wizard (phase 2), adopting the subnet-pair selector in Triggered Swaps, per-window vertical ticks on the chart.
 
+**Follow-ups recorded during execution (not in phase 1):**
+- Orders card: chart of the run with fill dots, next-window countdown, Best window / Avg per cycle on completed runs, "Top up" action and red-at-0 runway, tx id on hits, "Run again with these settings", and a distinct collapsed row. The phase-1 card always shows the stats and toggles only the window list.
+- Pricing history is limited to the lakehouse's ~31 days and the price service's 30d timeframe, so cycles older than that show as unpriced. Needs a longer history source before 3-month runs are fully priced.
+- Product decision pending: buy→sell cycles (buy fills first, then a sell) are not counted as realized; both open positions are shown instead.
+- `POST /api/v1/orders/new` collapses every zod failure into "Invalid request"; surface the field message before debugging a 200-leg run.
+- Bulk cancel needs one wallet signature per order; a batch-cancel endpoint would remove that.
+- `dca-dialog.tsx` still uses the `crypto.randomUUID() ?? Date.now()` fallback removed elsewhere.
+
 ---
 
 ## Working notes for every task
