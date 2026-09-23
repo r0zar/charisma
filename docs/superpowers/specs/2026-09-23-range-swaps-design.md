@@ -52,9 +52,8 @@ Layout at desktop width: chart on the left two thirds, a controls rail on the ri
 Extends the trigger chart (`condition-token-chart.tsx`) rather than forking it:
 
 - 7D default with the existing 24H / 7D / 30D toggle. The x-axis extends past "now" to the end of the run so the band is visible across its whole life.
-- Two price lines drawn as series price lines: sell (orange, existing target colour) and buy (green).
-- Both lines are draggable as a whole, up or down. There are no point handles.
-- Tilt is applied to both lines and drawn as sloped segments from "now" to run end.
+- The band is two extra line series (not price lines, which lightweight-charts draws horizontal): sell (orange, existing target colour) and buy (green), each spanning from "now" to run end with the tilt applied. Two points per series.
+- Both lines are draggable as a whole, up or down, via pointer events on the chart container: hit-test the pointer against each band series' y at that x, capture the pointer, and convert vertical movement with `series.coordinateToPrice`. There are no point handles. `condition-token-chart.tsx` has no drag handling today; this is new work.
 - Autoscale includes both lines (extend `includeTargetInRange` to take a list of prices).
 - A faint vertical tick per window across the future region, capped visually at 30 ticks.
 
@@ -102,7 +101,14 @@ for i in 0..N-1:
              trigger ratio A/B ≤ buy_i, same window
 ```
 
-Orders go through `createSingleOrder` in `useRouterTrading` with one `strategyId` for the run, `strategyPosition` (0..2N−1), `strategySize` (2N), plus the new fields below. Signing is sequential with the same status list Split Swap shows. The first rejected signature aborts the remaining orders; already-signed orders stay.
+Contract ids per field, matching the existing ratio trigger:
+
+- `inputToken` / `outputToken`: the subnet contract ids (the "from" side must be subnet; the "to" side is the other token's subnet id so the buy leg can be sent from it later).
+- `conditionToken` / `baseAsset`: the mainnet contract ids the price service knows. The executor evaluates `price(conditionToken) / price(baseAsset)`, so `conditionToken = A`, `baseAsset = B`, sell leg `direction: 'gt'`, buy leg `direction: 'lt'`.
+
+`createSingleOrder` in `useRouterTrading` cannot be reused: it hardcodes `conditionToken: '*'`, `targetPrice: '0'`, `direction: 'gt'`, `strategyType: 'dca'`, and takes input/output from the swap context. Add `createRangeLeg(spec)` to the hook that takes explicit input/output subnet ids, condition token, base asset, target price, direction, window, and strategy fields, and reuses only `signTriggeredSwap` and the `POST /api/v1/orders/new` call. The API schema is `.passthrough()`, so the new fields land without a route change.
+
+Strategy fields on every leg: one `strategyId` for the run, `strategyPosition` 1-based (matching DCA), `strategySize = 2N`, `strategyType: 'range'`, `leg: 'sell' | 'buy'`, and `metadata.range` (see data model). Signing is sequential with the same status list Split Swap shows. The first rejected signature aborts the remaining orders; already-signed orders stay.
 
 ### Guardrails
 
@@ -140,16 +146,15 @@ New component `SubnetPairSelector` (also adopted by Triggered Swaps in a follow-
 
 On `LimitOrder` (`src/lib/orders/types.ts`):
 
-- `strategyType` gains `'range'`.
+- `strategyType` gains `'range'`. The same union must gain `'range'` in `createTriggeredSwap`'s options, `StrategyDisplayData.type` in `strategy-formatter.ts`, `detectStrategyType` in `strategy-cards/utils/strategy-detector.ts`, and the `StrategyComponentRegistry`.
 - New `leg?: 'sell' | 'buy'`.
-
-New strategy record stored alongside orders, keyed by `strategyId`:
+- New `metadata.range`, written on every leg at creation:
 
 ```
 { pair: { a, b }, sellStart, buyStart, tilt, intervalHours, windows, perSwapUsd, createdAt }
 ```
 
-Stored once at creation so the card can redraw the lines and compute runway with the right per-swap amount. Follow the existing store pattern in `src/lib/orders/store.ts`.
+The band settings ride on the signed orders themselves, so there is no separate strategy record, no new store, and no new route. The card reads `metadata.range` from the first order in the group. Repeating it on every leg keeps the group self-describing after partial cancels.
 
 ### Card
 
@@ -169,17 +174,29 @@ States: Live, Low runway (Live + banner), Completed ("Run again with these setti
 
 ### Metric definitions
 
-- **Realized.** Match each filled buy with the earliest unmatched filled sell before it. Realized = Σ (sell proceeds in USD at fill − buy cost in USD at fill) over matched pairs. Unmatched legs contribute nothing.
-- **Open position.** Unmatched filled legs, expressed in the token received.
+Leg outcome, derived from existing order fields (no executor change):
+
+- **Hit.** `status === 'confirmed'`.
+- **Expired.** `status === 'cancelled'` and `cancelledAt >= validTo` (the executor cancels past-window orders this way), or `status === 'failed'`.
+- **Cancelled.** `status === 'cancelled'` and `cancelledAt < validTo` (a user cancel).
+- **Open.** `status === 'open'` or `'broadcasted'` inside its window.
+- **Future.** `status === 'open'` and `validFrom` is ahead.
+
+Run status: **Cancelled** if any leg is Cancelled; else **Completed** once every window's `validTo` has passed; else **Live**.
+
+Fill amounts and prices: the executor stores `metadata.quote` (`amountIn`, `amountOut`, `timestamp`) before broadcasting. Treat `amountOut` as the fill amount and price it in USD from the hourly price series at `quote.timestamp` (the same series the chart loads). This is an approximation and the card labels it "at quote".
+
+- **Realized.** Match each hit buy with the earliest unmatched hit sell before it. Realized = Σ (sell `amountOut` × USD price of B at its quote time − buy `amountIn` × USD price of B at its quote time) over matched pairs. Unmatched legs contribute nothing.
+- **Open position.** Unmatched hit legs, expressed in the token received.
 - **Cycles done.** Number of matched pairs, out of windows whose `validTo` has passed.
-- **Hit rate.** Filled legs ÷ legs whose window has ended.
+- **Hit rate.** Hit legs ÷ legs whose window has ended.
 
 ## Error handling
 
 - Quote or price feed unavailable: preview shows "Waiting for a quote" and the button disables. No fallback numbers.
 - Signature rejected mid-loop: stop, mark remaining as not created, show how many were signed, keep them.
 - Order creation API failure for a leg: same as rejection. Never silently skip a leg.
-- Strategy record write failure after orders exist: surface the error on the page; the Orders card falls back to listing legs without the band chart and says the settings are missing.
+- An order group whose first order lacks `metadata.range` (shouldn't happen, but old or hand-made data): the card lists legs without the band chart and says the settings are missing. No fabricated band.
 
 ## Testing
 
@@ -199,10 +216,15 @@ Components are verified on a branch preview deployment in Chrome, since local de
 | Need | Reuse |
 |---|---|
 | Chart | `condition-token-chart.tsx`, `simple-chart-utils.ts`, `price-series-service.ts` |
-| Order creation and signing loop | `createSingleOrder` in `useRouterTrading`, Split Swap's status list in `dca-dialog.tsx` |
+| Order signing and submission | `signTriggeredSwap` and the `POST /api/v1/orders/new` call inside `useRouterTrading`; Split Swap's status list in `dca-dialog.tsx` |
+| Top nav | `src/components/layout/header.tsx` |
 | Orders grouping and cards | `StrategyCardFactory`, `BaseStrategyCard`, `shared-types.ts` |
 | Balances, prices, tokens | `wallet-balance-context`, `token-price-context`, `token-metadata-context`, `subnet-tokens-context` |
 | Subnet-from rule | `isSubnetFromActive` |
+
+## Plan phasing
+
+The wizard only fills the page's controls, so the implementation plan should treat it as a second phase after the page, order generation, and Orders card are working end to end.
 
 ## Out of scope for the first plan
 
