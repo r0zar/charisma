@@ -35,6 +35,11 @@ interface PreviewStepProps {
     onDeploy: () => void;
     isDeploying: boolean;
     onMetadataUriChange?: (uri: string) => void;
+    metadataMode: 'hosted' | 'onchain';
+    onMetadataModeChange: (mode: 'hosted' | 'onchain') => void;
+    /** Identicon shown (and saved to the metadata service) in hosted mode. */
+    hostedImage: string;
+    onShuffleArt: () => void;
 }
 
 const PreviewStep = ({
@@ -46,7 +51,11 @@ const PreviewStep = ({
     onPrevious,
     onDeploy,
     isDeploying,
-    onMetadataUriChange
+    onMetadataUriChange,
+    metadataMode,
+    onMetadataModeChange,
+    hostedImage,
+    onShuffleArt
 }: PreviewStepProps) => {
     const [metadataUri, setMetadataUri] = useState(state.metadataUri || "");
     const [metaPreview, setMetaPreview] = useState<{ name?: string; image?: string } | null>(null);
@@ -54,6 +63,13 @@ const PreviewStep = ({
     const [metaError, setMetaError] = useState<string | null>(null);
 
     useEffect(() => {
+        // Hosted metadata is written at deploy time, so the URL cannot be fetched yet; preview it locally.
+        if (metadataMode === 'hosted') {
+            setMetaPreview({ name: `${tokenSymbol} Sublink`, image: hostedImage });
+            setMetaError(null);
+            setMetaLoading(false);
+            return;
+        }
         if (!state.metadataUri) {
             setMetaPreview(null);
             setMetaError(null);
@@ -94,7 +110,7 @@ const PreviewStep = ({
                 setMetaError(err.message || "Failed to load metadata");
             })
             .finally(() => setMetaLoading(false));
-    }, [state.metadataUri]);
+    }, [state.metadataUri, metadataMode, hostedImage, tokenSymbol]);
 
     const handleUriChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setMetadataUri(e.target.value);
@@ -132,7 +148,25 @@ const PreviewStep = ({
                 </CardHeader>
                 <CardContent>
                     <div className="mb-4">
-                        {onMetadataUriChange && (
+                        <div className="flex gap-2" role="radiogroup" aria-label="Where the metadata lives">
+                            <Button type="button" variant={metadataMode === 'hosted' ? 'default' : 'outline'} role="radio" aria-checked={metadataMode === 'hosted'} onClick={() => onMetadataModeChange('hosted')}>Hosted on Charisma</Button>
+                            <Button type="button" variant={metadataMode === 'onchain' ? 'default' : 'outline'} role="radio" aria-checked={metadataMode === 'onchain'} onClick={() => onMetadataModeChange('onchain')}>Fully on-chain</Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-2">
+                            {metadataMode === 'hosted'
+                                ? 'Name and generated art are stored on the Charisma metadata service; the contract points at that URL.'
+                                : 'The whole metadata JSON is embedded in the contract. It must fit 256 characters, which only leaves room for a single-color pixel.'}
+                        </p>
+                        {metadataMode === 'hosted' && (
+                            <div className="flex items-center gap-2 pt-4 border-t mt-4">
+                                <Input readOnly value={state.metadataUri} aria-label="Hosted metadata URL" className="flex-grow font-mono text-xs" />
+                                <Button type="button" variant="outline" onClick={onShuffleArt} className="shrink-0">
+                                    <Sparkles className="mr-2 h-4 w-4" />
+                                    Shuffle art
+                                </Button>
+                            </div>
+                        )}
+                        {metadataMode === 'onchain' && onMetadataUriChange && (
                             <div className="space-y-2 pt-4 border-t mt-4">
                                 <Label htmlFor="metadataUri" className="flex items-center">
                                     Metadata URI (Optional)

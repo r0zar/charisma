@@ -176,6 +176,30 @@ export const generateOptimizedOnChainMetadata = (
     };
 };
 
+/**
+ * Deterministic 5x5 mirrored identicon as an SVG data URI. Same seed, same art; change the
+ * seed (e.g. append a nonce) to get a different one. Meant for hosted metadata, not on-chain URIs.
+ */
+export const generateIdenticonSvgDataUri = (seed: string): string => {
+    let h = 2166136261;
+    for (const ch of seed) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619) >>> 0; }
+    const next = () => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
+    const hue = Math.floor(next() * 360);
+    const accentHue = (hue + (next() < 0.5 ? 150 : 30)) % 360;
+    const bg = `hsl(${hue} 35% 14%)`;
+    const fg = `hsl(${accentHue} 80% 60%)`;
+    let cells = '';
+    for (let y = 0; y < 5; y++) {
+        for (let x = 0; x < 3; x++) {
+            if (next() < 0.5) continue;
+            cells += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+            if (x !== 2) cells += `<rect x="${4 - x}" y="${y}" width="1" height="1"/>`;
+        }
+    }
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 5" shape-rendering="crispEdges"><rect width="5" height="5" fill="${bg}"/><g fill="${fg}">${cells}</g></svg>`;
+    return `data:image/svg+xml;base64,${typeof Buffer !== 'undefined' ? Buffer.from(svg).toString('base64') : btoa(svg)}`;
+};
+
 /** Clarity token-uri vars in the launchpad templates are (string-utf8 256). */
 export const ONCHAIN_METADATA_URI_LIMIT = 256;
 

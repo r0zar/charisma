@@ -18,7 +18,9 @@ import { truncateAddress } from "@/lib/utils/token-utils";
 import { fetchSingleTokenMetadataDirectly, saveSublinkDataToDexCache, SublinkDexEntry } from '@/app/actions';
 import { TokenCacheData } from "@repo/tokens";
 import { generateSublink } from "@/lib/contract-generators/sublink";
-import { ONCHAIN_METADATA_URI_LIMIT } from "@/lib/utils/image-utils";
+import { ONCHAIN_METADATA_URI_LIMIT, generateIdenticonSvgDataUri } from "@/lib/utils/image-utils";
+import { hostedMetadataUrl } from "@/lib/metadata-url";
+import { request } from "@stacks/connect";
 import { generate1x1ColorPixel } from "@/lib/utils/image-utils";
 import TokenSelectionStep from "./token-selection-step";
 import PreviewStep from "./preview-step";
@@ -53,7 +55,9 @@ export default function SublinkWizard() {
     const [config, setConfig] = useState({
         tokenContract: "",
         subnetContract: "",
-        metadataUri: ""
+        metadataUri: "",
+        metadataMode: "hosted" as "hosted" | "onchain",
+        artNonce: 0,
     });
 
     // When a token is selected from the parameter or UI
@@ -200,6 +204,31 @@ export default function SublinkWizard() {
             sonnerToast.error("No subnet selected", { description: "Pick the subnet token this sublink should wrap." });
             return;
         }
+        if (config.metadataMode === 'hosted') {
+            if (!stxAddress) {
+                sonnerToast.error("Wallet address needed", { description: "Hosted metadata is keyed by the deploying address." });
+                return;
+            }
+            // The metadata service lets a contract's deployer write its metadata by signing the contract id.
+            try {
+                sonnerToast.info("Sign to publish metadata", { description: "Your wallet will ask you to sign the contract id." });
+                const signed = await request('stx_signMessage', { message: contractIdentifier });
+                const response = await fetch(hostedMetadataUrl(contractIdentifier), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-signature': signed.signature, 'x-public-key': signed.publicKey },
+                    body: JSON.stringify({
+                        name: `${selectedToken?.symbol ?? ''} Sublink`,
+                        description: `Vault for moving ${selectedToken?.symbol ?? 'tokens'} between mainnet and its subnet.`,
+                        image: hostedImage,
+                        properties: { type: 'SUBLINK', baseContract: config.tokenContract, subnetContract: config.subnetContract },
+                    }),
+                });
+                if (!response.ok) throw new Error(`Metadata service responded ${response.status}: ${(await response.text().catch(() => '')).slice(0, 200)}`);
+            } catch (err) {
+                sonnerToast.error("Could not publish hosted metadata", { description: err instanceof Error ? err.message : String(err) });
+                return;
+            }
+        }
         if (config.metadataUri.length > ONCHAIN_METADATA_URI_LIMIT) {
             sonnerToast.error("Metadata too long", {
                 description: `The token URI is ${config.metadataUri.length} characters; the contract allows ${ONCHAIN_METADATA_URI_LIMIT}. Regenerate it or use a shorter URI.`
@@ -276,6 +305,16 @@ export default function SublinkWizard() {
             setIsDeploying(false);
         }
     };
+
+    const contractIdentifier = stxAddress && contractName ? `${stxAddress}.${contractName}` : "";
+    const hostedImage = generateIdenticonSvgDataUri(`${contractIdentifier}:${config.artNonce}`);
+
+    // Hosted mode: the token-uri is the metadata service URL for this contract, known before deploy.
+    useEffect(() => {
+        if (config.metadataMode !== 'hosted' || !contractIdentifier) return;
+        const url = hostedMetadataUrl(contractIdentifier);
+        setConfig(prev => (prev.metadataUri === url ? prev : { ...prev, metadataUri: url }));
+    }, [config.metadataMode, contractIdentifier]);
 
     // Regenerate contract code whenever relevant inputs change in PREVIEW step
     useEffect(() => {
@@ -374,6 +413,10 @@ export default function SublinkWizard() {
                             onDeploy={handleDeploy}
                             isDeploying={isDeploying}
                             onMetadataUriChange={(uri) => setConfig(prev => ({ ...prev, metadataUri: uri }))}
+                            metadataMode={config.metadataMode}
+                            onMetadataModeChange={(mode) => setConfig(prev => ({ ...prev, metadataMode: mode, metadataUri: mode === 'onchain' ? '' : prev.metadataUri }))}
+                            hostedImage={hostedImage}
+                            onShuffleArt={() => setConfig(prev => ({ ...prev, artNonce: prev.artNonce + 1 }))}
                         />
                     )}
                 </div>
