@@ -35,9 +35,11 @@ export function planFunding(side: Side, amountUsd: number, holdings: Holdings): 
   const held = heldToken(side);
   const other = otherToken(held);
   let remaining = amountUsd;
+  // Rounding leaves crumbs under a cent; never make an extra wallet step for those
+  const DUST = 0.01;
 
   const take = (key: ZestyTokenKey, available: bigint): bigint => {
-    if (remaining <= 0 || available <= 0n) return 0n;
+    if (remaining <= DUST || available <= 0n) return 0n;
     const { price } = holdings[key];
     const wanted = toMicro(key, remaining, price);
     const micro = wanted < available ? wanted : available;
@@ -50,7 +52,7 @@ export function planFunding(side: Side, amountUsd: number, holdings: Holdings): 
   const heldWallet = take(held, holdings[held].wallet);
   const otherWallet = take(other, holdings[other].wallet);
 
-  if (remaining > 0.01) {
+  if (remaining > DUST) {
     throw new Error(`Not enough money: $${amountUsd.toFixed(2)} asked, $${(amountUsd - remaining).toFixed(2)} available`);
   }
 

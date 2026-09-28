@@ -49,6 +49,15 @@ describe('planFunding', () => {
     expect(plan.convertMicro).toBe(750_000_000n); // $50 in Zesty + $100 from wallet
   });
 
+  it('never adds rounding crumbs from the wallet', () => {
+    // Real prices: $20 of sBTC rounds down to whole sats, leaving a fraction of a cent
+    const plan = planFunding('up', 20, {
+      sbtc: { price: 83544.3, wallet: 0n, zesty: 972_649n },
+      zest: { price: 0.188284841, wallet: 3_810_173n, zesty: 0n },
+    });
+    expect(plan.adds).toEqual([]);
+  });
+
   it('throws a descriptive error when there is not enough money', () => {
     expect(() => planFunding('up', 1000, holdings({ zest: { zesty: 1_000_000_000n } }))).toThrow('Not enough money: $1000.00 asked, $200.00 available');
   });
