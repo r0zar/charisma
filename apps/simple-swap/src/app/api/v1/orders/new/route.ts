@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { toPublicOrder } from '@/lib/orders/types';
+import { ORDER_ROUTERS, toPublicOrder } from '@/lib/orders/types';
 import { z } from 'zod';
 import { NewOrderRequest } from '@/lib/orders/types';
 import { addOrder } from '@/lib/orders/store';
@@ -101,6 +101,12 @@ export async function POST(req: Request) {
             parsed.recipient = parsed.owner;
         }
 
+        const router = parsed.router ?? MULTIHOP_CONTRACT_ID;
+        if (!ORDER_ROUTERS.includes(router)) {
+            return NextResponse.json({ error: `Unknown router ${router}` }, { status: 400 });
+        }
+        parsed.router = router;
+
         // ----- Signature Verification (Stacks-based) -----
         try {
             const response = await callReadOnlyFunction(
@@ -113,7 +119,7 @@ export async function POST(req: Request) {
                     stringAsciiCV('TRANSFER_TOKENS'),
                     noneCV(),
                     optionalCVOf(uintCV(BigInt(parsed.amountIn))),
-                    optionalCVOf(principalCV(MULTIHOP_CONTRACT_ID)),
+                    optionalCVOf(principalCV(router)),
                     stringAsciiCV(parsed.uuid),
                 ],
             );

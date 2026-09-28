@@ -18,6 +18,11 @@ export interface LimitOrder {
     conditionToken?: string;
     baseAsset?: string; // optional base asset contract id or 'USD'
     recipient: string;
+    /**
+     * Router contract the signature was made for (its signed `target`). Absent on older orders = x-multihop-rc9.
+     * x-multihop-v1 only pays out to the signer.
+     */
+    router?: string;
     signature: string; // 65-byte hex without 0x
     uuid: string; // uuid from signed message
     status: 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled' | 'filled';
@@ -107,3 +112,8 @@ export type NewOrderRequest = Omit<LimitOrder, 'status' | 'createdAt' | 'txid' |
 export type PublicOrder = Omit<LimitOrder, 'signature'>;
 
 export const toPublicOrder = ({ signature: _signature, ...order }: LimitOrder): PublicOrder => order;
+
+export const LEGACY_ROUTER = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9';
+/** Pays out only to whoever signed the order */
+export const SIGNER_PAYOUT_ROUTER = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1';
+export const ORDER_ROUTERS = [LEGACY_ROUTER, SIGNER_PAYOUT_ROUTER];

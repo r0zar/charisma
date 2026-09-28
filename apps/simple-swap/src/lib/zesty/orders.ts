@@ -1,6 +1,6 @@
 import { signTriggeredSwap, signedFetch } from 'blaze-sdk';
 import { getQuote } from '@/app/actions';
-import type { LimitOrder, NewOrderRequest } from '@/lib/orders/types';
+import { SIGNER_PAYOUT_ROUTER, type LimitOrder, type NewOrderRequest } from '@/lib/orders/types';
 import { ZESTY_TOKENS, type ZestyTokenKey } from './config';
 import { SWAP_COST, type Exit, type Side } from './plan';
 
@@ -28,7 +28,7 @@ export async function placeZestyOrder(spec: ZestyOrderSpec): Promise<LimitOrder>
   const from = ZESTY_TOKENS[spec.from];
   const to = ZESTY_TOKENS[spec.to];
   const uuid = crypto.randomUUID();
-  const signature = await signTriggeredSwap({ subnet: from.subnet, uuid, amount: spec.micro });
+  const signature = await signTriggeredSwap({ subnet: from.subnet, uuid, amount: spec.micro, multihopContractId: SIGNER_PAYOUT_ROUTER });
 
   const condition = spec.exit
     ? { conditionToken: ZESTY_TOKENS.zest.mainnet, targetPrice: spec.exit.price.toFixed(8), direction: spec.exit.direction }
@@ -41,6 +41,7 @@ export async function placeZestyOrder(spec: ZestyOrderSpec): Promise<LimitOrder>
     amountIn: spec.micro.toString(),
     ...condition,
     recipient: spec.wallet,
+    router: SIGNER_PAYOUT_ROUTER,
     signature,
     uuid,
     strategyId: spec.strategyId,

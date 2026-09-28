@@ -11,7 +11,7 @@ const CONTRACTS = [
   ['blaze-v1', 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v1', 'Checks your signature and makes sure it is used once'],
   ['sBTC in Zesty', 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v1', 'Holds deposited sBTC 1:1 and keeps the ledger'],
   ['ZEST in Zesty', 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.zest-token-subnet', 'Holds deposited ZEST 1:1 and keeps the ledger'],
-  ['Swap router', 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9', 'Runs the swap your signature pays into'],
+  ['Swap router', 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1', 'Runs the swap and only pays out to whoever signed'],
   ['Feeling Zesty', 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.feeling-zesty', "Connects to Bitflow's ZEST-STX pool"],
   ['Nakamoto Flow', 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.nakamoto-flow', "Connects to Bitflow's sBTC-STX pool"],
 ];
@@ -113,14 +113,14 @@ const FAQ: [string, React.ReactNode][] = [
   ['What am I approving?', 'One trade: swap exactly this much of one coin, one time. That approval can\'t touch anything else in your wallet, and it can\'t be used twice.'],
   ['What could go wrong?', (
     <ul className="m-0 flex flex-col gap-2 pl-5">
-      <li><strong className="font-medium text-black">You trust our server to run it right.</strong> It keeps your approval, runs the trade when your price hits, and sends the result back to you. The approval itself doesn&apos;t say who gets the result, so our server is what makes sure it&apos;s you.</li>
+      <li><strong className="font-medium text-black">You trust our server with the timing.</strong> It keeps your approval and runs the trade when your price hits. Where the money goes isn&apos;t up to it: the contract only ever pays you.</li>
       <li><strong className="font-medium text-black">Prices update about once an hour.</strong> A quick spike might not trigger your trade.</li>
       <li><strong className="font-medium text-black">Fast moves can jump past your price.</strong> Your trade then runs at the next price available.</li>
       <li><strong className="font-medium text-black">Each swap costs about 1%.</strong> More on very big trades.</li>
       <li><strong className="font-medium text-black">Code can have bugs.</strong> The contracts are tested, but nothing is risk-free.</li>
     </ul>
   )],
-  ['Can someone steal my approval?', 'We never show approvals to anyone. Even so, one only works once, for that exact amount, through the swap router.'],
+  ['Can someone steal my approval?', 'Even if they did, it wouldn\'t help them. The swap contract only pays out to the wallet that signed, so the most anyone could do is run your trade for you. It also only works once, for that exact amount.'],
   ['How do I stop a trade?', 'Tap Cancel in My trades. Want a guaranteed stop? Move your money out of Zesty. With nothing to spend, an approval can\'t do anything.'],
   ['Do I pay gas?', 'Adding or moving money is a normal wallet transaction with a tiny network fee. The trades themselves are on us.'],
   ['Why approve more than once?', 'Each trade that runs while you\'re away needs its own approval: buy now, sell later and the safety net are separate trades.'],
@@ -175,10 +175,10 @@ export default function HowItWorksPage() {
   contract: zest-token-subnet  ← only this coin
   intent:   "TRANSFER_TOKENS"
   amount:   1223000000         ← exactly this much
-  target:   x-multihop-rc9     ← only into the swap router
+  target:   x-multihop-v1      ← only into the swap router
   uuid:     "7f3a…"            ← once, ever
 }`}</pre>
-            <P dark>The router then runs the swap route and pays out to the recipient given by whoever submits the approval. Zesty&apos;s executor always submits your trades with you as the recipient, and approvals are never shared outside it.</P>
+            <P dark>The router, <code>x-multihop-v1</code>, recovers the signer from the same signature before doing anything and refuses to pay anyone else. So whoever submits your approval, the output lands with you.</P>
           </div>
         </details>
         <details className="rounded-2xl bg-[#141414] p-5">

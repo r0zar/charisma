@@ -1,5 +1,5 @@
 import { listOrders, fillOrder, updateOrder, cancelOrder } from './store';
-import { LimitOrder } from './types';
+import { LEGACY_ROUTER, LimitOrder } from './types';
 import { getQuote } from '@/app/actions';
 import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
 import { executeMultihopSwap, buildXSwapTransaction, broadcastMultihopTransaction } from 'blaze-sdk';
@@ -197,6 +197,12 @@ async function getCurrentPriceRatio(order: LimitOrder): Promise<number | undefin
  * Executes the trade on-chain via the signer API and returns the txid.
  * You can point SIGNER_URL env var at the blaze-signer instance.
  */
+/** The router an order's signature was made for (older orders predate the field and used rc9). */
+function routerConfig(order: LimitOrder) {
+    const [routerAddress, routerName] = (order.router ?? LEGACY_ROUTER).split('.');
+    return { routerAddress, routerName };
+}
+
 export interface TradeExecutionResult {
     txid: string;
     success: boolean;
@@ -250,7 +256,7 @@ export async function executeTrade(order: LimitOrder, slippage?: number, useBloc
             recipient: order.recipient,
         },
         BLAZE_SIGNER_PRIVATE_KEY!,
-        undefined, // config
+        routerConfig(order),
         slippage,
         useBlockchainNonce
     );
