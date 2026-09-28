@@ -3,13 +3,15 @@
 import React from 'react';
 import { SingleOrderCardProps } from '../base/shared-types';
 import { BaseStrategyCard } from '../base/BaseStrategyCard';
+import { OrderDetails } from '../base/OrderDetails';
 import { getStrategyStatusTime, getStrategyConditionIcon, shouldShowActionButtons, getBadgeStatus, getTxId, getFailureReason } from '../utils/shared-utilities';
 import { PremiumStatusBadge } from '../../orders-panel';
 import { ConditionStatusIndicator, PriceProgressBar } from '../../order-progress-indicators';
 import { formatOrderCondition } from '@/lib/orders/condition-formatter';
 import TokenLogo from '../../../TokenLogo';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../../../ui/tooltip';
-import { Copy, Check, Zap, Trash2 } from 'lucide-react';
+import { Copy, Check, Zap, Trash2, ExternalLink } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 /**
  * Component for displaying individual orders (non-strategy orders)
@@ -70,6 +72,18 @@ export const SingleOrderCard: React.FC<SingleOrderCardProps> = (props) => {
                                 <Copy className="h-3 w-3" />
                             )}
                         </button>
+                        {firstOrder.txid && (
+                            <a
+                                href={`https://explorer.hiro.so/txid/${firstOrder.txid}?chain=mainnet`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1 rounded-lg hover:bg-white/[0.05] text-white/40 hover:text-blue-400 transition-all duration-200"
+                                title="View transaction on Hiro Explorer"
+                            >
+                                <ExternalLink className="h-3 w-3" />
+                            </a>
+                        )}
                     </div>
                 </div>
                 
@@ -172,6 +186,16 @@ export const SingleOrderCard: React.FC<SingleOrderCardProps> = (props) => {
                         </Tooltip>
                     </div>
                 )}
+            </div>
+
+            {/* Expanded Order Details */}
+            <div className={cn(
+                "overflow-hidden transition-all duration-400 ease-in-out",
+                isDetailExpanded ? "max-h-[1500px] opacity-100" : "max-h-0 opacity-0"
+            )}>
+                <div className="pt-4 space-y-4 border-t border-white/[0.05]">
+                    <OrderDetails order={firstOrder} copiedId={copiedId} onCopyToClipboard={onCopyToClipboard} />
+                </div>
             </div>
         </BaseStrategyCard>
     );
