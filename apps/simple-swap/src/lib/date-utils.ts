@@ -1,3 +1,4 @@
+import type { LimitOrder } from '@/lib/orders/types';
 /**
  * Date formatting utilities for the orders UI
  * Provides consistent date/time formatting across all order components
@@ -438,7 +439,7 @@ interface OrderConditionInfo {
  */
 export function getConditionIcon(
     order: OrderConditionInfo,
-    strategyType?: 'dca' | 'single' | 'twitter' | 'split' | 'batch'
+    strategyType?: LimitOrder['strategyType'] | 'single' | 'split' | 'batch'
 ): string | null {
     // For Twitter strategy orders, prioritize Twitter-based execution
     if (strategyType === 'twitter') {
