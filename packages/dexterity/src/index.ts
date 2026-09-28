@@ -446,7 +446,6 @@ export class Router {
     from: string,
     to: string,
     path: Token[] = [],
-    visited = new Set<string>(),
   ): Token[][] {
     const out: Token[][] = [];
     const node = this.nodes.get(from);
@@ -465,6 +464,7 @@ export class Router {
         console.log(`[router] findAllPaths: Found path to target ${to}, length: ${nextPath.length}`);
       }
       out.push(nextPath);
+      return out;
     }
 
     if (nextPath.length > this.config.maxHops) {
@@ -486,13 +486,10 @@ export class Router {
       console.log(`[router] findAllPaths: Node ${from} has ${node.edges.size} edges to ${groups.size} unique targets`);
     }
 
-    // DFS recurse per neighbour token, avoiding pool reuse
-    groups.forEach((edges, tgt) => {
-      for (const e of edges) {
-        if (visited.has(e.vault.contractId)) continue;
-        const newVisited = new Set(visited).add(e.vault.contractId);
-        out.push(...this.findAllPaths(tgt, to, nextPath, newVisited));
-      }
+    // DFS once per neighbour token (evaluatePath picks the best pool per hop), never revisiting a token
+    groups.forEach((_edges, tgt) => {
+      if (nextPath.some(t => t.contractId === tgt)) return;
+      out.push(...this.findAllPaths(tgt, to, nextPath));
     });
 
     return out;
