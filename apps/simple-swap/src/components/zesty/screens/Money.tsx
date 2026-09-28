@@ -62,7 +62,7 @@ function CoinRow({ money, token, where, onDone, disabled }: {
             type="button"
             onClick={run}
             disabled={busy || disabled || micro === 0n}
-            className={`min-h-[48px] rounded-xl text-[15px] font-medium tracking-[0.04em] disabled:opacity-40 ${where === 'wallet' ? 'bg-[#FC6432] text-black' : 'border-2 border-black bg-white text-black'}`}
+            className={`min-h-[48px] rounded-xl text-[15px] font-medium tracking-[0.04em] ${where === 'wallet' ? 'bg-[#FC6432] text-black hover:enabled:bg-[#FF7A4D]' : 'border-2 border-black bg-white text-black hover:enabled:bg-black hover:enabled:text-white'}`}
           >
             {busy ? 'Check your wallet…' : where === 'wallet'
               ? `Add ${formatUsd(toUsd(token, micro, holding.price))} to Zesty`

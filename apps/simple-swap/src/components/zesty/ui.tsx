@@ -31,16 +31,16 @@ export function BigButton({ children, onClick, disabled, variant = 'primary' }: 
   variant?: 'primary' | 'outline' | 'quiet';
 }) {
   const styles = {
-    primary: 'bg-[#FC6432] text-black border-0 disabled:bg-[#F3C4B2]',
-    outline: 'bg-white text-black border-2 border-black',
-    quiet: 'bg-white text-[#3D3D3D] border border-[#D0D0D0]',
+    primary: 'bg-[#FC6432] text-black border-0 shadow-[0_1px_0_rgba(0,0,0,0.15)] hover:enabled:bg-[#FF7A4D] hover:enabled:shadow-[0_4px_14px_rgba(252,100,50,0.35)]',
+    outline: 'bg-white text-black border-2 border-black hover:enabled:bg-black hover:enabled:text-white',
+    quiet: 'bg-white text-[#3D3D3D] border border-[#D0D0D0] hover:enabled:border-black hover:enabled:text-black',
   }[variant];
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`min-h-[56px] w-full rounded-[14px] px-4 text-[16px] font-medium tracking-[0.08em] uppercase transition-opacity hover:opacity-90 disabled:cursor-not-allowed ${styles}`}
+      className={`min-h-[56px] w-full rounded-[14px] px-4 text-[16px] font-medium tracking-[0.08em] uppercase ${styles}`}
     >
       {children}
     </button>
@@ -53,7 +53,7 @@ export function Chip({ active, children, onClick }: { active: boolean; children:
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className={`min-h-[44px] flex-1 rounded-full border text-[14px] ${active ? 'border-black bg-black text-white' : 'border-[#D0D0D0] bg-white text-black'}`}
+      className={`min-h-[44px] flex-1 rounded-full border text-[14px] ${active ? 'border-black bg-black text-white' : 'border-[#D0D0D0] bg-white text-black hover:border-black'}`}
     >
       {children}
     </button>

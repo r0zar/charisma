@@ -40,7 +40,7 @@ export function PickSide({ zestPrice, onPick }: { zestPrice: number | null; onPi
           key={option.side}
           type="button"
           onClick={() => onPick(option.side)}
-          className="flex min-h-[120px] items-center gap-4 rounded-[18px] border-2 border-black bg-white px-5 py-6 text-left transition-transform hover:-translate-y-0.5"
+          className="flex min-h-[120px] items-center gap-4 rounded-[18px] border-2 border-black bg-white px-5 py-6 text-left hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.12)]"
         >
           <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full ${option.circle}`}>{option.icon}</span>
           <span className="flex flex-col gap-1.5">

@@ -28,3 +28,34 @@
   font-family: 'Matter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Every clickable thing: pointer, smooth feedback, visible keyboard focus */
+.zesty button,
+.zesty a,
+.zesty summary,
+.zesty [role='button'] {
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, opacity 150ms ease, transform 100ms ease, box-shadow 150ms ease;
+}
+
+.zesty button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.zesty button:focus-visible,
+.zesty a:focus-visible,
+.zesty summary:focus-visible,
+.zesty input:focus-visible {
+  outline: 3px solid var(--z-orange);
+  outline-offset: 2px;
+}
+
+.zesty button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+  transform: none;
+}
+
+.zesty input[type='checkbox'] {
+  cursor: pointer;
+}
