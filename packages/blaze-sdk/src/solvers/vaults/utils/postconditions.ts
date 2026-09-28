@@ -84,7 +84,8 @@ function getOutputPrincipal(hop: Hop): string {
  * @returns True if the token ID represents STX or wrapped STX
  */
 function isStx(tokenId: string): boolean {
-    return tokenId === STX_CONTRACT_ID || tokenId === WRAPPED_STX_CONTRACT_ID;
+    const contractId = tokenId.split('::')[0];
+    return contractId === STX_CONTRACT_ID || contractId === WRAPPED_STX_CONTRACT_ID;
 }
 
 /**
