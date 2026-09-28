@@ -11,7 +11,7 @@ export interface DisplayOrder extends LimitOrder {
 
 export interface StrategyDisplayData {
     id: string;
-    type: 'dca' | 'single' | 'twitter' | 'split' | 'batch' | 'range';
+    type: 'dca' | 'single' | 'twitter' | 'split' | 'batch' | 'range' | 'zesty';
     description: string;
     orders: DisplayOrder[];
     totalOrders: number;
@@ -236,7 +236,7 @@ function determineStrategyStatus(orders: LimitOrder[]): StrategyDisplayData['sta
  * Generates human-readable description for strategy types
  */
 function generateStrategyDescription(
-    type: 'dca' | 'twitter' | 'range',
+    type: NonNullable<LimitOrder['strategyType']>,
     orders: LimitOrder[],
     totalValue: string,
     tokenSymbol: string
@@ -254,6 +254,8 @@ function generateStrategyDescription(
             return `Tweet-triggered strategy (${orderCount} orders)`;
         case 'range':
             return `Range swap · ${Math.ceil(orderCount / 2)} windows`;
+        case 'zesty':
+            return `Zesty trade · ZEST goes ${orders[0]?.metadata?.zesty?.side === 'down' ? 'down' : 'up'}`;
         default:
             return `${orderCount} related orders`;
     }
@@ -264,7 +266,7 @@ function generateStrategyDescription(
  */
 function estimateStrategyCompletion(
     orders: LimitOrder[],
-    type: 'dca' | 'twitter' | 'range'
+    type: NonNullable<LimitOrder['strategyType']>
 ): string | undefined {
     if (type === 'dca' || type === 'range') {
         // For DCA and range, estimate based on validTo times

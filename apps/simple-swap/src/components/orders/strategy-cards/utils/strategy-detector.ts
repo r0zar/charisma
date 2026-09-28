@@ -6,7 +6,8 @@ import { StrategyDisplayData } from '@/lib/orders/strategy-formatter';
  */
 export function detectStrategyType(strategyData: StrategyDisplayData): 'single' | 'dca' | 'twitter' | 'range' {
     // If it's explicitly marked, return the explicit type
-    if (strategyData.type === 'dca') {
+    // A Zesty trade (convert, target, safety net) shows as a group of orders
+    if (strategyData.type === 'dca' || strategyData.type === 'zesty') {
         return 'dca';
     }
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { toPublicOrder } from '@/lib/orders/types';
 import { listOrders, listOrdersPaginated } from '@/lib/orders/store';
 
 export async function GET(req: Request) {
@@ -35,7 +36,7 @@ export async function GET(req: Request) {
             const result = await listOrdersPaginated(owner, page, limit, sortBy, sortOrder, statusFilter, searchQuery);
             return NextResponse.json({ 
                 status: 'success', 
-                data: result.orders,
+                data: result.orders.map(toPublicOrder),
                 pagination: {
                     total: result.total,
                     page: result.page,
@@ -52,7 +53,7 @@ export async function GET(req: Request) {
         } else {
             // Return all orders (legacy behavior)
             const orders = await listOrders(owner);
-            return NextResponse.json({ status: 'success', data: orders }, {
+            return NextResponse.json({ status: 'success', data: orders.map(toPublicOrder) }, {
                 headers: {
                     'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30'
                 }

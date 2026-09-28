@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { toPublicOrder } from '@/lib/orders/types';
 import { z } from 'zod';
 import { NewOrderRequest } from '@/lib/orders/types';
 import { addOrder } from '@/lib/orders/store';
@@ -126,7 +127,7 @@ export async function POST(req: Request) {
         }
 
         const order = await addOrder(parsed);
-        return NextResponse.json({ status: 'success', data: order });
+        return NextResponse.json({ status: 'success', data: toPublicOrder(order) });
     } catch (err) {
         console.error('Create order error', err);
         return NextResponse.json({ error: 'Invalid request' }, { status: 400 });

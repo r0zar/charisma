@@ -57,7 +57,7 @@ export interface LimitOrder {
     /**
      * Type of order strategy for UI display purposes.
      */
-    strategyType?: 'dca' | 'twitter' | 'range';
+    strategyType?: 'dca' | 'twitter' | 'range' | 'zesty';
 
     /**
      * Which side of a range swap this order is. Only set when strategyType is 'range'.
@@ -100,3 +100,10 @@ export interface LimitOrder {
 }
 
 export type NewOrderRequest = Omit<LimitOrder, 'status' | 'createdAt' | 'txid' | 'id'>; 
+/**
+ * An order as returned by public APIs. The signature is left out: the swap router lets whoever submits it
+ * choose where the output goes, so a signature must never leave the server.
+ */
+export type PublicOrder = Omit<LimitOrder, 'signature'>;
+
+export const toPublicOrder = ({ signature: _signature, ...order }: LimitOrder): PublicOrder => order;

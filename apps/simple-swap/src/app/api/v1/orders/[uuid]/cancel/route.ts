@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { toPublicOrder } from '@/lib/orders/types';
 import { cancelOrder, getOrder } from '@/lib/orders/store';
 import {
     authenticateOrderOperation,
@@ -36,5 +37,5 @@ export async function PATCH(req: NextRequest, { params }: { params: { uuid: stri
 
     /* ─────────────── Cancel the order ─────────────── */
     const cancelled = await cancelOrder(uuid);
-    return NextResponse.json({ status: 'success', data: cancelled });
+    return NextResponse.json({ status: 'success', data: cancelled && toPublicOrder(cancelled) });
 } 
