@@ -1,0 +1,35 @@
+{
+  "name": "Feeling Zesty",
+  "symbol": "ZESTY",
+  "decimals": 6,
+  "identifier": "ZESTY",
+  "description": "Liquidity vault wrapper for the ZEST-STX trading pair (Bitflow DLMM)",
+  "image": "https://token-meta.s3.eu-central-1.amazonaws.com/icons/zest.png",
+  "properties": {
+    "externalPoolId": "SM1FKXGNZJWSTWDWXQZJNF7B5TV5ZB235JTCXYXKD.dlmm-pool-zest-stx-v-2-bps-50",
+    "engineContractId": "",
+    "swapFeePercent": 1,
+    "tokenAContract": "SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.zest-token",
+    "tokenBContract": ".stx",
+    "tokenAMetadata": {
+      "contractId": "SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.zest-token",
+      "identifier": "zest",
+      "name": "Zest",
+      "symbol": "ZEST",
+      "decimals": 6,
+      "description": "The lending protocol built for Bitcoin",
+      "image": "https://token-meta.s3.eu-central-1.amazonaws.com/icons/zest.png"
+    },
+    "tokenBMetadata": {
+      "contractId": ".stx",
+      "identifier": "STX",
+      "name": "Stacks Token",
+      "symbol": "STX",
+      "decimals": 6,
+      "description": "The native token of the Stacks blockchain.",
+      "image": "https://charisma.rocks/stx-logo.png"
+    },
+    "lpRebatePercent": 1
+  },
+  "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.feeling-zesty"
+}

@@ -1,0 +1,16 @@
+# Mainnet-fork sandbox. Copy into a scratch project (never the repo).
+# Set initial_height to (current stacks tip - 5): curl -s https://api.hiro.so/v2/info | jq .stacks_tip_height
+[project]
+name = "sim"
+telemetry = false
+cache_dir = "./.cache"
+
+[contracts.WRAPPER_NAME]
+path = "contracts/WRAPPER_NAME.clar"
+clarity_version = 4
+epoch = "3.3"
+
+[repl.remote_data]
+enabled = true
+api_url = "https://api.hiro.so"
+initial_height = 0
