@@ -105,6 +105,18 @@ export function Money({ money, tradeActive }: { money: ReturnType<typeof useZest
           {money.walletUsd === 0 && <p className="m-0 text-[14px] text-[#5C5C5C]">No sBTC or ZEST in your wallet yet.</p>}
         </Card>
       </div>
+      <details className="group rounded-2xl border border-[#E5E5E5] bg-white">
+        <summary className="flex min-h-[56px] list-none items-center gap-3 px-5 text-[16px] font-medium [&::-webkit-details-marker]:hidden">
+          <span aria-hidden>🔒</span>
+          <span className="flex-1">How safe is my money?</span>
+          <span aria-hidden className="text-[#5C5C5C] transition-transform group-open:rotate-45">+</span>
+        </summary>
+        <div className="flex flex-col gap-2.5 px-5 pb-5 text-[15px] leading-relaxed text-[#3D3D3D]">
+          <p className="m-0"><strong className="font-medium text-black">Only you can move it.</strong> Every move needs your wallet&apos;s signature, and only your wallet can make one. Not us, not anyone.</p>
+          <p className="m-0"><strong className="font-medium text-black">It&apos;s as safe as your wallet.</strong> The same key that guards your wallet guards your money in Zesty.</p>
+          <p className="m-0"><strong className="font-medium text-black">One new thing to know:</strong> your wallet can now sign &ldquo;Blaze&rdquo; approvals, and those move money in Zesty. Only approve the ones you started. Each one works once, and trades always pay back to you.</p>
+        </div>
+      </details>
     </>
   );
 }
