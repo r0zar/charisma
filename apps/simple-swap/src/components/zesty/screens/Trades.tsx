@@ -84,7 +84,9 @@ export function Trades({ trades, money, onChange }: { trades: ZestyTrade[]; mone
         <CashOut money={money} tradeActive={tradeActive} />
       </Card>
       {trades.length === 0 && <p className="m-0 text-center text-[14px] text-[#5C5C5C]">No trades yet.</p>}
-      {trades.map(trade => <TradeRow key={trade.strategyId} trade={trade} onChange={onChange} />)}
+      <div className="grid gap-4 md:grid-cols-2">
+        {trades.map(trade => <TradeRow key={trade.strategyId} trade={trade} onChange={onChange} />)}
+      </div>
     </>
   );
 }

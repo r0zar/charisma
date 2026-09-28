@@ -7,7 +7,7 @@ import { Chip } from './ui';
 interface Point { time: number; sats: number }
 
 /** ZEST priced in sBTC (shown as sats per ZEST), 7 or 30 days. */
-export function ZestChart() {
+export function ZestChart({ height = 150 }: { height?: number }) {
   const container = useRef<HTMLDivElement>(null);
   const [days, setDays] = useState<7 | 30>(7);
   const [points, setPoints] = useState<Point[] | null>(null);
@@ -30,7 +30,7 @@ export function ZestChart() {
   useEffect(() => {
     if (!container.current || !points?.length) return;
     const chart = createChart(container.current, {
-      height: 150,
+      height,
       layout: { background: { type: ColorType.Solid, color: '#FFFFFF' }, textColor: '#5C5C5C', fontFamily: 'Matter, sans-serif', attributionLogo: false },
       grid: { vertLines: { visible: false }, horzLines: { color: '#F0F0F0' } },
       rightPriceScale: { borderVisible: false },
@@ -50,7 +50,7 @@ export function ZestChart() {
     const resize = new ResizeObserver(([entry]) => chart.applyOptions({ width: entry.contentRect.width }));
     resize.observe(container.current);
     return () => { resize.disconnect(); chart.remove(); };
-  }, [points, days]);
+  }, [points, days, height]);
 
   const first = points?.[0]?.sats;
   const last = points?.[points.length - 1]?.sats;
@@ -70,7 +70,7 @@ export function ZestChart() {
       {error ? (
         <p role="alert" className="m-0 text-[13px] text-[#8F310A]">{error}</p>
       ) : (
-        <div ref={container} className="h-[150px] w-full" aria-label={`ZEST price in sBTC over ${days} days`} />
+        <div ref={container} style={{ height }} className="w-full" aria-label={`ZEST price in sBTC over ${days} days`} />
       )}
       <div className="flex gap-2">
         <Chip active={days === 7} onClick={() => setDays(7)}>7 days</Chip>

@@ -6,6 +6,7 @@ import { exitsFor, planFunding, toUsd, type Side } from '@/lib/zesty/plan';
 import { cancelOrders, convertedAmount, placeZestyOrder, runNow } from '@/lib/zesty/orders';
 import { addToZesty, waitForConfirmation } from '@/lib/zesty/subnet';
 import { MoneyHeader, type ZestyView } from './MoneyHeader';
+import { MarketPanel } from './MarketPanel';
 import { useZestyMoney, formatUsd, formatPrice } from './use-zesty-money';
 import { useZestyTrade } from './use-zesty-trade';
 import { PickSide } from './screens/PickSide';
@@ -143,9 +144,16 @@ export function ZestyApp() {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-[480px] flex-col bg-[#F7F7F7]">
+    <div className="flex min-h-screen flex-col bg-[#F7F7F7]">
       <MoneyHeader money={money} tradeActive={!!tradeActive} view={view} setView={setView} />
-      <main className="flex flex-1 flex-col gap-5 px-6 py-7">{body()}</main>
+      {view === 'trades' ? (
+        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-6 py-8 lg:py-12">{body()}</main>
+      ) : (
+        <main className="mx-auto grid w-full max-w-6xl flex-1 items-start gap-10 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_440px] lg:py-12">
+          <aside className="hidden lg:block"><MarketPanel zestPrice={money.zestPrice} /></aside>
+          <section className="flex min-h-[640px] flex-col gap-5 lg:rounded-3xl lg:border lg:border-[#E5E5E5] lg:bg-white lg:p-8">{body()}</section>
+        </main>
+      )}
     </div>
   );
 }

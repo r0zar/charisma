@@ -26,7 +26,7 @@ const COPY: Record<'won' | 'stopped' | 'cancelled', { eyebrow: (t: ZestyTrade) =
 export function Done({ trade, zestyUsd, onAgain }: { trade: ZestyTrade; zestyUsd: number | null; onAgain: () => void }) {
   const copy = COPY[trade.state as keyof typeof COPY];
   return (
-    <div className="-mx-6 -my-7 flex min-h-[calc(100vh-150px)] flex-col gap-5 bg-black px-6 pt-16 pb-8 text-white">
+    <div className="flex flex-1 flex-col gap-5 rounded-3xl bg-black px-6 pt-12 pb-8 text-white">
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="flex">
           <TokenIcon token="zest" size={56} />
@@ -40,7 +40,7 @@ export function Done({ trade, zestyUsd, onAgain }: { trade: ZestyTrade; zestyUsd
         <span className="text-[#D9D9D9]">Money in Zesty</span>
         <span className="font-medium">{zestyUsd === null ? '…' : formatUsd(zestyUsd)}</span>
       </div>
-      <p className="m-0 text-center text-[13px] text-[#D9D9D9]">Tap &quot;Money in Zesty&quot; at the top to move it to your wallet.</p>
+      <p className="m-0 text-center text-[13px] text-[#D9D9D9]">Open My trades to move it to your wallet.</p>
       <div className="mt-auto">
         <BigButton onClick={onAgain}>Trade again</BigButton>
       </div>

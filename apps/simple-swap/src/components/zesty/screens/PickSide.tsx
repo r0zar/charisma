@@ -34,7 +34,7 @@ export function PickSide({ zestPrice, onPick }: { zestPrice: number | null; onPi
           ZEST is <strong className="font-medium text-black">{zestPrice === null ? '…' : formatPrice(zestPrice)}</strong> right now.
         </p>
       </StepTitle>
-      <ZestChart />
+      <div className="lg:hidden"><ZestChart /></div>
       {OPTIONS.map(option => (
         <button
           key={option.side}
@@ -49,7 +49,7 @@ export function PickSide({ zestPrice, onPick }: { zestPrice: number | null; onPi
           </span>
         </button>
       ))}
-      <Link href="/zesty/how-it-works" className="mt-auto flex min-h-[44px] items-center justify-center gap-2 text-[14px] text-[#B8410F] underline underline-offset-4">
+      <Link href="/zesty/how-it-works" className="mt-auto flex lg:hidden min-h-[44px] items-center justify-center gap-2 text-[14px] text-[#B8410F] underline underline-offset-4">
         <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#B8410F] text-[12px] no-underline">?</span>
         How does this work?
       </Link>
