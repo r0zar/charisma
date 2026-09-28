@@ -5,6 +5,8 @@ import {
     buildXSwapTransaction,
     broadcastMultihopTransaction,
     SwapMetadata,
+    routerConfigFor,
+    LEGACY_MULTIHOP_CONTRACT_ID,
 } from 'blaze-sdk'; // Using the blaze-sdk import path
 import { fetchQuote } from 'dexterity-sdk';
 import { fetchNonce, PostConditionMode } from '@stacks/transactions';
@@ -113,7 +115,8 @@ export async function POST(_req: NextRequest) {
                 recipient: intent.recipient,
             };
 
-            const txConfig: any = await buildXSwapTransaction(quote, swapMeta);
+            // Bets queued before routers were recorded were signed for rc9
+            const txConfig: any = await buildXSwapTransaction(quote, swapMeta, routerConfigFor(intent.router ?? LEGACY_MULTIHOP_CONTRACT_ID));
 
             txConfig.nonce = nonce++;
             txConfig.postConditionMode = PostConditionMode.Allow;

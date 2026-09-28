@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { ORDER_ROUTERS, toPublicOrder } from '@/lib/orders/types';
+import { findSignedRouter } from 'blaze-sdk';
 import { z } from 'zod';
 import { NewOrderRequest } from '@/lib/orders/types';
 import { addOrder } from '@/lib/orders/store';
@@ -90,7 +91,6 @@ const validatedSchema = schema.superRefine((data, ctx) => {
 
 const BLAZE_CONTRACT_ADDRESS = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
 const BLAZE_CONTRACT_NAME = 'blaze-v1';
-const MULTIHOP_CONTRACT_ID = process.env.MULTIHOP_CONTRACT_ID ?? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9';
 
 export async function POST(req: Request) {
     try {
@@ -101,7 +101,13 @@ export async function POST(req: Request) {
             parsed.recipient = parsed.owner;
         }
 
-        const router = parsed.router ?? MULTIHOP_CONTRACT_ID;
+        // Orders that don't name a router: find which one the owner signed for
+        let router: string;
+        try {
+            router = parsed.router ?? await findSignedRouter(parsed.signature, parsed.uuid, parsed.inputToken, parsed.amountIn, parsed.owner);
+        } catch {
+            return NextResponse.json({ error: 'Signature verification failed' }, { status: 400 });
+        }
         if (!ORDER_ROUTERS.includes(router)) {
             return NextResponse.json({ error: `Unknown router ${router}` }, { status: 400 });
         }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { listTokens } from 'dexterity-sdk';
-import { recoverMultihopSigner } from 'blaze-sdk';
+import { findSignedRouter } from 'blaze-sdk';
 import { recordVoteWithLeaderboard } from '@/lib/leaderboard-integration';
 
 // Load environment constants
@@ -39,22 +39,12 @@ export async function POST(req: NextRequest) {
             }, { status: 400 });
         }
 
-        let recoveredSignerPrincipal: string;
+        // The bet must be signed by the recipient; record which router it was signed for
+        let router: string;
         try {
-            recoveredSignerPrincipal = await recoverMultihopSigner(
-                body.signature,
-                body.uuid,
-                body.sourceContract,
-                body.betAmount
-            );
-
+            router = await findSignedRouter(body.signature, body.uuid, body.sourceContract, body.betAmount, body.recipient);
         } catch (sdkError: any) {
-            console.error('SDK recoverSigner error:', sdkError);
-            return NextResponse.json({ success: false, error: `Signature recovery failed: ${sdkError.message || String(sdkError)}` }, { status: 400 });
-        }
-
-        if (recoveredSignerPrincipal !== body.recipient) {
-            console.warn(`Recovered signer mismatch. Recovered: ${recoveredSignerPrincipal}, Expected: ${body.recipient}`);
+            console.warn('Bet signature check failed:', sdkError);
             return NextResponse.json({ success: false, error: 'Invalid signature or recipient mismatch' }, { status: 400 });
         }
 
@@ -90,6 +80,7 @@ export async function POST(req: NextRequest) {
             destinationContract: body.destinationContract,
             betAmount: body.betAmount, // Store micro-units string
             intentAction: body.intentAction,
+            router,
         };
         await kv.lpush(TX_QUEUE_KEY, JSON.stringify(intentToQueue));
         return NextResponse.json({ success: true, queuedUuid: body.uuid });

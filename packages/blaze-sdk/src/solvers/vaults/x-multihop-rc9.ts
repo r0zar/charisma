@@ -21,7 +21,7 @@ import {
 } from '@stacks/transactions';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 import { STACKS_MAINNET } from '@stacks/network';
-import { DEFAULT_ROUTER_CONFIG, MULTIHOP_CONTRACT_ID, STX_CONTRACT_ID, WRAPPED_STX_CONTRACT_ID } from '../../constants';
+import { DEFAULT_ROUTER_CONFIG, MULTIHOP_CONTRACT_ID, MULTIHOP_CONTRACT_IDS, STX_CONTRACT_ID, WRAPPED_STX_CONTRACT_ID } from '../../constants';
 import { recoverSigner } from '../../core';
 import { ContractCallTxOptions } from '../types';
 import { buildPostConditions, Token, Hop, Route } from './utils/postconditions';
@@ -212,7 +212,8 @@ export async function recoverMultihopSigner(
     signature: string,
     uuid: string,
     tokenContract: string,
-    amount: number | string
+    amount: number | string,
+    router: string = MULTIHOP_CONTRACT_ID
 ): Promise<string> {
     const signer = await recoverSigner(
         signature,
@@ -221,7 +222,7 @@ export async function recoverMultihopSigner(
         uuid,
         {
             amount: amount,
-            target: MULTIHOP_CONTRACT_ID
+            target: router
         }
     );
 
@@ -230,6 +231,24 @@ export async function recoverMultihopSigner(
     }
 
     return signer;
+}
+
+/**
+ * Which known router a multihop signature was made for (its signed target), checked against the expected signer.
+ * Lets signatures made for an earlier router keep executing on it after the default changes.
+ */
+export async function findSignedRouter(
+    signature: string,
+    uuid: string,
+    tokenContract: string,
+    amount: number | string,
+    expectedSigner: string
+): Promise<string> {
+    for (const router of MULTIHOP_CONTRACT_IDS) {
+        const signer = await recoverSigner(signature, tokenContract, 'TRANSFER_TOKENS', uuid, { amount, target: router }).catch(() => null);
+        if (signer === expectedSigner) return router;
+    }
+    throw new Error(`Signature ${uuid} was not signed by ${expectedSigner} for a known multihop router`);
 }
 
 /**
@@ -292,7 +311,8 @@ export async function executeMultihopSwap(
         meta.signature,
         meta.uuid,
         route.path[0].contractId,
-        meta.amountIn
+        meta.amountIn,
+        `${config.routerAddress}.${config.routerName}`
     );
 
     // 3. Log debug information

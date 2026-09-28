@@ -7,14 +7,21 @@ export const BLAZE_V1_DOMAIN = tupleCV({
 });
 
 // Constants
-export const MULTIHOP_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9";
+/** Router that pays out only to whoever signed the order */
+export const MULTIHOP_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1";
+/** Earlier router: the submitter chooses the payout address. Used for signatures made for it, and for payouts to others (Twitter triggers). */
+export const LEGACY_MULTIHOP_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9";
+export const MULTIHOP_CONTRACT_IDS = [MULTIHOP_CONTRACT_ID, LEGACY_MULTIHOP_CONTRACT_ID];
 export const BLAZE_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v1";
 
 // Token constants for STX handling
 export const STX_CONTRACT_ID = ".stx";
 export const WRAPPED_STX_CONTRACT_ID = "SP1Y5YSTAHZ88XYK1VPDH24GY0HPX5J4JECTMY4A1.wstx";
 
-export const DEFAULT_ROUTER_CONFIG = {
-    routerAddress: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS',
-    routerName: 'x-multihop-rc9'
-};
+export const DEFAULT_ROUTER_CONFIG = routerConfigFor(MULTIHOP_CONTRACT_ID);
+
+/** Router config for a router contract id */
+export function routerConfigFor(contractId: string) {
+    const [routerAddress, routerName] = contractId.split('.');
+    return { routerAddress, routerName };
+}

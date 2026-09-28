@@ -35,7 +35,6 @@ export async function createTriggeredSwap({
         subnetTokenContractId: selectedFromToken?.contractId!,
         uuid,
         amountMicro: BigInt(micro),
-        multihopContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9',
     });
     // Build conditions object based on whether baseToken is provided
     const conditions = baseToken ? {
