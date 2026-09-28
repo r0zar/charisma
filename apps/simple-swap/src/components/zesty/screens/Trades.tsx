@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import type { LimitOrder } from '@/lib/orders/types';
-import { ZESTY_TOKENS, type ZestyTokenKey } from '@/lib/zesty/config';
+import { ZESTY_TOKENS, tokenOfSubnet, toUnits, type ZestyTokenKey } from '@/lib/zesty/config';
 import { cancelOrders, runNow } from '@/lib/zesty/orders';
 import type { Holdings } from '@/lib/zesty/plan';
 import { BigButton, Card, ErrorNote, StepTitle } from '../ui';
@@ -17,9 +17,22 @@ const STATE_LABEL: Record<ZestyTrade['state'], string> = {
   cancelled: 'Cancelled',
 };
 
-const KEYS = Object.keys(ZESTY_TOKENS) as ZestyTokenKey[];
-const tokenOf = (subnet: string) => KEYS.find(key => ZESTY_TOKENS[key].subnet === subnet)!;
-const units = (key: ZestyTokenKey, micro: string) => Number(micro) / 10 ** ZESTY_TOKENS[key].decimals;
+/** Lock in the win on the server, then open a ready-made post on X. */
+async function shareWin(order: LimitOrder) {
+  // Open the tab now, while the tap still counts, so popup blockers allow it
+  const tab = window.open('', '_blank');
+  const res = await fetch(`/api/v1/zesty/win/${order.uuid}`, { method: 'POST' });
+  const body = await res.json();
+  if (!res.ok) {
+    tab?.close();
+    throw new Error(body.error ?? `Could not share this trade (${res.status})`);
+  }
+  const text = `I called it. ZEST went ${body.side}: +${body.pct.toFixed(1)}% on Zesty 🍋`;
+  const url = `https://zesty.charisma.rocks/win/${order.uuid}`;
+  const intent = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+  if (tab) tab.location.href = intent;
+  else window.location.href = intent;
+}
 
 interface Fill { status: 'pending' | 'failed' | 'success'; amountIn?: string; amountOut?: string; time?: string }
 
@@ -50,10 +63,10 @@ function FillDetails({ trade, order, holdings }: { trade: ZestyTrade; order: Lim
     return <><p className="m-0 text-[14px] text-[#5C5C5C]">{fill.status === 'pending' ? 'Confirming on the blockchain…' : 'This trade did not go through. Your money stayed in Zesty.'}</p>{explorer}</>;
   }
 
-  const inKey = tokenOf(order.inputToken);
-  const outKey = tokenOf(order.outputToken);
-  const got = units(outKey, fill.amountOut!);
-  const spent = units(inKey, fill.amountIn!);
+  const inKey = tokenOfSubnet(order.inputToken);
+  const outKey = tokenOfSubnet(order.outputToken);
+  const got = toUnits(outKey, fill.amountOut!);
+  const spent = toUnits(inKey, fill.amountIn!);
   const gotUsd = got * holdings[outKey].price;
   const profit = gotUsd - trade.amountUsd;
   const pct = (profit / trade.amountUsd) * 100;
@@ -78,6 +91,9 @@ function FillDetails({ trade, order, holdings }: { trade: ZestyTrade; order: Lim
         <div><dt>Traded</dt><dd className="m-0 font-medium text-black">{amount(inKey, spent)}</dd></div>
         {fill.time && <div className="text-right"><dt>Finished</dt><dd className="m-0 font-medium text-black">{new Date(fill.time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</dd></div>}
       </dl>
+      {trade.state === 'won' && gain && (
+        <BigButton onClick={() => shareWin(order).catch(err => setError((err as Error).message))}>Share my win 🏆</BigButton>
+      )}
       {explorer}
     </>
   );

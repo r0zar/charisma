@@ -1,9 +1,8 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import { ImageResponse } from 'next/og';
+import { OG_SIZE, ogFonts } from '@/lib/zesty/og';
 
 export const alt = 'Zesty: think ZEST goes up or down? Pick a side, pick how much, walk away.';
-export const size = { width: 1200, height: 630 };
+export const size = OG_SIZE;
 export const contentType = 'image/png';
 
 const ORANGE = '#FC6432';
@@ -31,11 +30,6 @@ function Side({ up }: { up: boolean }) {
 
 /** One preview for every Zesty page: what it is, in three steps. */
 export default async function Image() {
-  const [regular, medium] = await Promise.all([
-    readFile(join(process.cwd(), 'public/fonts/Matter-Regular.woff')),
-    readFile(join(process.cwd(), 'public/fonts/Matter-Medium.woff')),
-  ]);
-
   return new ImageResponse(
     (
       <div style={{ display: 'flex', width: '100%', height: '100%', background: '#F7F7F7', fontFamily: 'Matter', padding: 64, gap: 56 }}>
@@ -63,12 +57,6 @@ export default async function Image() {
         <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 12, background: ORANGE }} />
       </div>
     ),
-    {
-      ...size,
-      fonts: [
-        { name: 'Matter', data: regular, weight: 400, style: 'normal' },
-        { name: 'Matter', data: medium, weight: 500, style: 'normal' },
-      ],
-    }
+    { ...size, fonts: await ogFonts() }
   );
 }

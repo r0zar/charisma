@@ -20,3 +20,15 @@ export const ZESTY_TOKENS = {
 
 export type ZestyTokenKey = keyof typeof ZESTY_TOKENS;
 export type ZestyToken = (typeof ZESTY_TOKENS)[ZestyTokenKey];
+
+const KEYS = Object.keys(ZESTY_TOKENS) as ZestyTokenKey[];
+
+/** Which Zesty token a subnet contract is. */
+export const tokenOfSubnet = (subnet: string): ZestyTokenKey => {
+  const key = KEYS.find(k => ZESTY_TOKENS[k].subnet === subnet);
+  if (!key) throw new Error(`${subnet} is not a Zesty token`);
+  return key;
+};
+
+/** Smallest units → whole tokens. */
+export const toUnits = (key: ZestyTokenKey, micro: string | bigint) => Number(micro) / 10 ** ZESTY_TOKENS[key].decimals;
