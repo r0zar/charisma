@@ -40,17 +40,16 @@ async function getOrdersNeedingMonitoring(): Promise<Array<{ uuid: string; order
     const ordersToCheck = [];
     
     for (const [uuid, orderData] of Object.entries(orders)) {
-        if (typeof orderData === 'string') {
-            try {
-                const order = JSON.parse(orderData);
-                
-                // Only monitor orders with broadcasted transactions
-                if (order.status === 'broadcasted' && order.txid) {
-                    ordersToCheck.push({ uuid, order });
-                }
-            } catch (error) {
-                console.error(`[ORDER-MONITOR] Error parsing order ${uuid}:`, error);
+        try {
+            // KV returns stored JSON already parsed; older entries may still be strings
+            const order = typeof orderData === 'string' ? JSON.parse(orderData) : orderData;
+
+            // Only monitor orders with broadcasted transactions
+            if (order.status === 'broadcasted' && order.txid) {
+                ordersToCheck.push({ uuid, order });
             }
+        } catch (error) {
+            console.error(`[ORDER-MONITOR] Error parsing order ${uuid}:`, error);
         }
     }
     
