@@ -7,6 +7,7 @@ import { cancelOrders, convertedAmount, placeZestyOrder, runNow } from '@/lib/ze
 import { addToZesty, waitForConfirmation } from '@/lib/zesty/subnet';
 import { MoneyHeader, type ZestyView } from './MoneyHeader';
 import { MarketPanel } from './MarketPanel';
+import { Footer } from './Footer';
 import { useZestyMoney, formatUsd, formatPrice } from './use-zesty-money';
 import { useZestyTrade } from './use-zesty-trade';
 import { PickSide } from './screens/PickSide';
@@ -154,6 +155,7 @@ export function ZestyApp() {
           <section className="flex min-h-[640px] flex-col gap-5 lg:rounded-3xl lg:border lg:border-[#E5E5E5] lg:bg-white lg:p-8">{body()}</section>
         </main>
       )}
+      <Footer />
     </div>
   );
 }

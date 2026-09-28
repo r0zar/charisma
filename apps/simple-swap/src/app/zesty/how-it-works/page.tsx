@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { Footer } from '@/components/zesty/Footer';
 
 export const metadata: Metadata = {
   title: 'How Zesty works | Subnets, signed trades and what you trust',
@@ -194,6 +195,7 @@ export default function HowItWorksPage() {
         </details>
         <Link href="/zesty" className="mt-2 flex min-h-[56px] items-center justify-center rounded-[14px] bg-[#FC6432] text-[16px] font-medium tracking-[0.08em] text-black uppercase">Start a trade</Link>
       </Section>
+      <Footer />
     </div>
   );
 }
