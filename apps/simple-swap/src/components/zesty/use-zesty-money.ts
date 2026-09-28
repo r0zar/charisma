@@ -13,7 +13,7 @@ const KEYS = Object.keys(ZESTY_TOKENS) as ZestyTokenKey[];
  * `holdings` is null until both token prices are known.
  */
 export function useZestyMoney() {
-  const { address, connected, isConnecting, connectWallet } = useWallet();
+  const { address, connected, isConnecting, connectWallet, disconnectWallet } = useWallet();
   const { getTokenBalance, refreshBalances } = useBalances(address ? [address] : []);
   const { getPrice } = usePrices();
 
@@ -41,6 +41,7 @@ export function useZestyMoney() {
     connected,
     isConnecting,
     connectWallet,
+    disconnectWallet,
     holdings,
     stx,
     zestPrice: getPrice(ZESTY_TOKENS.zest.mainnet),

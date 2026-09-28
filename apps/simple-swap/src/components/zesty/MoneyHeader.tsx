@@ -47,7 +47,19 @@ export function MoneyHeader({ money, view, setView }: {
             </button>
           )}
           {connected ? (
-            <span className="text-[13px] text-[#D9D9D9]">{address.slice(0, 4)}…{address.slice(-4)}</span>
+            <details className="relative">
+              <summary className="flex min-h-[40px] list-none items-center gap-1.5 rounded-full px-3 text-[13px] text-[#D9D9D9] hover:bg-[#141414] hover:text-white [&::-webkit-details-marker]:hidden">
+                {address.slice(0, 4)}…{address.slice(-4)} <span aria-hidden className="text-[10px]">▾</span>
+              </summary>
+              <div className="absolute right-0 z-10 mt-2 flex min-w-[180px] flex-col rounded-xl border border-[#2A2A2A] bg-[#141414] p-1.5 shadow-lg">
+                <button type="button" onClick={() => navigator.clipboard.writeText(address)} className="min-h-[40px] rounded-lg px-3 text-left text-[14px] text-[#D9D9D9] hover:bg-[#222] hover:text-white">
+                  Copy address
+                </button>
+                <button type="button" onClick={() => { money.disconnectWallet(); setView('trade'); }} className="min-h-[40px] rounded-lg px-3 text-left text-[14px] text-[#F5B7A3] hover:bg-[#222] hover:text-white">
+                  Disconnect
+                </button>
+              </div>
+            </details>
           ) : (
             <button type="button" onClick={connectWallet} disabled={isConnecting} className="min-h-[44px] rounded-full bg-[#FC6432] px-4 text-[14px] font-medium text-black">
               {isConnecting ? 'Connecting…' : 'Connect wallet'}
