@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { planFunding, toUsd, type Side } from '@/lib/zesty/plan';
+import { GetStarted } from '../GetStarted';
 import { BigButton, Card, Chip, ErrorNote, Progress, StepTitle } from '../ui';
 import { formatUsd, type useZestyMoney } from '../use-zesty-money';
 
@@ -61,7 +62,7 @@ export function HowMuch({ side, money, amountUsd, setAmountUsd, onNext, onBack }
           We&apos;ll add <strong className="font-medium text-black">{formatUsd(fromWalletUsd)}</strong> from your wallet into Zesty when you approve. You can move it back any time.
         </p>
       )}
-      {problem && amountUsd > 0 && <ErrorNote message={problem} />}
+      {money.holdings && available < Math.max(amountUsd, 1) ? <GetStarted money={money} amountUsd={amountUsd} available={available} /> : problem && amountUsd > 0 && <ErrorNote message={problem} />}
       <div className="mt-auto flex flex-col gap-3">
         <BigButton onClick={onNext} disabled={!plan}>Next</BigButton>
         <BigButton variant="quiet" onClick={onBack}>Back</BigButton>

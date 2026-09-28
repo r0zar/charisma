@@ -1,6 +1,8 @@
 import { request } from '@stacks/connect';
 import { Cl, Pc } from '@stacks/transactions';
 import { TxMonitorClient } from '@repo/tx-monitor-client';
+import { buildSwapTransaction, Router } from 'dexterity-sdk';
+import { getQuote } from '@/app/actions';
 import type { ZestyToken } from './config';
 
 const txMonitor = new TxMonitorClient();
@@ -15,6 +17,21 @@ export async function addToZesty(wallet: string, token: ZestyToken, micro: bigin
     postConditions: [Pc.principal(wallet).willSendEq(micro).ft(token.mainnet, token.asset)],
   });
   if (!result?.txid) throw new Error(`Adding ${token.symbol} to Zesty was not broadcast`);
+  return result.txid;
+}
+
+/**
+ * STX can't be moved into Zesty directly, so swap it on the way in: STX → token → Zesty, in one wallet transaction.
+ * The token's link contract credits whoever sends the transaction, so it lands in the user's Zesty money.
+ */
+export async function swapStxIntoZesty(wallet: string, token: ZestyToken, microStx: bigint): Promise<string> {
+  const quote = await getQuote('.stx', token.subnet, microStx.toString());
+  if (!quote.success || !quote.data || quote.data instanceof Error) {
+    throw new Error(`No route to swap STX into ${token.symbol}: ${quote.error ?? 'empty quote'}`);
+  }
+  const router = new Router({ maxHops: 4, defaultSlippage: 0.02, routerContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop' });
+  const result = await request('stx_callContract', await buildSwapTransaction(router, quote.data, wallet));
+  if (!result?.txid) throw new Error(`Swapping STX into ${token.symbol} was not broadcast`);
   return result.txid;
 }
 

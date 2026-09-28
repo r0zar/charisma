@@ -739,13 +739,15 @@ export const buildSwapPostConditions = async (
   const amtIn = BigInt(hop.quote?.amountIn ?? 0);
   const amtOut = BigInt(hop.quote?.amountOut ?? 0);
 
-  if (opcode === OPCODES.OP_DEPOSIT) return [mk(tokenIn, amtIn, sender, 'eq')];
-  // TODO: fix sublink data for externalPoolId - bit of a hack to use tokenB.contractId
-  if (opcode === OPCODES.OP_WITHDRAW) return [mk(tokenOut, amtOut, vault.externalPoolId || vault.tokenB.contractId || vault.contractId, 'eq')];
-
   const effectiveSlippage = slippage !== undefined ? slippage / 100 : cfg.defaultSlippage;
   const maxIn = BigInt(Math.floor(Number(amtIn) * (1 + effectiveSlippage)));
   const minOut = BigInt(Math.floor(Number(amtOut) * (1 - effectiveSlippage)));
+
+  // Deposits and withdrawals move whatever the previous hop delivered, which can differ from the quote by
+  // up to the slippage, so bound them the same way instead of requiring the exact quoted amount
+  if (opcode === OPCODES.OP_DEPOSIT) return [mk(tokenIn, maxIn, sender, 'lte')];
+  // TODO: fix sublink data for externalPoolId - bit of a hack to use tokenB.contractId
+  if (opcode === OPCODES.OP_WITHDRAW) return [mk(tokenOut, minOut, vault.externalPoolId || vault.tokenB.contractId || vault.contractId, 'gte')];
 
   return [
     mk(tokenIn, maxIn, sender, 'lte'),

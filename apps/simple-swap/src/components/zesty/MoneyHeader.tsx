@@ -43,7 +43,7 @@ export function MoneyHeader({ money, view, setView }: {
           {connected && (
             <button type="button" onClick={() => setView('money')} className="hidden gap-5 rounded-full bg-[#141414] px-4 py-2 text-left text-[12px] text-[#D9D9D9] hover:bg-[#222] md:flex">
               <span>Money in Zesty <strong className="ml-1 text-[15px] font-medium text-white">{money.zestyUsd === null ? '…' : formatUsd(money.zestyUsd)}</strong></span>
-              <span>Wallet <strong className="ml-1 text-[15px] font-medium text-white">{money.walletUsd === null ? '…' : formatUsd(money.walletUsd)}</strong></span>
+              <span>Wallet <strong className="ml-1 text-[15px] font-medium text-white">{money.walletTotalUsd === null ? '…' : formatUsd(money.walletTotalUsd)}</strong></span>
             </button>
           )}
           {connected ? (
@@ -58,7 +58,7 @@ export function MoneyHeader({ money, view, setView }: {
       {connected && (
         <button type="button" onClick={() => setView('money')} className="flex w-full gap-2 bg-[#141414] px-6 py-3.5 text-left text-[13px] md:hidden">
           <span className="flex-1">Money in Zesty<br /><strong className="text-[18px] font-medium">{money.zestyUsd === null ? '…' : formatUsd(money.zestyUsd)}</strong></span>
-          <span className="flex-1 text-right">In your wallet<br /><strong className="text-[18px] font-medium">{money.walletUsd === null ? '…' : formatUsd(money.walletUsd)}</strong></span>
+          <span className="flex-1 text-right">In your wallet<br /><strong className="text-[18px] font-medium">{money.walletTotalUsd === null ? '…' : formatUsd(money.walletTotalUsd)}</strong></span>
         </button>
       )}
     </header>

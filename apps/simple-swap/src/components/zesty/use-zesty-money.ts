@@ -28,6 +28,11 @@ export function useZestyMoney() {
       }])) as Holdings)
     : null;
 
+  // STX can't trade in Zesty, but it's what most people hold, so Get started offers to swap it
+  const stxPrice = getPrice('.stx');
+  const stxMicro = raw('.stx');
+  const stx = { micro: stxMicro, usd: stxPrice === null ? null : (Number(stxMicro) / 1e6) * stxPrice };
+
   const total = (where: 'wallet' | 'zesty') =>
     holdings ? KEYS.reduce((sum, key) => sum + toUsd(key, holdings[key][where], holdings[key].price), 0) : null;
 
@@ -37,9 +42,13 @@ export function useZestyMoney() {
     isConnecting,
     connectWallet,
     holdings,
+    stx,
     zestPrice: getPrice(ZESTY_TOKENS.zest.mainnet),
     zestyUsd: total('zesty'),
+    /** sBTC and ZEST in the wallet: what trades can use */
     walletUsd: total('wallet'),
+    /** Everything in the wallet, STX included */
+    walletTotalUsd: holdings && stx.usd !== null ? total('wallet')! + stx.usd : null,
     refresh: () => refreshBalances(address ? [address] : undefined),
   };
 }

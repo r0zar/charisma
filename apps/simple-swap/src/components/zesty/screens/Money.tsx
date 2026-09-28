@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import { ZESTY_TOKENS, type ZestyTokenKey } from '@/lib/zesty/config';
 import { toUsd } from '@/lib/zesty/plan';
-import { addToZesty, moveToWallet } from '@/lib/zesty/subnet';
+import { addToZesty, moveToWallet, swapStxIntoZesty } from '@/lib/zesty/subnet';
 import { CashOut } from '../CashOut';
 import { Card, Chip, ErrorNote, StepTitle, TokenIcon } from '../ui';
 import { formatUsd, type useZestyMoney } from '../use-zesty-money';
@@ -75,6 +76,64 @@ function CoinRow({ money, token, where, onDone, disabled }: {
   );
 }
 
+/** STX can't sit in Zesty, so it's swapped into ZEST on the way in (one wallet approval). */
+function StxRow({ money, onDone }: { money: ReturnType<typeof useZestyMoney>; onDone: (message: string) => void }) {
+  const { getTokenImage } = useTokenMetadata();
+  const stxImage = getTokenImage('.stx');
+  const [share, setShare] = useState(0.5);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { micro: balance, usd } = money.stx;
+  const micro = (balance * BigInt(Math.round(share * 100))) / 100n;
+  const microUsd = usd === null || balance === 0n ? null : (usd * Number(micro)) / Number(balance);
+
+  const run = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await swapStxIntoZesty(money.address, ZESTY_TOKENS.zest, micro);
+      onDone(`Swapping ${microUsd === null ? 'your STX' : formatUsd(microUsd) + ' of STX'} into ZEST in Zesty. It shows up in about a minute.`);
+      await money.refresh();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-3 border-t border-[#E5E5E5] pt-4">
+      <div className="flex items-center gap-3">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        {stxImage ? <img src={stxImage} alt="STX" width={32} height={32} className="rounded-full" /> : <span className="h-8 w-8 rounded-full bg-[#E0E0E0]" />}
+        <span className="flex flex-1 flex-col">
+          <span className="text-[16px] font-medium">STX</span>
+          <span className="text-[13px] text-[#5C5C5C]">{(Number(balance) / 1e6).toLocaleString('en-US', { maximumFractionDigits: 2 })}</span>
+        </span>
+        <span className="text-[18px] font-medium">{usd === null ? '…' : formatUsd(usd)}</span>
+      </div>
+      {balance > 0n && (
+        <>
+          <p className="m-0 text-[13px] text-[#5C5C5C]">STX can&apos;t go into Zesty as is. We swap it into ZEST on the way in.</p>
+          <div className="flex gap-2">
+            {[0.25, 0.5, 1].map(s => <Chip key={s} active={share === s} onClick={() => setShare(s)}>{s === 1 ? 'All' : `${s * 100}%`}</Chip>)}
+          </div>
+          {share === 1 && <p className="m-0 text-[13px] text-[#8F310A]">Keep a little STX for network fees.</p>}
+          <button
+            type="button"
+            onClick={run}
+            disabled={busy || micro === 0n}
+            className="min-h-[48px] rounded-xl bg-[#FC6432] text-[15px] font-medium tracking-[0.04em] text-black hover:enabled:bg-[#FF7A4D]"
+          >
+            {busy ? 'Check your wallet…' : `Swap ${microUsd === null ? '' : formatUsd(microUsd) + ' '}into Zesty as ZEST`}
+          </button>
+        </>
+      )}
+      {error && <ErrorNote message={error} />}
+    </div>
+  );
+}
+
 export function Money({ money, tradeActive }: { money: ReturnType<typeof useZestyMoney>; tradeActive: boolean }) {
   const [notice, setNotice] = useState<string | null>(null);
   if (!money.holdings) return <p className="m-0 text-[15px] text-[#5C5C5C]">Loading your balances…</p>;
@@ -99,10 +158,10 @@ export function Money({ money, tradeActive }: { money: ReturnType<typeof useZest
         <Card className="flex flex-col gap-4">
           <div className="flex items-baseline justify-between">
             <span className="text-[13px] tracking-[0.14em] text-[#5C5C5C] uppercase">In your wallet</span>
-            <span className="text-[28px] font-medium">{money.walletUsd === null ? '…' : formatUsd(money.walletUsd)}</span>
+            <span className="text-[28px] font-medium">{money.walletTotalUsd === null ? '…' : formatUsd(money.walletTotalUsd)}</span>
           </div>
           {KEYS.map(key => <CoinRow key={key} money={money} token={key} where="wallet" onDone={setNotice} />)}
-          {money.walletUsd === 0 && <p className="m-0 text-[14px] text-[#5C5C5C]">No sBTC or ZEST in your wallet yet.</p>}
+          <StxRow money={money} onDone={setNotice} />
         </Card>
       </div>
       <details className="group rounded-2xl border border-[#E5E5E5] bg-white">
