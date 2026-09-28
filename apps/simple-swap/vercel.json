@@ -9,6 +9,10 @@
             "schedule": "*/1 * * * *"
         },
         {
+            "path": "/api/cron/order-monitor",
+            "schedule": "*/1 * * * *"
+        },
+        {
             "path": "/api/cron/fiat",
             "schedule": "*/10 * * * *"
         },

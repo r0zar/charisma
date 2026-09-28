@@ -102,94 +102,20 @@ export async function GET(request: NextRequest) {
         console.log(`[ORDER-MONITOR] Found ${ordersToCheck.length} orders to check`);
         result.ordersChecked = ordersToCheck.length;
 
-        // Expiration constants
+        // Expiration constants: only applied to orders whose transaction never landed
         const BROADCASTED_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
         const ABSOLUTE_MAX_AGE = 90 * 24 * 60 * 60 * 1000; // 90 days in milliseconds
         const now = Date.now();
-        
-        // First pass: Check for orders that have exceeded 90-day absolute maximum
-        for (const { uuid, order } of ordersToCheck) {
-            const orderAge = now - new Date(order.createdAt).getTime();
-            
-            if (orderAge > ABSOLUTE_MAX_AGE) {
-                const ageDays = Math.round(orderAge / (24 * 60 * 60 * 1000));
-                console.log(`[ORDER-MONITOR] 📅 Order ${uuid} exceeded 90-day maximum (${ageDays} days old) - cancelling due to absolute age limit`);
-                
-                try {
-                    await cancelOrder(uuid);
-                    result.expiredOrders++;
-                    result.expiredBy90Day++;
-                    result.ordersUpdated++;
-                    
-                    // Create a result entry for the expired order
-                    const expiredResult: SingleTransactionResult = {
-                        txid: order.txid || 'N/A',
-                        orderId: uuid,
-                        previousStatus: order.status,
-                        currentStatus: 'not_found',
-                        orderUpdated: true,
-                        error: `Order cancelled due to 90-day age limit: ${ageDays} days old`
-                    };
-                    result.orderResults.push(expiredResult);
-                    
-                } catch (error) {
-                    console.error(`[ORDER-MONITOR] Error cancelling 90-day expired order ${uuid}:`, error);
-                    result.errors.push(`Error cancelling 90-day expired order ${uuid}: ${error}`);
-                }
-            }
-        }
 
-        // Second pass: Check for broadcasted orders that have exceeded 24-hour limit
+        // Check the chain first, so an order whose swap succeeded is never cancelled for age
         for (const { uuid, order } of ordersToCheck) {
             const orderAge = now - new Date(order.createdAt).getTime();
-            
-            // Skip if already processed in 90-day cleanup
-            if (orderAge > ABSOLUTE_MAX_AGE) {
-                continue;
-            }
-            
-            // Only check 24-hour limit for broadcasted orders
-            if (order.status === 'broadcasted' && orderAge > BROADCASTED_MAX_AGE) {
-                console.log(`[ORDER-MONITOR] 🕐 Order ${uuid} has been broadcasted for ${Math.round(orderAge / (60 * 60 * 1000))} hours - cancelling due to broadcast timeout`);
-                
-                try {
-                    await cancelOrder(uuid);
-                    result.expiredOrders++;
-                    result.expiredByBroadcast++;
-                    result.ordersUpdated++;
-                    
-                    // Create a result entry for the expired order
-                    const expiredResult: SingleTransactionResult = {
-                        txid: order.txid!,
-                        orderId: uuid,
-                        previousStatus: order.status,
-                        currentStatus: 'not_found',
-                        orderUpdated: true,
-                        error: `Order cancelled due to broadcast timeout: ${Math.round(orderAge / (60 * 60 * 1000))} hours old`
-                    };
-                    result.orderResults.push(expiredResult);
-                    
-                } catch (error) {
-                    console.error(`[ORDER-MONITOR] Error cancelling broadcast-expired order ${uuid}:`, error);
-                    result.errors.push(`Error cancelling broadcast-expired order ${uuid}: ${error}`);
-                }
-            }
-        }
 
-        // Monitor each order's transaction using tx-monitor-client
-        for (const { uuid, order } of ordersToCheck) {
-            // Skip if order was already processed as expired (either 90-day or 24-hour)
-            const orderAge = now - new Date(order.createdAt).getTime();
-            if (orderAge > ABSOLUTE_MAX_AGE || (order.status === 'broadcasted' && orderAge > BROADCASTED_MAX_AGE)) {
-                continue; // Already processed in the expiration loops
-            }
-            
             try {
                 console.log(`[ORDER-MONITOR] Checking transaction ${order.txid} for order ${uuid}`);
-                
-                // Use tx-monitor-client to get transaction status
+
                 const txStatus = await txMonitorClient.getTransactionStatus(order.txid!);
-                
+
                 const monitorResult: SingleTransactionResult = {
                     txid: order.txid!,
                     orderId: uuid,
@@ -198,63 +124,44 @@ export async function GET(request: NextRequest) {
                     orderUpdated: false
                 };
 
-                // Update order based on transaction status
                 if (txStatus.status === 'success') {
-                    // Transaction confirmed - update to 'confirmed' status
                     await confirmOrder(uuid, txStatus.blockHeight, txStatus.blockTime);
                     monitorResult.orderUpdated = true;
                     result.ordersUpdated++;
                     result.successfulTransactions++;
-                    
                     console.log(`[ORDER-MONITOR] ✅ Order ${uuid} confirmed on blockchain at block ${txStatus.blockHeight}`);
-                    
-                    // Trigger system-wide balance refresh after successful transaction
-                    try {
-                        const response = await fetch('/api/blaze/balances', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                userId: order.owner
-                            })
-                        });
 
-                        if (response.ok) {
-                            console.log(`[ORDER-MONITOR] ✅ System-wide balance refresh triggered by order ${uuid} (owner: ${order.owner})`);
-                        } else {
-                            console.warn(`[ORDER-MONITOR] ⚠️ Balance refresh failed for order ${uuid}: HTTP ${response.status}`);
-                        }
-                    } catch (balanceError) {
-                        console.error(`[ORDER-MONITOR] ❌ Error triggering balance refresh for order ${uuid}:`, balanceError);
-                    }
-                    
                 } else if (txStatus.status === 'abort_by_response' || txStatus.status === 'abort_by_post_condition') {
-                    // Transaction failed - update to 'failed' status
                     await failOrder(uuid, txStatus.status);
                     monitorResult.orderUpdated = true;
                     result.ordersUpdated++;
                     result.failedTransactions++;
-                    
                     console.log(`[ORDER-MONITOR] ❌ Order ${uuid} marked as 'failed' due to transaction failure ${order.txid} (${txStatus.status})`);
-                    
+
+                } else if (orderAge > ABSOLUTE_MAX_AGE || orderAge > BROADCASTED_MAX_AGE) {
+                    const is90Day = orderAge > ABSOLUTE_MAX_AGE;
+                    await cancelOrder(uuid);
+                    monitorResult.orderUpdated = true;
+                    monitorResult.error = `Order cancelled: transaction ${txStatus.status} after ${Math.round(orderAge / (60 * 60 * 1000))} hours`;
+                    result.ordersUpdated++;
+                    result.expiredOrders++;
+                    if (is90Day) result.expiredBy90Day++; else result.expiredByBroadcast++;
+                    console.log(`[ORDER-MONITOR] 🕐 Order ${uuid} cancelled: ${monitorResult.error}`);
+
                 } else if (txStatus.status === 'not_found') {
-                    // Transaction not found - cancel order
                     await cancelOrder(uuid);
                     monitorResult.orderUpdated = true;
                     result.ordersUpdated++;
                     result.failedTransactions++;
-                    
                     console.log(`[ORDER-MONITOR] 🚨 Order ${uuid} cancelled due to transaction not found: ${order.txid}`);
-                    
-                } else if (txStatus.status === 'pending' || txStatus.status === 'broadcasted') {
-                    // Still pending
+
+                } else {
                     result.stillPending++;
                     console.log(`[ORDER-MONITOR] ⏳ Order ${uuid} transaction ${order.txid} still pending`);
                 }
-                
+
                 result.orderResults.push(monitorResult);
-                
+
             } catch (txError) {
                 console.error(`[ORDER-MONITOR] Error monitoring order ${uuid}:`, txError);
                 result.errors.push(`Error monitoring order ${uuid}: ${txError}`);
