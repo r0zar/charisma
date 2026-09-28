@@ -141,6 +141,11 @@ export function WalletBalanceProvider({
       return 0;
     }
 
+    // STX is native, not a fungible token, so it lives in its own field (raw micro-STX like other raw balances)
+    if (['stx', '.stx'].includes(contractId.toLowerCase())) {
+      return parseFloat(balance.stx?.balance || '0');
+    }
+
     try {
       const tokenBalance = balance.fungible_tokens?.[contractId];
       if (!tokenBalance) {
