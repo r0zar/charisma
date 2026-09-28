@@ -15,10 +15,20 @@ describe('planFunding', () => {
     expect(plan.heldMicro).toBe(500_000_000n); // 500 ZEST = $100
   });
 
-  it('adds the held token from the wallet before touching the other token', () => {
+  it('uses money already in Zesty (converting it) before adding anything from the wallet', () => {
+    // up needs ZEST: $100 of sBTC in Zesty beats $0.72-style top-ups of ZEST from the wallet
     const plan = planFunding('up', 100, holdings({ zest: { wallet: 1_000_000_000n }, sbtc: { zesty: 100_000n } }));
-    expect(plan.adds).toEqual([{ token: 'zest', micro: 500_000_000n }]);
-    expect(plan.convertMicro).toBe(0n);
+    expect(plan.adds).toEqual([]);
+    expect(plan.convertMicro).toBe(100_000n);
+    expect(plan.heldMicro).toBe(0n);
+  });
+
+  it('adds from the wallet only for the shortfall', () => {
+    // $150 trade, $100 of sBTC in Zesty: the remaining $50 comes from wallet ZEST
+    const plan = planFunding('up', 150, holdings({ zest: { wallet: 1_000_000_000n }, sbtc: { zesty: 100_000n } }));
+    expect(plan.adds).toEqual([{ token: 'zest', micro: 250_000_000n }]);
+    expect(plan.convertMicro).toBe(100_000n);
+    expect(plan.heldMicro).toBe(250_000_000n);
   });
 
   it('converts the other token when the held one runs out', () => {
@@ -29,7 +39,7 @@ describe('planFunding', () => {
     expect(plan.heldMicro).toBe(0n);
   });
 
-  it('mixes sources in order: held in Zesty, held in wallet, other in Zesty, other in wallet', () => {
+  it('mixes sources in order: held in Zesty, other in Zesty, held in wallet, other in wallet', () => {
     const plan = planFunding('down', 300, holdings({
       sbtc: { zesty: 100_000n, wallet: 50_000n }, // $100 + $50 held
       zest: { zesty: 250_000_000n, wallet: 10_000_000_000n }, // $50 + $2000 other

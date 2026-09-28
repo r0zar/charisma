@@ -27,8 +27,9 @@ export interface FundingPlan {
 }
 
 /**
- * Fund a trade worth `amountUsd`, preferring what needs the fewest steps:
- * held token already in Zesty, held token from the wallet, other token in Zesty, other token from the wallet.
+ * Fund a trade worth `amountUsd` from money already in Zesty first (held token, then the other token,
+ * which gets converted), and only then from the wallet for any shortfall (held token, then the other).
+ * Adding from the wallet is an extra on-chain step, so it's the last resort.
  */
 export function planFunding(side: Side, amountUsd: number, holdings: Holdings): FundingPlan {
   const held = heldToken(side);
@@ -45,8 +46,8 @@ export function planFunding(side: Side, amountUsd: number, holdings: Holdings): 
   };
 
   const heldZesty = take(held, holdings[held].zesty);
-  const heldWallet = take(held, holdings[held].wallet);
   const otherZesty = take(other, holdings[other].zesty);
+  const heldWallet = take(held, holdings[held].wallet);
   const otherWallet = take(other, holdings[other].wallet);
 
   if (remaining > 0.01) {
