@@ -121,7 +121,7 @@ export function ZestyApp() {
         </>
       );
     }
-    if (view === 'trades') return <Trades trades={trades} onChange={reload} />;
+    if (view === 'trades') return <Trades trades={trades} holdings={money.holdings} onChange={reload} />;
     if (view === 'money') return <Money money={money} tradeActive={!!tradeActive} />;
     if (screen === 'approve') return <Approve steps={steps} error={error} onRetry={startTrade} />;
     if (trade && tradeActive) {
