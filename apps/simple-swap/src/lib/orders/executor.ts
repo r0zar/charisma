@@ -1,4 +1,4 @@
-import { listOrders, fillOrder, updateOrder } from './store';
+import { listOrders, fillOrder, updateOrder, cancelOrder } from './store';
 import { LimitOrder } from './types';
 import { getQuote } from '@/app/actions';
 import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
@@ -349,6 +349,20 @@ async function releaseLock(uuid: string): Promise<void> {
  * Loops through all open orders and executes any that meet their price condition.
  * Returns the UUIDs of all orders that were filled during this run.
  */
+/**
+ * A Zesty trade has two exits (target and safety net) that spend the same funds:
+ * once one runs, cancel the other so it can't fire later.
+ */
+export async function cancelOtherZestyExit(order: LimitOrder): Promise<void> {
+    if (order.strategyType !== 'zesty' || !order.strategyId || order.metadata?.zesty?.role === 'convert') return;
+    const siblings = (await listOrders(order.owner)).filter(o =>
+        o.strategyId === order.strategyId && o.uuid !== order.uuid && o.status === 'open' && o.metadata?.zesty?.role !== 'convert');
+    for (const sibling of siblings) {
+        await cancelOrder(sibling.uuid);
+        console.log({ orderUuid: order.uuid, cancelled: sibling.uuid }, 'Cancelled the other Zesty exit');
+    }
+}
+
 export async function processOpenOrders(): Promise<string[]> {
     console.log('Starting processOpenOrders job');
     const openOrders = (await listOrders()).filter((o) => o.status === 'open');
@@ -485,6 +499,7 @@ export async function processOpenOrders(): Promise<string[]> {
 
                 console.log({ orderUuid: order.uuid, txid: executionResult.txid }, 'Trade executed successfully. Marking order as filled.');
                 await fillOrder(order.uuid, executionResult.txid);
+                await cancelOtherZestyExit(order);
 
                 // Add transaction to tx-monitor-client queue for monitoring
                 try {
