@@ -245,6 +245,11 @@ export const getTokenData = async (contractId: string, forceRefresh: boolean = f
                 mergedData = tokenMetadata;
             }
 
+            // Never replace a real image (e.g. one sourced by hand from another DEX) with a generated placeholder
+            if (mergedData.image?.includes('ui-avatars.com') && cachedData?.image && !cachedData.image.includes('ui-avatars.com')) {
+                mergedData.image = cachedData.image;
+            }
+
             // Subnet tokens hold their base token (no FT of their own): the asset identifier and artwork are the base's
             if (mergedData.type === 'SUBNET' && mergedData.base) {
                 const base = await getTokenData(mergedData.base);
