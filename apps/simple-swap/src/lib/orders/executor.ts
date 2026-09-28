@@ -170,13 +170,13 @@ async function getCurrentPriceRatio(order: LimitOrder): Promise<number | undefin
         return 1; // Any positive number that will satisfy the condition
     }
 
-    // Default to sUSDT if baseAsset is not specified, effectively making it a USD price comparison.
-    const baseAssetContract = order.baseAsset || 'SP2XD7417HGPRTREMKF748VNEQPDRR0RMANB7X1NK.token-susdt';
+    // No baseAsset (or 'USD') means a USD target: the base is worth exactly $1
+    const isUsdTarget = !order.baseAsset || order.baseAsset === 'USD';
 
-    console.log({ orderUuid: order.uuid, conditionTokenContract, baseAssetContract }, `Fetching prices for ratio.`);
+    console.log({ orderUuid: order.uuid, conditionTokenContract, baseAsset: order.baseAsset ?? 'USD' }, `Fetching prices for ratio.`);
 
     const priceConditionToken = await priceSeriesService.getCurrentPrice(conditionTokenContract);
-    const priceBaseAsset = await priceSeriesService.getCurrentPrice(baseAssetContract);
+    const priceBaseAsset = isUsdTarget ? 1 : await priceSeriesService.getCurrentPrice(order.baseAsset!);
 
     if (priceConditionToken === null || priceBaseAsset === null) {
         console.log({ orderUuid: order.uuid, priceConditionToken, priceBaseAsset }, "Could not fetch one or both prices for ratio.");
