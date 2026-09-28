@@ -44,7 +44,7 @@ export function TokenPriceProvider({ children, refreshInterval = 30000 }: TokenP
       if (tryDataClient) {
         console.log('[TokenPriceContext] Trying lakehouse client for price refresh');
         try {
-          const priceArray = await lakehouseClient.getCurrentPrices({ limit: 50 });
+          const priceArray = await lakehouseClient.getCurrentPrices({ limit: 1000 }); // lakehouse max, so every priced token is included
           
           // Convert array to KraxelPriceData format (simple conversion)
           const priceData: KraxelPriceData = {};

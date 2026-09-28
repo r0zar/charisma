@@ -131,7 +131,7 @@ export class PriceSeriesService {
    */
   async getAllTokens(): Promise<Array<{ tokenId: string; symbol: string; usdPrice: number }>> {
     try {
-      const prices = await lakehouseClient.getCurrentPrices({ limit: 100 });
+      const prices = await lakehouseClient.getCurrentPrices({ limit: 1000 });
       return prices.map(p => ({
         tokenId: p.token_contract_id,
         symbol: p.token_contract_id.split('.').pop() || p.token_contract_id,

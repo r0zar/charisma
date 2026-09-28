@@ -366,7 +366,7 @@ export async function getPrices(): Promise<KraxelPriceData> {
         
         // Use direct API call to lakehouse instead of client to avoid SSR hang
         const lakehouseUrl = process.env.NEXT_PUBLIC_LAKEHOUSE_URL || process.env.LAKEHOUSE_URL || 'https://lakehouse.charisma.rocks';
-        const response = await fetch(`${lakehouseUrl}/api/token-prices?limit=100`, {
+        const response = await fetch(`${lakehouseUrl}/api/token-prices?limit=1000`, {
             headers: { 'Accept': 'application/json' },
             signal: AbortSignal.timeout(10000)
         });
@@ -557,7 +557,7 @@ export async function getTokenPricesAction(tokenIds: string[]): Promise<{
         
         // Get prices from lakehouse API directly to avoid SSR hang
         const lakehouseUrl = process.env.NEXT_PUBLIC_LAKEHOUSE_URL || process.env.LAKEHOUSE_URL || 'https://lakehouse.charisma.rocks';
-        const response = await fetch(`${lakehouseUrl}/api/token-prices?limit=100`, {
+        const response = await fetch(`${lakehouseUrl}/api/token-prices?limit=1000`, {
             headers: { 'Accept': 'application/json' },
             signal: AbortSignal.timeout(10000)
         });
@@ -723,7 +723,7 @@ export async function getStxPriceAction(): Promise<{
         
         // Get STX price from lakehouse API directly to avoid SSR hang
         const lakehouseUrl = process.env.NEXT_PUBLIC_LAKEHOUSE_URL || process.env.LAKEHOUSE_URL || 'https://lakehouse.charisma.rocks';
-        const response = await fetch(`${lakehouseUrl}/api/token-prices?limit=100`, {
+        const response = await fetch(`${lakehouseUrl}/api/token-prices?limit=1000`, {
             headers: { 'Accept': 'application/json' },
             signal: AbortSignal.timeout(10000)
         });
@@ -762,7 +762,7 @@ export async function checkPriceAvailabilityAction(contractIds: string[]): Promi
         
         // Get all available prices from lakehouse API directly to avoid SSR hang
         const lakehouseUrl = process.env.NEXT_PUBLIC_LAKEHOUSE_URL || process.env.LAKEHOUSE_URL || 'https://lakehouse.charisma.rocks';
-        const response = await fetch(`${lakehouseUrl}/api/token-prices?limit=100`, {
+        const response = await fetch(`${lakehouseUrl}/api/token-prices?limit=1000`, {
             headers: { 'Accept': 'application/json' },
             signal: AbortSignal.timeout(10000)
         });
