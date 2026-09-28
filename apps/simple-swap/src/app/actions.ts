@@ -97,14 +97,15 @@ const router = new Router({
 // Use the cached balance client for server-side balance operations
 // This client talks to the data app's balance service
 
-let vaultsLoaded = false;
+// Reload vaults on the same cadence as dex-cache's reserve refresh, so new vaults and reserves reach routing
+const VAULT_REFRESH_MS = 10 * 60 * 1000;
+let vaultsLoadedAt = 0;
 
 loadVaults(router).then(() => {
     console.log('✅ Vaults loaded successfully');
-    vaultsLoaded = true;
+    vaultsLoadedAt = Date.now();
 }).catch(err => {
     console.error('❌ Error loading vaults:', err);
-    vaultsLoaded = false;
 });
 
 /**
@@ -116,13 +117,11 @@ export async function getQuote(
     amount: string | number,
 ) {
     console.log(`[Server] Getting quote for ${fromTokenId} -> ${toTokenId} with amount ${amount}`);
-    console.log(`[Server] Vaults loaded: ${vaultsLoaded}`);
-    
-    if (!vaultsLoaded) {
-        console.log(`[Server] Vaults not loaded, attempting to load...`);
+    if (Date.now() - vaultsLoadedAt > VAULT_REFRESH_MS) {
+        console.log(`[Server] Vaults missing or stale, reloading...`);
         try {
             await loadVaults(router);
-            vaultsLoaded = true;
+            vaultsLoadedAt = Date.now();
             console.log(`[Server] ✅ Vaults loaded successfully on demand`);
         } catch (err) {
             console.error(`[Server] ❌ Failed to load vaults on demand:`, err);

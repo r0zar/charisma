@@ -8,8 +8,8 @@ const headers = {
     'Content-Type': 'application/json',
     // Optimized caching: 10min browser, 30min CDN, 2hr Vercel CDN (vault data changes moderately)
     'Cache-Control': 'public, max-age=600',
-    'CDN-Cache-Control': 'public, s-maxage=1800',
-    'Vercel-CDN-Cache-Control': 'public, s-maxage=7200, stale-while-revalidate=86400'
+    'CDN-Cache-Control': 'public, s-maxage=600',
+    'Vercel-CDN-Cache-Control': 'public, s-maxage=600, stale-while-revalidate=86400'
 };
 
 export async function OPTIONS() {
