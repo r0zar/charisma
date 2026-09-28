@@ -86,6 +86,7 @@ export interface SublinkDexEntry {
     contractId: string; // The sublink contract identifier itself
     type: "SUBLINK";
     protocol: string; // e.g., 'CHARISMA'
+    fee: 0; // Sublinks bridge 1:1 with no fee
     tokenAContract: string; // Source token (e.g., mainnet SIP-10)
     tokenBContract: string; // Subnet token representation=
     tokenA: TokenCacheData; // Full metadata for the source token
@@ -209,6 +210,7 @@ export async function enhanceSublinkWithTokenMetadata(
             contractId: sublinkContractId,
             type: "SUBLINK",
             protocol: "CHARISMA",
+            fee: 0,
             tokenAContract,
             tokenBContract,
             tokenA: tokenAMeta,

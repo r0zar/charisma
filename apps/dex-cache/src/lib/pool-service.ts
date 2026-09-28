@@ -3,6 +3,7 @@ import { callReadOnlyFunction, getContractInfo } from '@repo/polyglot';
 import { principalCV, uintCV, optionalCVOf } from '@stacks/transactions';
 import { bufferFromHex } from "@stacks/transactions/dist/cl";
 import { OPCODES, opcodeCV } from "dexterity-sdk";
+import { listTokens } from '@repo/tokens';
 
 /**
  * Basic token information
@@ -595,6 +596,33 @@ export const updateAllPoolReserves = async (): Promise<{ updated: number; errors
 };
 
 // Get all vault data from KV
+/**
+ * Vault records store a copy of token metadata from registration time, which goes stale.
+ * Overlay the current metadata from the token cache (tokens.charisma.rocks) so it stays the single source of truth.
+ */
+const withTokenCacheMetadata = async (vaults: Vault[]): Promise<Vault[]> => {
+    const tokens = await listTokens();
+    if (!tokens.length) {
+        console.error('[PoolService] Token cache returned no tokens; serving vaults with their registered token metadata');
+        return vaults;
+    }
+    const byId = new Map(tokens.map(t => [t.contractId, t]));
+    const fresh = (token?: Token): Token | undefined => {
+        const cached = token && byId.get(token.contractId);
+        if (!token || !cached) return token;
+        return {
+            ...token,
+            name: cached.name,
+            symbol: cached.symbol,
+            decimals: cached.decimals ?? token.decimals,
+            identifier: cached.identifier ?? token.identifier,
+            image: cached.image ?? token.image,
+            description: cached.description ?? token.description,
+        };
+    };
+    return vaults.map(v => ({ ...v, tokenA: fresh(v.tokenA), tokenB: fresh(v.tokenB) }));
+};
+
 export const getAllVaultData = async ({ protocol, type }: { protocol?: string, type?: string } = {}): Promise<Vault[]> => {
     try {
         const [vaultIds, blacklistedIds] = await Promise.all([
@@ -613,7 +641,7 @@ export const getAllVaultData = async ({ protocol, type }: { protocol?: string, t
         console.log(`Fetching ${validVaultIds.length} vaults from cache (${vaultIds.length - validVaultIds.length} blacklisted)`);
         const vaultPromises = validVaultIds.map(id => getVaultData(id));
         const results = await Promise.all(vaultPromises);
-        const vaults = results.filter((v: Vault | null): v is Vault => v !== null);
+        const vaults = await withTokenCacheMetadata(results.filter((v: Vault | null): v is Vault => v !== null));
 
         // Filter by protocol if provided
         if (protocol) {
