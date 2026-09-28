@@ -35,7 +35,7 @@ export function HowMuch({ side, money, amountUsd, setAmountUsd, onNext, onBack }
       <StepTitle eyebrow={`Step 2 of 4 · ZEST goes ${side}`} title="How much?" />
       <Card className="flex flex-col gap-4">
         <label htmlFor="zesty-amount" className="text-[14px] text-[#3D3D3D]">Amount to put on ZEST</label>
-        <div className="flex items-baseline gap-1">
+        <div className="flex items-baseline gap-1 border-b-2 border-[#E5E5E5] pb-1 transition-colors duration-200 hover:border-[#BDBDBD] focus-within:border-[#FC6432] focus-within:hover:border-[#FC6432]">
           <span className="text-[44px] font-medium">$</span>
           <input
             id="zesty-amount"
@@ -43,7 +43,8 @@ export function HowMuch({ side, money, amountUsd, setAmountUsd, onNext, onBack }
             value={amountUsd ? String(amountUsd) : ''}
             onChange={e => setAmountUsd(Number(e.target.value.replace(/[^0-9.]/g, '')) || 0)}
             placeholder="0"
-            className="w-full bg-transparent text-[56px] font-medium outline-none"
+            autoComplete="off"
+            className="w-full bg-transparent text-[56px] font-medium caret-[#FC6432] outline-none placeholder:text-[#D0D0D0]"
           />
         </div>
         <div className="flex gap-2">

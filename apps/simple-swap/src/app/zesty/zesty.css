@@ -45,7 +45,7 @@
 .zesty button:focus-visible,
 .zesty a:focus-visible,
 .zesty summary:focus-visible,
-.zesty input:focus-visible {
+.zesty input[type='checkbox']:focus-visible {
   outline: 3px solid var(--z-orange);
   outline-offset: 2px;
 }
