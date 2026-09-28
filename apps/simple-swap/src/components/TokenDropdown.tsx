@@ -64,7 +64,7 @@ export default function TokenDropdown({
         if (price === 0) return 0;
 
         // Special handling for STX
-        if (token.contractId === 'STX' || token.contractId.toLowerCase() === 'stx') {
+        if (['stx', '.stx'].includes(token.contractId.toLowerCase())) {
             if (balanceMode === 'subnet') return 0;
             const stxBalance = getStxBalance(address);
             return stxBalance * price;
@@ -91,7 +91,7 @@ export default function TokenDropdown({
 
     const filtered = useMemo(() => {
         // Add STX as a synthetic token if not already present
-        const hasSTX = tokens.some(t => t.contractId === 'STX' || t.contractId.toLowerCase() === 'stx');
+        const hasSTX = tokens.some(t => ['stx', '.stx'].includes(t.contractId.toLowerCase()));
         let result = tokens;
 
         if (includeStx && !hasSTX) {

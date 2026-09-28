@@ -204,7 +204,7 @@ export function WalletBalanceProvider({
 
   const getFormattedBalanceWithSubnet = (address: string, contractId: string): { mainnet: string; subnet: string; hasSubnet: boolean } => {
     // Special handling for STX
-    if (contractId === 'STX' || contractId.toLowerCase() === 'stx') {
+    if (['stx', '.stx'].includes(contractId.toLowerCase())) {
       const stxBalance = getStxBalance(address);
       const formatted = stxBalance > 0 ? stxBalance.toLocaleString('en-US', {
         minimumFractionDigits: 0,
