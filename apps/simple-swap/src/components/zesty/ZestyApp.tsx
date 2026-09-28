@@ -17,6 +17,7 @@ import { Approve, type ApprovalStep } from './screens/Approve';
 import { Watch } from './screens/Watch';
 import { Done } from './screens/Done';
 import { Trades } from './screens/Trades';
+import { Money } from './screens/Money';
 import { BigButton } from './ui';
 
 type Screen = 'side' | 'amount' | 'set' | 'approve';
@@ -120,7 +121,8 @@ export function ZestyApp() {
         </>
       );
     }
-    if (view === 'trades') return <Trades trades={trades} money={money} onChange={reload} />;
+    if (view === 'trades') return <Trades trades={trades} onChange={reload} />;
+    if (view === 'money') return <Money money={money} tradeActive={!!tradeActive} />;
     if (screen === 'approve') return <Approve steps={steps} error={error} onRetry={startTrade} />;
     if (trade && tradeActive) {
       return <Watch trade={trade} zestPrice={money.zestPrice} busy={busy} error={error} onSellNow={finishNow} onCancel={cancelTrade} />;
@@ -146,8 +148,8 @@ export function ZestyApp() {
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F7F7F7]">
-      <MoneyHeader money={money} tradeActive={!!tradeActive} view={view} setView={setView} />
-      {view === 'trades' ? (
+      <MoneyHeader money={money} view={view} setView={setView} />
+      {view !== 'trade' ? (
         <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-6 py-8 lg:py-12">{body()}</main>
       ) : (
         <main className="mx-auto grid w-full max-w-6xl flex-1 items-start gap-10 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_440px] lg:py-12">

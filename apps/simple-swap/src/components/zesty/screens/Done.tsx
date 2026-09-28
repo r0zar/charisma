@@ -40,7 +40,7 @@ export function Done({ trade, zestyUsd, onAgain }: { trade: ZestyTrade; zestyUsd
         <span className="text-[#D9D9D9]">Money in Zesty</span>
         <span className="font-medium">{zestyUsd === null ? '…' : formatUsd(zestyUsd)}</span>
       </div>
-      <p className="m-0 text-center text-[13px] text-[#D9D9D9]">Open My trades to move it to your wallet.</p>
+      <p className="m-0 text-center text-[13px] text-[#D9D9D9]">Open Money to move it to your wallet.</p>
       <div className="mt-auto">
         <BigButton onClick={onAgain}>Trade again</BigButton>
       </div>

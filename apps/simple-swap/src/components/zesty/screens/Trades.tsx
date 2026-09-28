@@ -1,15 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ZESTY_TOKENS, type ZestyTokenKey } from '@/lib/zesty/config';
-import { toUsd } from '@/lib/zesty/plan';
 import { cancelOrders, runNow } from '@/lib/zesty/orders';
-import { CashOut } from '../CashOut';
-import { BigButton, Card, ErrorNote, StepTitle, TokenIcon } from '../ui';
-import { formatPrice, formatUsd, type useZestyMoney } from '../use-zesty-money';
+import { BigButton, Card, ErrorNote, StepTitle } from '../ui';
+import { formatPrice, formatUsd } from '../use-zesty-money';
 import type { ZestyTrade } from '../use-zesty-trade';
-
-const KEYS = Object.keys(ZESTY_TOKENS) as ZestyTokenKey[];
 
 const STATE_LABEL: Record<ZestyTrade['state'], string> = {
   converting: 'Starting',
@@ -63,26 +58,10 @@ function TradeRow({ trade, onChange }: { trade: ZestyTrade; onChange: () => void
   );
 }
 
-export function Trades({ trades, money, onChange }: { trades: ZestyTrade[]; money: ReturnType<typeof useZestyMoney>; onChange: () => void }) {
-  const tradeActive = trades.some(t => t.state === 'converting' || t.state === 'waiting');
-  const { holdings } = money;
+export function Trades({ trades, onChange }: { trades: ZestyTrade[]; onChange: () => void }) {
   return (
     <>
-      <StepTitle eyebrow="Your money" title="My trades" />
-      <Card className="flex flex-col gap-3">
-        <div className="flex items-baseline justify-between">
-          <span className="text-[14px] text-[#3D3D3D]">Money in Zesty</span>
-          <span className="text-[26px] font-medium">{money.zestyUsd === null ? '…' : formatUsd(money.zestyUsd)}</span>
-        </div>
-        {holdings && KEYS.map(key => (
-          <div key={key} className="flex items-center gap-2 text-[14px] text-[#3D3D3D]">
-            <TokenIcon token={key} size={20} />
-            <span className="flex-1">{ZESTY_TOKENS[key].symbol}</span>
-            <span>{formatUsd(toUsd(key, holdings[key].zesty, holdings[key].price))}</span>
-          </div>
-        ))}
-        <CashOut money={money} tradeActive={tradeActive} />
-      </Card>
+      <StepTitle eyebrow="Your trades" title="My trades" />
       {trades.length === 0 && <p className="m-0 text-center text-[14px] text-[#5C5C5C]">No trades yet.</p>}
       <div className="grid gap-4 md:grid-cols-2">
         {trades.map(trade => <TradeRow key={trade.strategyId} trade={trade} onChange={onChange} />)}
