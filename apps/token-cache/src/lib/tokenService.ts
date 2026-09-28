@@ -140,6 +140,11 @@ export const getCacheKey = (contractId: string): string => {
     if (!contractId.includes('.')) {
         throw new Error(`Invalid contractId format (expected address.contract): ${contractId}`);
     }
+
+    // Asset identifiers (address.contract::asset) are not contract ids
+    if (contractId.includes('::')) {
+        throw new Error(`Invalid contractId (asset identifier, expected address.contract): ${contractId}`);
+    }
     
     // Handle special case for STX
     if (contractId === '.stx') {
@@ -238,6 +243,14 @@ export const getTokenData = async (contractId: string, forceRefresh: boolean = f
                 }
             } else {
                 mergedData = tokenMetadata;
+            }
+
+            // Subnet tokens hold their base token (no FT of their own): the asset identifier and artwork are the base's
+            if (mergedData.type === 'SUBNET' && mergedData.base) {
+                const base = await getTokenData(mergedData.base);
+                if (!base) throw new Error(`Base token ${mergedData.base} not found for subnet token ${contractId}`);
+                mergedData.identifier = base.identifier;
+                if (base.image && !base.image.includes('ui-avatars.com')) mergedData.image = base.image;
             }
 
             await kv.set(cacheKey, mergedData, { ex: CACHE_DURATION_SECONDS });

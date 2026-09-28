@@ -146,6 +146,12 @@ export class Cryptonomicon {
 
             if (this.config.debug) console.debug(`[${contractId}] Final Merged Metadata (Supply Overridden):`, finalMetadata);
 
+            // 4c. Many tokens' own image links are dead (deleted buckets, 404s); Hiro keeps a saved copy
+            if (!(await this.isUsableImage(finalMetadata.image))) {
+                const recovered = await this.getHiroCachedImage(contractId) ?? await this.getVaultImage(contractId);
+                if (recovered) finalMetadata.image = recovered;
+            }
+
             // Validate essential fields more comprehensively
             const missingFields = [];
             if (!finalMetadata.name) missingFields.push('name');
@@ -173,6 +179,53 @@ export class Cryptonomicon {
                 console.error(`Complete metadata retrieval failed for ${contractId}: ${error}`);
             }
             return null; // Final catch-all
+        }
+    }
+
+    /**
+     * An image is usable if it's a real (non-generated) image that actually loads
+     */
+    private async isUsableImage(image?: string): Promise<boolean> {
+        if (!image || image.includes('ui-avatars.com')) return false;
+        if (image.startsWith('data:')) return true;
+        try {
+            const response = await fetch(image.replace('ipfs://', 'https://ipfs.io/ipfs/'), { signal: AbortSignal.timeout(8000) });
+            return response.ok && (response.headers.get('content-type') || '').startsWith('image/');
+        } catch {
+            return false;
+        }
+    }
+
+    /**
+     * Hiro's token metadata API keeps a cached copy of each token's image
+     */
+    private async getHiroCachedImage(contractId: string): Promise<string | undefined> {
+        try {
+            const response = await fetch(`https://api.hiro.so/metadata/v1/ft/${contractId}`, {
+                headers: this.config.apiKey ? { 'x-api-key': this.config.apiKey } : {},
+                signal: AbortSignal.timeout(8000),
+            });
+            if (!response.ok) return undefined;
+            const data = await response.json();
+            return data?.metadata?.cached_image || data?.image_uri || undefined;
+        } catch (error) {
+            console.warn(`Failed to fetch Hiro cached image for ${contractId}: ${error}`);
+            return undefined;
+        }
+    }
+
+    /**
+     * Charisma vault/LP tokens have their artwork in the dex-cache vault registry
+     */
+    private async getVaultImage(contractId: string): Promise<string | undefined> {
+        try {
+            const response = await fetch(`https://invest.charisma.rocks/api/v1/vaults/${contractId}`, { signal: AbortSignal.timeout(8000) });
+            if (!response.ok) return undefined;
+            const image: string | undefined = (await response.json())?.data?.image;
+            return image && await this.isUsableImage(image) ? image : undefined;
+        } catch (error) {
+            console.warn(`Failed to fetch vault image for ${contractId}: ${error}`);
+            return undefined;
         }
     }
 
