@@ -5,6 +5,7 @@
  * Handles trigger types, validation, and trigger-specific logic
  */
 
+import { SIGNER_PAYOUT_ROUTER } from '@/lib/orders/types';
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { signTriggeredSwap } from 'blaze-sdk';
@@ -390,6 +391,7 @@ export function OrderConditionsProvider({
       targetPrice,
       direction,
       recipient: walletAddress,
+      router: SIGNER_PAYOUT_ROUTER,
       uuid: globalThis.crypto?.randomUUID() ?? Date.now().toString(),
     };
 
@@ -457,6 +459,7 @@ export function OrderConditionsProvider({
         subnet: params.fromToken,
         uuid: payload.uuid as string,
         amount: BigInt(params.amountIn),
+        multihopContractId: SIGNER_PAYOUT_ROUTER,
       };
 
       const signature = await signTriggeredSwap(signatureData);

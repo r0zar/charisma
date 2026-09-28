@@ -3,6 +3,7 @@
  * Handles router, quotes, swaps, orders, balance checking, and all trading functionality
  */
 
+import { SIGNER_PAYOUT_ROUTER } from '@/lib/orders/types';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getQuote, getRoutableTokens } from '../app/actions';
 import { buildSwapTransaction, loadVaults, Route, Router } from 'dexterity-sdk';
@@ -668,6 +669,7 @@ export function useRouterTrading() {
       subnet: fromContractId,
       uuid,
       amount: BigInt(micro),
+      multihopContractId: SIGNER_PAYOUT_ROUTER,
     };
     console.log('✍️ Signature data:', signatureData);
 
@@ -722,6 +724,7 @@ export function useRouterTrading() {
         targetPrice,
         direction,
         recipient: walletAddress,
+        router: SIGNER_PAYOUT_ROUTER,
         signature,
         uuid,
       };

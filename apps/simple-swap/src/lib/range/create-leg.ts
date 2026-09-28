@@ -1,6 +1,6 @@
 import { signTriggeredSwap } from 'blaze-sdk';
 import { convertToMicroUnits } from '@/lib/swap-utils';
-import type { LimitOrder, NewOrderRequest } from '@/lib/orders/types';
+import { SIGNER_PAYOUT_ROUTER, type LimitOrder, type NewOrderRequest } from '@/lib/orders/types';
 import type { RangeLegSpec, RangeSettings } from './types';
 
 export interface RangeRun {
@@ -21,7 +21,7 @@ export async function createRangeLeg(walletAddress: string, leg: RangeLegSpec, r
   if (micro === '0') {
     throw new Error(`Invalid amount for ${leg.leg} leg ${leg.position}: ${leg.amountDisplay}`);
   }
-  const signature = await signTriggeredSwap({ subnet: leg.inputToken, uuid, amount: BigInt(micro) });
+  const signature = await signTriggeredSwap({ subnet: leg.inputToken, uuid, amount: BigInt(micro), multihopContractId: SIGNER_PAYOUT_ROUTER });
 
   const payload: NewOrderRequest = {
     owner: walletAddress,
@@ -33,6 +33,7 @@ export async function createRangeLeg(walletAddress: string, leg: RangeLegSpec, r
     targetPrice: leg.targetPrice,
     direction: leg.direction,
     recipient: walletAddress,
+    router: SIGNER_PAYOUT_ROUTER,
     signature,
     uuid,
     validFrom: leg.validFrom,
