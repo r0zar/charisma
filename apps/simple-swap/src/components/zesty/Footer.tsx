@@ -52,7 +52,7 @@ export function Footer() {
           <p className="m-0 leading-relaxed">We pay the network fee for every trade that runs while you&apos;re away. It&apos;s tiny, but if this runs dry, trades stop triggering at their price. Tippers keep it going, and we love tippers.</p>
           <div className="flex gap-2">
             {TIPS.map(stx => (
-              <button key={stx} type="button" onClick={() => tip(stx)} disabled={!solver} className="min-h-[44px] flex-1 rounded-full bg-[#FC6432] text-[14px] font-medium text-black disabled:opacity-40">
+              <button key={stx} type="button" onClick={() => tip(stx)} disabled={!solver} className="min-h-[44px] flex-1 rounded-full border border-[#3A3A3A] bg-transparent text-[14px] text-[#D9D9D9] hover:enabled:border-[#FC6432] hover:enabled:text-white">
                 Tip {stx} STX
               </button>
             ))}
