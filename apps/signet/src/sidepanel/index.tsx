@@ -41,13 +41,15 @@ function SidePanel() {
   const { isWalletInitialized, currentAccount } = useSignetContext()
   const [tab, setTab] = useState<Tab>('WALLET')
   // Locked: only the wallet (unlock). Transfers and diagnostics need an active account.
-  const tabs: Tab[] = isWalletInitialized && currentAccount ? ['WALLET', 'TRANSFER', 'DIAGNOSTICS'] : ['WALLET']
+  const unlocked = isWalletInitialized && !!currentAccount
+  const tabs: Tab[] = unlocked ? ['WALLET', 'TRANSFER', 'DIAGNOSTICS'] : ['WALLET']
   const Page = PAGES[tabs.includes(tab) ? tab : 'WALLET']
 
   return (
     <div
       style={{
         margin: '0px',
+        position: 'relative',
         width: '100%',
         height: '100vh',
         display: 'flex',
@@ -89,50 +91,44 @@ function SidePanel() {
         </div>
       )}
 
-      <ErrorBoundary key={tab}>
-        {Page === Diagnostics ? <Diagnostics /> : (
-          <div className="signet-scrollbar" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-            <Page />
+      {unlocked ? (
+        // The Diagnostics frame on every tab: live header, mesh background, footer
+        <DiagnosticsProvider>
+          <StatusDisplay />
+          <div className="hud-grid signet-scrollbar" style={{ flex: 1, minHeight: 0, overflowY: Page === Diagnostics ? 'hidden' : 'auto', position: 'relative', paddingBottom: FOOTER_HEIGHT }}>
+            <ErrorBoundary key={tab}>
+              <Page />
+            </ErrorBoundary>
           </div>
-        )}
-      </ErrorBoundary>
+          <SystemMetrics />
+          <style>
+            {keyframes.slideInUp}
+            {keyframes.slideInRight}
+            {keyframes.shimmer}
+            {keyframes.scanLine}
+            {keyframes.spin}
+          </style>
+        </DiagnosticsProvider>
+      ) : (
+        <div className="hud-grid signet-scrollbar" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <ErrorBoundary key={tab}>
+            <Page />
+          </ErrorBoundary>
+        </div>
+      )}
     </div>
   )
 }
 
+/** Space kept clear at the bottom of each tab for the footer (SystemMetrics) */
+const FOOTER_HEIGHT = '48px'
+
 /** The hologram, on real data: Stacks network, Blaze subnets and your balances on them, and the lock timer */
 function Diagnostics() {
   return (
-    <DiagnosticsProvider>
-      <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
-        <StatusDisplay />
-
-        <div style={{ position: 'relative', height: 'calc(100% - 80px)', overflow: 'hidden' }}>
-          {/* Background grid lines */}
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: `
-              linear-gradient(to right, rgba(125, 249, 255, 0.05) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(125, 249, 255, 0.05) 1px, transparent 1px)
-            `,
-            backgroundSize: '20px 20px',
-            zIndex: 0
-          }} />
-          <HologramDisplay />
-          <ConsoleView />
-        </div>
-
-        <SystemMetrics />
-
-        <style>
-          {keyframes.slideInUp}
-          {keyframes.slideInRight}
-          {keyframes.shimmer}
-          {keyframes.scanLine}
-          {keyframes.spin}
-        </style>
-      </div>
-    </DiagnosticsProvider>
+    <div style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
+      <HologramDisplay />
+      <ConsoleView />
+    </div>
   )
 }

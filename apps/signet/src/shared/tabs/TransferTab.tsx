@@ -2,10 +2,10 @@
  * TransferTab - the active account's tokens (STX and every SIP-10 it holds), and sending them.
  */
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
 import { useSignetContext } from '~shared/context/SignetContext';
 import { sendMessage } from '~shared/context/utils';
-import { colors, tint } from '~shared/styles/theme';
+import { colors } from '~shared/styles/theme';
+import { HudButton, HudLabel, HudLine, HudPanel, HudScreen, HudStat } from '~shared/hud';
 import type { TokenBalance } from '~background/lib/tokens';
 
 /** Raw smallest units → "1,234.5678" */
@@ -29,10 +29,10 @@ const label = (token: TokenBalance) => token.meta?.symbol ?? token.contractId.sp
 function TokenIcon({ token }: { token: TokenBalance }) {
   const [broken, setBroken] = useState(false);
   if (token.meta?.image && !broken) {
-    return <img src={token.meta.image} alt="" width={28} height={28} onError={() => setBroken(true)} style={{ borderRadius: '50%', flexShrink: 0 }} />;
+    return <img src={token.meta.image} alt="" width={16} height={16} onError={() => setBroken(true)} style={{ borderRadius: '50%', flexShrink: 0, boxShadow: '0 0 6px rgba(125, 249, 255, 0.35)' }} />;
   }
   return (
-    <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(125, 249, 255, 0.1)', border: '1px solid rgba(125, 249, 255, 0.3)', color: colors.cyber, fontSize: '12px', fontWeight: 'bold' }}>
+    <div style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(125, 249, 255, 0.5)', color: colors.cyber, fontSize: '8px', fontFamily: 'monospace', fontWeight: 'bold' }}>
       {label(token).charAt(0).toUpperCase()}
     </div>
   );
@@ -43,10 +43,10 @@ function Bone({ width, height, round }: { width: number | string; height: number
   return (
     <div style={{
       width, height, flexShrink: 0,
-      borderRadius: round ? '50%' : '4px',
+      borderRadius: round ? '50%' : '2px',
       background: 'linear-gradient(90deg, rgba(125, 249, 255, 0.06) 25%, rgba(125, 249, 255, 0.16) 50%, rgba(125, 249, 255, 0.06) 75%)',
       backgroundSize: '200% 100%',
-      animation: 'signet-shimmer 1.4s ease-in-out infinite'
+      animation: 'signet-bone 1.4s ease-in-out infinite'
     }} />
   );
 }
@@ -55,45 +55,18 @@ function Bone({ width, height, round }: { width: number | string; height: number
 function TokenSkeletons() {
   return (
     <>
-      <style>{'@keyframes signet-shimmer { from { background-position: 200% 0 } to { background-position: -200% 0 } }'}</style>
-      {[64, 48, 56, 40].map((nameWidth, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', border: '1px solid rgba(125, 249, 255, 0.15)', borderRadius: '6px', background: 'rgba(1, 4, 9, 0.5)' }}>
-          <Bone width={28} height={28} round />
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <Bone width={nameWidth} height={12} />
-            <Bone width={nameWidth * 1.6} height={9} />
+      <style>{'@keyframes signet-bone { from { background-position: 200% 0 } to { background-position: -200% 0 } }'}</style>
+      {[48, 36, 42, 30].map((nameWidth, i) => (
+        <div key={i} className="hud-row">
+          <Bone width={16} height={16} round />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+            <Bone width={nameWidth} height={9} />
+            <Bone width={nameWidth * 1.8} height={7} />
           </div>
-          <Bone width={70} height={12} />
+          <Bone width={60} height={9} />
         </div>
       ))}
     </>
-  );
-}
-
-const input = {
-  width: '100%',
-  boxSizing: 'border-box' as const,
-  padding: '10px 12px',
-  background: 'rgba(1, 4, 9, 0.8)',
-  border: '1px solid rgba(125, 249, 255, 0.4)',
-  borderRadius: '6px',
-  color: colors.cyber,
-  fontSize: '13px',
-  fontFamily: 'monospace'
-};
-
-function Button({ children, onClick, disabled, color = colors.cyber, grow = true }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; color?: string; grow?: boolean }) {
-  return (
-    <motion.button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      whileHover={disabled ? undefined : { scale: 1.02, boxShadow: `0 0 8px ${tint(color, 0.4)}` }}
-      whileTap={disabled ? undefined : { scale: 0.98 }}
-      style={{ flex: grow ? 1 : 'none', padding: '10px 14px', background: `${tint(color, 0.1)}`, border: `1px solid ${tint(color, 0.4)}`, borderRadius: '4px', color, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.4 : 1, fontSize: '12px', fontWeight: 'bold', letterSpacing: '0.08em' }}
-    >
-      {children}
-    </motion.button>
   );
 }
 
@@ -132,47 +105,50 @@ function SendForm({ token, onDone, onCancel }: { token: TokenBalance; onDone: ()
     }
   };
 
+  const errorLine = error && <div role="alert"><HudLine tone="red">{error}</HudLine></div>;
+
   if (txid) {
     const id = txid.startsWith('0x') ? txid : `0x${txid}`;
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px' }}>
-        <div style={{ color: colors.neonGreen, fontWeight: 'bold' }}>✓ Sent. It confirms in a few minutes.</div>
-        <a href={`https://explorer.hiro.so/txid/${id}?chain=mainnet`} target="_blank" rel="noopener noreferrer" style={{ color: colors.cyber }}>View on explorer ↗</a>
-        <Button onClick={onDone}>DONE</Button>
-      </div>
+      <>
+        <HudLine tone="green">SENT · CONFIRMS IN A FEW MINUTES</HudLine>
+        <a href={`https://explorer.hiro.so/txid/${id}?chain=mainnet`} target="_blank" rel="noopener noreferrer" style={{ color: colors.cyber, fontFamily: 'monospace', fontSize: '8px' }}>VIEW ON EXPLORER ↗</a>
+        <HudButton onClick={onDone}>Done</HudButton>
+      </>
     );
   }
 
   if (review) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px' }}>
-        <div style={{ color: colors.steel }}>Review</div>
-        <div style={{ color: '#fff', fontSize: '15px', fontWeight: 'bold' }}>{formatUnits(review, decimals)} {label(token)}</div>
-        <div style={{ color: colors.steel, wordBreak: 'break-all' }}>to {recipient.trim()}</div>
-        {token.contractId !== '.stx' && <div style={{ color: colors.neonGreen }}>🛡️ Exactly this amount can leave your wallet</div>}
-        <div style={{ color: colors.steel }}>Network fee is set automatically.</div>
-        {error && <div role="alert" style={{ color: colors.neonRed }}>{error}</div>}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <Button onClick={() => setReview(null)} disabled={busy} color={colors.steel}>BACK</Button>
-          <Button onClick={send} disabled={busy} color={colors.neonGreen}>{busy ? 'SENDING…' : 'SEND'}</Button>
+      <>
+        <HudStat label="SEND" value={`${formatUnits(review, decimals)} ${label(token)}`} />
+        <HudStat label="TO" value={recipient.trim()} />
+        <HudStat label="FEE" value="AUTO" tone="steel" />
+        {token.contractId !== '.stx' && <HudStat label="GUARD" value="EXACT AMOUNT ONLY" tone="green" />}
+        {errorLine}
+        <div style={{ display: 'flex', gap: '6px' }}>
+          <HudButton tone="steel" grow onClick={() => setReview(null)} disabled={busy}>Back</HudButton>
+          <HudButton tone="green" grow onClick={send} disabled={busy}>{busy ? 'Sending…' : 'Send'}</HudButton>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <input style={input} placeholder="Recipient address (SP…)" value={recipient} onChange={e => setRecipient(e.target.value)} aria-label="Recipient address" />
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <input style={input} placeholder={`Amount of ${label(token)}`} inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} aria-label="Amount" />
-        <Button grow={false} onClick={() => setAmount(formatUnits(token.balance, decimals).replace(/,/g, ''))}>MAX</Button>
+    <>
+      <HudLabel>Recipient</HudLabel>
+      <input className="hud-input" placeholder="SP…" value={recipient} onChange={e => setRecipient(e.target.value)} aria-label="Recipient address" />
+      <HudLabel>Amount</HudLabel>
+      <div style={{ display: 'flex', gap: '6px' }}>
+        <input className="hud-input" placeholder={`0.0 ${label(token)}`} inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} aria-label="Amount" />
+        <HudButton onClick={() => setAmount(formatUnits(token.balance, decimals).replace(/,/g, ''))}>Max</HudButton>
       </div>
-      {error && <div role="alert" style={{ color: colors.neonRed, fontSize: '12px' }}>{error}</div>}
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <Button onClick={onCancel} color={colors.steel}>CANCEL</Button>
-        <Button onClick={toReview}>REVIEW</Button>
+      {errorLine}
+      <div style={{ display: 'flex', gap: '6px' }}>
+        <HudButton tone="steel" grow onClick={onCancel}>Cancel</HudButton>
+        <HudButton grow onClick={toReview}>Review</HudButton>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -192,44 +168,50 @@ export function TransferTab() {
 
   useEffect(load, [currentAccount?.stxAddress]);
 
+  const selectedToken = balances?.find(token => `${token.contractId}::${token.asset}` === selected);
+
   return (
-    <div style={{ padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontFamily: 'monospace', fontSize: '12px', color: colors.cyber, fontWeight: 'bold' }}>TOKENS</span>
-        <button type="button" onClick={load} style={{ background: 'none', border: 'none', color: colors.steel, cursor: 'pointer', fontSize: '11px' }}>↻ Refresh</button>
-      </div>
-
-      {error && <div role="alert" style={{ color: colors.neonRed, fontSize: '12px' }}>{error}</div>}
-      {!balances && !error && <TokenSkeletons />}
-
-      {balances?.map(token => {
-        const key = `${token.contractId}::${token.asset}`;
-        const open = selected === key;
-        return (
-          <div key={key} style={{ border: `1px solid ${open ? 'rgba(125, 249, 255, 0.5)' : 'rgba(125, 249, 255, 0.15)'}`, borderRadius: '6px', background: 'rgba(1, 4, 9, 0.5)' }}>
-            <button
-              type="button"
-              onClick={() => token.meta && setSelected(open ? null : key)}
-              title={token.meta ? `Send ${label(token)}` : 'Unknown token: shown in smallest units, not sendable here'}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', background: 'none', border: 'none', cursor: token.meta ? 'pointer' : 'default', color: '#fff', textAlign: 'left' }}
-            >
-              <TokenIcon token={token} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '13px', fontWeight: 'bold' }}>{label(token)}</div>
-                <div style={{ fontSize: '11px', color: colors.steel, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{token.meta?.name ?? token.contractId}</div>
-              </div>
-              <div style={{ fontSize: '13px', fontFamily: 'monospace' }}>
-                {token.meta ? formatUnits(token.balance, token.meta.decimals) : `${token.balance} units`}
-              </div>
-            </button>
-            {open && (
-              <div style={{ padding: '0 12px 12px' }}>
-                <SendForm token={token} onCancel={() => setSelected(null)} onDone={() => { setSelected(null); load(); }} />
-              </div>
-            )}
+    <div style={{ padding: '8px' }}>
+      <HudScreen
+        title="TOKENS"
+        stats={[
+          { label: 'HELD', value: balances ? balances.length : '…' },
+          { label: 'NET', value: 'MAINNET', tone: 'green' }
+        ]}
+      >
+        <HudPanel
+          title="BALANCES"
+          right={<button type="button" onClick={load} title="Refresh" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'monospace', fontSize: '9px', padding: 0 }}>↻</button>}
+        >
+          {error && <div role="alert"><HudLine tone="red">{error}</HudLine></div>}
+          {!balances && !error && <TokenSkeletons />}
+          <div>
+            {balances?.map(token => {
+              const key = `${token.contractId}::${token.asset}`;
+              const open = selected === key;
+              return (
+                <div
+                  key={key}
+                  className={`hud-row${token.meta ? ' is-clickable' : ''}${open ? ' is-open' : ''}`}
+                  onClick={() => token.meta && setSelected(open ? null : key)}
+                  title={token.meta ? `Send ${label(token)}` : 'Unknown token: shown in smallest units, not sendable here'}
+                >
+                  <TokenIcon token={token} />
+                  <span style={{ color: colors.cyber, fontWeight: 'bold', minWidth: '44px' }}>{label(token)}</span>
+                  <span style={{ flex: 1, minWidth: 0, color: 'rgba(255, 255, 255, 0.45)', fontSize: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(token.meta?.name ?? token.contractId).toUpperCase()}</span>
+                  <span style={{ color: '#fff' }}>{token.meta ? formatUnits(token.balance, token.meta.decimals) : `${token.balance} U`}</span>
+                </div>
+              );
+            })}
           </div>
-        );
-      })}
+        </HudPanel>
+
+        {selectedToken?.meta && (
+          <HudPanel key={selected} title={`SEND ${label(selectedToken)}`} tone="amber">
+            <SendForm token={selectedToken} onCancel={() => setSelected(null)} onDone={() => { setSelected(null); load(); }} />
+          </HudPanel>
+        )}
+      </HudScreen>
     </div>
   );
 }

@@ -161,3 +161,93 @@ body {
   border-color: rgba(193, 18, 31, 0.2);
   box-shadow: 0 8px 24px rgba(193, 18, 31, 0.1);
 }
+
+/* ── HUD kit: the Diagnostics look for every tab ──────────────────────────── */
+/* Tint any control with --hud-c (an "r, g, b" triple), e.g. style={{ '--hud-c': '125, 249, 255' }} */
+
+.hud-grid {
+  background-image:
+    linear-gradient(to right, rgba(125, 249, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(125, 249, 255, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.hud-label {
+  font-family: monospace;
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.hud-text {
+  font-family: monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.hud-btn {
+  --hud-c: 125, 249, 255;
+  font-family: monospace;
+  font-size: 8px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border-radius: 2px;
+  border: 1px solid rgba(var(--hud-c), 0.45);
+  background: rgba(var(--hud-c), 0.06);
+  color: rgba(var(--hud-c), 0.9);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.hud-btn:hover:not(:disabled) {
+  background: rgba(var(--hud-c), 0.14);
+  border-color: rgba(var(--hud-c), 0.9);
+  color: rgb(var(--hud-c));
+  box-shadow: 0 0 6px rgba(var(--hud-c), 0.4);
+  text-shadow: 0 0 4px rgba(var(--hud-c), 0.7);
+}
+.hud-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.hud-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  padding: 6px 8px;
+  border-radius: 2px;
+  border: 1px solid rgba(125, 249, 255, 0.3);
+  background: rgba(1, 4, 9, 0.85);
+  color: rgb(125, 249, 255);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.hud-input::placeholder { color: rgba(125, 249, 255, 0.35); }
+.hud-input:focus {
+  border-color: rgba(125, 249, 255, 0.8);
+  box-shadow: 0 0 8px rgba(125, 249, 255, 0.3), inset 0 0 5px rgba(125, 249, 255, 0.15);
+}
+
+/* Table-style rows, like the hologram's lists */
+.hud-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 4px;
+  border-bottom: 1px dashed rgba(125, 249, 255, 0.12);
+  font-family: monospace;
+  font-size: 9px;
+  transition: background 0.15s ease;
+}
+.hud-row:last-child { border-bottom: none; }
+.hud-row.is-clickable { cursor: pointer; }
+.hud-row.is-clickable:hover,
+.hud-row.is-open { background: rgba(125, 249, 255, 0.06); }
+.hud-row.is-active { background: rgba(54, 199, 88, 0.06); }

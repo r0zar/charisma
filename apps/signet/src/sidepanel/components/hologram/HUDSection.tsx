@@ -1,7 +1,7 @@
 import { useSpring, animated, config } from "@react-spring/web";
 import type { ReactNode } from "react";
-import { HexPattern } from "./HexPattern";
-import { StatusIndicator } from "./StatusIndicator";
+import { HexPattern } from "~shared/hud/HexPattern";
+import { StatusIndicator } from "~shared/hud/StatusIndicator";
 
 interface Position {
   top?: string;
