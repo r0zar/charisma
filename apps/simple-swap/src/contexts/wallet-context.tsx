@@ -62,11 +62,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const [watchedAddresses, setWatchedAddresses] = useState<string[]>([]);
     const [privacyMode, setPrivacyMode] = useState(true);
 
+    // The Stacks address, wherever the wallet lists it (Leather and Xverse put Bitcoin addresses first)
+    const stacksAddress = (addresses: AddressEntry[]) => addresses.find(a => a.address.startsWith('S'))?.address;
+
     // Check for existing wallet connection
     useEffect(() => {
         const addresses: AddressEntry[] = JSON.parse(localStorage.getItem('addresses') || '[]');
         if (addresses.length) {
-            const mainnetAddress = addresses[2]?.address;
+            const mainnetAddress = stacksAddress(addresses);
             if (mainnetAddress) {
                 setConnected(true);
                 setAddress(mainnetAddress);
@@ -133,7 +136,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             const result = await connect();
             localStorage.setItem('addresses', JSON.stringify(result.addresses));
 
-            const mainnetAddress = result.addresses[2]?.address;
+            const mainnetAddress = stacksAddress(result.addresses);
             if (mainnetAddress) {
                 setConnected(true);
                 setAddress(mainnetAddress);
