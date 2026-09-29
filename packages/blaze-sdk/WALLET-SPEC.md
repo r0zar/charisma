@@ -139,3 +139,10 @@ result: { revoked: number }
 - **Source-agnostic send**: "send 10 WELSH", with the wallet choosing wallet, subnet, or both.
 - App-specific actions (prediction markets, rewards, subnet deployment): these belong to apps, built on
   `stx_signStructuredMessage` and `stx_callContract`.
+
+## Vision: the wallet as a node
+
+Signet's hackathon version held pending Blaze orders in the browser and settled them itself: a subnet
+mempool running inside the wallet. That removes the dependency on any one server, and it's the long-term
+direction. It needs three things first: durable storage (extension memory is wiped often), wallets sharing
+orders with each other, and a way to pay settlement fees. **Saved signatures** (above) is the first step.
