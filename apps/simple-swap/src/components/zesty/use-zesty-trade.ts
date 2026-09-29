@@ -48,7 +48,8 @@ export function useZestyTrade(address: string) {
     const load = async () => {
       const res = await fetch(`/api/v1/orders?owner=${address}`, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Could not load your trades (${res.status})`);
-      const orders = ((await res.json()).data as LimitOrder[]).filter(o => o.strategyType === 'zesty' && o.strategyId);
+      // Trades from before prices were in sats have no entrySats; Zesty only shows sats trades
+      const orders = ((await res.json()).data as LimitOrder[]).filter(o => o.strategyType === 'zesty' && o.strategyId && o.metadata?.zesty?.entrySats);
       const ids = [...new Set(orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(o => o.strategyId!))];
       if (active) setTrades(ids.map(id => toTrade(id, orders.filter(o => o.strategyId === id))));
     };
