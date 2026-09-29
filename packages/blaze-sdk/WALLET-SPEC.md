@@ -8,7 +8,7 @@ reference wallet.
 
 **Microtransactions without a click each time.** The standard wallet asks before every signature. For Blaze
 that's too much friction: games and tiny payments sign many small orders. These methods let a person allow
-a site to auto-sign a narrow kind of Blaze order (one subnet, chosen actions, capped amounts, an expiry), and
+a site to auto-sign a narrow kind of Blaze message (one subnet, chosen actions, capped amounts, an expiry), and
 revoke it any time.
 
 **Principle:** a wallet method only covers what the wallet alone knows or controls: its keys and the person's
@@ -42,7 +42,7 @@ const { rule } = await request('blaze_requestAutoApprove', { subnet, intents, ma
 
 - **Subnet**: a Blaze token contract whose token-cache metadata has `type: "SUBNET"`; its `base` is the
   on-chain token it holds 1:1 (e.g. `sbtc-token-subnet-v1` → `sbtc-token`).
-- **Blaze order**: a SIP-018 structured message with domain
+- **Blaze message**: a SIP-018 structured message with domain
   `{ name: "BLAZE_PROTOCOL", version: "v1.0", chain-id: u1 }` and message
   `{ contract, intent, opcode?, amount?, target?, uuid }`, signed via `stx_signStructuredMessage`.
 
@@ -50,7 +50,7 @@ const { rule } = await request('blaze_requestAutoApprove', { subnet, intents, ma
 
 ### `blaze_requestAutoApprove`
 
-Ask the person to let this site auto-sign a narrow kind of Blaze order. The wallet shows one approval;
+Ask the person to let this site auto-sign a narrow kind of Blaze message. The wallet shows one approval;
 afterwards, matching `stx_signStructuredMessage` requests from this site are signed without prompting.
 
 ```ts
@@ -58,7 +58,7 @@ params: {
   subnet: string            // one subnet contract id
   intents: string[]         // e.g. ["TRANSFER_TOKENS"]
   maxPerOrder: string       // smallest units, per signature
-  maxTotal: string          // smallest units, across all auto-signed orders
+  maxTotal: string          // smallest units, across all auto-signed messages
   expiresIn: number         // seconds; the wallet may shorten it
 }
 result: { rule: AutoApproveRule }   // as granted (the person may lower limits or expiry)
@@ -77,16 +77,16 @@ interface AutoApproveRule {
 }
 ```
 
-**An order is auto-signed only when all of these hold**, otherwise the normal approval appears:
+**A message is auto-signed only when all of these hold**, otherwise the normal approval appears:
 
 1. The request comes from the rule's `origin`, and the rule hasn't expired or been revoked.
 2. The domain is the Blaze v1 domain.
 3. `message.contract` is the rule's `subnet` and `message.intent` is in `intents`.
 4. `message.amount` is present and ≤ `maxPerOrder`, and `spent + amount` ≤ `maxTotal`.
-5. `message.target`, if present, is a router that pays out only to the signer (`x-multihop-v1`). Orders
+5. `message.target`, if present, is a router that pays out only to the signer (`x-multihop-v1`). Messages
    whose payout the submitter chooses (e.g. `x-multihop-rc9`) are never auto-signed.
 
-The wallet adds `amount` to `spent` for every auto-signed order, and keeps a record the person can review.
+The wallet adds `amount` to `spent` for every auto-signed message, and keeps a record the person can review.
 
 ### `blaze_getAutoApprove`
 
@@ -116,17 +116,18 @@ Public data, so apps look it up directly rather than asking the wallet:
 
 ## Later
 
-- **Bulk signing** (`blaze_signOrders`): sign many Blaze orders from one approval, e.g. 60 orders shown as one
-  card with the count, totals per token and payout router, instead of 60 separate prompts. Auto-approve rules
-  can cover a batch too.
-- **Saved signatures**: signing Blaze orders to keep in the wallet and hand to a site or relayer later.
+- **Bulk signing** (`blaze_signStructuredMessages`, the plural of the standard `stx_signStructuredMessage`): sign
+  many Blaze messages from one approval, e.g. 60 shown as one card with the count, totals per token and payout
+  router, instead of 60 separate prompts. Auto-approve rules can cover a batch too. (Not "multi-signature":
+  in Stacks that means several signers on one transaction.)
+- **Saved signatures**: signing Blaze messages to keep in the wallet and hand to a site or relayer later.
 - **Source-agnostic send**: "send 10 WELSH", with the wallet choosing wallet, subnet, or both.
 - App-specific actions (prediction markets, rewards, subnet deployment) belong to apps, built on
   `stx_signStructuredMessage` and `stx_callContract`.
 
 ## Vision: the wallet as a node
 
-Signet's hackathon version held pending Blaze orders in the browser and settled them itself: a subnet
+Signet's hackathon version held pending Blaze messages in the browser and settled them itself: a subnet
 mempool running inside the wallet. That removes the dependency on any one server, and it's the long-term
 direction. It needs three things first: durable storage (extension memory is wiped often), wallets sharing
 orders with each other, and a way to pay settlement fees. **Saved signatures** is the first step.
