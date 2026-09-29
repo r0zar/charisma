@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySignedRequest } from 'blaze-sdk';
+import { validateStacksAddress } from '@stacks/transactions';
 import { validateApiKey, logApiKeyUsage } from './store';
 import { 
   ApiKeyPermission, 
@@ -250,7 +251,8 @@ export function validateDeleteApiKeyMessage(message: any): message is DeleteApiK
  * Validate wallet address format
  */
 export function validateWalletAddress(address: string): boolean {
-  return VALIDATION_RULES.walletAddress.pattern.test(address);
+  // Mainnet standard address; length varies (40 or 41 characters), so let the Stacks library check it
+  return address.startsWith('SP') && validateStacksAddress(address);
 }
 
 /**

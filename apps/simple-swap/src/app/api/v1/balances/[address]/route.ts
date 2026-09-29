@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccountBalances, callReadOnlyFunction } from '@repo/polyglot';
-import { principalCV } from '@stacks/transactions';
+import { principalCV, validateStacksAddress } from '@stacks/transactions';
 import { fetchMetadata } from '@repo/tokens';
 
 export const runtime = 'nodejs';
@@ -20,11 +20,11 @@ export async function GET(
     const includeZero = url.searchParams.get('includeZero') === 'true';
     
     // Validate address format
-    if (!address || !address.match(/^S[PTM][0-9A-Z]{39}$/)) {
+    if (!address || !validateStacksAddress(address)) {
       return NextResponse.json(
         { 
           error: 'Invalid Stacks address format',
-          message: 'Address must be a valid Stacks address (SP/ST/SM + 39 characters)'
+          message: 'Address must be a valid Stacks address'
         },
         { status: 400 }
       );

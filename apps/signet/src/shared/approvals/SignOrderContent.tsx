@@ -6,13 +6,16 @@ import { Cl, type ClarityValue, type TupleCV } from "@stacks/transactions"
 import { OriginBanner, PermissionLevelIndicator } from "~contents/components/notifications/UIComponents"
 import { BannerType, PermissionLevel } from "~contents/components/notifications/types"
 import { commonStyles } from "~contents/components/notifications/styles"
+import { BLAZE_V1_DOMAIN, LEGACY_MULTIHOP_CONTRACT_ID, MULTIHOP_CONTRACT_ID } from "blaze-sdk"
 import { colors } from "~shared/styles/theme"
 
 /** Routers and what they allow once they hold a signed order */
 const ROUTERS: Record<string, { text: string; color: string }> = {
-  "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1": { text: "Only to you", color: colors.neonGreen },
-  "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9": { text: "Wherever the submitter chooses", color: colors.neonRed },
+  [MULTIHOP_CONTRACT_ID]: { text: "Only to you", color: colors.neonGreen },
+  [LEGACY_MULTIHOP_CONTRACT_ID]: { text: "Wherever the submitter chooses", color: colors.neonRed },
 }
+
+const BLAZE_NAME = Cl.prettyPrint(BLAZE_V1_DOMAIN.value.name).replace(/"/g, "")
 
 const shortName = (principal: string) => principal.split(".").pop() ?? principal
 
@@ -61,7 +64,7 @@ export function SignOrderContent({ origin, address, message, domain }: {
   const data = Cl.deserialize(message)
   const domainFields = (Cl.deserialize(domain) as TupleCV).value
   const appName = Cl.prettyPrint(domainFields.name).replace(/"/g, "")
-  const isBlaze = appName === "BLAZE_PROTOCOL" && data.type === "tuple"
+  const isBlaze = appName === BLAZE_NAME && data.type === "tuple"
 
   return (
     <div style={commonStyles.contentContainer}>

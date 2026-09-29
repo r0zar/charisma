@@ -157,9 +157,6 @@ export interface ApiKeyValidationRules {
     length: number;
     pattern: RegExp;
   };
-  walletAddress: {
-    pattern: RegExp;
-  };
 }
 
 export const VALIDATION_RULES: ApiKeyValidationRules = {
@@ -181,9 +178,6 @@ export const VALIDATION_RULES: ApiKeyValidationRules = {
     length: 130, // 65 bytes in hex
     pattern: /^[0-9a-fA-F]{130}$/
   },
-  walletAddress: {
-    pattern: /^SP[0-9A-Z]{39}$/
-  }
 };
 
 // Error codes

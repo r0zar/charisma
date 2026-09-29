@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAccountBalances, callReadOnlyFunction } from '@repo/polyglot';
-import { principalCV } from '@stacks/transactions';
+import { principalCV, validateStacksAddress } from '@stacks/transactions';
 import { fetchMetadata } from '@repo/tokens';
 
 export const runtime = 'nodejs';
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     // Validate all addresses
     const invalidAddresses = addresses.filter(addr => 
-      !addr || !addr.match(/^S[PTM][0-9A-Z]{39}$/)
+      !addr || !validateStacksAddress(addr)
     );
     
     if (invalidAddresses.length > 0) {
