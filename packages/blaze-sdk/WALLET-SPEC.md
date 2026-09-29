@@ -6,12 +6,14 @@ reference wallet.
 
 ## Why
 
-The standard gives apps `connect`, `sign` and `send`. Blaze adds two things wallets can't express today:
+**Microtransactions without a click each time.** The standard wallet asks before every signature. For Blaze
+that's too much friction: games and tiny payments sign many small orders. These methods let a person allow
+a site to auto-sign a narrow kind of Blaze order (one subnet, chosen actions, capped amounts, an expiry), and
+revoke it any time.
 
-1. **One balance per token.** A token can sit in the wallet *and* in its subnet. Apps (and people) should see
-   one number, with the breakdown available.
-2. **Microtransactions without a click each time.** A person can let a site auto-sign a narrow kind of Blaze
-   order (one subnet, one action, capped amounts, an expiry), and revoke it any time.
+**Principle:** a wallet method only covers what the wallet alone knows or controls: its keys and the person's
+choices. Anything public (which subnets exist, balances once an app has the address) apps look up directly,
+e.g. with `blaze-sdk` or `@repo/tokens`.
 
 ## Transport
 
@@ -19,7 +21,7 @@ Exactly the standard provider. Nothing new to install for apps:
 
 ```js
 import { request } from '@stacks/connect'
-const { tokens } = await request('blaze_getBalances')
+const { rule } = await request('blaze_requestAutoApprove', { subnet, intents, maxPerOrder, maxTotal, expiresIn })
 ```
 
 - A wallet registers in `window.wbip_providers` and exposes `window.<Id>.request(method, params)`.
@@ -32,7 +34,6 @@ const { tokens } = await request('blaze_getBalances')
 | Code | Meaning |
 |---|---|
 | `-32000` | User rejected |
-| `-32002` | Not allowed: the site isn't connected, or the method needs approval it doesn't have |
 | `-32601` | Method not supported by this wallet |
 | `-32602` | Invalid params |
 | `-32603` | Internal error (message says what failed) |
@@ -44,32 +45,8 @@ const { tokens } = await request('blaze_getBalances')
 - **Blaze order**: a SIP-018 structured message with domain
   `{ name: "BLAZE_PROTOCOL", version: "v1.0", chain-id: u1 }` and message
   `{ contract, intent, opcode?, amount?, target?, uuid }`, signed via `stx_signStructuredMessage`.
-- **Connected site**: a site the person approved in `getAddresses` / `stx_getAddresses` this session.
 
 ## Methods
-
-### `blaze_getBalances`
-
-The connected account's balances, **one entry per token**, wallet and subnets combined. Connected sites
-only (`-32002` otherwise).
-
-```ts
-params: { tokens?: string[] }   // base contract ids to include; all held tokens when omitted
-result: {
-  address: string
-  tokens: {
-    base: string            // on-chain token contract id (".stx" for STX)
-    symbol: string
-    decimals: number
-    total: string           // smallest units: wallet + all subnets
-    wallet: string          // on-chain balance
-    subnets: { contractId: string; balance: string }[]
-  }[]
-}
-```
-
-Amounts are strings in the token's smallest unit. A token whose metadata the wallet can't verify is left
-out rather than shown with guessed decimals.
 
 ### `blaze_requestAutoApprove`
 
@@ -130,14 +107,18 @@ params: { id?: string }     // all of this site's rules when omitted
 result: { revoked: number }
 ```
 
-## Not in v0.1
+## Not wallet methods
 
-- **Listing subnets**: public data (token cache `type: "SUBNET"`, or the chain). Apps look it up directly; the
-  wallet isn't the source of truth for which tokens exist. `blaze_getBalances` already names each balance's subnet.
+Public data, so apps look it up directly rather than asking the wallet:
+
+- **Which subnets exist**: token cache `type: "SUBNET"`, or the chain.
+- **Balances**, wallet and subnet combined: public once the app has the address (from `getAddresses`).
+
+## Later
 
 - **Saved signatures**: signing Blaze orders to keep in the wallet and hand to a site or relayer later.
 - **Source-agnostic send**: "send 10 WELSH", with the wallet choosing wallet, subnet, or both.
-- App-specific actions (prediction markets, rewards, subnet deployment): these belong to apps, built on
+- App-specific actions (prediction markets, rewards, subnet deployment) belong to apps, built on
   `stx_signStructuredMessage` and `stx_callContract`.
 
 ## Vision: the wallet as a node
@@ -145,4 +126,4 @@ result: { revoked: number }
 Signet's hackathon version held pending Blaze orders in the browser and settled them itself: a subnet
 mempool running inside the wallet. That removes the dependency on any one server, and it's the long-term
 direction. It needs three things first: durable storage (extension memory is wiped often), wallets sharing
-orders with each other, and a way to pay settlement fees. **Saved signatures** (above) is the first step.
+orders with each other, and a way to pay settlement fees. **Saved signatures** is the first step.
