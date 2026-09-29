@@ -8,7 +8,7 @@ import { addToZesty, waitForConfirmation } from '@/lib/zesty/subnet';
 import { MoneyHeader, type ZestyView } from './MoneyHeader';
 import { MarketPanel } from './MarketPanel';
 import { Footer } from './Footer';
-import { useZestyMoney, formatUsd, formatPrice } from './use-zesty-money';
+import { useZestyMoney, formatSats, formatUsd } from './use-zesty-money';
 import { useZestyTrade } from './use-zesty-trade';
 import { PickSide } from './screens/PickSide';
 import { HowMuch } from './screens/HowMuch';
@@ -44,10 +44,10 @@ export function ZestyApp() {
 
   /** Run every wallet step for the trade, in order: add money, convert now, target, safety net. */
   const startTrade = async () => {
-    if (!money.holdings || !money.zestPrice) return;
+    if (!money.holdings || !money.zestSats) return;
     setError(null);
     const plan = planFunding(side, amountUsd, money.holdings);
-    const exits = exitsFor(side, money.zestPrice, targetPct, safetyOn ? SAFETY_PCT : null);
+    const exits = exitsFor(side, money.zestSats, targetPct, safetyOn ? SAFETY_PCT : null);
     const up = side === 'up';
     const plan_steps: ApprovalStep[] = [
       ...plan.adds.map(add => ({
@@ -57,14 +57,14 @@ export function ZestyApp() {
         status: 'todo' as const,
       })),
       ...(plan.convertMicro > 0n ? [{ id: 'convert', label: up ? 'Buy ZEST now' : 'Sell ZEST now', kind: 'signature' as const, status: 'todo' as const }] : []),
-      { id: 'target', label: `${up ? 'Sell' : 'Buy ZEST'} at ${formatPrice(exits.target.price)}`, kind: 'signature', status: 'todo' },
-      ...(exits.safety ? [{ id: 'safety', label: `Safety net at ${formatPrice(exits.safety.price)}`, kind: 'signature' as const, status: 'todo' as const }] : []),
+      { id: 'target', label: `${up ? 'Sell' : 'Buy ZEST'} at ${formatSats(exits.target.sats)}`, kind: 'signature', status: 'todo' },
+      ...(exits.safety ? [{ id: 'safety', label: `Safety net at ${formatSats(exits.safety.sats)}`, kind: 'signature' as const, status: 'todo' as const }] : []),
     ];
     setSteps(plan_steps);
     setScreen('approve');
 
     const strategyId = crypto.randomUUID();
-    const common = { wallet: money.address, side, strategyId, entryPrice: money.zestPrice, amountUsd };
+    const common = { wallet: money.address, side, strategyId, entrySats: money.zestSats, amountUsd };
     try {
       for (const add of plan.adds) {
         setStatus(`add-${add.token}`, 'active');
@@ -116,7 +116,7 @@ export function ZestyApp() {
     if (!money.connected) {
       return (
         <>
-          <PickSide zestPrice={money.zestPrice} onPick={() => money.connectWallet()} />
+          <PickSide zestSats={money.zestSats} onPick={() => money.connectWallet()} />
           <BigButton onClick={money.connectWallet}>Connect wallet to start</BigButton>
         </>
       );
@@ -125,7 +125,7 @@ export function ZestyApp() {
     if (view === 'money') return <Money money={money} tradeActive={!!tradeActive} />;
     if (screen === 'approve') return <Approve steps={steps} error={error} onRetry={startTrade} />;
     if (trade && tradeActive) {
-      return <Watch trade={trade} zestPrice={money.zestPrice} holdings={money.holdings} busy={busy} error={error} onSellNow={finishNow} onCancel={cancelTrade} />;
+      return <Watch trade={trade} zestSats={money.zestSats} holdings={money.holdings} busy={busy} error={error} onSellNow={finishNow} onCancel={cancelTrade} />;
     }
     if (trade && tradeFinished) {
       return <Done trade={trade} zestyUsd={money.zestyUsd} onAgain={() => { setSeenTrade(trade.strategyId); setScreen('side'); }} />;
@@ -133,17 +133,17 @@ export function ZestyApp() {
     if (screen === 'amount') {
       return <HowMuch side={side} money={money} amountUsd={amountUsd} setAmountUsd={setAmountUsd} onNext={() => setScreen('set')} onBack={() => setScreen('side')} />;
     }
-    if (screen === 'set' && money.zestPrice && money.holdings) {
+    if (screen === 'set' && money.zestSats && money.holdings) {
       const converts = planFunding(side, amountUsd, money.holdings).convertMicro > 0n;
       return (
         <SetIt
-          side={side} amountUsd={amountUsd} zestPrice={money.zestPrice} converts={converts}
+          side={side} amountUsd={amountUsd} zestSats={money.zestSats} converts={converts}
           targetPct={targetPct} setTargetPct={setTargetPct} safetyOn={safetyOn} setSafetyOn={setSafetyOn}
           onStart={startTrade} onBack={() => setScreen('amount')}
         />
       );
     }
-    return <PickSide zestPrice={money.zestPrice} onPick={picked => { setSide(picked); setScreen('amount'); }} />;
+    return <PickSide zestSats={money.zestSats} onPick={picked => { setSide(picked); setScreen('amount'); }} />;
   };
 
   return (
@@ -153,7 +153,7 @@ export function ZestyApp() {
         <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 px-6 py-8 lg:py-12">{body()}</main>
       ) : (
         <main className="mx-auto grid w-full max-w-6xl flex-1 items-start gap-10 px-6 py-8 lg:grid-cols-[minmax(0,1fr)_440px] lg:py-12">
-          <aside className="hidden lg:block"><MarketPanel zestPrice={money.zestPrice} /></aside>
+          <aside className="hidden lg:block"><MarketPanel zestSats={money.zestSats} /></aside>
           <section className="flex min-h-[640px] flex-col gap-5 lg:rounded-3xl lg:border lg:border-[#E5E5E5] lg:bg-white lg:p-8">{body()}</section>
         </main>
       )}

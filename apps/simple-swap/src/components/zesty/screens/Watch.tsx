@@ -1,15 +1,14 @@
 'use client';
 
 import React from 'react';
-import { BigButton, Card, ErrorNote, TokenIcon } from '../ui';
-import { formatPrice } from '../use-zesty-money';
-import type { Holdings } from '@/lib/zesty/plan';
+import { BigButton, Card, ErrorNote, SatsPrice, TokenIcon } from '../ui';
+import { exitSats, type Holdings } from '@/lib/zesty/plan';
 import type { ZestyTrade } from '../use-zesty-trade';
 import { LiveProfit } from './Profit';
 
-export function Watch({ trade, zestPrice, holdings, busy, error, onSellNow, onCancel }: {
+export function Watch({ trade, zestSats, holdings, busy, error, onSellNow, onCancel }: {
   trade: ZestyTrade;
-  zestPrice: number | null;
+  zestSats: number | null;
   holdings: Holdings | null;
   busy: boolean;
   error: string | null;
@@ -17,16 +16,16 @@ export function Watch({ trade, zestPrice, holdings, busy, error, onSellNow, onCa
   onCancel: () => void;
 }) {
   const up = trade.side === 'up';
-  const target = Number(trade.target?.targetPrice ?? 0);
-  const floor = trade.safety ? Number(trade.safety.targetPrice) : null;
-  const now = zestPrice ?? trade.entryPrice;
-  const change = (now - trade.entryPrice) / trade.entryPrice;
+  const target = exitSats(trade.target?.targetPrice ?? '0');
+  const floor = trade.safety ? exitSats(trade.safety.targetPrice!) : null;
+  const now = zestSats ?? trade.entrySats;
+  const change = (now - trade.entrySats) / trade.entrySats;
   const gainPct = up ? change : -change;
 
   // Bar runs from the safety net (or entry) to the target; where "now" sits on it
-  const start = floor ?? trade.entryPrice;
+  const start = floor ?? trade.entrySats;
   const position = Math.min(1, Math.max(0, (now - start) / (target - start)));
-  const entryPosition = Math.min(1, Math.max(0, (trade.entryPrice - start) / (target - start)));
+  const entryPosition = Math.min(1, Math.max(0, (trade.entrySats - start) / (target - start)));
 
   return (
     <>
@@ -42,7 +41,7 @@ export function Watch({ trade, zestPrice, holdings, busy, error, onSellNow, onCa
       <Card className="flex flex-col gap-4">
         <div className="flex items-baseline justify-between">
           <span className="flex items-center gap-2 text-[14px] text-[#3D3D3D]"><TokenIcon token="zest" size={28} />ZEST now</span>
-          <span className="text-[30px] font-medium">{formatPrice(now)}</span>
+          <span className="text-[30px] font-medium"><SatsPrice sats={now} /></span>
         </div>
         <LiveProfit trade={trade} holdings={holdings} />
         <div className="flex justify-between text-[14px]">
@@ -55,8 +54,8 @@ export function Watch({ trade, zestPrice, holdings, busy, error, onSellNow, onCa
             <div className="absolute top-[-6px] h-6 w-6 -translate-x-1/2 rounded-full border-[3px] border-white bg-black" style={{ left: `${position * 100}%` }} />
           </div>
           <div className="flex justify-between text-[13px] text-[#3D3D3D]">
-            <span>{floor === null ? 'Started' : 'Safety net'}<br /><strong className="font-medium text-black">{formatPrice(start)}</strong></span>
-            <span className="text-right">{up ? 'Sell at' : 'Buy at'}<br /><strong className="font-medium text-black">{formatPrice(target)}</strong></span>
+            <span>{floor === null ? 'Started' : 'Safety net'}<br /><strong className="font-medium text-black"><SatsPrice sats={start} /></strong></span>
+            <span className="text-right">{up ? 'Sell at' : 'Buy at'}<br /><strong className="font-medium text-black"><SatsPrice sats={target} /></strong></span>
           </div>
         </div>
       </Card>

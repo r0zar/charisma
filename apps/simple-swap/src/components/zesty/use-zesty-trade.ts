@@ -8,7 +8,7 @@ import type { Side } from '@/lib/zesty/plan';
 export interface ZestyTrade {
   strategyId: string;
   side: Side;
-  entryPrice: number;
+  entrySats: number;
   amountUsd: number;
   convert?: LimitOrder;
   target?: LimitOrder;
@@ -21,7 +21,7 @@ const RAN = new Set<LimitOrder['status']>(['broadcasted', 'confirmed', 'filled']
 
 function toTrade(strategyId: string, orders: LimitOrder[]): ZestyTrade {
   const byRole = (role: ZestyRole) => orders.find(o => o.metadata?.zesty?.role === role);
-  const { side, entryPrice, amountUsd } = orders[0].metadata!.zesty;
+  const { side, entrySats, amountUsd } = orders[0].metadata!.zesty;
   const convert = byRole('convert');
   const target = byRole('target');
   const safety = byRole('safety');
@@ -31,7 +31,7 @@ function toTrade(strategyId: string, orders: LimitOrder[]): ZestyTrade {
     : convert?.status === 'open' ? 'converting'
     : target?.status === 'open' ? 'waiting'
     : 'cancelled';
-  return { strategyId, side, entryPrice, amountUsd, convert, target, safety, state };
+  return { strategyId, side, entrySats, amountUsd, convert, target, safety, state };
 }
 
 /** The user's Zesty trades, newest first, refreshed every 15 seconds. */

@@ -65,14 +65,14 @@ describe('planFunding', () => {
 
 describe('exitsFor', () => {
   it('sells higher with a safety net below when betting up', () => {
-    const { target, safety } = exitsFor('up', 0.2, 0.15, 0.1);
-    expect(target).toEqual({ price: expect.closeTo(0.23, 10), direction: 'gt' });
-    expect(safety).toEqual({ price: expect.closeTo(0.18, 10), direction: 'lt' });
+    const { target, safety } = exitsFor('up', 200, 0.15, 0.1);
+    expect(target).toEqual({ sats: expect.closeTo(230, 10), direction: 'gt' });
+    expect(safety).toEqual({ sats: expect.closeTo(180, 10), direction: 'lt' });
   });
 
   it('buys lower with a safety net above when betting down, and can skip the safety net', () => {
-    const { target, safety } = exitsFor('down', 0.2, 0.25, null);
-    expect(target).toEqual({ price: expect.closeTo(0.15, 10), direction: 'lt' });
+    const { target, safety } = exitsFor('down', 200, 0.25, null);
+    expect(target).toEqual({ sats: expect.closeTo(150, 10), direction: 'lt' });
     expect(safety).toBeNull();
   });
 });

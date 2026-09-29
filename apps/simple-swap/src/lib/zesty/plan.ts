@@ -68,21 +68,27 @@ export function planFunding(side: Side, amountUsd: number, holdings: Holdings): 
   };
 }
 
+/** ZEST priced in sBTC, as sats per ZEST: what trades trigger on, so moves that lift both coins don't count. */
+export const zestSatsOf = (holdings: Holdings) => (holdings.zest.price / holdings.sbtc.price) * 1e8;
+
+/** An exit order's target (BTC per ZEST, as the executor compares it) in sats per ZEST. */
+export const exitSats = (targetPrice: string) => Number(targetPrice) * 1e8;
+
 export interface Exit {
-  /** ZEST price in USD that triggers this exit */
-  price: number;
+  /** Sats per ZEST that triggers this exit */
+  sats: number;
   direction: 'gt' | 'lt';
 }
 
 /**
  * Up: sell ZEST at +target, safety net at −safety. Down: buy ZEST at −target, safety net at +safety.
  */
-export function exitsFor(side: Side, zestPrice: number, targetPct: number, safetyPct: number | null) {
+export function exitsFor(side: Side, zestSats: number, targetPct: number, safetyPct: number | null) {
   const up = side === 'up';
-  const target: Exit = { price: zestPrice * (up ? 1 + targetPct : 1 - targetPct), direction: up ? 'gt' : 'lt' };
+  const target: Exit = { sats: zestSats * (up ? 1 + targetPct : 1 - targetPct), direction: up ? 'gt' : 'lt' };
   const safety: Exit | null = safetyPct === null
     ? null
-    : { price: zestPrice * (up ? 1 - safetyPct : 1 + safetyPct), direction: up ? 'lt' : 'gt' };
+    : { sats: zestSats * (up ? 1 - safetyPct : 1 + safetyPct), direction: up ? 'lt' : 'gt' };
   return { target, safety };
 }
 

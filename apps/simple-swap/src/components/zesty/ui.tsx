@@ -2,7 +2,9 @@
 
 import React from 'react';
 import { useTokenMetadata } from '@/contexts/token-metadata-context';
+import { usePrices } from '@/contexts/token-price-context';
 import { ZESTY_TOKENS, type ZestyTokenKey } from '@/lib/zesty/config';
+import { formatPrice, formatSats } from './use-zesty-money';
 
 export function Progress({ step, total = 4 }: { step: number; total?: number }) {
   return (
@@ -74,4 +76,16 @@ export function TokenIcon({ token, size = 20 }: { token: ZestyTokenKey; size?: n
 
 export function ErrorNote({ message }: { message: string }) {
   return <p role="alert" className="m-0 rounded-xl border border-[#F5B7A3] bg-[#FFF4EF] p-3 text-[14px] text-[#8F310A]">{message}</p>;
+}
+
+/** A trade price in sats per ZEST, with a small dollar hint at today's sBTC price. */
+export function SatsPrice({ sats }: { sats: number }) {
+  const { getPrice } = usePrices();
+  const btcUsd = getPrice(ZESTY_TOKENS.sbtc.mainnet);
+  return (
+    <>
+      {formatSats(sats)}
+      {btcUsd && <span className="text-[0.6em] font-normal text-[#5C5C5C]"> ≈ {formatPrice((sats / 1e8) * btcUsd)}</span>}
+    </>
+  );
 }

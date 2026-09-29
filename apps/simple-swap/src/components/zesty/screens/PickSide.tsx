@@ -3,9 +3,8 @@
 import React from 'react';
 import Link from 'next/link';
 import type { Side } from '@/lib/zesty/plan';
-import { Progress, StepTitle, TokenIcon } from '../ui';
+import { Progress, SatsPrice, StepTitle, TokenIcon } from '../ui';
 import { ZestChart } from '../ZestChart';
-import { formatPrice } from '../use-zesty-money';
 
 const OPTIONS: { side: Side; title: string; body: string; icon: React.ReactNode; circle: string }[] = [
   {
@@ -24,14 +23,14 @@ const OPTIONS: { side: Side; title: string; body: string; icon: React.ReactNode;
   },
 ];
 
-export function PickSide({ zestPrice, onPick }: { zestPrice: number | null; onPick: (side: Side) => void }) {
+export function PickSide({ zestSats, onPick }: { zestSats: number | null; onPick: (side: Side) => void }) {
   return (
     <>
       <Progress step={1} />
       <StepTitle eyebrow="Step 1 of 4" title="What will ZEST do?">
         <p className="m-0 flex items-center gap-2 text-[16px] text-[#3D3D3D]">
           <TokenIcon token="zest" size={24} />
-          ZEST is <strong className="font-medium text-black">{zestPrice === null ? '…' : formatPrice(zestPrice)}</strong> right now.
+          ZEST is <strong className="font-medium text-black">{zestSats === null ? '…' : <SatsPrice sats={zestSats} />}</strong> right now.
         </p>
       </StepTitle>
       <div className="lg:hidden"><ZestChart /></div>

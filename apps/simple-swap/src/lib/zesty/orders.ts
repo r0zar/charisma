@@ -16,8 +16,8 @@ export interface ZestyOrderSpec {
   micro: bigint;
   /** No exit: runs right away (the "convert now" step) */
   exit?: Exit;
-  /** ZEST price and dollar size when the trade started, for display */
-  entryPrice: number;
+  /** Sats per ZEST and dollar size when the trade started, for display */
+  entrySats: number;
   amountUsd: number;
 }
 
@@ -31,7 +31,8 @@ export async function placeZestyOrder(spec: ZestyOrderSpec): Promise<LimitOrder>
   const signature = await signTriggeredSwap({ subnet: from.subnet, uuid, amount: spec.micro, multihopContractId: SIGNER_PAYOUT_ROUTER });
 
   const condition = spec.exit
-    ? { conditionToken: ZESTY_TOKENS.zest.mainnet, targetPrice: spec.exit.price.toFixed(8), direction: spec.exit.direction }
+    // ZEST priced in sBTC (BTC per ZEST), never dollars: the trade is ZEST against Bitcoin
+    ? { conditionToken: ZESTY_TOKENS.zest.mainnet, baseAsset: ZESTY_TOKENS.sbtc.mainnet, targetPrice: (spec.exit.sats / 1e8).toFixed(14), direction: spec.exit.direction }
     : { conditionToken: '*', targetPrice: '0', direction: 'gt' as const };
 
   const payload: NewOrderRequest = {
@@ -48,7 +49,7 @@ export async function placeZestyOrder(spec: ZestyOrderSpec): Promise<LimitOrder>
     strategyType: 'zesty',
     strategySize: 3,
     strategyPosition: ROLE_POSITION[spec.role],
-    metadata: { zesty: { role: spec.role, side: spec.side, entryPrice: spec.entryPrice, amountUsd: spec.amountUsd } },
+    metadata: { zesty: { role: spec.role, side: spec.side, entrySats: spec.entrySats, amountUsd: spec.amountUsd } },
   };
 
   const res = await fetch('/api/v1/orders/new', {

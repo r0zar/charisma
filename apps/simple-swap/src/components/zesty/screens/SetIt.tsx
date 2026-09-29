@@ -2,16 +2,16 @@
 
 import React from 'react';
 import { exitsFor, outcomeUsd, type Side } from '@/lib/zesty/plan';
-import { BigButton, Card, Chip, Progress, StepTitle, TokenIcon } from '../ui';
-import { formatPrice, formatUsd } from '../use-zesty-money';
+import { BigButton, Card, Chip, Progress, SatsPrice, StepTitle, TokenIcon } from '../ui';
+import { formatUsd } from '../use-zesty-money';
 
 export const TARGET_CHOICES = [0.1, 0.15, 0.25];
 export const SAFETY_PCT = 0.1;
 
-export function SetIt({ side, amountUsd, zestPrice, converts, targetPct, setTargetPct, safetyOn, setSafetyOn, onStart, onBack }: {
+export function SetIt({ side, amountUsd, zestSats, converts, targetPct, setTargetPct, safetyOn, setSafetyOn, onStart, onBack }: {
   side: Side;
   amountUsd: number;
-  zestPrice: number;
+  zestSats: number;
   converts: boolean;
   targetPct: number;
   setTargetPct: (pct: number) => void;
@@ -20,7 +20,7 @@ export function SetIt({ side, amountUsd, zestPrice, converts, targetPct, setTarg
   onStart: () => void;
   onBack: () => void;
 }) {
-  const { target, safety } = exitsFor(side, zestPrice, targetPct, safetyOn ? SAFETY_PCT : null);
+  const { target, safety } = exitsFor(side, zestSats, targetPct, safetyOn ? SAFETY_PCT : null);
   const up = side === 'up';
   const win = outcomeUsd(side, amountUsd, targetPct, converts);
   const worst = safety ? outcomeUsd(side, amountUsd, -SAFETY_PCT, converts) : null;
@@ -36,7 +36,7 @@ export function SetIt({ side, amountUsd, zestPrice, converts, targetPct, setTarg
       <Card className="flex flex-col gap-3">
         <div className="flex items-baseline justify-between">
           <span className="flex items-center gap-2 text-[14px] text-[#3D3D3D]"><TokenIcon token="zest" size={22} />{up ? 'Sell when ZEST hits' : 'Buy ZEST when it hits'}</span>
-          <span className="text-[26px] font-medium">{formatPrice(target.price)}</span>
+          <span className="text-[26px] font-medium"><SatsPrice sats={target.sats} /></span>
         </div>
         <div className="flex gap-2">
           {TARGET_CHOICES.map(pct => (
@@ -50,7 +50,7 @@ export function SetIt({ side, amountUsd, zestPrice, converts, targetPct, setTarg
           <input id="zesty-safety" type="checkbox" checked={safetyOn} onChange={e => setSafetyOn(e.target.checked)} className="h-[22px] w-[22px] accent-black" />
         </div>
         <span className="text-[14px] leading-snug text-[#3D3D3D]">
-          {up ? 'Sell' : 'Buy ZEST'} if it {up ? 'drops' : 'rises'} to <strong className="font-medium text-black">{formatPrice(zestPrice * (up ? 1 - SAFETY_PCT : 1 + SAFETY_PCT))}</strong> ({up ? '−' : '+'}{SAFETY_PCT * 100}%), so a bad day stays small.
+          {up ? 'Sell' : 'Buy ZEST'} if it {up ? 'drops' : 'rises'} to <strong className="font-medium text-black"><SatsPrice sats={zestSats * (up ? 1 - SAFETY_PCT : 1 + SAFETY_PCT)} /></strong> ({up ? '−' : '+'}{SAFETY_PCT * 100}%), so a bad day stays small.
         </span>
       </Card>
       <div className="flex gap-3">

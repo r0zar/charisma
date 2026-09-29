@@ -2,11 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import type { LimitOrder } from '@/lib/orders/types';
-import { ZESTY_TOKENS, tokenOfSubnet, toUnits, type ZestyTokenKey } from '@/lib/zesty/config';
+import { tokenOfSubnet, toUnits } from '@/lib/zesty/config';
 import { cancelOrders, runNow } from '@/lib/zesty/orders';
-import type { Holdings } from '@/lib/zesty/plan';
-import { BigButton, Card, ErrorNote, StepTitle } from '../ui';
-import { formatPrice, formatUsd } from '../use-zesty-money';
+import { exitSats, type Holdings } from '@/lib/zesty/plan';
+import { BigButton, Card, ErrorNote, SatsPrice, StepTitle } from '../ui';
+import { formatAmount, formatUsd } from '../use-zesty-money';
 import type { ZestyTrade } from '../use-zesty-trade';
 import { LiveProfit, ProfitBanner } from './Profit';
 
@@ -70,20 +70,18 @@ function FillDetails({ trade, order, holdings }: { trade: ZestyTrade; order: Lim
   const spent = toUnits(inKey, fill.amountIn!);
   const gotUsd = got * holdings[outKey].price;
   const profit = gotUsd - trade.amountUsd;
-  // ZEST price the trade ran at, in dollars (sBTC side valued at today's price)
-  const fillPrice = outKey === 'zest' ? (spent * holdings.sbtc.price) / got : (got * holdings.sbtc.price) / spent;
+  // Sats per ZEST the trade ran at
+  const fillSats = outKey === 'zest' ? (spent * 1e8) / got : (got * 1e8) / spent;
   const gain = profit >= 0;
-  const amount = (key: ZestyTokenKey, n: number) => `${n.toLocaleString('en-US', { maximumFractionDigits: key === 'sbtc' ? 8 : 2 })} ${ZESTY_TOKENS[key].symbol}`;
 
   return (
     <>
       <ProfitBanner profit={profit} amountUsd={trade.amountUsd} />
       <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-3 text-[13px] text-[#3D3D3D]">
-        <div><dt>You put in</dt><dd className="m-0 font-medium text-black">{formatUsd(trade.amountUsd)}</dd></div>
-        <div className="text-right"><dt>You got</dt><dd className="m-0 font-medium text-black">{amount(outKey, got)}<br /><span className="font-normal text-[#5C5C5C]">worth {formatUsd(gotUsd)} now</span></dd></div>
-        <div><dt>Started at</dt><dd className="m-0 font-medium text-black">{formatPrice(trade.entryPrice)}</dd></div>
-        <div className="text-right"><dt>{outKey === 'zest' ? 'Bought at' : 'Sold at'}</dt><dd className="m-0 font-medium text-black">about {formatPrice(fillPrice)}</dd></div>
-        <div><dt>Traded</dt><dd className="m-0 font-medium text-black">{amount(inKey, spent)}</dd></div>
+        <div><dt>You put in</dt><dd className="m-0 font-medium text-black">{formatAmount(inKey, spent)}<br /><span className="font-normal text-[#5C5C5C]">{formatUsd(trade.amountUsd)}</span></dd></div>
+        <div className="text-right"><dt>You got</dt><dd className="m-0 font-medium text-black">{formatAmount(outKey, got)}<br /><span className="font-normal text-[#5C5C5C]">worth {formatUsd(gotUsd)} now</span></dd></div>
+        <div><dt>Started at</dt><dd className="m-0 font-medium text-black"><SatsPrice sats={trade.entrySats} /></dd></div>
+        <div className="text-right"><dt>{outKey === 'zest' ? 'Bought at' : 'Sold at'}</dt><dd className="m-0 font-medium text-black">about <SatsPrice sats={fillSats} /></dd></div>
         {fill.time && <div className="text-right"><dt>Finished</dt><dd className="m-0 font-medium text-black">{new Date(fill.time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</dd></div>}
       </dl>
       {trade.state === 'won' && gain && (
@@ -124,9 +122,9 @@ function TradeRow({ trade, holdings, onChange }: { trade: ZestyTrade; holdings: 
       {!ran && <LiveProfit trade={trade} holdings={holdings} />}
       {ran ? <FillDetails trade={trade} order={ran} holdings={holdings} /> : (
       <div className="flex justify-between text-[13px] text-[#3D3D3D]">
-        <span>Started at<br /><strong className="font-medium text-black">{formatPrice(trade.entryPrice)}</strong></span>
-        {trade.safety && <span>Safety net<br /><strong className="font-medium text-black">{formatPrice(Number(trade.safety.targetPrice))}</strong></span>}
-        <span className="text-right">{up ? 'Sell at' : 'Buy at'}<br /><strong className="font-medium text-black">{formatPrice(Number(trade.target?.targetPrice ?? 0))}</strong></span>
+        <span>Started at<br /><strong className="font-medium text-black"><SatsPrice sats={trade.entrySats} /></strong></span>
+        {trade.safety && <span>Safety net<br /><strong className="font-medium text-black"><SatsPrice sats={exitSats(trade.safety.targetPrice!)} /></strong></span>}
+        <span className="text-right">{up ? 'Sell at' : 'Buy at'}<br /><strong className="font-medium text-black"><SatsPrice sats={exitSats(trade.target?.targetPrice ?? '0')} /></strong></span>
       </div>
       )}
       {live && (

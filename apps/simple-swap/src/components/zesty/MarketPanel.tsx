@@ -2,9 +2,8 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { TokenIcon } from './ui';
+import { SatsPrice, TokenIcon } from './ui';
 import { ZestChart } from './ZestChart';
-import { formatPrice } from './use-zesty-money';
 
 const STEPS = [
   ['Pick a side', 'Up or down'],
@@ -13,7 +12,7 @@ const STEPS = [
 ];
 
 /** Desktop left column: the market and a quick how-it-works, visible through every step. */
-export function MarketPanel({ zestPrice }: { zestPrice: number | null }) {
+export function MarketPanel({ zestSats }: { zestSats: number | null }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center gap-4">
@@ -23,7 +22,7 @@ export function MarketPanel({ zestPrice }: { zestPrice: number | null }) {
         </span>
         <div className="flex flex-col">
           <span className="text-[13px] tracking-[0.14em] text-[#5C5C5C]">ZEST / SBTC</span>
-          <span className="text-[36px] leading-tight font-medium">{zestPrice === null ? '…' : formatPrice(zestPrice)}</span>
+          <span className="text-[36px] leading-tight font-medium">{zestSats === null ? '…' : <SatsPrice sats={zestSats} />}</span>
         </div>
       </div>
       <ZestChart height={320} />

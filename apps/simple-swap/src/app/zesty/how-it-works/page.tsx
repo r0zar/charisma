@@ -231,6 +231,7 @@ export default function HowItWorksPage() {
           <H2 id="pricing" n={number('pricing')}>Prices and triggers</H2>
           <Table head={['Parameter', 'Value']} rows={[
             ['Price source', "Charisma's price feed (USD), derived from on-chain swap quotes"],
+            ['Trigger price', 'ZEST priced in sBTC (sats per ZEST), not dollars, so a move that lifts both coins does not trigger'],
             ['Price refresh', 'About once an hour'],
             ['Condition checks', 'Every minute, against the latest price'],
             ['Slippage allowance', 'About 1% per swap'],
