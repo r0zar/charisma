@@ -116,6 +116,9 @@ Public data, so apps look it up directly rather than asking the wallet:
 
 ## Later
 
+- **Bulk signing** (`blaze_signOrders`): sign many Blaze orders from one approval, e.g. 60 orders shown as one
+  card with the count, totals per token and payout router, instead of 60 separate prompts. Auto-approve rules
+  can cover a batch too.
 - **Saved signatures**: signing Blaze orders to keep in the wallet and hand to a site or relayer later.
 - **Source-agnostic send**: "send 10 WELSH", with the wallet choosing wallet, subnet, or both.
 - App-specific actions (prediction markets, rewards, subnet deployment) belong to apps, built on
