@@ -14,6 +14,7 @@ export async function addToZesty(wallet: string, token: ZestyToken, micro: bigin
     functionName: 'deposit',
     functionArgs: [Cl.uint(micro), Cl.none()],
     postConditionMode: 'deny',
+    network: 'mainnet',
     postConditions: [Pc.principal(wallet).willSendEq(micro).ft(token.mainnet, token.asset)],
   });
   if (!result?.txid) throw new Error(`Adding ${token.symbol} to Zesty was not broadcast`);
@@ -30,7 +31,7 @@ export async function swapStxIntoZesty(wallet: string, token: ZestyToken, microS
     throw new Error(`No route to swap STX into ${token.symbol}: ${quote.error ?? 'empty quote'}`);
   }
   const router = new Router({ maxHops: 4, defaultSlippage: 0.02, routerContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop' });
-  const result = await request('stx_callContract', await buildSwapTransaction(router, quote.data, wallet));
+  const result = await request('stx_callContract', { ...(await buildSwapTransaction(router, quote.data, wallet)), network: 'mainnet' });
   if (!result?.txid) throw new Error(`Swapping STX into ${token.symbol} was not broadcast`);
   return result.txid;
 }
@@ -42,6 +43,7 @@ export async function moveToWallet(token: ZestyToken, micro: bigint): Promise<st
     functionName: 'withdraw',
     functionArgs: [Cl.uint(micro), Cl.none()],
     postConditionMode: 'deny',
+    network: 'mainnet',
     postConditions: [Pc.principal(token.subnet).willSendEq(micro).ft(token.mainnet, token.asset)],
   });
   if (!result?.txid) throw new Error(`Moving ${token.symbol} to your wallet was not broadcast`);

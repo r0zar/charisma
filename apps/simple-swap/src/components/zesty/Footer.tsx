@@ -25,7 +25,7 @@ export function Footer() {
     if (!solver) return;
     setError(null);
     try {
-      const result = await request('stx_transferStx', { recipient: solver.address, amount: String(stx * 1_000_000), memo: 'Zesty tip' });
+      const result = await request('stx_transferStx', { recipient: solver.address, amount: String(stx * 1_000_000), memo: 'Zesty tip', network: 'mainnet' });
       if (!result?.txid) throw new Error('The tip was not sent');
       setThanks(`Thank you! ${stx} STX is on its way.`);
     } catch (err) {
