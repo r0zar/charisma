@@ -1,8 +1,7 @@
 import { kv } from '@vercel/kv';
 import { getOrder } from '@/lib/orders/store';
-import { priceSeriesService } from '@/lib/charts/price-series-service';
-import { ZESTY_TOKENS, tokenOfSubnet, toUnits } from './config';
-import type { Side } from './plan';
+import { tokenOfSubnet, toUnits } from './config';
+import { inOther, type Side } from './plan';
 
 export interface TxSwap {
   status: 'pending' | 'failed' | 'success';
@@ -55,11 +54,10 @@ export async function createWin(uuid: string): Promise<ZestyWin> {
   const swap = await readTxSwap(order.txid);
   if (swap.status !== 'success') throw new Error('This trade is not confirmed on the blockchain yet');
 
-  const outKey = tokenOfSubnet(order.outputToken);
-  const price = await priceSeriesService.getCurrentPrice(ZESTY_TOKENS[outKey].mainnet);
-  if (!price) throw new Error(`No ${ZESTY_TOKENS[outKey].symbol} price to value this trade`);
-
-  const pct = ((toUnits(outKey, swap.amountOut!) * price) / zesty.amountUsd - 1) * 100;
+  // Gain in what the trade is for (sats when betting up, ZEST when betting down), not dollars
+  const inKey = tokenOfSubnet(order.inputToken);
+  const start = inOther(inKey, toUnits(inKey, swap.amountIn!), zesty.entrySats);
+  const pct = (toUnits(tokenOfSubnet(order.outputToken), swap.amountOut!) / start - 1) * 100;
   if (pct <= 0) throw new Error('Only winning trades can be shared');
 
   const win: ZestyWin = { side: zesty.side, pct: Math.round(pct * 10) / 10 };

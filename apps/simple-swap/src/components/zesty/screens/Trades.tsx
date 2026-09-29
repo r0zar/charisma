@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import type { LimitOrder } from '@/lib/orders/types';
 import { tokenOfSubnet, toUnits } from '@/lib/zesty/config';
 import { cancelOrders, runNow } from '@/lib/zesty/orders';
-import { exitSats, type Holdings } from '@/lib/zesty/plan';
+import { exitSats, inOther, type Holdings } from '@/lib/zesty/plan';
 import { BigButton, Card, ErrorNote, SatsPrice, StepTitle } from '../ui';
 import { formatAmount, formatUsd } from '../use-zesty-money';
 import type { ZestyTrade } from '../use-zesty-trade';
@@ -69,14 +69,15 @@ function FillDetails({ trade, order, holdings }: { trade: ZestyTrade; order: Lim
   const got = toUnits(outKey, fill.amountOut!);
   const spent = toUnits(inKey, fill.amountIn!);
   const gotUsd = got * holdings[outKey].price;
-  const profit = gotUsd - trade.amountUsd;
+  // What went in, valued in what came out at the starting price
+  const start = inOther(inKey, spent, trade.entrySats);
   // Sats per ZEST the trade ran at
   const fillSats = outKey === 'zest' ? (spent * 1e8) / got : (got * 1e8) / spent;
-  const gain = profit >= 0;
+  const gain = got >= start;
 
   return (
     <>
-      <ProfitBanner profit={profit} amountUsd={trade.amountUsd} />
+      <ProfitBanner unit={outKey} start={start} end={got} usd={gotUsd - trade.amountUsd} />
       <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-3 text-[13px] text-[#3D3D3D]">
         <div><dt>You put in</dt><dd className="m-0 font-medium text-black">{formatAmount(inKey, spent)}<br /><span className="font-normal text-[#5C5C5C]">{formatUsd(trade.amountUsd)}</span></dd></div>
         <div className="text-right"><dt>You got</dt><dd className="m-0 font-medium text-black">{formatAmount(outKey, got)}<br /><span className="font-normal text-[#5C5C5C]">worth {formatUsd(gotUsd)} now</span></dd></div>

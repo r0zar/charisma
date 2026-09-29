@@ -74,6 +74,10 @@ export const zestSatsOf = (holdings: Holdings) => (holdings.zest.price / holding
 /** An exit order's target (BTC per ZEST, as the executor compares it) in sats per ZEST. */
 export const exitSats = (targetPrice: string) => Number(targetPrice) * 1e8;
 
+/** `units` of `key` valued in the other token at `zestSats`, in whole units: ZEST as sBTC, sBTC as ZEST. */
+export const inOther = (key: ZestyTokenKey, units: number, zestSats: number) =>
+  key === 'zest' ? (units * zestSats) / 1e8 : (units * 1e8) / zestSats;
+
 export interface Exit {
   /** Sats per ZEST that triggers this exit */
   sats: number;
