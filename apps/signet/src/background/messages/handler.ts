@@ -1,6 +1,7 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging"
 import * as wallet from "../lib/wallet"
 import * as tokens from "../lib/tokens"
+import { getDiagnostics } from "../lib/diagnostics"
 import type { SeedPhrase, Account, CreateAccountOptions } from "../lib/wallet/types"
 import type { MessageAction } from "~shared/context/types"
 
@@ -126,6 +127,11 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
           throw new Error("Invalid send: contractId, recipient and amount are required");
         }
         response = await tokens.sendToken(data);
+        break;
+
+      // Diagnostics
+      case "getDiagnostics":
+        response = await getDiagnostics();
         break;
 
       default:

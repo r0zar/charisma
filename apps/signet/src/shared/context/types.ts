@@ -22,7 +22,9 @@ export type MessageAction =
   | "deleteAccount"
   // Balances and sends
   | "getWalletBalances"
-  | "sendToken";
+  | "sendToken"
+  // Diagnostics
+  | "getDiagnostics";
 
 // Wallet types
 export interface SeedPhrase {

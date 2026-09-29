@@ -31,6 +31,33 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "sharp"
-    ]
+    ],
+    "packageExtensions": {
+      "@react-spring/animated": {
+        "peerDependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@react-spring/core": {
+        "peerDependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@react-spring/web": {
+        "peerDependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@react-spring/types": {
+        "peerDependencies": {
+          "@types/react": "*"
+        }
+      },
+      "@react-spring/shared": {
+        "peerDependencies": {
+          "@types/react": "*"
+        }
+      }
+    }
   }
 }

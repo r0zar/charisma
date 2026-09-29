@@ -115,6 +115,12 @@ export async function unlockOrCreate(password: string): Promise<void> {
   await startSession(key);
 }
 
+/** When the wallet locks itself if left idle (ms since epoch), or null when locked. Doesn't extend the timer. */
+export async function lockExpiresAt(): Promise<number | null> {
+  const { [UNLOCKED_KEY]: unlocked } = (await chrome.storage.session.get(UNLOCKED_KEY)) as { [UNLOCKED_KEY]?: Unlocked };
+  return unlocked && Date.now() < unlocked.expiresAt ? unlocked.expiresAt : null;
+}
+
 /** Lock the wallet: forget the key until the password is entered again. */
 export async function lock(): Promise<void> {
   await chrome.storage.session.remove(UNLOCKED_KEY);
