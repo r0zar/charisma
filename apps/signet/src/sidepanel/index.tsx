@@ -13,6 +13,7 @@ import { HologramDisplay } from "./components/HologramDisplay"
 import { ConsoleView } from "./components/ConsoleView"
 import { SystemMetrics } from "./components/SystemMetrics"
 import { DiagnosticsProvider } from "./components/diagnostics-context"
+import { ErrorBoundary } from "./ErrorBoundary"
 
 const SidePanelWithProvider = () => (
   <SignetProvider>
@@ -88,11 +89,13 @@ function SidePanel() {
         </div>
       )}
 
-      {Page === Diagnostics ? <Diagnostics /> : (
-        <div className="signet-scrollbar" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-          <Page />
-        </div>
-      )}
+      <ErrorBoundary key={tab}>
+        {Page === Diagnostics ? <Diagnostics /> : (
+          <div className="signet-scrollbar" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            <Page />
+          </div>
+        )}
+      </ErrorBoundary>
     </div>
   )
 }

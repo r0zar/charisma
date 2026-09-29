@@ -4,7 +4,6 @@
  * Features a water ripple effect on the text
  */
 
-import { motion } from "framer-motion"
 import { useDiagnostics } from "./diagnostics-context"
 import { useEffect, useState } from "react"
 import { useSpring, animated } from "@react-spring/web"
@@ -165,11 +164,10 @@ export function ConsoleView() {
   }, [diag, error]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.6, duration: 0.5 }}
+    <div
       style={{
+        // Fade and rise in once, after the hologram
+        animation: 'signet-console-in 0.5s ease-out 0.6s both',
         background: 'rgba(1, 4, 9, 0.8)',
         border: '1px solid rgba(125, 249, 255, 0.3)',
         borderRadius: '2px',
@@ -212,8 +210,13 @@ export function ConsoleView() {
         }, 400);
       }}
     >
+      <style>{`
+        @keyframes signet-console-in { from { opacity: 0; transform: translateY(20px) } to { opacity: 1; transform: none } }
+        @keyframes signet-console-shimmer { from { transform: translateX(-100%) } to { transform: translateX(100%) } }
+      `}</style>
+
       {/* Panel border effect - shimmer at top */}
-      <motion.div
+      <div
         style={{
           position: 'absolute',
           top: 0,
@@ -224,16 +227,15 @@ export function ConsoleView() {
           opacity: 0.6
         }}
       >
-        <motion.div
-          animate={{ x: ['-100%', '100%'] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
+        <div
           style={{
+            animation: 'signet-console-shimmer 2.5s linear infinite',
             width: '30%',
             height: '100%',
             background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.8) 50%, transparent 100%)'
           }}
         />
-      </motion.div>
+      </div>
 
       {/* Panel detail - "circuit" lines */}
       <div style={{
@@ -391,6 +393,6 @@ export function ConsoleView() {
         {/* Fixed cursor */}
         <span>_</span>
       </animated.div>
-    </motion.div>
+    </div>
   );
 }
