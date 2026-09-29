@@ -5,10 +5,11 @@
  * (IntersectionObserver v2) has seen the whole frame uncovered and unfaded for a full second,
  * so a site can't trick you by laying something over it.
  */
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import NotificationPanel from "~shared/notifications/NotificationPanel"
-import { ConnectContent, SignMessageContent } from "~contents/components/notifications/PermissionContent"
-import { CustomIcons } from "~contents/components/notifications/Icons"
+import { ConnectContent } from "~shared/approvals/ConnectContent"
+import { SignMessageContent } from "~shared/approvals/SignMessageContent"
+import { CustomIcons } from "~shared/approvals/parts/Icons"
 import { colors } from "~shared/styles/theme"
 import type { ApprovalRequest } from "~background/lib/provider"
 import { SignOrderContent } from "~shared/approvals/SignOrderContent"
@@ -170,7 +171,7 @@ export default function Approve() {
   )
 }
 
-function Note({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+function Note({ children, onClick }: { children: ReactNode; onClick: () => void }) {
   return (
     <div
       onClick={onClick}

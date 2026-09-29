@@ -1,6 +1,7 @@
 /**
  * Send a transaction (stx_transferStx, stx_callContract): what it does and exactly what can leave the wallet.
  */
+import type { ReactNode } from "react"
 import {
   Cl,
   FungibleConditionCode,
@@ -12,9 +13,9 @@ import {
   type PostConditionPrincipalWire,
   type PostConditionWire
 } from "@stacks/transactions"
-import { OriginBanner, PermissionLevelIndicator } from "~contents/components/notifications/UIComponents"
-import { BannerType, PermissionLevel } from "~contents/components/notifications/types"
-import { commonStyles } from "~contents/components/notifications/styles"
+import { OriginBanner, PermissionLevelIndicator } from "./parts/UIComponents"
+import { BannerType, PermissionLevel } from "./parts/types"
+import { commonStyles } from "./parts/styles"
 import { colors } from "~shared/styles/theme"
 
 const short = (text: string) => (text.length > 16 ? `${text.slice(0, 6)}…${text.slice(-4)}` : text)
@@ -48,7 +49,7 @@ function describe(pc: PostConditionWire, signer: string | null) {
   return `${sender} ${sends ? verb : sender === "You" ? "keep" : "keeps"} ${pc.asset.assetName.content} ${Cl.prettyPrint(pc.assetName)}`
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", padding: "4px 0", fontSize: "11px" }}>
       <span style={{ color: colors.steel }}>{label}</span>

@@ -2,10 +2,11 @@
  * Sign structured data (SIP-018): what the order does, in plain words.
  * Blaze orders (Charisma subnets) get a readable summary, including who the funds can be paid out to.
  */
+import type { ReactNode } from "react"
 import { Cl, type ClarityValue, type TupleCV } from "@stacks/transactions"
-import { OriginBanner, PermissionLevelIndicator } from "~contents/components/notifications/UIComponents"
-import { BannerType, PermissionLevel } from "~contents/components/notifications/types"
-import { commonStyles } from "~contents/components/notifications/styles"
+import { OriginBanner, PermissionLevelIndicator } from "./parts/UIComponents"
+import { BannerType, PermissionLevel } from "./parts/types"
+import { commonStyles } from "./parts/styles"
 import { BLAZE_V1_DOMAIN, LEGACY_MULTIHOP_CONTRACT_ID, MULTIHOP_CONTRACT_ID } from "blaze-sdk"
 import { colors } from "~shared/styles/theme"
 
@@ -25,7 +26,7 @@ function optional(value: ClarityValue | undefined): ClarityValue | null {
   return value.type === "some" ? value.value : value
 }
 
-function Row({ label, children, color }: { label: string; children: React.ReactNode; color?: string }) {
+function Row({ label, children, color }: { label: string; children: ReactNode; color?: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", padding: "4px 0", fontSize: "11px" }}>
       <span style={{ color: colors.steel }}>{label}</span>

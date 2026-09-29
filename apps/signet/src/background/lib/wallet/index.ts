@@ -18,8 +18,7 @@ import {
   setActiveAccount,
   getActiveAccount,
   deleteAccount,
-  deleteWallet,
-  removeLegacySession
+  deleteWallet
 } from './storage';
 
 import {
@@ -149,7 +148,6 @@ export async function resetWallet(): Promise<boolean> {
 export {
   hasWallet,
   exportVault,
-  removeLegacySession,
   getSeedPhrase,
   getAllSeedPhrases,
   deleteSeedPhrase,

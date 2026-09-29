@@ -3,6 +3,8 @@ import type { Account, SeedPhrase } from '../types'
 import { sendMessage } from '../utils'
 
 export interface WalletState {
+  /** A wallet request is in flight */
+  isLoading: boolean
   /** Unlocked and ready to use */
   isWalletInitialized: boolean
   /** A wallet exists on this browser (locked or not) */
@@ -376,6 +378,7 @@ export function useWalletSlice(
 
   return {
     // State
+    isLoading,
     isWalletInitialized,
     hasWallet,
     currentAccount,

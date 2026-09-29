@@ -1,20 +1,13 @@
 /**
  * The side panel: the wallet itself. Opened from the Signet toolbar icon, out of reach of web pages.
- * Once unlocked, a Diagnostics tab shows the hologram status display.
  */
-import { useState } from "react"
-import { colors, keyframes } from "../shared/styles/theme"
+import { useState, type ReactNode } from "react"
+import { colors } from "../shared/styles/theme"
 import "../shared/styles/style.css"
 
-import { StatusDisplay } from "./components/StatusDisplay"
-import { HologramDisplay } from "./components/HologramDisplay"
-import { ConsoleView } from "./components/ConsoleView"
-import { SystemMetrics } from "./components/SystemMetrics"
 import { SignetProvider, useSignetContext } from "~shared/context/SignetContext"
 import { WalletTab } from "~shared/wallet/WalletTab"
 import { TransferTab } from "~shared/tabs/TransferTab"
-import { MempoolTab } from "~shared/tabs/MempoolTab"
-import { PermissionsTab } from "~shared/tabs/PermissionsTab"
 
 const SidePanelWithProvider = () => (
   <SignetProvider>
@@ -27,28 +20,20 @@ export default SidePanelWithProvider
 const PAGES = {
   WALLET: WalletTab,
   TRANSFER: TransferTab,
-  MEMPOOL: MempoolTab,
-  PERMISSIONS: PermissionsTab,
-  DIAGNOSTICS: Diagnostics,
 }
 type Tab = keyof typeof PAGES
 
 /** Line icons (Feather paths) for the tab bar */
-const ICONS: Record<Tab, React.ReactNode> = {
+const ICONS: Record<Tab, ReactNode> = {
   WALLET: <><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4z" /></>,
   TRANSFER: <><path d="M22 2L11 13" /><path d="M22 2l-7 20-4-9-9-4 20-7z" /></>,
-  MEMPOOL: <><path d="M12 2L2 7l10 5 10-5-10-5z" /><path d="M2 17l10 5 10-5" /><path d="M2 12l10 5 10-5" /></>,
-  PERMISSIONS: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />,
-  DIAGNOSTICS: <path d="M22 12h-4l-3 9L9 3l-3 9H2" />,
 }
 
 function SidePanel() {
   const { isWalletInitialized, currentAccount } = useSignetContext()
   const [tab, setTab] = useState<Tab>('WALLET')
-  // Locked: only the wallet (unlock). Transfers and the mempool need an active account.
-  const tabs: Tab[] = !isWalletInitialized ? ['WALLET']
-    : currentAccount ? ['WALLET', 'TRANSFER', 'MEMPOOL', 'PERMISSIONS', 'DIAGNOSTICS']
-    : ['WALLET', 'PERMISSIONS', 'DIAGNOSTICS']
+  // Locked: only the wallet (unlock). Transfers need an active account.
+  const tabs: Tab[] = isWalletInitialized && currentAccount ? ['WALLET', 'TRANSFER'] : ['WALLET']
   const Page = PAGES[tabs.includes(tab) ? tab : 'WALLET']
 
   return (
@@ -96,46 +81,9 @@ function SidePanel() {
         </div>
       )}
 
-      {Page === Diagnostics ? <Diagnostics /> : (
-        <div className="signet-scrollbar" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-          <Page />
-        </div>
-      )}
-    </div>
-  )
-}
-
-/** The hologram status display (formerly the toolbar pop-up). */
-function Diagnostics() {
-  return (
-    <div style={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
-      <StatusDisplay />
-
-      <div style={{ position: 'relative', height: 'calc(100% - 80px)', overflow: 'hidden' }}>
-        {/* Background grid lines */}
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundImage: `
-            linear-gradient(to right, rgba(125, 249, 255, 0.05) 1px, transparent 1px),
-            linear-gradient(to bottom, rgba(125, 249, 255, 0.05) 1px, transparent 1px)
-          `,
-          backgroundSize: '20px 20px',
-          zIndex: 0
-        }} />
-        <HologramDisplay />
-        <ConsoleView />
+      <div className="signet-scrollbar" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+        <Page />
       </div>
-
-      <SystemMetrics />
-
-      <style>
-        {keyframes.slideInUp}
-        {keyframes.slideInRight}
-        {keyframes.shimmer}
-        {keyframes.scanLine}
-        {keyframes.spin}
-      </style>
     </div>
   )
 }

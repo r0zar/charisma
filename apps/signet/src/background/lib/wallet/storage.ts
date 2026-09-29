@@ -9,8 +9,6 @@ import type { SeedPhrase, Account, WalletState } from './types';
 
 const VAULT_KEY = 'vault';
 const UNLOCKED_KEY = 'unlocked';
-/** Plaintext password left in chrome.storage.local by the old session code */
-const LEGACY_SESSION_KEY = 'wallet_session';
 
 const LOCK_AFTER_MS = 15 * 60 * 1000;
 const PBKDF2_ITERATIONS = 600_000;
@@ -75,11 +73,6 @@ async function sessionKey(): Promise<CryptoKey> {
   }
   await chrome.storage.session.set({ [UNLOCKED_KEY]: { ...unlocked, expiresAt: Date.now() + LOCK_AFTER_MS } });
   return crypto.subtle.importKey('raw', fromBase64(unlocked.key), 'AES-GCM', true, ['encrypt', 'decrypt']);
-}
-
-/** Drop the plaintext password the old session code kept in local storage. */
-export async function removeLegacySession(): Promise<void> {
-  await chrome.storage.local.remove(LEGACY_SESSION_KEY);
 }
 
 /** Whether a wallet has been created on this browser (locked or not). */
