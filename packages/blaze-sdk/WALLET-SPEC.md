@@ -19,7 +19,7 @@ Exactly the standard provider. Nothing new to install for apps:
 
 ```js
 import { request } from '@stacks/connect'
-const { subnets } = await request('blaze_getSubnets')
+const { tokens } = await request('blaze_getBalances')
 ```
 
 - A wallet registers in `window.wbip_providers` and exposes `window.<Id>.request(method, params)`.
@@ -47,22 +47,6 @@ const { subnets } = await request('blaze_getSubnets')
 - **Connected site**: a site the person approved in `getAddresses` / `stx_getAddresses` this session.
 
 ## Methods
-
-### `blaze_getSubnets`
-
-The Blaze subnets the wallet knows about. Public information: no approval, no connection needed.
-
-```ts
-params: none
-result: {
-  subnets: {
-    contractId: string      // the subnet contract
-    base: string            // the on-chain token it holds (".stx" for STX)
-    symbol: string
-    decimals: number
-  }[]
-}
-```
 
 ### `blaze_getBalances`
 
@@ -147,6 +131,9 @@ result: { revoked: number }
 ```
 
 ## Not in v0.1
+
+- **Listing subnets**: public data (token cache `type: "SUBNET"`, or the chain). Apps look it up directly; the
+  wallet isn't the source of truth for which tokens exist. `blaze_getBalances` already names each balance's subnet.
 
 - **Saved signatures**: signing Blaze orders to keep in the wallet and hand to a site or relayer later.
 - **Source-agnostic send**: "send 10 WELSH", with the wallet choosing wallet, subnet, or both.
