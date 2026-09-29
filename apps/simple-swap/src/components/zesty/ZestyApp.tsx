@@ -125,7 +125,7 @@ export function ZestyApp() {
     if (view === 'money') return <Money money={money} tradeActive={!!tradeActive} />;
     if (screen === 'approve') return <Approve steps={steps} error={error} onRetry={startTrade} />;
     if (trade && tradeActive) {
-      return <Watch trade={trade} zestPrice={money.zestPrice} busy={busy} error={error} onSellNow={finishNow} onCancel={cancelTrade} />;
+      return <Watch trade={trade} zestPrice={money.zestPrice} holdings={money.holdings} busy={busy} error={error} onSellNow={finishNow} onCancel={cancelTrade} />;
     }
     if (trade && tradeFinished) {
       return <Done trade={trade} zestyUsd={money.zestyUsd} onAgain={() => { setSeenTrade(trade.strategyId); setScreen('side'); }} />;

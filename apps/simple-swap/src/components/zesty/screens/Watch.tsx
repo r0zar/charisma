@@ -3,11 +3,14 @@
 import React from 'react';
 import { BigButton, Card, ErrorNote, TokenIcon } from '../ui';
 import { formatPrice } from '../use-zesty-money';
+import type { Holdings } from '@/lib/zesty/plan';
 import type { ZestyTrade } from '../use-zesty-trade';
+import { LiveProfit } from './Profit';
 
-export function Watch({ trade, zestPrice, busy, error, onSellNow, onCancel }: {
+export function Watch({ trade, zestPrice, holdings, busy, error, onSellNow, onCancel }: {
   trade: ZestyTrade;
   zestPrice: number | null;
+  holdings: Holdings | null;
   busy: boolean;
   error: string | null;
   onSellNow: () => void;
@@ -41,6 +44,7 @@ export function Watch({ trade, zestPrice, busy, error, onSellNow, onCancel }: {
           <span className="flex items-center gap-2 text-[14px] text-[#3D3D3D]"><TokenIcon token="zest" size={28} />ZEST now</span>
           <span className="text-[30px] font-medium">{formatPrice(now)}</span>
         </div>
+        <LiveProfit trade={trade} holdings={holdings} />
         <div className="flex justify-between text-[14px]">
           <span className="text-[#3D3D3D]">Since you started</span>
           <span className="font-medium">{gainPct >= 0 ? '+' : ''}{(gainPct * 100).toFixed(1)}% for you</span>

@@ -8,6 +8,7 @@ import type { Holdings } from '@/lib/zesty/plan';
 import { BigButton, Card, ErrorNote, StepTitle } from '../ui';
 import { formatPrice, formatUsd } from '../use-zesty-money';
 import type { ZestyTrade } from '../use-zesty-trade';
+import { LiveProfit, ProfitBanner } from './Profit';
 
 const STATE_LABEL: Record<ZestyTrade['state'], string> = {
   converting: 'Starting',
@@ -69,7 +70,6 @@ function FillDetails({ trade, order, holdings }: { trade: ZestyTrade; order: Lim
   const spent = toUnits(inKey, fill.amountIn!);
   const gotUsd = got * holdings[outKey].price;
   const profit = gotUsd - trade.amountUsd;
-  const pct = (profit / trade.amountUsd) * 100;
   // ZEST price the trade ran at, in dollars (sBTC side valued at today's price)
   const fillPrice = outKey === 'zest' ? (spent * holdings.sbtc.price) / got : (got * holdings.sbtc.price) / spent;
   const gain = profit >= 0;
@@ -77,12 +77,7 @@ function FillDetails({ trade, order, holdings }: { trade: ZestyTrade; order: Lim
 
   return (
     <>
-      <div className={`flex items-baseline justify-between rounded-xl px-4 py-3 ${gain ? 'bg-[#EAF7EE]' : 'bg-[#FFF4EF]'}`}>
-        <span className="text-[13px] text-[#3D3D3D]">{gain ? 'Profit' : 'Loss'}</span>
-        <span className={`text-[24px] font-medium ${gain ? 'text-[#1B7A3A]' : 'text-[#B8410F]'}`}>
-          {gain ? '+' : '−'}{formatUsd(Math.abs(profit))} <span className="text-[14px]">({gain ? '+' : '−'}{Math.abs(pct).toFixed(1)}%)</span>
-        </span>
-      </div>
+      <ProfitBanner profit={profit} amountUsd={trade.amountUsd} />
       <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-3 text-[13px] text-[#3D3D3D]">
         <div><dt>You put in</dt><dd className="m-0 font-medium text-black">{formatUsd(trade.amountUsd)}</dd></div>
         <div className="text-right"><dt>You got</dt><dd className="m-0 font-medium text-black">{amount(outKey, got)}<br /><span className="font-normal text-[#5C5C5C]">worth {formatUsd(gotUsd)} now</span></dd></div>
@@ -126,6 +121,7 @@ function TradeRow({ trade, holdings, onChange }: { trade: ZestyTrade; holdings: 
         <span className="text-[17px] font-medium">ZEST goes {trade.side} · {formatUsd(trade.amountUsd)}</span>
         <span className={`rounded-full px-3 py-1 text-[12px] font-medium ${live ? 'bg-[#FC6432] text-black' : 'bg-[#F0F0F0] text-[#3D3D3D]'}`}>{STATE_LABEL[trade.state]}</span>
       </div>
+      {!ran && <LiveProfit trade={trade} holdings={holdings} />}
       {ran ? <FillDetails trade={trade} order={ran} holdings={holdings} /> : (
       <div className="flex justify-between text-[13px] text-[#3D3D3D]">
         <span>Started at<br /><strong className="font-medium text-black">{formatPrice(trade.entryPrice)}</strong></span>
