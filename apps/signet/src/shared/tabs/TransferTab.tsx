@@ -38,6 +38,38 @@ function TokenIcon({ token }: { token: TokenBalance }) {
   );
 }
 
+/** A shimmering bar standing in for text or an icon while balances load */
+function Bone({ width, height, round }: { width: number | string; height: number; round?: boolean }) {
+  return (
+    <div style={{
+      width, height, flexShrink: 0,
+      borderRadius: round ? '50%' : '4px',
+      background: 'linear-gradient(90deg, rgba(125, 249, 255, 0.06) 25%, rgba(125, 249, 255, 0.16) 50%, rgba(125, 249, 255, 0.06) 75%)',
+      backgroundSize: '200% 100%',
+      animation: 'signet-shimmer 1.4s ease-in-out infinite'
+    }} />
+  );
+}
+
+/** Placeholder rows shaped like token rows */
+function TokenSkeletons() {
+  return (
+    <>
+      <style>{'@keyframes signet-shimmer { from { background-position: 200% 0 } to { background-position: -200% 0 } }'}</style>
+      {[64, 48, 56, 40].map((nameWidth, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', border: '1px solid rgba(125, 249, 255, 0.15)', borderRadius: '6px', background: 'rgba(1, 4, 9, 0.5)' }}>
+          <Bone width={28} height={28} round />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <Bone width={nameWidth} height={12} />
+            <Bone width={nameWidth * 1.6} height={9} />
+          </div>
+          <Bone width={70} height={12} />
+        </div>
+      ))}
+    </>
+  );
+}
+
 const input = {
   width: '100%',
   boxSizing: 'border-box' as const,
@@ -152,6 +184,7 @@ export function TransferTab() {
 
   const load = () => {
     setError(null);
+    setBalances(null);
     sendMessage<TokenBalance[]>('getWalletBalances')
       .then(setBalances)
       .catch(err => setError(err.message));
@@ -167,7 +200,7 @@ export function TransferTab() {
       </div>
 
       {error && <div role="alert" style={{ color: colors.neonRed, fontSize: '12px' }}>{error}</div>}
-      {!balances && !error && <div style={{ color: colors.steel, fontSize: '12px' }}>Loading balances…</div>}
+      {!balances && !error && <TokenSkeletons />}
 
       {balances?.map(token => {
         const key = `${token.contractId}::${token.asset}`;
