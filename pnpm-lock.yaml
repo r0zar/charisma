@@ -1170,6 +1170,9 @@ importers:
       '@react-three/fiber':
         specifier: ^9.0.4
         version: 9.2.0(@types/react@18.2.48)(immer@10.1.1)(react-dom@18.2.0(react@18.2.0))(react-native@0.80.1(@babel/core@7.28.0)(@types/react@18.2.48)(bufferutil@4.1.0)(react@18.2.0)(utf-8-validate@6.0.6))(react@18.2.0)(three@0.174.0)
+      '@repo/tokens':
+        specifier: workspace:*
+        version: link:../../packages/tokens
       '@stacks/connect':
         specifier: ^8.1.4
         version: 8.2.7(@react-native-async-storage/async-storage@1.24.0(react-native@0.80.1(@babel/core@7.28.0)(@types/react@18.2.48)(bufferutil@4.1.0)(react@18.2.0)(utf-8-validate@6.0.6)))(@types/react@18.2.48)(@upstash/redis@1.35.1)(@vercel/blob@1.1.1)(bufferutil@4.1.0)(lit@3.3.0)(react@18.2.0)(typescript@5.3.3)(utf-8-validate@6.0.6)(zod@3.25.76)

@@ -67,11 +67,33 @@ function createDefaultTokenData(contractId: string): TokenCacheData {
 
 // --------------------------- public API ---------------------------
 /**
+ * Retrieve SIP-10 token metadata, throwing a descriptive error when the token cache can't supply it.
+ * Use this wherever wrong details are dangerous (e.g. decimals for a send).
+ */
+export async function getTokenMetadataStrict(contractId: string): Promise<TokenCacheData> {
+    const response = await fetch(`${TOKEN_CACHE}/api/v1/sip10/${contractId}`);
+    if (!response.ok) throw new Error(`Token cache has no metadata for ${contractId} (${response.status})`);
+    const result = (await response.json()) as TokenCacheResponse;
+    if (result.status !== 'success' || !result.data) {
+        throw new Error(`Token cache returned no metadata for ${contractId}: ${result.error || result.message || result.status}`);
+    }
+    if (typeof result.data.decimals !== 'number') throw new Error(`Token cache metadata for ${contractId} has no decimals`);
+    return { ...createDefaultTokenData(contractId), ...result.data };
+}
+
+/** Logged whenever made-up details stand in for missing metadata, so bad tokens can be found and fixed */
+function usingDefaults(contractId: string, reason: string) {
+    console.error(`[tokens] Using made-up metadata (6 decimals, blank name) for ${contractId}: ${reason}`);
+}
+
+/**
  * Retrieve SIP-10 token metadata via the shared token-cache service.
- * Falls back to a reasonable default structure when the cache is unavailable or incomplete.
+ * Falls back to a default structure (6 decimals) when the cache is unavailable or incomplete, and logs
+ * a console error each time so pages keep working while bad metadata stays visible.
  */
 export async function getTokenMetadataCached(contractId: string): Promise<TokenCacheData> {
     if (!contractId.includes('.')) {
+        usingDefaults(contractId, 'not a contract id');
         return {
             type: 'token' as const,
             contractId: '*',
@@ -88,7 +110,7 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
         const response = await fetch(url);
 
         if (!response.ok) {
-            console.warn(`Token-cache API error for ${contractId}: ${response.status} ${response.statusText}`);
+            usingDefaults(contractId, `token cache ${response.status} ${response.statusText}`);
             return createDefaultTokenData(contractId);
         }
 
@@ -100,13 +122,10 @@ export async function getTokenMetadataCached(contractId: string): Promise<TokenC
         }
 
         // API responded with an error or missing data
-        console.error(
-            `Token-cache API returned status '${result.status}' or missing data for ${contractId}: ${result.error || result.message
-            }`,
-        );
+        usingDefaults(contractId, `token cache returned '${result.status}': ${result.error || result.message || 'no data'}`);
         return createDefaultTokenData(contractId);
     } catch (err) {
-        console.error(`Failed to fetch or parse token metadata for ${contractId}:`, err);
+        usingDefaults(contractId, `fetch failed: ${(err as Error).message}`);
         return createDefaultTokenData(contractId);
     }
 }

@@ -1,12 +1,12 @@
 /**
  * The active account's regular (on-chain) balances, and sending them from the wallet.
- * Balances come from Hiro; names, decimals and logos from Charisma's token cache.
+ * Balances come from Hiro; names, decimals and logos from Charisma's token cache (@repo/tokens).
  */
 import { Cl, Pc, broadcastTransaction, makeContractCall, makeSTXTokenTransfer } from "@stacks/transactions"
+import { getTokenMetadataStrict } from "@repo/tokens"
 import * as wallet from "./wallet"
 
 const HIRO = "https://api.hiro.so"
-const TOKEN_CACHE = "https://tokens.charisma.rocks"
 export const STX_ID = ".stx"
 
 export interface TokenBalance {
@@ -26,12 +26,15 @@ async function activeAccount() {
   return account
 }
 
+/** Strict lookup: a token with unknown details is shown in raw units and can't be sent, never guessed */
 async function tokenMeta(contractId: string): Promise<TokenBalance["meta"]> {
-  const res = await fetch(`${TOKEN_CACHE}/api/v1/sip10/${encodeURIComponent(contractId)}`)
-  if (!res.ok) return null
-  const { data } = await res.json()
-  if (!data || typeof data.decimals !== "number") return null
-  return { symbol: data.symbol, name: data.name, decimals: data.decimals, image: data.image ?? null }
+  try {
+    const data = await getTokenMetadataStrict(contractId)
+    return { symbol: data.symbol, name: data.name, decimals: data.decimals, image: data.image ?? null }
+  } catch (error) {
+    console.error(`[signet] ${(error as Error).message}`)
+    return null
+  }
 }
 
 /** STX first, then every token with a balance */

@@ -23,6 +23,7 @@
     "@react-spring/three": "^9.7.5",
     "@react-spring/web": "^9.7.5",
     "@react-three/fiber": "^9.0.4",
+    "@repo/tokens": "workspace:*",
     "@stacks/connect": "^8.1.4",
     "@stacks/encryption": "^7.0.4",
     "@stacks/network": "^7.0.2",
