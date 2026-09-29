@@ -208,10 +208,10 @@ export function WalletTab() {
                       <HudButton onClick={() => newAccountFor(phrase.id)}>+ Acct</HudButton>
                       <HudButton
                         tone="red"
-                        onClick={() => confirm('Delete this seed phrase? Its accounts are removed and CANNOT be recovered without the words written down.')
+                        onClick={() => confirm('Unlink this seed phrase from this browser?\n\nIts accounts and funds stay safe on the blockchain. To use them here again, you will need the seed phrase words.')
                           && run(async () => { await deleteSeedPhrase(phrase.id); await refreshWalletState(); })}
                       >
-                        Del
+                        Unlink
                       </HudButton>
                     </div>
                     {phraseAccounts.map(account => (
@@ -242,10 +242,10 @@ export function WalletTab() {
                 <HudButton
                   tone="red"
                   grow
-                  onClick={() => confirm('Delete this wallet? All seed phrases and accounts are removed from this browser and CANNOT be recovered without your seed phrase written down.')
+                  onClick={() => confirm('Unlink this wallet from this browser?\n\nEvery seed phrase and account is removed from this device. Your funds stay safe on the blockchain; you will need your seed phrase to get back in.')
                     && run(async () => { await resetWallet(); await refreshWalletState(); })}
                 >
-                  Delete
+                  Unlink
                 </HudButton>
               </div>
             </HudPanel>
