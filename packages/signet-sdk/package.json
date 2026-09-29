@@ -1,0 +1,30 @@
+{
+  "name": "signet-sdk",
+  "version": "0.1.11",
+  "description": "SDK for interacting with Signet extension using the unified Message class system",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src/ --ext .ts,.tsx || echo 'Warning: No files to lint found, but continuing build'",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.5",
+    "eslint": "^8.57.0",
+    "tsup": "^8.0.1",
+    "typescript": "^5.3.3"
+  },
+  "files": [
+    "dist/**"
+  ],
+  "keywords": [
+    "signet",
+    "extension",
+    "message",
+    "sdk"
+  ]
+}

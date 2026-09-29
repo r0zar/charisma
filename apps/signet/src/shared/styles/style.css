@@ -1,0 +1,163 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap");
+
+/* Variables */
+:root {
+  --background: 0 0% 0%;
+  --foreground: 210 40% 98%;
+  --card: 0 0% 5%;
+  --card-foreground: 210 40% 96.1%;
+  --border: 0 0% 20%;
+  --input: 0 0% 20%;
+  --primary: 0.99 83% 41%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 210 40% 96.1%;
+  --secondary-foreground: 0.99 47.4% 11.2%;
+  --accent: 0.99 83% 41%;
+  --accent-foreground: 210 40% 98%;
+  --muted: 217.2 32.6% 12%;
+  --muted-foreground: 215 20.2% 75%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --ring: 215 20.2% 65.1%;
+  --radius: 0.5rem;
+  --shimmer-from: -100%;
+  --shimmer-to: 100%;
+}
+
+body {
+  margin: 0px
+}
+
+/* Animations */
+@keyframes signet-shimmer {
+  0% { transform: translateX(var(--shimmer-from)); }
+  100% { transform: translateX(var(--shimmer-to)); }
+}
+
+@keyframes signet-pulse-glow {
+  0%, 100% { opacity: 0.8; box-shadow: 0 0 5px rgba(125, 249, 255, 0.5); }
+  50% { opacity: 1; box-shadow: 0 0 15px rgba(125, 249, 255, 0.8); }
+}
+
+@keyframes scanline {
+  0% { top: 0; }
+  50% { top: 100%; }
+  100% { top: 0; }
+}
+
+/* Class-based utilities with signet- prefix */
+.signet-animate-shimmer {
+  animation: signet-shimmer 2s infinite;
+}
+
+.signet-animate-pulse-glow {
+  animation: signet-pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.signet-glass-effect {
+  background: linear-gradient(180deg, rgba(17, 17, 27, 0.05) 0%, rgba(17, 17, 27, 0.2) 100%);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Utility classes */
+.signet-hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.signet-hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Enhanced cyber scrollbar styling */
+.signet-scrollbar::-webkit-scrollbar {
+  width: 5px !important;
+  height: 5px !important;
+  background-color: transparent !important;
+}
+
+.signet-scrollbar::-webkit-scrollbar-track {
+  background: rgba(1, 4, 9, 0.6) !important;
+  border-radius: 2px !important;
+  margin: 3px 0 !important;
+}
+
+.signet-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(125, 249, 255, 0.5) !important;
+  border-radius: 2px !important;
+  transition: all 0.2s ease !important;
+  border: 1px solid rgba(125, 249, 255, 0.2) !important;
+}
+
+.signet-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(125, 249, 255, 0.8) !important;
+  box-shadow: 0 0 10px rgba(125, 249, 255, 0.5) !important;
+}
+
+.signet-scrollbar::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+/* Pulsing effect on hover */
+.signet-scrollbar:hover::-webkit-scrollbar-thumb {
+  animation: signet-pulse-glow 2s infinite;
+}
+
+/* Firefox scrollbar styling */
+.signet-scrollbar {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(125, 249, 255, 0.5) rgba(1, 4, 9, 0.6) !important;
+}
+
+.signet-logo-shadow {
+  filter: drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.25));
+}
+
+.signet-container {
+  position: fixed;
+  z-index: 9999;
+  /* font-family: 'Inter', sans-serif; */
+  color: white;
+  box-sizing: border-box;
+}
+
+/* Component styles */
+.signet-btn-gradient {
+  background: linear-gradient(90deg, #c1121f 0%, #ff4d6d 100%);
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.signet-btn-gradient:hover {
+  background: linear-gradient(90deg, #a8101b 0%, #e64361 100%);
+  box-shadow: 0 4px 12px rgba(193, 18, 31, 0.3);
+}
+
+.signet-card {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.signet-card:hover {
+  border-color: rgba(193, 18, 31, 0.2);
+  box-shadow: 0 8px 24px rgba(193, 18, 31, 0.1);
+}
+
+.signet-glass-card {
+  background: linear-gradient(180deg, rgba(17, 17, 27, 0.05) 0%, rgba(17, 17, 27, 0.2) 100%);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+}
+
+.signet-glass-card:hover {
+  border-color: rgba(193, 18, 31, 0.2);
+  box-shadow: 0 8px 24px rgba(193, 18, 31, 0.1);
+}

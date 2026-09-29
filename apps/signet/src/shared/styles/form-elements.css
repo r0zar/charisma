@@ -1,0 +1,144 @@
+/* Form element styles for use within Shadow DOM */
+
+/* Custom radio buttons */
+input[type="radio"] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  position: relative;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+input[type="radio"]:checked {
+  border-color: #c1121f;
+  background-color: transparent;
+}
+
+input[type="radio"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #c1121f;
+}
+
+input[type="radio"]:focus {
+  box-shadow: 0 0 0 2px rgba(193, 18, 31, 0.3);
+}
+
+/* Custom checkboxes */
+input[type="checkbox"] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  position: relative;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+input[type="checkbox"]:checked {
+  border-color: #c1121f;
+  background-color: #c1121f;
+}
+
+input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+input[type="checkbox"]:focus {
+  box-shadow: 0 0 0 2px rgba(193, 18, 31, 0.3);
+}
+
+/* Custom toggle switches */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-switch label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: block;
+  border-radius: 12px;
+  background-color: rgba(17, 17, 27, 0.5);
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.toggle-switch label::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: white;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.toggle-switch input:checked + label {
+  background-color: #c1121f;
+}
+
+.toggle-switch input:checked + label::after {
+  transform: translateX(16px);
+}
+
+/* Custom select */
+select {
+  appearance: none;
+  background-color: rgba(0, 0, 0, 0.4);
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 30px;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Custom input styling */
+.signet-input {
+  background-color: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  border-radius: 4px;
+  padding: 8px 12px;
+  transition: all 0.2s ease;
+}
+
+.signet-input:focus {
+  border-color: #c1121f;
+  box-shadow: 0 0 0 2px rgba(193, 18, 31, 0.25);
+  outline: none;
+}

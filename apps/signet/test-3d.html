@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Signet 3D Extension Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #1e1e2e;
+      color: #cdd6f4;
+    }
+    h1 {
+      color: #cba6f7;
+    }
+    .card {
+      border: 1px solid #45475a;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background-color: #313244;
+    }
+    button {
+      background-color: #5546ff;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #6c5ce7;
+    }
+    .button-group {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+    }
+    pre {
+      background-color: #181825;
+      color: #cdd6f4;
+      padding: 12px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .log {
+      height: 200px;
+      overflow-y: auto;
+      background-color: #181825;
+      color: #cdd6f4;
+      padding: 12px;
+      border-radius: 4px;
+      font-family: monospace;
+      margin-top: 16px;
+    }
+    .log-entry {
+      margin-bottom: 4px;
+      border-bottom: 1px solid #45475a;
+      padding-bottom: 4px;
+    }
+    .log-time {
+      color: #89b4fa;
+    }
+    .log-type {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin: 0 8px;
+      font-size: 12px;
+    }
+    .red-button { background-color: #f38ba8; }
+    .red-button:hover { background-color: #e64980; }
+    .blue-button { background-color: #5546ff; }
+    .blue-button:hover { background-color: #6c5ce7; }
+    .green-button { background-color: #a6e3a1; }
+    .green-button:hover { background-color: #22c55e; }
+    .orange-button { background-color: #fab387; }
+    .orange-button:hover { background-color: #f97316; }
+  </style>
+</head>
+<body>
+  <h1>Signet Extension 3D Test Page</h1>
+  
+  <div class="card">
+    <h2>Extension Test Controls</h2>
+    <p>This page helps test if the Signet extension is working properly.</p>
+    
+    <div class="button-group">
+      <button class="blue-button" id="send-test">Send Test Message</button>
+      <button class="green-button" id="show-3d">Show 3D</button>
+      <button class="red-button" id="hide-3d">Hide 3D</button>
+      <button class="orange-button" id="toggle-extension">Toggle Extension Panel</button>
+    </div>
+    
+    <div class="button-group">
+      <button class="blue-button" style="background-color: #ff0000;" id="color-red">Red Cube</button>
+      <button class="blue-button" style="background-color: #00ff00;" id="color-green">Green Cube</button>
+      <button class="blue-button" style="background-color: #0000ff;" id="color-blue">Blue Cube</button>
+      <button class="blue-button" style="background-color: #ff00ff;" id="color-pink">Pink Cube</button>
+      <button class="blue-button" style="background-color: #ffffff; color: #000;" id="auto-demo">Auto Demo</button>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h2>Message Format</h2>
+    <p>Here's the message format we're using:</p>
+    
+    <pre>// Test message
+window.postMessage({
+  type: "TEST_MESSAGE",
+  timestamp: Date.now(),
+  message: "Test message"
+}, "*");
+
+// Show 3D
+window.postMessage({
+  type: "SHOW_3D",
+  color: "#5546FF", // optional
+  duration: 5000    // optional, auto-hide after 5 seconds
+}, "*");
+
+// Hide 3D
+window.postMessage({
+  type: "HIDE_3D"
+}, "*");
+
+// Change color
+window.postMessage({
+  type: "CHANGE_COLOR",
+  color: "#ff0000"
+}, "*");</pre>
+    
+    <div class="log" id="message-log">
+      <!-- Log entries will be added here -->
+    </div>
+  </div>
+  
+  <script>
+    // Logging
+    function logMessage(type, details = '') {
+      const log = document.getElementById('message-log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      
+      const time = new Date().toLocaleTimeString();
+      
+      entry.innerHTML = `
+        <span class="log-time">[${time}]</span>
+        <span class="log-type">${type}</span>
+        <span>${details}</span>
+      `;
+      
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+    
+    // Button Actions
+    document.getElementById('send-test').addEventListener('click', () => {
+      const message = {
+        type: "TEST_MESSAGE",
+        timestamp: Date.now(),
+        message: "Button clicked test message"
+      };
+      
+      window.postMessage(message, "*");
+      logMessage('TEST_MESSAGE', JSON.stringify(message));
+    });
+    
+    document.getElementById('show-3d').addEventListener('click', () => {
+      const message = { type: "SHOW_3D" };
+      window.postMessage(message, "*");
+      logMessage('SHOW_3D', 'Sent show 3D message');
+    });
+    
+    document.getElementById('hide-3d').addEventListener('click', () => {
+      const message = { type: "HIDE_3D" };
+      window.postMessage(message, "*");
+      logMessage('HIDE_3D', 'Sent hide 3D message');
+    });
+    
+    document.getElementById('toggle-extension').addEventListener('click', () => {
+      const message = { type: "TOGGLE_EXTENSION" };
+      window.postMessage(message, "*");
+      logMessage('TOGGLE', 'Sent toggle extension visibility message');
+    });
+    
+    // Color buttons
+    document.getElementById('color-red').addEventListener('click', () => {
+      const message = { 
+        type: "SHOW_3D",
+        color: "#ff0000"
+      };
+      window.postMessage(message, "*");
+      logMessage('COLOR', 'Set color to red');
+    });
+    
+    document.getElementById('color-green').addEventListener('click', () => {
+      const message = { 
+        type: "SHOW_3D",
+        color: "#00ff00"
+      };
+      window.postMessage(message, "*");
+      logMessage('COLOR', 'Set color to green');
+    });
+    
+    document.getElementById('color-blue').addEventListener('click', () => {
+      const message = { 
+        type: "SHOW_3D",
+        color: "#0000ff"
+      };
+      window.postMessage(message, "*");
+      logMessage('COLOR', 'Set color to blue');
+    });
+    
+    document.getElementById('color-pink').addEventListener('click', () => {
+      const message = { 
+        type: "SHOW_3D",
+        color: "#ff00ff"
+      };
+      window.postMessage(message, "*");
+      logMessage('COLOR', 'Set color to pink');
+    });
+    
+    // Auto demo
+    document.getElementById('auto-demo').addEventListener('click', () => {
+      // Sequence of messages
+      logMessage('DEMO', 'Starting auto demo sequence');
+      
+      // Show red cube
+      setTimeout(() => {
+        window.postMessage({ type: "SHOW_3D", color: "#ff0000" }, "*");
+        logMessage('DEMO', 'Showing red cube');
+        
+        // Change to green after 1.5s
+        setTimeout(() => {
+          window.postMessage({ type: "CHANGE_COLOR", color: "#00ff00" }, "*");
+          logMessage('DEMO', 'Changing to green');
+          
+          // Change to blue after 1.5s
+          setTimeout(() => {
+            window.postMessage({ type: "CHANGE_COLOR", color: "#0000ff" }, "*");
+            logMessage('DEMO', 'Changing to blue');
+            
+            // Hide after 1.5s
+            setTimeout(() => {
+              window.postMessage({ type: "HIDE_3D" }, "*");
+              logMessage('DEMO', 'Demo complete - hiding cube');
+            }, 1500);
+          }, 1500);
+        }, 1500);
+      }, 500);
+    });
+    
+    // Log events
+    logMessage('PAGE_LOAD', 'Test page loaded successfully');
+  </script>
+</body>
+</html>

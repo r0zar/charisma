@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Signet Chrome Extension Test Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      color: #334155;
+    }
+    .card {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background-color: #f8fafc;
+    }
+    button {
+      background-color: #3b82f6;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 8px;
+      margin-bottom: 8px;
+      transition: background-color 0.2s;
+    }
+    button:hover {
+      background-color: #2563eb;
+    }
+    .button-group {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+    }
+    pre {
+      background-color: #334155;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .log {
+      height: 200px;
+      overflow-y: auto;
+      background-color: #1e293b;
+      color: #e2e8f0;
+      padding: 12px;
+      border-radius: 4px;
+      font-family: monospace;
+      margin-top: 16px;
+    }
+    .log-entry {
+      margin-bottom: 4px;
+      border-bottom: 1px solid #475569;
+      padding-bottom: 4px;
+    }
+    .log-time {
+      color: #94a3b8;
+    }
+    .log-type {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin: 0 8px;
+      font-size: 12px;
+    }
+    .log-show {
+      background-color: #059669;
+      color: white;
+    }
+    .log-hide {
+      background-color: #dc2626;
+      color: white;
+    }
+    .log-animate {
+      background-color: #d97706;
+      color: white;
+    }
+    .green-button { background-color: #22c55e; }
+    .green-button:hover { background-color: #16a34a; }
+    .blue-button { background-color: #3b82f6; }
+    .blue-button:hover { background-color: #2563eb; }
+    .red-button { background-color: #ef4444; }
+    .red-button:hover { background-color: #dc2626; }
+    .yellow-button { background-color: #eab308; }
+    .yellow-button:hover { background-color: #ca8a04; }
+    .purple-button { background-color: #a855f7; }
+    .purple-button:hover { background-color: #9333ea; }
+  </style>
+</head>
+<body>
+  <h1>Signet Chrome Extension R3F Test</h1>
+  
+  <div class="card">
+    <h2>Test Message Controls</h2>
+    <p>Use these buttons to send messages to the extension to show and hide 3D objects.</p>
+    
+    <div class="button-group">
+      <button class="green-button" id="show-sphere-green">Show Green Sphere</button>
+      <button class="blue-button" id="show-sphere-blue">Show Blue Sphere</button>
+      <button class="purple-button" id="show-sphere-purple">Show Purple Sphere</button>
+      <button class="red-button" id="hide-sphere">Hide Sphere</button>
+    </div>
+    
+    <div class="button-group">
+      <button class="yellow-button" id="animate-sphere">Animate Sphere Color</button>
+      <button id="auto-demo">Run Auto Demo</button>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h2>Message Format</h2>
+    <p>Here's the format of the messages we're sending to the extension:</p>
+    
+    <pre>// Show object
+window.postMessage({
+  type: "SHOW_OBJECT",
+  objectId: "sphere",
+  color: "#00ff00",  // Optional
+  duration: 5000     // Optional, auto-hide after 5 seconds
+}, "*");
+
+// Hide object
+window.postMessage({
+  type: "HIDE_OBJECT",
+  objectId: "sphere"
+}, "*");
+
+// Animate object
+window.postMessage({
+  type: "ANIMATE_OBJECT",
+  objectId: "sphere",
+  color: "#ff00ff"
+}, "*");</pre>
+    
+    <div class="log" id="message-log">
+      <!-- Log entries will be added here -->
+    </div>
+  </div>
+  
+  <script>
+    // Log function
+    function logMessage(type, objectId, details) {
+      const log = document.getElementById('message-log');
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      
+      const time = new Date().toLocaleTimeString();
+      let typeClass = '';
+      
+      if (type === 'SHOW_OBJECT') typeClass = 'log-show';
+      else if (type === 'HIDE_OBJECT') typeClass = 'log-hide';
+      else if (type === 'ANIMATE_OBJECT') typeClass = 'log-animate';
+      
+      entry.innerHTML = `
+        <span class="log-time">[${time}]</span>
+        <span class="log-type ${typeClass}">${type}</span>
+        <span>${objectId}</span>
+        <span>${details || ''}</span>
+      `;
+      
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+    
+    // Send message function
+    function sendMessage(type, objectId, options = {}) {
+      const message = {
+        type,
+        objectId,
+        ...options
+      };
+      
+      window.postMessage(message, "*");
+      
+      // Log the message
+      let details = '';
+      if (options.color) details += `color: ${options.color} `;
+      if (options.duration) details += `duration: ${options.duration}ms`;
+      
+      logMessage(type, objectId, details);
+    }
+    
+    // Generate random color
+    function randomColor() {
+      return '#' + Math.floor(Math.random()*16777215).toString(16);
+    }
+    
+    // Button event listeners
+    document.getElementById('show-sphere-green').addEventListener('click', () => {
+      sendMessage('SHOW_OBJECT', 'sphere', { color: '#22c55e' });
+    });
+    
+    document.getElementById('show-sphere-blue').addEventListener('click', () => {
+      sendMessage('SHOW_OBJECT', 'sphere', { color: '#3b82f6' });
+    });
+    
+    document.getElementById('show-sphere-purple').addEventListener('click', () => {
+      sendMessage('SHOW_OBJECT', 'sphere', { color: '#a855f7' });
+    });
+    
+    document.getElementById('hide-sphere').addEventListener('click', () => {
+      sendMessage('HIDE_OBJECT', 'sphere');
+    });
+    
+    document.getElementById('animate-sphere').addEventListener('click', () => {
+      sendMessage('ANIMATE_OBJECT', 'sphere', { color: randomColor() });
+    });
+    
+    document.getElementById('auto-demo').addEventListener('click', () => {
+      // Show green sphere
+      sendMessage('SHOW_OBJECT', 'sphere', { color: '#22c55e' });
+      
+      // Change to blue after 2 seconds
+      setTimeout(() => {
+        sendMessage('ANIMATE_OBJECT', 'sphere', { color: '#3b82f6' });
+        
+        // Change to purple after 2 more seconds
+        setTimeout(() => {
+          sendMessage('ANIMATE_OBJECT', 'sphere', { color: '#a855f7' });
+          
+          // Hide after 2 more seconds
+          setTimeout(() => {
+            sendMessage('HIDE_OBJECT', 'sphere');
+          }, 2000);
+        }, 2000);
+      }, 2000);
+    });
+  </script>
+</body>
+</html>
