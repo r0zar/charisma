@@ -3,7 +3,7 @@
  * Balances come from Hiro; names, decimals and logos from Charisma's token cache (@repo/tokens).
  */
 import { Cl, Pc, broadcastTransaction, makeContractCall, makeSTXTokenTransfer } from "@stacks/transactions"
-import { getTokenMetadataStrict } from "@repo/tokens"
+import { getTokenMetadataStrict, lakehouseClient } from "@repo/tokens"
 import * as wallet from "./wallet"
 
 const HIRO = "https://api.hiro.so"
@@ -57,6 +57,12 @@ export async function getWalletBalances(): Promise<TokenBalance[]> {
     const [contractId, asset] = key.split("::")
     return { contractId, asset, balance, meta: await tokenMeta(contractId) }
   }))
+}
+
+/** USD price per whole token, by contract id (".stx" for STX), from the same feed the swap app uses */
+export async function getUsdPrices(): Promise<Record<string, number>> {
+  const prices = await lakehouseClient.getCurrentPrices({ limit: 1000 })
+  return Object.fromEntries(prices.map(price => [price.token_contract_id, price.usd_price]))
 }
 
 /** Send `amount` (smallest units) of a token; SIP-10 sends carry a post condition: exactly this amount leaves. */

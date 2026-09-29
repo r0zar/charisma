@@ -122,6 +122,10 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
         response = await tokens.getWalletBalances();
         break;
 
+      case "getUsdPrices":
+        response = await tokens.getUsdPrices();
+        break;
+
       case "sendToken":
         if (typeof data?.contractId !== "string" || typeof data?.recipient !== "string" || typeof data?.amount !== "string") {
           throw new Error("Invalid send: contractId, recipient and amount are required");

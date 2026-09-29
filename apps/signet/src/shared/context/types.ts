@@ -22,6 +22,7 @@ export type MessageAction =
   | "deleteAccount"
   // Balances and sends
   | "getWalletBalances"
+  | "getUsdPrices"
   | "sendToken"
   // Diagnostics
   | "getDiagnostics";

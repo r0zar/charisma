@@ -24,9 +24,11 @@ export type Tone = keyof typeof HUD
 export const hudColor = (tone: Tone, alpha = 0.8) => `rgba(${HUD[tone]}, ${alpha})`
 
 /** The outer frame, like the hologram: gradient glass, inset glow, and a status strip on top */
-export function HudScreen({ title, stats = [], children }: {
+export function HudScreen({ title, stats = [], gap = 6, children }: {
   title: string
   stats?: { label: string; value: ReactNode; tone?: Tone }[]
+  /** Space between panels, in px */
+  gap?: number
   children: ReactNode
 }) {
   return (
@@ -61,7 +63,7 @@ export function HudScreen({ title, stats = [], children }: {
           ))}
         </span>
       </div>
-      <div style={{ padding: "6px", display: "flex", flexDirection: "column", gap: "6px" }}>
+      <div style={{ padding: `${gap}px`, display: "flex", flexDirection: "column", gap: `${gap}px` }}>
         {children}
       </div>
     </div>
@@ -69,8 +71,10 @@ export function HudScreen({ title, stats = [], children }: {
 }
 
 /** A panel inside a screen, like the hologram's sections: title bar with status dot, hex pattern behind */
-export function HudPanel({ title, right, tone = "cyan", pattern = true, children }: {
+export function HudPanel({ title, right, tone = "cyan", pattern = true, gap = 4, children }: {
   title: string
+  /** Space between lines inside, in px */
+  gap?: number
   /** Shown at the right of the title bar, before the status dot */
   right?: ReactNode
   tone?: Tone
@@ -107,7 +111,7 @@ export function HudPanel({ title, right, tone = "cyan", pattern = true, children
           <StatusIndicator color={color} />
         </span>
       </div>
-      <div className="hud-text" style={{ position: "relative", padding: "6px 4px 2px", display: "flex", flexDirection: "column", gap: "4px", fontSize: "9px" }}>
+      <div className="hud-text" style={{ position: "relative", padding: `${gap + 2}px 4px ${Math.max(2, gap - 2)}px`, display: "flex", flexDirection: "column", gap: `${gap}px`, fontSize: "9px" }}>
         {children}
       </div>
     </div>

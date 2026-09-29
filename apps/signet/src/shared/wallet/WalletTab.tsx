@@ -171,6 +171,7 @@ export function WalletTab() {
   return (
     <div style={{ padding: '8px' }}>
       <HudScreen
+        gap={12}
         title="WALLET"
         stats={[
           { label: 'ACCOUNTS', value: accounts.length },
@@ -184,25 +185,25 @@ export function WalletTab() {
 
         {view === 'accounts' && (
           <>
-            <HudPanel title="ACTIVE ACCOUNT" tone={currentAccount ? 'green' : 'amber'}>
+            <HudPanel title="ACTIVE ACCOUNT" tone={currentAccount ? 'green' : 'amber'} gap={8}>
               {currentAccount ? (
                 <>
                   <HudStat label="NAME" value={accountLabel(currentAccount.name)} tone="green" />
                   <HudStat label="ADDRESS" value={short(currentAccount.stxAddress)} />
-                  <div style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '8px', wordBreak: 'break-all', marginTop: '2px' }}>{currentAccount.stxAddress}</div>
+                  <div style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '8px', wordBreak: 'break-all', marginTop: '4px', paddingTop: '8px', borderTop: '1px dashed rgba(125, 249, 255, 0.12)' }}>{currentAccount.stxAddress}</div>
                 </>
               ) : (
                 <HudLine tone="amber">No active account. Add one from a seed phrase below</HudLine>
               )}
             </HudPanel>
 
-            <HudPanel title="SEED PHRASES" right={<span>{seedPhrases.length}</span>}>
+            <HudPanel title="SEED PHRASES" right={<span>{seedPhrases.length}</span>} gap={10}>
               {seedPhrases.length === 0 && <HudLine>None yet. Generate or import one</HudLine>}
               {seedPhrases.map(phrase => {
                 const phraseAccounts = accounts.filter(account => account.seedPhraseId === phrase.id);
                 return (
                   <div key={phrase.id}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '2px 0 4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '2px 0 8px' }}>
                       <span style={{ flex: 1, color: colors.cyber, fontWeight: 'bold', fontSize: '9px' }}>⬡ {phrase.name.toUpperCase()}</span>
                       <HudButton onClick={() => newAccountFor(phrase.id)}>+ Acct</HudButton>
                       <HudButton
@@ -214,7 +215,7 @@ export function WalletTab() {
                       </HudButton>
                     </div>
                     {phraseAccounts.map(account => (
-                      <div key={account.id} className={`hud-row${account.isActive ? ' is-active' : ''}`}>
+                      <div key={account.id} className={`hud-row${account.isActive ? ' is-active' : ''}`} style={{ padding: '9px 6px' }}>
                         <span style={{ color: account.isActive ? colors.neonGreen : colors.cyber, fontWeight: 'bold', minWidth: '64px' }}>{accountLabel(account.name)}</span>
                         <span style={{ flex: 1, color: 'rgba(255, 255, 255, 0.55)' }}>{short(account.stxAddress)}</span>
                         {account.isActive
@@ -225,17 +226,17 @@ export function WalletTab() {
                   </div>
                 );
               })}
-              <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
                 <HudButton grow onClick={() => setView('newSeed')}>Generate new</HudButton>
                 <HudButton grow onClick={() => setView('importSeed')}>Import</HudButton>
               </div>
             </HudPanel>
 
-            <HudPanel title="VAULT" tone="steel" pattern={false}>
+            <HudPanel title="VAULT" tone="steel" pattern={false} gap={8}>
               <HudStat label="ENCRYPTION" value="AES-GCM · PBKDF2" />
               <HudStat label="AUTO-LOCK" value="15 MIN IDLE" />
               <ErrorLine error={error} />
-              <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
                 <HudButton tone="green" grow onClick={() => run(saveEncryptedWalletBackup)}>Export</HudButton>
                 <HudButton grow onClick={() => run(endSession)}>Lock</HudButton>
                 <HudButton

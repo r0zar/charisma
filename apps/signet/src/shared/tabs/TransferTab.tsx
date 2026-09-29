@@ -24,15 +24,21 @@ function parseUnits(text: string, decimals: number) {
   return (BigInt(whole || '0') * 10n ** BigInt(decimals) + BigInt(frac.padEnd(decimals, '0') || '0')).toString();
 }
 
+const usd = (value: number) =>
+  value.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: value < 1 ? 4 : 2 });
+
+/** Whole-token amount of a balance (for pricing; display uses formatUnits) */
+const units = (token: TokenBalance) => Number(token.balance) / 10 ** token.meta!.decimals;
+
 const label = (token: TokenBalance) => token.meta?.symbol ?? token.contractId.split('.')[1];
 
 function TokenIcon({ token }: { token: TokenBalance }) {
   const [broken, setBroken] = useState(false);
   if (token.meta?.image && !broken) {
-    return <img src={token.meta.image} alt="" width={16} height={16} onError={() => setBroken(true)} style={{ borderRadius: '50%', flexShrink: 0, boxShadow: '0 0 6px rgba(125, 249, 255, 0.35)' }} />;
+    return <img src={token.meta.image} alt="" width={24} height={24} onError={() => setBroken(true)} style={{ borderRadius: '50%', flexShrink: 0, boxShadow: '0 0 6px rgba(125, 249, 255, 0.35)' }} />;
   }
   return (
-    <div style={{ width: 16, height: 16, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(125, 249, 255, 0.5)', color: colors.cyber, fontSize: '8px', fontFamily: 'monospace', fontWeight: 'bold' }}>
+    <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(125, 249, 255, 0.5)', color: colors.cyber, fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold' }}>
       {label(token).charAt(0).toUpperCase()}
     </div>
   );
@@ -57,13 +63,16 @@ function TokenSkeletons() {
     <>
       <style>{'@keyframes signet-bone { from { background-position: 200% 0 } to { background-position: -200% 0 } }'}</style>
       {[48, 36, 42, 30].map((nameWidth, i) => (
-        <div key={i} className="hud-row">
-          <Bone width={16} height={16} round />
+        <div key={i} className="hud-row" style={{ padding: '10px 6px', gap: '10px' }}>
+          <Bone width={24} height={24} round />
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <Bone width={nameWidth} height={9} />
+            <Bone width={nameWidth} height={11} />
             <Bone width={nameWidth * 1.8} height={7} />
           </div>
-          <Bone width={60} height={9} />
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
+            <Bone width={64} height={11} />
+            <Bone width={40} height={7} />
+          </div>
         </div>
       ))}
     </>
@@ -157,14 +166,29 @@ export function TransferTab() {
   const [balances, setBalances] = useState<TokenBalance[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [prices, setPrices] = useState<Record<string, number> | null>(null);
+  const [priceError, setPriceError] = useState<string | null>(null);
 
   const load = () => {
     setError(null);
     setBalances(null);
+    setPriceError(null);
     sendMessage<TokenBalance[]>('getWalletBalances')
       .then(setBalances)
       .catch(err => setError(err.message));
+    // Prices are separate: balances still show if the price feed is down
+    sendMessage<Record<string, number>>('getUsdPrices')
+      .then(setPrices)
+      .catch(err => setPriceError(err.message));
   };
+
+  /** USD value of a balance, or null when the feed has no price for it */
+  const valueOf = (token: TokenBalance) => {
+    const price = prices?.[token.contractId];
+    return token.meta && price !== undefined ? units(token) * price : null;
+  };
+  const priced = balances?.map(valueOf).filter((value): value is number => value !== null) ?? [];
+  const total = priced.reduce((sum, value) => sum + value, 0);
 
   useEffect(load, [currentAccount?.stxAddress]);
 
@@ -176,7 +200,7 @@ export function TransferTab() {
         title="TOKENS"
         stats={[
           { label: 'HELD', value: balances ? balances.length : '…' },
-          { label: 'NET', value: 'MAINNET', tone: 'green' }
+          { label: 'VALUE', value: balances && prices ? usd(total) : '…', tone: 'green' }
         ]}
       >
         <HudPanel
@@ -184,6 +208,7 @@ export function TransferTab() {
           right={<button type="button" onClick={load} title="Refresh" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'monospace', fontSize: '9px', padding: 0 }}>↻</button>}
         >
           {error && <div role="alert"><HudLine tone="red">{error}</HudLine></div>}
+          {priceError && <div role="alert"><HudLine tone="amber">Prices unavailable: {priceError}</HudLine></div>}
           {!balances && !error && <TokenSkeletons />}
           <div>
             {balances?.map(token => {
@@ -193,17 +218,28 @@ export function TransferTab() {
                 <div
                   key={key}
                   className={`hud-row${token.meta ? ' is-clickable' : ''}${open ? ' is-open' : ''}`}
+                  style={{ padding: '10px 6px', gap: '10px' }}
                   onClick={() => token.meta && setSelected(open ? null : key)}
                   title={token.meta ? `Send ${label(token)}` : 'Unknown token: shown in smallest units, not sendable here'}
                 >
                   <TokenIcon token={token} />
-                  <span style={{ color: colors.cyber, fontWeight: 'bold', minWidth: '44px' }}>{label(token)}</span>
-                  <span style={{ flex: 1, minWidth: 0, color: 'rgba(255, 255, 255, 0.45)', fontSize: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(token.meta?.name ?? token.contractId).toUpperCase()}</span>
-                  <span style={{ color: '#fff' }}>{token.meta ? formatUnits(token.balance, token.meta.decimals) : `${token.balance} U`}</span>
+                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                    <span style={{ color: colors.cyber, fontWeight: 'bold', fontSize: '12px' }}>{label(token)}</span>
+                    <span style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(token.meta?.name ?? token.contractId).toUpperCase()}</span>
+                  </span>
+                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                    <span style={{ color: '#fff', fontSize: '12px' }}>{token.meta ? formatUnits(token.balance, token.meta.decimals) : `${token.balance} U`}</span>
+                    <span style={{ color: valueOf(token) === null ? 'rgba(255, 255, 255, 0.3)' : 'rgba(54, 199, 88, 0.85)', fontSize: '9px' }}>
+                      {prices ? (valueOf(token) === null ? '—' : usd(valueOf(token)!)) : ''}
+                    </span>
+                  </span>
                 </div>
               );
             })}
           </div>
+          {balances && prices && priced.length < balances.length && (
+            <HudLine tone="steel">{balances.length - priced.length} without a price · value covers priced tokens</HudLine>
+          )}
         </HudPanel>
 
         {selectedToken?.meta && (
