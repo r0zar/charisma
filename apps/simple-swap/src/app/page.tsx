@@ -3,8 +3,25 @@ import { ArrowRight, Sparkles, RefreshCw, Shield, Coins, Layers, Activity, Twitt
 import { Header } from "../components/layout/header";
 import Link from 'next/link';
 import CharismaQuote from "../components/charisma-quote";
+import { getPlatformStats } from '@/lib/analytics/platform-stats';
+import { count, usd } from '@/components/analytics/AnalyticsPage';
 
-export default function SwapHomePage() {
+// Platform numbers refresh with the Analytics page (every 15 minutes)
+export const revalidate = 900;
+
+/** A small live number from Analytics, tucked into a feature card */
+function Proof({ children }: { children: React.ReactNode }) {
+  return (
+    <Link href="/analytics" className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] px-2.5 py-1 text-xs text-white/60 hover:text-white/90 hover:border-white/[0.15] transition-colors">
+      <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
+      {children}
+    </Link>
+  );
+}
+
+export default async function SwapHomePage() {
+  const stats = await getPlatformStats();
+  const since = new Date(stats.firstTradeAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 
   return (
     <div className="relative flex flex-col min-h-screen bg-gradient-to-br from-slate-900 via-black to-slate-900">
@@ -47,6 +64,23 @@ export default function SwapHomePage() {
                 <CharismaQuote />
               </div>
             </div>
+
+            {/* Proof of life: live platform numbers */}
+            <Link href="/analytics" className="group mx-auto grid max-w-2xl grid-cols-3 divide-x divide-white/[0.06] rounded-2xl bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm transition-all duration-200 hover:bg-white/[0.04] hover:border-white/[0.12]">
+              {[
+                [count(stats.trades), 'trades'],
+                [count(stats.traders), 'traders'],
+                [usd(stats.tvlUsd), 'in liquidity'],
+              ].map(([value, label]) => (
+                <div key={label} className="px-4 py-5">
+                  <div className="font-mono text-2xl md:text-3xl font-semibold text-white/95">{value}</div>
+                  <div className="mt-1 text-xs md:text-sm text-white/50">{label}</div>
+                </div>
+              ))}
+            </Link>
+            <p className="mt-3 text-xs text-white/40">
+              Every trade since {since}, straight from the chain · <Link href="/analytics" className="underline underline-offset-4 hover:text-white/70">See the numbers</Link>
+            </p>
           </div>
         </div>
       </section>
@@ -77,6 +111,7 @@ export default function SwapHomePage() {
               <p className="text-white/60 group-hover:text-white/70 transition-all duration-200 leading-relaxed">
                 Get competitive rates with our optimized routing algorithm that finds the best prices across liquidity pools.
               </p>
+              <Proof>{usd(stats.tvlUsd)} across Charisma pools</Proof>
             </div>
 
             {/* Feature 2 - Secure Transactions */}
@@ -121,6 +156,7 @@ export default function SwapHomePage() {
               <p className="text-white/60 group-hover:text-white/70 transition-all duration-200 leading-relaxed">
                 Our router simulates up to 9-hop paths across all pools to secure the best possible output for your swap.
               </p>
+              <Proof>{count(stats.trades)} trades routed</Proof>
             </div>
 
             {/* Feature 6 - Zero Protocol Fees */}
@@ -151,9 +187,9 @@ export default function SwapHomePage() {
                 Ready to start trading?
               </h2>
               <p className="text-lg text-white/70 mb-8 max-w-2xl mx-auto leading-relaxed">
-                Connect your wallet and swap tokens with just a few clicks.
+                Join {count(stats.traders)} traders swapping on Charisma.
                 <br />
-                <span className="text-white/60">No registration required.</span>
+                <span className="text-white/60">Connect your wallet. No registration required.</span>
               </p>
 
               {/* Enhanced CTA button with glass morphism */}
