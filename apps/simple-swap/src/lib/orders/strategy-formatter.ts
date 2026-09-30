@@ -128,8 +128,10 @@ function createStrategyDisplayData(
     const progressPercent = totalOrders > 0 ? (completedOrders / totalOrders) * 100 : 0;
 
     // Calculate total value
-    const inputTokenMeta = tokenMetadata.get(firstOrder.inputToken);
-    const totalValueNum = orders.reduce((sum, order) => {
+    // Only orders spending what the first step spends add up (In & Out's exits spend what the buy bought)
+    const spent = sortedOrders[0].inputToken;
+    const inputTokenMeta = tokenMetadata.get(spent);
+    const totalValueNum = orders.filter(order => order.inputToken === spent).reduce((sum, order) => {
         const amount = Number(order.amountIn);
         const decimals = inputTokenMeta?.decimals || 6;
         return sum + (amount / Math.pow(10, decimals));
