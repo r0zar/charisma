@@ -8,6 +8,23 @@ export const count = (n: number) => Math.round(n).toLocaleString('en-US');
 const shortAddress = (a: string) => `${a.slice(0, 5)}…${a.slice(-4)}`;
 const month = (at: number) => new Date(at).toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 
+const ANALYTICS_URL = 'https://swap.charisma.rocks/analytics';
+
+/** Opens X with a ready-made post about these numbers (and the page, for its share card) */
+function ShareOnX({ text }: { text: string }) {
+    const href = `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(ANALYTICS_URL)}`;
+    return (
+        <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] px-2.5 py-1 text-xs text-white/50 hover:border-white/[0.2] hover:text-white/90 transition-colors"
+        >
+            Share on 𝕏
+        </a>
+    );
+}
+
 function Card({ label, value, hint }: { label: string; value: string; hint?: string }) {
     return (
         <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5">
@@ -18,10 +35,13 @@ function Card({ label, value, hint }: { label: string; value: string; hint?: str
     );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, share, children }: { title: string; share: string; children: ReactNode }) {
     return (
         <section className="space-y-3">
-            <h2 className="text-sm font-medium text-white/70">{title}</h2>
+            <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-medium text-white/70">{title}</h2>
+                <ShareOnX text={share} />
+            </div>
             {children}
         </section>
     );
@@ -110,13 +130,27 @@ const walletRows = (wallets: WalletRanked[]) => wallets.map(w => ({
     ),
 }));
 
+const ranked = (rows: string[]) => rows.map((row, i) => `${i + 1}. ${row}`).join('\n');
+
 /** Public proof of life: what's been traded on Charisma, by whom and in what */
 export default function AnalyticsPage({ stats }: { stats: PlatformStats }) {
+    const since = month(stats.firstTradeAt);
+    const share = {
+        headline: `Charisma, by the numbers 📊\n\n${usd(stats.volumeUsd)} traded\n${count(stats.trades)} trades\n${count(stats.traders)} traders\n${usd(stats.tvlUsd)} in liquidity\n\nAll on chain, on Stacks.`,
+        recent: `Last 30 days on Charisma: ${usd(stats.last30d.volumeUsd)} across ${count(stats.last30d.trades)} trades.\nLast 7 days: ${usd(stats.last7d.volumeUsd)} across ${count(stats.last7d.trades)}.`,
+        average: `On an average day, Charisma sees ${count(stats.perDay.trades)} trades. That's ${count(stats.perMonth.trades)} a month, and ${usd(stats.perMonth.volumeUsd)} in volume.`,
+        weekly: `Every week of trading on Charisma since ${since}, straight from the chain 📈`,
+        tokens: `Most traded on Charisma 🔥\n\n${ranked(stats.topTokens.slice(0, 3).map(t => `$${t.symbol}: ${usd(t.volumeUsd)}`))}`,
+        traders: `Top traders on Charisma 🏆\n\n${ranked(stats.topWallets.slice(0, 3).map(w => w.bns ?? shortAddress(w.id)))}`,
+    };
     return (
         <div className="w-full max-w-6xl mx-auto px-4 py-8 space-y-8">
             <div className="space-y-1">
                 <h1 className="text-3xl font-semibold text-white/95">Charisma, by the numbers</h1>
-                <p className="text-sm text-white/60">Every trade through Charisma's routers since {month(stats.firstTradeAt)}, read from the chain. Updated every 15 minutes.</p>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm text-white/60">Every trade through Charisma's routers since {since}, read from the chain. Updated every 15 minutes.</p>
+                    <ShareOnX text={share.headline} />
+                </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -126,23 +160,23 @@ export default function AnalyticsPage({ stats }: { stats: PlatformStats }) {
                 <Card label="Liquidity (TVL)" value={usd(stats.tvlUsd)} hint="In Charisma pools now" />
             </div>
 
-            <Section title="Recent">
+            <Section title="Recent" share={share.recent}>
                 <PeriodRow rows={[['Last 24 hours', stats.last24h], ['Last 7 days', stats.last7d], ['Last 30 days', stats.last30d]]} />
             </Section>
 
-            <Section title="On average">
+            <Section title="On average" share={share.average}>
                 <PeriodRow rows={[['Per day', stats.perDay], ['Per week', stats.perWeek], ['Per month', stats.perMonth]]} />
             </Section>
 
-            <Section title="Weekly volume">
+            <Section title="Weekly volume" share={share.weekly}>
                 <WeeklyChart weeks={stats.weekly} />
             </Section>
 
             <div className="grid gap-8 lg:grid-cols-2">
-                <Section title="Top tokens">
+                <Section title="Top tokens" share={share.tokens}>
                     <Table head="Token" rows={tokenRows(stats.topTokens)} />
                 </Section>
-                <Section title="Top traders">
+                <Section title="Top traders" share={share.traders}>
                     <Table head="Wallet" rows={walletRows(stats.topWallets)} />
                 </Section>
             </div>
