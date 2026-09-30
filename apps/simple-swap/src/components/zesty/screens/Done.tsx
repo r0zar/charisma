@@ -2,17 +2,19 @@
 
 import React from 'react';
 import { BigButton, TokenIcon } from '../ui';
-import { formatPrice, formatUsd } from '../use-zesty-money';
+import { formatSats, formatUsd } from '../use-zesty-money';
+import { exitSats } from '@/lib/zesty/plan';
+import { SHARE_TEXT, shareOnX, shareWin } from '../Share';
 import type { ZestyTrade } from '../use-zesty-trade';
 
 const COPY: Record<'won' | 'stopped' | 'cancelled', { eyebrow: (t: ZestyTrade) => string; title: string; body: string }> = {
   won: {
-    eyebrow: t => `ZEST HIT ${formatPrice(Number(t.target?.targetPrice ?? 0))} · DONE`,
+    eyebrow: t => `ZEST HIT ${formatSats(exitSats(t.target?.targetPrice ?? '0')).toUpperCase()} · DONE`,
     title: 'Nice call',
     body: 'Zesty finished your trade for you.',
   },
   stopped: {
-    eyebrow: t => `SAFETY NET AT ${formatPrice(Number(t.safety?.targetPrice ?? 0))}`,
+    eyebrow: t => `SAFETY NET AT ${formatSats(exitSats(t.safety?.targetPrice ?? '0')).toUpperCase()}`,
     title: 'Safety net caught it',
     body: 'ZEST moved the other way, so we got you out early.',
   },
@@ -41,8 +43,16 @@ export function Done({ trade, zestyUsd, onAgain }: { trade: ZestyTrade; zestyUsd
         <span className="font-medium">{zestyUsd === null ? '…' : formatUsd(zestyUsd)}</span>
       </div>
       <p className="m-0 text-center text-[13px] text-[#D9D9D9]">Open Money to move it to your wallet.</p>
-      <div className="mt-auto">
+      <div className="mt-auto flex flex-col gap-3">
         <BigButton onClick={onAgain}>Trade again</BigButton>
+        <BigButton
+          variant="quiet"
+          onClick={() => trade.state === 'won' && trade.target
+            ? shareWin(trade.target).catch(() => shareOnX(SHARE_TEXT.finished))
+            : shareOnX(SHARE_TEXT.finished)}
+        >
+          {trade.state === 'won' ? 'Share my win 🏆' : 'Share Zesty on X'}
+        </BigButton>
       </div>
     </div>
   );

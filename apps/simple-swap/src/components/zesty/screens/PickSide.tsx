@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { Side } from '@/lib/zesty/plan';
 import { Progress, SatsPrice, StepTitle, TokenIcon } from '../ui';
 import { ZestChart } from '../ZestChart';
+import { SHARE_TEXT, ShareLink } from '../Share';
 
 const OPTIONS: { side: Side; title: string; body: string; icon: React.ReactNode; circle: string }[] = [
   {
@@ -48,6 +49,7 @@ export function PickSide({ zestSats, onPick }: { zestSats: number | null; onPick
           </span>
         </button>
       ))}
+      <ShareLink text={SHARE_TEXT.zesty} label="Share Zesty on X ↗" className="self-center" />
       <Link href="/zesty/how-it-works" className="mt-auto flex lg:hidden min-h-[44px] items-center justify-center gap-2 text-[14px] text-[#B8410F] underline underline-offset-4">
         <span className="flex h-5 w-5 items-center justify-center rounded-full border border-[#B8410F] text-[12px] no-underline">?</span>
         How does this work?

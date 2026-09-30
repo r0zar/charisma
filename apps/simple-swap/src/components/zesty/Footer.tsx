@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { SHARE_TEXT, shareOnX } from './Share';
 import { request } from '@stacks/connect';
 
 const TIPS = [1, 5, 10];
@@ -42,6 +43,7 @@ export function Footer() {
             <span className="text-[16px] font-medium tracking-[0.12em]">ZESTY</span>
           </span>
           <p className="m-0">Built by <a href="https://charisma.rocks" className="text-white underline underline-offset-4">Charisma</a>. Not an official Zest project: an independent app built on open-source contracts.</p>
+          <button type="button" onClick={() => shareOnX(SHARE_TEXT.zesty)} className="self-start rounded-full border border-[#3A3A3A] px-4 py-2 text-[14px] text-white hover:border-[#FC6432]">Share Zesty on X ↗</button>
           <p className="m-0">We&apos;re all about free and open source software. <a href="https://github.com/r0zar/charisma" target="_blank" rel="noopener noreferrer" className="text-white underline underline-offset-4">Read the code</a>. Hooray! 🧡</p>
         </div>
         <div className="flex flex-col gap-3 rounded-2xl bg-[#141414] p-5 text-[14px]">
