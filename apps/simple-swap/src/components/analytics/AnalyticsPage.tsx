@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { Period, PlatformStats, Ranked, TokenRanked } from '@/lib/analytics/platform-stats';
+import type { Period, PlatformStats, TokenRanked, WalletRanked } from '@/lib/analytics/platform-stats';
 
 /** $1.23M, $45.6K, $789 */
 export const usd = (n: number) =>
@@ -97,13 +97,15 @@ const tokenRows = (tokens: TokenRanked[]) => tokens.map(t => ({
     ),
 }));
 
-const walletRows = (wallets: Ranked[]) => wallets.map(w => ({
+const walletRows = (wallets: WalletRanked[]) => wallets.map(w => ({
     key: w.id,
     volumeUsd: w.volumeUsd,
     trades: w.trades,
     name: (
-        <a href={`https://explorer.hiro.so/address/${w.id}?chain=mainnet`} target="_blank" rel="noopener noreferrer" className="font-mono hover:text-orange-300">
-            {shortAddress(w.id)}
+        <a href={`https://explorer.hiro.so/address/${w.id}?chain=mainnet`} target="_blank" rel="noopener noreferrer" className="hover:text-orange-300">
+            {w.bns
+                ? <>{w.bns} <span className="font-mono text-xs text-white/40">{shortAddress(w.id)}</span></>
+                : <span className="font-mono">{shortAddress(w.id)}</span>}
         </a>
     ),
 }));
@@ -114,7 +116,7 @@ export default function AnalyticsPage({ stats }: { stats: PlatformStats }) {
         <div className="w-full max-w-6xl mx-auto px-4 py-8 space-y-8">
             <div className="space-y-1">
                 <h1 className="text-3xl font-semibold text-white/95">Charisma, by the numbers</h1>
-                <p className="text-sm text-white/60">Every swap and filled order that succeeded on chain since {month(stats.firstTradeAt)}. Updated every 15 minutes.</p>
+                <p className="text-sm text-white/60">Every trade through Charisma's routers since {month(stats.firstTradeAt)}, read from the chain. Updated every 15 minutes.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">

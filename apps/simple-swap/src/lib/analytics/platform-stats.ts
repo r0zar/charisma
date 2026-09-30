@@ -1,14 +1,15 @@
 import { unstable_cache } from 'next/cache';
 import { getHostUrl } from '@modules/discovery';
 import { listTokens, type TokenCacheData } from '@repo/tokens';
-import { listOrders } from '@/lib/orders/store';
-import { listSwapRecords } from '@/lib/swaps/store';
+import { listRouterTrades, type Side } from './router-trades';
 
 /** One executed trade, on its mainnet tokens */
 interface Trade {
-  owner: string;
-  input: string;
-  output: string;
+  /** Null for a subnet order stored before signers were read */
+  owner: string | null;
+  /** Null when the pool's pair isn't known */
+  input: string | null;
+  output: string | null;
   /** Whole tokens of `input` */
   amount: number;
   /** Valued at today's price of `input`; null when that token has no price */
@@ -20,6 +21,11 @@ export interface Ranked {
   id: string;
   volumeUsd: number;
   trades: number;
+}
+
+export interface WalletRanked extends Ranked {
+  /** The wallet's BNS name, when it has one */
+  bns: string | null;
 }
 
 export interface TokenRanked extends Ranked {
@@ -48,7 +54,7 @@ export interface PlatformStats {
   last30d: Period;
   /** Oldest first, one entry per week (Monday UTC) since the first trade */
   weekly: (Period & { weekStart: number })[];
-  topWallets: Ranked[];
+  topWallets: WalletRanked[];
   topTokens: TokenRanked[];
   updatedAt: number;
 }
@@ -66,65 +72,71 @@ async function currentPrices(): Promise<Record<string, number>> {
 }
 
 /** USD in every Charisma pool: both reserves at today's prices */
-async function poolTvl(prices: Record<string, number>): Promise<number> {
-  const res = await fetch(`${getHostUrl('invest')}/api/v1/vaults`, { signal: AbortSignal.timeout(15000) });
-  if (!res.ok) throw new Error(`Pool data is unavailable (invest ${res.status})`);
-  const { data } = (await res.json()) as {
-    data: { type: string; tokenA: { contractId: string; decimals: number }; tokenB: { contractId: string; decimals: number }; reservesA: number; reservesB: number }[];
-  };
+function poolTvl(vaults: Vault[], prices: Record<string, number>): number {
   const side = (token: { contractId: string; decimals: number }, reserve: number) =>
     (reserve / 10 ** token.decimals) * (prices[token.contractId] ?? 0);
-  return data
-    .filter(v => v.type === 'POOL')
-    .reduce((sum, v) => sum + side(v.tokenA, v.reservesA) + side(v.tokenB, v.reservesB), 0);
+  return vaults
+    .filter(v => v.type === 'POOL' && v.tokenA && v.tokenB)
+    .reduce((sum, v) => sum + side(v.tokenA!, v.reservesA) + side(v.tokenB!, v.reservesB), 0);
 }
 
-/** Transactions looked up per Hiro request */
-const TXS_PER_LOOKUP = 50;
-
-/** Which of these transactions succeeded on chain (a sent swap can still fail, e.g. without enough funds) */
-async function succeeded(txids: string[]): Promise<Set<string>> {
-  const ok = new Set<string>();
-  for (let i = 0; i < txids.length; i += TXS_PER_LOOKUP) {
-    const batch = txids.slice(i, i + TXS_PER_LOOKUP);
-    const query = batch.map(txid => `tx_id=${txid.startsWith('0x') ? txid : `0x${txid}`}`).join('&');
-    const res = await fetch(`https://api.hiro.so/extended/v1/tx/multiple?${query}`, {
-      headers: process.env.HIRO_API_KEY ? { 'x-api-key': process.env.HIRO_API_KEY } : {},
-      signal: AbortSignal.timeout(20000),
-    });
-    if (!res.ok) throw new Error(`Couldn't check trades on chain (Hiro ${res.status})`);
-    const found = (await res.json()) as Record<string, { found: boolean; result?: { tx_status: string } }>;
-    for (const txid of batch) {
-      if (found[txid.startsWith('0x') ? txid : `0x${txid}`]?.result?.tx_status === 'success') ok.add(txid);
-    }
-  }
-  return ok;
+interface Vault {
+  contractId: string;
+  tokenA?: { contractId: string; decimals: number };
+  tokenB?: { contractId: string; decimals: number };
+  reservesA: number;
+  reservesB: number;
+  type: string;
 }
 
-/** Every trade that went through on chain: instant swaps and orders the executor ran */
-async function allTrades(tokens: Map<string, TokenCacheData>, prices: Record<string, number>): Promise<Trade[]> {
+async function listVaults(): Promise<Vault[]> {
+  const res = await fetch(`${getHostUrl('invest')}/api/v1/vaults`, { signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`Pool data is unavailable (invest ${res.status})`);
+  return ((await res.json()) as { data: Vault[] }).data;
+}
+
+/**
+ * Every trade through Charisma's routers, from the chain. Wallet swaps name their pools, so tokens come from
+ * each pool's pair; subnet orders name their tokens and carry the trader's signature.
+ */
+async function allTrades(tokens: Map<string, TokenCacheData>, prices: Record<string, number>, vaults: Vault[]): Promise<Trade[]> {
   // Subnet tokens trade 1:1 with the token they hold, so they count as that token
   const mainnet = (id: string) => tokens.get(id)?.base ?? id;
-  const trade = (owner: string, inputId: string, outputId: string, raw: number, at: number): Trade => {
-    const input = mainnet(inputId);
-    const decimals = tokens.get(input)?.decimals;
-    const amount = decimals === undefined ? 0 : raw / 10 ** decimals;
-    const price = prices[input];
-    return { owner, input, output: mainnet(outputId), amount, usd: decimals === undefined || price === undefined ? null : amount * price, at };
+  const pairs = new Map<string, [string, string]>();
+  for (const t of tokens.values()) if (t.tokenAContract && t.tokenBContract) pairs.set(t.contractId, [t.tokenAContract, t.tokenBContract]);
+  // Only two-sided vaults are pairs (energy vaults hold a single token)
+  for (const v of vaults) if (v.tokenA && v.tokenB) pairs.set(v.contractId, [v.tokenA.contractId, v.tokenB.contractId]);
+  const tokenOf = (side: Side, input: boolean): string | null => {
+    if ('token' in side) return mainnet(side.token);
+    const pair = pairs.get(side.pool);
+    if (!pair) return null;
+    // Going A to B, A goes in and B comes out
+    return mainnet(side.aToB === input ? pair[0] : pair[1]);
   };
 
-  const [{ swaps: allSwaps }, allOrders] = await Promise.all([listSwapRecords({ limit: Number.MAX_SAFE_INTEGER }), listOrders()]);
-  const swaps = allSwaps.filter(s => s.txid && s.status !== 'failed');
-  const orders = allOrders.filter(o => o.txid && (o.status === 'confirmed' || o.status === 'filled'));
-  const ok = await succeeded([...swaps.map(s => s.txid!), ...orders.map(o => o.txid!)]);
-  return [
-    ...swaps
-      .filter(s => ok.has(s.txid!))
-      .map(s => trade(s.owner, s.inputToken, s.outputToken, Number(s.inputAmount), s.timestamp)),
-    ...orders
-      .filter(o => ok.has(o.txid!))
-      .map(o => trade(o.owner, o.inputToken, o.outputToken, Number(o.amountIn), Date.parse(o.confirmedAt ?? o.createdAt))),
-  ];
+  const routerTrades = await listRouterTrades();
+
+  return routerTrades.map(t => {
+    const input = tokenOf(t.in, true);
+    const decimals = input ? tokens.get(input)?.decimals : undefined;
+    const price = input ? prices[input] : undefined;
+    const amount = decimals === undefined ? 0 : Number(t.amount) / 10 ** decimals;
+    // Wallet swaps are sent by the trader; subnet orders by the executor, for the wallet that signed them
+    const owner = t.signer ?? (t.router.endsWith('.multihop') ? t.sender : null);
+    return { owner, input, output: tokenOf(t.out, false), amount, usd: decimals === undefined || price === undefined ? null : amount * price, at: t.at };
+  });
+}
+
+/** A wallet's BNS name (a .btc one first), from BNS v2; null when it has none */
+async function bnsName(address: string): Promise<string | null> {
+  const res = await fetch(`https://api.bnsv2.com/names/address/${address}/valid`, { signal: AbortSignal.timeout(10000) });
+  // Names are a nice extra: a lookup that fails just shows the address
+  if (!res.ok) {
+    console.error(`[analytics] BNS lookup for ${address} failed (${res.status})`);
+    return null;
+  }
+  const { names } = (await res.json()) as { names: { full_name: string; namespace_string: string }[] };
+  return (names.find(n => n.namespace_string === 'btc') ?? names[0])?.full_name ?? null;
 }
 
 const period = (trades: Trade[]): Period => ({
@@ -147,11 +159,12 @@ function rank(trades: Trade[], idsOf: (t: Trade) => string[], top: number): Rank
 }
 
 async function computePlatformStats(): Promise<PlatformStats> {
-  const [tokenList, prices] = await Promise.all([listTokens(), currentPrices()]);
+  const [tokenList, prices, vaults] = await Promise.all([listTokens(), currentPrices(), listVaults()]);
   if (tokenList.length === 0) throw new Error("Charisma's token list is unavailable, so trades can't be valued");
   const tokens = new Map(tokenList.map(t => [t.contractId, t]));
-  const [trades, tvlUsd] = await Promise.all([allTrades(tokens, prices), poolTvl(prices)]);
-  if (trades.length === 0) throw new Error('No trades found in the order and swap stores');
+  const trades = await allTrades(tokens, prices, vaults);
+  if (trades.length === 0) throw new Error('No router trades stored yet; the router-trades sync fills them');
+  const tvlUsd = poolTvl(vaults, prices);
 
   const now = Date.now();
   const firstTradeAt = Math.min(...trades.map(t => t.at));
@@ -169,7 +182,7 @@ async function computePlatformStats(): Promise<PlatformStats> {
 
   return {
     ...total,
-    traders: new Set(trades.map(t => t.owner)).size,
+    traders: new Set(trades.map(t => t.owner).filter(Boolean)).size,
     tvlUsd,
     firstTradeAt,
     perDay: average(DAY),
@@ -179,8 +192,8 @@ async function computePlatformStats(): Promise<PlatformStats> {
     last7d: since(WEEK),
     last30d: since(MONTH),
     weekly,
-    topWallets: rank(trades, t => [t.owner], 10),
-    topTokens: rank(trades, t => [t.input, t.output], 10).map(row => {
+    topWallets: await Promise.all(rank(trades, t => (t.owner ? [t.owner] : []), 10).map(async row => ({ ...row, bns: await bnsName(row.id) }))),
+    topTokens: rank(trades, t => [t.input, t.output].filter((id): id is string => !!id), 10).map(row => {
       const token = tokens.get(row.id);
       return { ...row, symbol: token?.symbol ?? row.id.split('.').pop() ?? row.id, image: token?.image ?? null };
     }),
@@ -189,4 +202,4 @@ async function computePlatformStats(): Promise<PlatformStats> {
 }
 
 /** Platform totals, recomputed at most every 15 minutes (the page and its share image read the same numbers) */
-export const getPlatformStats = unstable_cache(computePlatformStats, ['platform-stats-v2'], { revalidate: 900 });
+export const getPlatformStats = unstable_cache(computePlatformStats, ['platform-stats-v3'], { revalidate: 900 });
