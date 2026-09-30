@@ -14,6 +14,7 @@ const navigationLinks = [
     // { href: "/activity", label: "Activity" },
     { href: "/swap", label: "Swap" },
     { href: "/orders", label: "Orders" },
+    { href: "/analytics", label: "Analytics" },
     // { href: "/tokens", label: "Tokens" },
 ];
 
