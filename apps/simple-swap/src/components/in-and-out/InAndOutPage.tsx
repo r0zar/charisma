@@ -25,6 +25,7 @@ const CASH_OUT_TOKENS = [
     'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.susdh-token-v1', // sUSDh
 ];
 const SAFETY = 0.1;
+const FORM_KEY = 'in-and-out:form';
 const SHARES = [0.05, 0.1, 0.25, 0.5, 1];
 
 /** A typed decimal amount in smallest units, exactly; anything unreadable is zero */
@@ -102,6 +103,29 @@ export default function InAndOutPage() {
     const [phase, setPhase] = useState<'setup' | 'signing' | 'done'>('setup');
     const [progress, setProgress] = useState('');
     const [error, setError] = useState<string | null>(null);
+
+    // Keep the form across refreshes (this browser only). Restore runs before save, so it reads first.
+    useEffect(() => {
+        try {
+            const saved = JSON.parse(localStorage.getItem(FORM_KEY) ?? 'null');
+            if (!saved) return;
+            setPay(saved.pay);
+            setBuy(saved.buy);
+            setCashOut(saved.cashOut);
+            setAmountText(saved.amountText);
+            setTargetPct(saved.targetPct);
+            setSafetyOn(saved.safetyOn);
+        } catch {
+            // Storage blocked or unreadable: start with a fresh form
+        }
+    }, []);
+    useEffect(() => {
+        try {
+            localStorage.setItem(FORM_KEY, JSON.stringify({ pay, buy, cashOut, amountText, targetPct, safetyOn }));
+        } catch {
+            // Storage blocked: the form just won't survive a refresh
+        }
+    }, [pay, buy, cashOut, amountText, targetPct, safetyOn]);
 
     const paySubnet = pay ? getSubnetContractId(pay.contractId) : null;
     const buySubnet = buy ? getSubnetContractId(buy.contractId) : null;
@@ -193,6 +217,7 @@ export default function InAndOutPage() {
             if (safetyRatio) {
                 await placeInAndOutOrder({ ...exit, role: 'safety', movePct: -SAFETY, trigger: { token: buy.contractId, base: cashOut.contractId, ratio: safetyRatio, direction: 'lt' } });
             }
+            setAmountText('');
             setPhase('done');
         } catch (err) {
             setError((err as Error).message);
