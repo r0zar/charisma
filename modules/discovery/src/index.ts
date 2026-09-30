@@ -38,11 +38,11 @@ export function getEnvironment(): Environment {
  * @returns The URL for the specified host and environment
  */
 /**
- * Hosts to reach in production even while developing locally, from DISCOVERY_USE_PRODUCTION:
+ * Hosts to reach in production even while developing locally, from NEXT_PUBLIC_DISCOVERY_USE_PRODUCTION (public so the browser side uses it too):
  * a comma-separated list of host names, or "all". Lets a local app use live services it isn't running.
  */
 function forcedToProduction(hostName: string): boolean {
-  const list = (process.env.DISCOVERY_USE_PRODUCTION ?? '').split(',').map(name => name.trim()).filter(Boolean);
+  const list = (process.env.NEXT_PUBLIC_DISCOVERY_USE_PRODUCTION ?? '').split(',').map(name => name.trim()).filter(Boolean);
   return list.includes('all') || list.includes(hostName);
 }
 

@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { WalletButton } from "../wallet-button";
-import { ChevronDown, Coins, Crosshair, Menu, MoveVertical, Repeat, Settings, Shield } from "lucide-react";
+import { BarChart3, ChevronDown, Coins, Crosshair, Menu, MoveVertical, Repeat, Settings, Shield } from "lucide-react";
 import { useWallet } from "@/contexts/wallet-context";
 import { Drawer } from "vaul";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,6 @@ const navigationLinks = [
     // { href: "/activity", label: "Activity" },
     { href: "/swap", label: "Swap" },
     { href: "/orders", label: "Orders" },
-    { href: "/analytics", label: "Analytics" },
     // { href: "/tokens", label: "Tokens" },
 ];
 
@@ -89,6 +88,11 @@ export function Header() {
                 </div>
 
                 <div className="flex items-center gap-3">
+                    <Link href="/analytics" aria-label="Analytics" title="Analytics" className="hidden md:inline-flex">
+                        <div className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/70 hover:text-white hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-200 backdrop-blur-sm">
+                            <BarChart3 className="h-4 w-4" />
+                        </div>
+                    </Link>
                     {connected && (
                         <Link href="/settings" aria-label="Settings" className="hidden md:inline-flex">
                             <div className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/70 hover:text-white hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-200 backdrop-blur-sm">
@@ -148,6 +152,15 @@ export function Header() {
                                                 {link.label}
                                             </Link>
                                         ))}
+
+                                        <Link
+                                            href="/analytics"
+                                            className="flex items-center gap-3 py-3 px-4 rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] transition-all duration-200"
+                                            onClick={() => setIsOpen(false)}
+                                        >
+                                            <BarChart3 className="h-4 w-4" />
+                                            Analytics
+                                        </Link>
 
                                         {connected && (
                                             <Link
