@@ -5,7 +5,7 @@ import { useBalances } from '@/contexts/wallet-balance-context';
 import { usePrices } from '@/contexts/token-price-context';
 import { ZESTY_TOKENS, type ZestyTokenKey } from '@/lib/zesty/config';
 import { toUsd, zestSatsOf, type Holdings } from '@/lib/zesty/plan';
-import { formatSats } from '@/lib/zesty/format';
+import { formatSats, formatSatsAmount } from '@/lib/zesty/format';
 
 const KEYS = Object.keys(ZESTY_TOKENS) as ZestyTokenKey[];
 
@@ -65,4 +65,4 @@ export { formatSats };
 
 /** A token amount the way Zesty talks about it: sBTC in sats, ZEST in whole tokens. */
 export const formatAmount = (key: ZestyTokenKey, units: number) =>
-  key === 'sbtc' ? formatSats(units * 1e8) : `${units.toLocaleString('en-US', { maximumFractionDigits: 2 })} ZEST`;
+  key === 'sbtc' ? formatSatsAmount(units * 1e8) : `${units.toLocaleString('en-US', { maximumFractionDigits: 2 })} ZEST`;
