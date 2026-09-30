@@ -1,4 +1,4 @@
-import { signTriggeredSwap } from 'blaze-sdk';
+import { canSignInBulk, signTriggeredSwap, signTriggeredSwaps } from 'blaze-sdk';
 import { request } from '@stacks/connect';
 import { Cl, Pc } from '@stacks/transactions';
 import type { TokenCacheData } from '@/lib/contract-registry-adapter';
@@ -17,12 +17,9 @@ export interface DcaBuySpec {
   validTo: Date;
 }
 
-/** Sign one buy with the wallet and submit it; it runs as soon as its window opens. */
-export async function placeDcaBuy(spec: DcaBuySpec): Promise<LimitOrder> {
-  const uuid = crypto.randomUUID();
-  const signature = await signTriggeredSwap({ subnet: spec.fromSubnet, uuid, amount: spec.amount, multihopContractId: SIGNER_PAYOUT_ROUTER });
-
-  const payload: NewOrderRequest = {
+/** The order the executor stores for one signed buy */
+function buyOrder(spec: DcaBuySpec, uuid: string, signature: string): NewOrderRequest {
+  return {
     owner: spec.wallet,
     inputToken: spec.fromSubnet,
     outputToken: spec.to,
@@ -41,17 +38,49 @@ export async function placeDcaBuy(spec: DcaBuySpec): Promise<LimitOrder> {
     strategySize: spec.strategySize,
     strategyPosition: spec.position,
   };
+}
 
+async function submit(order: NewOrderRequest): Promise<LimitOrder> {
   const res = await fetch('/api/v1/orders/new', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(order),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(`Buy ${spec.position} was not accepted: ${body.error ?? res.status}`);
+    throw new Error(`Buy ${order.strategyPosition} was not accepted: ${body.error ?? res.status}`);
   }
   return ((await res.json()) as { data: LimitOrder }).data;
+}
+
+/** Orders saved at once when many were signed together (each is checked on chain as it's saved) */
+const SAVE_AT_ONCE = 6;
+
+/**
+ * Sign every buy and save it. Blaze Wallet signs them all from one approval; other wallets ask once per buy.
+ * `onProgress` hears what's happening, for the button.
+ */
+export async function placeDcaBuys(specs: DcaBuySpec[], onProgress: (text: string) => void): Promise<void> {
+  const uuids = specs.map(() => crypto.randomUUID());
+  const count = specs.length.toLocaleString('en-US');
+
+  if (!canSignInBulk()) {
+    for (const [i, spec] of specs.entries()) {
+      onProgress(`Sign buy ${i + 1} of ${count}…`);
+      const signature = await signTriggeredSwap({ subnet: spec.fromSubnet, uuid: uuids[i], amount: spec.amount, multihopContractId: SIGNER_PAYOUT_ROUTER });
+      await submit(buyOrder(spec, uuids[i], signature));
+    }
+    return;
+  }
+
+  onProgress(`Approve all ${count} buys in Blaze Wallet…`);
+  const signatures = await signTriggeredSwaps(specs.map((spec, i) => ({ subnet: spec.fromSubnet, uuid: uuids[i], amount: spec.amount, multihopContractId: SIGNER_PAYOUT_ROUTER })));
+  let saved = 0;
+  for (let i = 0; i < specs.length; i += SAVE_AT_ONCE) {
+    onProgress(`Saving your buys… ${saved.toLocaleString('en-US')} of ${count}`);
+    await Promise.all(specs.slice(i, i + SAVE_AT_ONCE).map((spec, j) => submit(buyOrder(spec, uuids[i + j], signatures[i + j]))));
+    saved = Math.min(i + SAVE_AT_ONCE, specs.length);
+  }
 }
 
 /** Move a token from the wallet onto the subnet, where the buys spend it. Returns the txid. */

@@ -8,7 +8,9 @@ import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { useSubnetTokens } from '@/contexts/subnet-tokens-context';
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
-import { depositToSubnet, placeDcaBuy } from '@/lib/dca/orders';
+import { canSignInBulk } from 'blaze-sdk';
+import { depositToSubnet, placeDcaBuys } from '@/lib/dca/orders';
+import BlazeWalletPitch from './BlazeWalletPitch';
 import { waitForConfirmation } from '@/lib/zesty/subnet';
 import { fromUnits, toUnits } from '@/lib/units';
 import { listTokens } from '@/app/actions';
@@ -27,7 +29,7 @@ const FOR = [
     { label: '1 month', ms: 30 * DAY },
     { label: '3 months', ms: 89 * DAY },
 ];
-// Each buy is one signature
+// Other wallets sign each buy separately; Blaze Wallet signs them all at once, so it has no cap
 const MAX_BUYS = 30;
 const SHARES = [0.05, 0.1, 0.25, 0.5, 1];
 const FORM_KEY = 'dca:form';
@@ -64,6 +66,9 @@ export default function DcaPage() {
     const [phase, setPhase] = useState<'setup' | 'signing' | 'done'>('setup');
     const [progress, setProgress] = useState('');
     const [error, setError] = useState<string | null>(null);
+    // Which wallet is connected lives in the browser, so it's read after the first render
+    const [bulk, setBulk] = useState(false);
+    useEffect(() => setBulk(canSignInBulk()), [address]);
 
     // Keep the form across refreshes (this browser only). Restore runs before save, so it reads first.
     useEffect(() => {
@@ -122,13 +127,13 @@ export default function DcaPage() {
             ? `That's more ${from?.symbol} than you hold`
             : buys < 2
                 ? 'Pick a longer time or buy more often, so there are at least 2 buys'
-                : buys > MAX_BUYS
-                    ? `That's ${buys} buys; keep it to ${MAX_BUYS} or fewer (each is a signature)`
+                : buys > MAX_BUYS && !bulk
+                    ? `That's ${buys.toLocaleString('en-US')} buys. Your wallet signs each one, so keep it to ${MAX_BUYS}, or use Blaze Wallet to sign them all at once.`
                     : amountRaw > 0n && perBuy === 0n
                         ? 'Each buy would be too small. Spend more or buy less often.'
                         : null;
     const ready = !!(address && from && to && fromSubnet && decimals !== undefined && perBuy > 0n && !problem);
-    const signatures = buys + (toMove > 0n ? 1 : 0);
+    const approvals = (bulk ? 1 : buys) + (toMove > 0n ? 1 : 0);
 
     const start = async () => {
         if (!ready || !from || !to || !fromSubnet) return;
@@ -143,20 +148,17 @@ export default function DcaPage() {
             }
             const strategyId = crypto.randomUUID();
             const startsAt = Date.now();
-            for (let i = 0; i < buys; i++) {
-                setProgress(`Sign buy ${i + 1} of ${buys}…`);
-                await placeDcaBuy({
-                    wallet: address!,
-                    strategyId,
-                    strategySize: buys,
-                    position: i + 1,
-                    fromSubnet,
-                    to: to.contractId,
-                    amount: perBuy,
-                    validFrom: new Date(startsAt + i * every),
-                    validTo: new Date(startsAt + (i + 1) * every),
-                });
-            }
+            await placeDcaBuys(Array.from({ length: buys }, (_, i) => ({
+                wallet: address!,
+                strategyId,
+                strategySize: buys,
+                position: i + 1,
+                fromSubnet,
+                to: to.contractId,
+                amount: perBuy,
+                validFrom: new Date(startsAt + i * every),
+                validTo: new Date(startsAt + (i + 1) * every),
+            })), setProgress);
             setAmountText('');
             setPhase('done');
         } catch (err) {
@@ -168,18 +170,19 @@ export default function DcaPage() {
     const everyLabel = EVERY.find(e => e.ms === every)?.label.toLowerCase();
 
     return (
-        <div className="w-full max-w-xl mx-auto px-4 py-6 space-y-6">
+        <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
             <div className="space-y-1">
                 <h1 className="text-2xl font-semibold text-white/95">DCA</h1>
                 <p className="text-sm text-white/60">Buy a little at a time, on a schedule. Set it once and walk away.</p>
             </div>
 
+            <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_260px] items-start">
             <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-5">
                 {phase === 'done' ? (
                     <div className="space-y-4">
                         <div className="text-lg font-medium text-white/95">Your DCA is running ✓</div>
                         <p className="text-sm text-white/60">
-                            {buys} buys of {to?.symbol}, {everyLabel}. The first runs now. You can close this page.
+                            {buys.toLocaleString('en-US')} buys of {to?.symbol}, {everyLabel}. The first runs now. You can close this page.
                         </p>
                         <div className="flex gap-2">
                             <Link href="/orders" className="flex-1 rounded-lg border border-white/20 px-3 py-2 text-center text-sm text-white hover:bg-white/[0.06]">View in Orders</Link>
@@ -244,7 +247,7 @@ export default function DcaPage() {
 
                         {from && to && decimals !== undefined && perBuy > 0n && !problem && (
                             <div className="rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-white/80">
-                                <span className="font-mono">{buys}</span> buys of <span className="font-mono">{fmt(Number(perBuy) / 10 ** decimals)}</span> {from.symbol} → {to.symbol}, {everyLabel}
+                                <span className="font-mono">{buys.toLocaleString('en-US')}</span> buys of <span className="font-mono">{fmt(Number(perBuy) / 10 ** decimals)}</span> {from.symbol} → {to.symbol}, {everyLabel}
                             </div>
                         )}
 
@@ -256,13 +259,15 @@ export default function DcaPage() {
                             disabled={!ready || phase === 'signing'}
                             className="w-full rounded-lg bg-white/90 px-4 py-3 text-sm font-medium text-black hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
                         >
-                            {phase === 'signing' ? progress : `Start DCA (${signatures} signatures)`}
+                            {phase === 'signing' ? progress : `Start DCA (${approvals} ${approvals === 1 ? 'approval' : 'approvals'})`}
                         </button>
                         <p className="text-xs text-white/50">
                             The first buy runs now. If a buy can&apos;t run in its slot, it&apos;s skipped. Tokens go to your wallet.
                         </p>
                     </>
                 )}
+            </div>
+            <BlazeWalletPitch connected={bulk} buys={buys} cap={MAX_BUYS} />
             </div>
         </div>
     );
