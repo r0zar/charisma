@@ -13,7 +13,8 @@
     "dev:firefox": "plasmo dev --target=firefox-mv2",
     "package": "plasmo package",
     "package:firefox": "plasmo package --target=firefox-mv2",
-    "start:firefox": "web-ext run --source-dir ./build/firefox-mv2-dev"
+    "start:firefox": "web-ext run --source-dir ./build/firefox-mv2-dev",
+    "package:store": "plasmo build && node scripts/store-zip.mjs"
   },
   "dependencies": {
     "@plasmohq/messaging": "^0.7.1",
@@ -45,7 +46,6 @@
     "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnSZTHNAdsOJq1A3Ii/DOZ+Y7xb9KI2Qz1JxNRQty6cLIXA4sm+OwD/tiPgvHJI5zdGXcR+hz9ChnWJLfCp3ju+lRFEJ0Y1cqbVRVN/m7rhp9x/IAFf37uIF2nnb5W3aBeYJzW0r3Kf8SUWvnUvfqYc5mbO1UXi6znHxFmiwekDoXlozDKzT/MSKxTHd1D9yBV0Ht5BCUSNmBPvrZRlbWkotC8rnlbpcWCpYUc7kTmllI9oNnNdgdLbZW3tXnB9KHZubyjK+FM+Ub6IWk0ewlZPHif3PwjSI9KZJWOgtRNSQJ6+JuMJOEGuqGVBQ1xd4Ljv34fC/EYcMeKVghD/5pZwIDAQAB",
     "permissions": [
       "storage",
-      "activeTab",
       "sidePanel"
     ],
     "host_permissions": [
