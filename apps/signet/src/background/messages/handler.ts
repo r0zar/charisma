@@ -69,6 +69,10 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
         ));
         break;
 
+      case "generateSeedWords":
+        response = wallet.generateSeedWords();
+        break;
+
       case "getAllSeedPhrases":
         response = (await wallet.getAllSeedPhrases()).map(withoutWords);
         break;

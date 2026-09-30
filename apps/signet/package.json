@@ -19,6 +19,7 @@
     "@plasmohq/messaging": "^0.7.1",
     "@react-spring/web": "^9.7.5",
     "@repo/tokens": "workspace:*",
+    "@scure/bip39": "^1.5.4",
     "@stacks/encryption": "^7.0.4",
     "@stacks/network": "^7.0.2",
     "@stacks/transactions": "^7.0.4",

@@ -3,7 +3,7 @@
  */
 import { useEffect, useState } from 'react';
 import { useSignetContext } from '~shared/context/SignetContext';
-import { saveEncryptedWalletBackup } from '~shared/context/utils';
+import { saveEncryptedWalletBackup, sendMessage } from '~shared/context/utils';
 import { colors } from '~shared/styles/theme';
 import { HudButton, HudLabel, HudLine, HudPanel, HudScreen, HudStat } from '~shared/hud';
 import { PasswordField } from './PasswordField';
@@ -60,18 +60,80 @@ function UnlockView() {
   );
 }
 
-/** Name a new or imported seed phrase */
-function SeedForm({ mode, onDone, onBack }: { mode: 'new' | 'import'; onDone: (seedPhraseId: string) => void; onBack: () => void }) {
-  const { createSeedPhrase, importSeedPhrase } = useSignetContext();
+/** Import an existing seed phrase */
+function ImportSeed({ onDone, onBack }: { onDone: (seedPhraseId: string) => void; onBack: () => void }) {
+  const { importSeedPhrase } = useSignetContext();
   const [name, setName] = useState('');
   const [phrase, setPhrase] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const importing = mode === 'import';
 
   const submit = async () => {
     setError(null);
     try {
-      const saved = importing ? await importSeedPhrase(name, phrase.trim()) : await createSeedPhrase(name);
+      const saved = await importSeedPhrase(name, phrase.trim());
+      if (!saved) throw new Error('The seed phrase was not saved');
+      onDone(saved.id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not import the seed phrase');
+    }
+  };
+
+  return (
+    <HudPanel title="IMPORT SEED PHRASE" right={<BackLink onClick={onBack} />} gap={8}>
+      <HudLabel>Name</HudLabel>
+      <input className="hud-input" placeholder="My seed phrase" value={name} onChange={e => setName(e.target.value)} aria-label="Seed phrase name" />
+      <HudLabel>12 or 24 words</HudLabel>
+      <textarea className="hud-input" rows={4} placeholder="word word word …" value={phrase} onChange={e => setPhrase(e.target.value)} aria-label="Seed phrase" style={{ resize: 'none' }} />
+      <ErrorLine error={error} />
+      <HudButton tone="green" onClick={submit} disabled={!name || !phrase.trim()}>Import</HudButton>
+    </HudPanel>
+  );
+}
+
+/** Three random word positions (1-based) to confirm */
+const pickChecks = (count: number) => {
+  const picks = new Set<number>();
+  const random = new Uint32Array(8);
+  while (picks.size < 3) {
+    crypto.getRandomValues(random);
+    random.forEach(n => picks.size < 3 && picks.add((n % count) + 1));
+  }
+  return [...picks].sort((a, b) => a - b);
+};
+
+/**
+ * A new seed phrase: name it, write the words down, confirm three of them. Nothing is saved until confirmed,
+ * so no wallet ever exists with words nobody wrote down.
+ */
+function NewSeed({ onDone, onBack }: { onDone: (seedPhraseId: string) => void; onBack: () => void }) {
+  const { importSeedPhrase } = useSignetContext();
+  const [step, setStep] = useState<'name' | 'words' | 'confirm'>('name');
+  const [name, setName] = useState('');
+  const [words, setWords] = useState<string[]>([]);
+  const [wroteDown, setWroteDown] = useState(false);
+  const [checks, setChecks] = useState<number[]>([]);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [error, setError] = useState<string | null>(null);
+
+  const generate = async () => {
+    setError(null);
+    try {
+      const phrase = await sendMessage<string>('generateSeedWords');
+      const list = phrase.split(' ');
+      setWords(list);
+      setChecks(pickChecks(list.length));
+      setStep('words');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not generate words');
+    }
+  };
+
+  const confirmAndSave = async () => {
+    setError(null);
+    const wrong = checks.filter(position => (answers[position] ?? '').trim().toLowerCase() !== words[position - 1]);
+    if (wrong.length) return setError(`Word #${wrong.join(', #')} doesn't match. Check what you wrote down`);
+    try {
+      const saved = await importSeedPhrase(name, words.join(' '));
       if (!saved) throw new Error('The seed phrase was not saved');
       onDone(saved.id);
     } catch (err) {
@@ -79,20 +141,57 @@ function SeedForm({ mode, onDone, onBack }: { mode: 'new' | 'import'; onDone: (s
     }
   };
 
+  if (step === 'name') {
+    return (
+      <HudPanel title="NEW SEED PHRASE" right={<BackLink onClick={onBack} />} gap={8}>
+        <HudLabel>Name</HudLabel>
+        <input className="hud-input" placeholder="My seed phrase" value={name} onChange={e => setName(e.target.value)} aria-label="Seed phrase name" />
+        <ErrorLine error={error} />
+        <HudButton tone="green" onClick={generate} disabled={!name}>Generate 24 words</HudButton>
+      </HudPanel>
+    );
+  }
+
+  if (step === 'words') {
+    return (
+      <HudPanel title="WRITE THESE DOWN" tone="amber" right={<BackLink onClick={onBack} />} gap={8}>
+        <HudLine tone="amber">These 24 words are the only way to recover this wallet</HudLine>
+        <HudLine tone="amber">Anyone who sees them controls your funds. Signet can't recover them</HudLine>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', margin: '4px 0' }}>
+          {words.map((word, i) => (
+            <div key={i} style={{ display: 'flex', gap: '6px', padding: '5px 6px', border: '1px solid rgba(255, 204, 0, 0.3)', borderRadius: '2px', background: 'rgba(0, 0, 0, 0.35)', fontSize: '10px' }}>
+              <span style={{ color: 'rgba(255, 255, 255, 0.4)', minWidth: '16px', textAlign: 'right' }}>{i + 1}</span>
+              <span style={{ color: '#fff', fontWeight: 'bold' }}>{word}</span>
+            </div>
+          ))}
+        </div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '9px', color: 'rgba(255, 255, 255, 0.8)' }}>
+          <input type="checkbox" checked={wroteDown} onChange={e => setWroteDown(e.target.checked)} style={{ accentColor: 'rgb(255, 204, 0)' }} />
+          I WROTE ALL 24 WORDS DOWN, IN ORDER
+        </label>
+        <HudButton tone="amber" onClick={() => setStep('confirm')} disabled={!wroteDown}>Continue</HudButton>
+      </HudPanel>
+    );
+  }
+
   return (
-    <HudPanel title={importing ? 'IMPORT SEED PHRASE' : 'NEW SEED PHRASE'} right={<BackLink onClick={onBack} />}>
-      <HudLabel>Name</HudLabel>
-      <input className="hud-input" placeholder="My seed phrase" value={name} onChange={e => setName(e.target.value)} aria-label="Seed phrase name" />
-      {importing && (
-        <>
-          <HudLabel>12 or 24 words</HudLabel>
-          <textarea className="hud-input" rows={4} placeholder="word word word …" value={phrase} onChange={e => setPhrase(e.target.value)} aria-label="Seed phrase" style={{ resize: 'none' }} />
-        </>
-      )}
+    <HudPanel title="CONFIRM YOUR WORDS" right={<BackLink onClick={() => setStep('words')} />} gap={8}>
+      <HudLine>Type these words from what you wrote down</HudLine>
+      {checks.map(position => (
+        <div key={position} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span className="hud-label" style={{ minWidth: '52px' }}>WORD #{position}</span>
+          <input
+            className="hud-input"
+            value={answers[position] ?? ''}
+            onChange={e => setAnswers(current => ({ ...current, [position]: e.target.value }))}
+            aria-label={`Word ${position}`}
+            autoComplete="off"
+            spellCheck={false}
+          />
+        </div>
+      ))}
       <ErrorLine error={error} />
-      <HudButton tone="green" onClick={submit} disabled={!name || (importing && !phrase.trim())}>
-        {importing ? 'Import' : 'Generate'}
-      </HudButton>
+      <HudButton tone="green" onClick={confirmAndSave} disabled={checks.some(position => !answers[position]?.trim())}>Confirm and save</HudButton>
     </HudPanel>
   );
 }
@@ -179,8 +278,8 @@ export function WalletTab() {
           { label: 'STATUS', value: 'UNLOCKED', tone: 'green' }
         ]}
       >
-        {view === 'newSeed' && <SeedForm mode="new" onDone={newAccountFor} onBack={back} />}
-        {view === 'importSeed' && <SeedForm mode="import" onDone={newAccountFor} onBack={back} />}
+        {view === 'newSeed' && <NewSeed onDone={newAccountFor} onBack={back} />}
+        {view === 'importSeed' && <ImportSeed onDone={newAccountFor} onBack={back} />}
         {view === 'newAccount' && <NewAccount seedPhraseId={seedPhraseId} onDone={back} onBack={back} />}
 
         {view === 'accounts' && (

@@ -5,24 +5,22 @@ import type { Account } from './types';
 import { getStxAddress, generateWallet, generateNewAccount, randomSeedPhrase } from '@stacks/wallet-sdk';
 import { STACKS_MAINNET } from '@stacks/network';
 import { getAddressFromPublicKey, privateKeyToPublic } from '@stacks/transactions';
+import { validateMnemonic } from '@scure/bip39';
+import { wordlist } from '@scure/bip39/wordlists/english';
 
 
 /**
- * Generate a random seed phrase using crypto secure randomness
- * This is a simplified example - in production, use a proper BIP39 implementation
+ * A new random 24-word BIP39 seed phrase (256 bits of entropy)
  */
 export function generateSeedPhrase(): string {
-  return randomSeedPhrase();
+  return randomSeedPhrase(256);
 }
 
 /**
- * Validate a seed phrase
- * In a real implementation, this would check for proper BIP39 structure
+ * Whether a phrase is a real BIP39 seed phrase: English words from the list, a valid length, and a matching checksum
  */
 export function validateSeedPhrase(phrase: string): boolean {
-  // Basic validation - check for 12 words
-  const words = phrase.trim().split(/\s+/);
-  return words.length >= 12;
+  return validateMnemonic(phrase.trim().toLowerCase().split(/\s+/).join(' '), wordlist);
 }
 
 /**

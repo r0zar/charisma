@@ -59,6 +59,13 @@ export async function endSession(): Promise<boolean> {
 }
 
 /**
+ * New seed phrase words, not stored: the person writes them down and confirms them, then they're imported
+ */
+export function generateSeedWords(): string {
+  return generateSeedPhrase();
+}
+
+/**
  * Generate and store a new seed phrase
  */
 export async function createNewSeedPhrase(name: string): Promise<SeedPhrase | null> {
@@ -73,13 +80,11 @@ export async function createNewSeedPhrase(name: string): Promise<SeedPhrase | nu
  * Import an existing seed phrase
  */
 export async function importSeedPhrase(name: string, phrase: string): Promise<SeedPhrase | null> {
-  // Validate the seed phrase
   if (!validateSeedPhrase(phrase)) {
-    throw new Error("Invalid seed phrase");
+    throw new Error("That isn't a valid seed phrase: check each word's spelling and that none are missing");
   }
 
-  // Store it securely
-  return await addSeedPhrase(name, phrase);
+  return await addSeedPhrase(name, phrase.trim().toLowerCase().split(/\s+/).join(' '));
 }
 
 /**

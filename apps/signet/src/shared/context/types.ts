@@ -10,6 +10,7 @@ export type MessageAction =
   // Seed phrases
   | "createSeedPhrase"
   | "importSeedPhrase"
+  | "generateSeedWords"
   | "getAllSeedPhrases"
   | "deleteSeedPhrase"
   // Accounts
