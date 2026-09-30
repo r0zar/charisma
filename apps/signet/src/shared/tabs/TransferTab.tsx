@@ -167,6 +167,7 @@ export function TransferTab() {
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [prices, setPrices] = useState<Record<string, number> | null>(null);
+  const [showUnlisted, setShowUnlisted] = useState(false);
   const [priceError, setPriceError] = useState<string | null>(null);
 
   const load = () => {
@@ -187,40 +188,24 @@ export function TransferTab() {
     const price = prices?.[token.contractId];
     return token.meta && price !== undefined ? units(token) * price : null;
   };
-  const priced = balances?.map(valueOf).filter((value): value is number => value !== null) ?? [];
+  const listed = balances?.filter(token => token.listed) ?? [];
+  const unlisted = balances?.filter(token => !token.listed) ?? [];
+  const priced = listed.map(valueOf).filter((value): value is number => value !== null);
   const total = priced.reduce((sum, value) => sum + value, 0);
 
   useEffect(load, [currentAccount?.stxAddress]);
 
-  const selectedToken = balances?.find(token => `${token.contractId}::${token.asset}` === selected);
-
-  return (
-    <div style={{ padding: '8px' }}>
-      <HudScreen
-        title="TOKENS"
-        stats={[
-          { label: 'HELD', value: balances ? balances.length : '…' },
-          { label: 'VALUE', value: balances && prices ? usd(total) : '…', tone: 'green' }
-        ]}
-      >
-        <HudPanel
-          title="BALANCES"
-          right={<button type="button" onClick={load} title="Refresh" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'monospace', fontSize: '9px', padding: 0 }}>↻</button>}
-        >
-          {error && <div role="alert"><HudLine tone="red">{error}</HudLine></div>}
-          {priceError && <div role="alert"><HudLine tone="amber">Prices unavailable: {priceError}</HudLine></div>}
-          {!balances && !error && <TokenSkeletons />}
-          <div>
-            {balances?.map(token => {
+  /** One token row; unlisted tokens can't be opened for sending */
+  const row = (token: TokenBalance) => {
               const key = `${token.contractId}::${token.asset}`;
               const open = selected === key;
               return (
                 <div
                   key={key}
-                  className={`hud-row${token.meta ? ' is-clickable' : ''}${open ? ' is-open' : ''}`}
+                  className={`hud-row${token.meta && token.listed ? ' is-clickable' : ''}${open ? ' is-open' : ''}`}
                   style={{ padding: '10px 6px', gap: '10px' }}
-                  onClick={() => token.meta && setSelected(open ? null : key)}
-                  title={token.meta ? `Send ${label(token)}` : 'Unknown token: shown in smallest units, not sendable here'}
+                  onClick={() => token.meta && token.listed && setSelected(open ? null : key)}
+                  title={!token.listed ? 'Not on Charisma\'s token list: hidden from sends' : token.meta ? `Send ${label(token)}` : 'Unknown token: shown in smallest units, not sendable here'}
                 >
                   <TokenIcon token={token} />
                   <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -235,10 +220,37 @@ export function TransferTab() {
                   </span>
                 </div>
               );
-            })}
+            };
+
+  const selectedToken = balances?.find(token => `${token.contractId}::${token.asset}` === selected);
+
+  return (
+    <div style={{ padding: '8px' }}>
+      <HudScreen
+        title="TOKENS"
+        stats={[
+          { label: 'HELD', value: balances ? listed.length : '…' },
+          { label: 'VALUE', value: balances && prices ? usd(total) : '…', tone: 'green' }
+        ]}
+      >
+        <HudPanel
+          title="BALANCES"
+          right={<button type="button" onClick={load} title="Refresh" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'monospace', fontSize: '9px', padding: 0 }}>↻</button>}
+        >
+          {error && <div role="alert"><HudLine tone="red">{error}</HudLine></div>}
+          {priceError && <div role="alert"><HudLine tone="amber">Prices unavailable: {priceError}</HudLine></div>}
+          {!balances && !error && <TokenSkeletons />}
+          <div>
+            {listed.map(row)}
+            {unlisted.length > 0 && (
+              <div className="hud-row is-clickable" onClick={() => setShowUnlisted(open => !open)} style={{ padding: '8px 6px', color: 'rgba(255, 204, 0, 0.8)', fontSize: '8px', fontWeight: 'bold' }}>
+                <span style={{ flex: 1 }}>{showUnlisted ? '▾' : '▸'} UNLISTED ({unlisted.length}) · NOT ON CHARISMA'S TOKEN LIST, MAY BE SCAMS</span>
+              </div>
+            )}
+            {showUnlisted && unlisted.map(row)}
           </div>
-          {balances && prices && priced.length < balances.length && (
-            <HudLine tone="steel">{balances.length - priced.length} without a price · value covers priced tokens</HudLine>
+          {balances && prices && priced.length < listed.length && (
+            <HudLine tone="steel">{listed.length - priced.length} without a price · value covers priced tokens</HudLine>
           )}
         </HudPanel>
 

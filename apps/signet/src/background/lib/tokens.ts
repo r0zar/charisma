@@ -3,7 +3,7 @@
  * Balances come from Hiro; names, decimals and logos from Charisma's token cache (@repo/tokens).
  */
 import { Cl, Pc, broadcastTransaction, makeContractCall, makeSTXTokenTransfer } from "@stacks/transactions"
-import { getTokenMetadataStrict, lakehouseClient } from "@repo/tokens"
+import { getTokenMetadataStrict, lakehouseClient, listTokens } from "@repo/tokens"
 import * as wallet from "./wallet"
 
 const HIRO = "https://api.hiro.so"
@@ -18,6 +18,8 @@ export interface TokenBalance {
   balance: string
   /** Null when the token cache doesn't know the token: shown raw and not sendable */
   meta: { symbol: string; name: string; decimals: number; image: string | null } | null
+  /** On Charisma's token list. Blocked tokens (scams) and unknown airdrops are not, and the wallet tucks them away. */
+  listed: boolean
 }
 
 async function activeAccount() {
@@ -48,6 +50,10 @@ export async function getWalletBalances(): Promise<TokenBalance[]> {
   }
 
   const held = Object.entries(data.fungible_tokens).filter(([, { balance }]) => BigInt(balance) > 0n)
+  // Charisma's token list: blocking a token (scripts/blocklist.mjs in token-cache) takes it off this list
+  const list = await listTokens()
+  if (list.length === 0) throw new Error("Charisma's token list is unavailable, so tokens can't be checked against the block list")
+  const listed = new Set(list.map(token => token.contractId))
   const spendableStx = (BigInt(data.stx.balance) - BigInt(data.stx.locked)).toString()
   // The token cache knows STX too (".stx"), logo included
   return Promise.all([
@@ -55,7 +61,7 @@ export async function getWalletBalances(): Promise<TokenBalance[]> {
     ...held
   ].map(async ([key, { balance }]) => {
     const [contractId, asset] = key.split("::")
-    return { contractId, asset, balance, meta: await tokenMeta(contractId) }
+    return { contractId, asset, balance, meta: await tokenMeta(contractId), listed: contractId === STX_ID || listed.has(contractId) }
   }))
 }
 
