@@ -40,9 +40,10 @@ Upload `build/blaze-wallet-chrome.zip` (made by `pnpm package:store` in apps/sig
 **Graphics:**
 | Asset | File |
 |---|---|
-| Store icon (128×128, from 512) | `icon-512.png` |
+| Store icon (128×128) | `icon-128.png` |
 | Screenshots (1280×800) | `screenshot-1-wallet.png` … `screenshot-5-sign.png` |
 | Small promo tile (440×280) | `promo-small-440x280.png` |
+| Marquee promo tile (1400×560) | `promo-marquee-1400x560.png` |
 
 **Links:**
 | Field | URL |
