@@ -25,7 +25,23 @@ const CASH_OUT_TOKENS = [
     'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.susdh-token-v1', // sUSDh
 ];
 const SAFETY = 0.1;
-const SHARES = [0.25, 0.5, 1];
+const SHARES = [0.05, 0.1, 0.25, 0.5, 1];
+
+/** A typed decimal amount in smallest units, exactly; anything unreadable is zero */
+function toUnits(text: string, decimals: number): bigint {
+    const match = text.trim().match(/^(\d*)(?:\.(\d*))?$/);
+    if (!match || (!match[1] && !match[2])) return 0n;
+    const fraction = (match[2] ?? '').slice(0, decimals).padEnd(decimals, '0');
+    return BigInt((match[1] || '0') + fraction);
+}
+
+/** Smallest units as a plain decimal, for the amount box */
+function fromUnits(raw: bigint, decimals: number): string {
+    const text = raw.toString().padStart(decimals + 1, '0');
+    const whole = text.slice(0, text.length - decimals);
+    const fraction = text.slice(text.length - decimals).replace(/0+$/, '');
+    return fraction ? `${whole}.${fraction}` : whole;
+}
 
 /** Up to 6 significant digits, no exponent */
 const fmt = (n: number) => n.toLocaleString('en-US', { maximumSignificantDigits: 6 });
@@ -35,7 +51,7 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
         <button
             type="button"
             onClick={onClick}
-            className={`flex-1 rounded-lg border px-3 py-2 text-sm transition-colors ${active ? 'border-white/40 bg-white/[0.08] text-white' : 'border-white/[0.08] bg-white/[0.02] text-white/60 hover:text-white/90'}`}
+            className={`flex-1 rounded-lg border px-2 py-2 text-sm transition-colors ${active ? 'border-white/40 bg-white/[0.08] text-white' : 'border-white/[0.08] bg-white/[0.02] text-white/60 hover:text-white/90'}`}
         >
             {children}
         </button>
@@ -80,7 +96,7 @@ export default function InAndOutPage() {
     const [pay, setPay] = useState<TokenCacheData | null>(null);
     const [buy, setBuy] = useState<TokenCacheData | null>(null);
     const [cashOut, setCashOut] = useState<TokenCacheData | null>(null);
-    const [share, setShare] = useState(0.5);
+    const [amountText, setAmountText] = useState('');
     const [targetPct, setTargetPct] = useState(0.15);
     const [safetyOn, setSafetyOn] = useState(true);
     const [phase, setPhase] = useState<'setup' | 'signing' | 'done'>('setup');
@@ -99,13 +115,14 @@ export default function InAndOutPage() {
         };
     };
     const payHeld = pay ? held(pay) : { subnet: 0n, wallet: 0n };
-    const balanceRaw = Number(payHeld.subnet + payHeld.wallet);
-    const amountRaw = BigInt(Math.floor(balanceRaw * share));
-    const fromSubnet = amountRaw < payHeld.subnet ? amountRaw : payHeld.subnet;
-    const fromWallet = amountRaw - fromSubnet;
+    const balance = payHeld.subnet + payHeld.wallet;
     // Never guess decimals: a token without them in the token list can't be traded here
     const decimals = pay?.decimals;
-    const amountDisplay = decimals !== undefined ? Number(amountRaw) / 10 ** decimals : 0;
+    const amountRaw = decimals !== undefined ? toUnits(amountText, decimals) : 0n;
+    const tooMuch = amountRaw > balance;
+    const fromSubnet = amountRaw < payHeld.subnet ? amountRaw : payHeld.subnet;
+    const fromWallet = amountRaw - fromSubnet;
+    const shareRaw = (s: number) => balance * BigInt(Math.round(s * 100)) / 100n;
 
     // The bought token, priced in the token the profit is taken in
     const priceBuy = buy ? getPrice(buy.contractId) : null;
@@ -128,14 +145,17 @@ export default function InAndOutPage() {
 
     const problem = pay && decimals === undefined
         ? `${pay.symbol} has no decimals in the token list, so amounts can't be read safely`
+        : pay && tooMuch
+            ? `That's more ${pay.symbol} than you hold`
         : buy && cashOut && !ratio
             ? `No price for ${!priceBuy ? buy.symbol : cashOut.symbol} right now, so a target can't be set`
             : null;
-    const ready = !!(address && pay && buy && cashOut && buySubnet && ratio && decimals !== undefined && amountRaw > 0n);
+    const ready = !!(address && pay && buy && cashOut && buySubnet && ratio && decimals !== undefined && amountRaw > 0n && !tooMuch);
     const signatures = (fromSubnet > 0n ? 1 : 0) + (fromWallet > 0n ? 1 : 0) + (safetyOn ? 2 : 1);
 
     const pickPay = (t: TokenCacheData) => {
         setPay(t);
+        setAmountText('');
         if (buy?.contractId === t.contractId) setBuy(null);
         // Paying with a steady token? Take the profit back in the same one
         const steady = cashOutTokens.find(c => c.contractId === t.contractId);
@@ -231,16 +251,29 @@ export default function InAndOutPage() {
                                 {!address
                                     ? <div className="text-sm text-white/60">Connect a wallet to pick a token.</div>
                                     : swappable && <TokenDropdown tokens={payable.filter(t => t.contractId !== buy?.contractId)} selected={pay} onSelect={pickPay} label="Pick a token you hold" showBalances includeStx={false} />}
-                                {pay && (
-                                    <div className="flex gap-2">
-                                        {SHARES.map(s => <Chip key={s} active={share === s} onClick={() => setShare(s)}>{s === 1 ? 'All' : `${s * 100}%`}</Chip>)}
-                                    </div>
-                                )}
                                 {pay && decimals !== undefined && (
-                                    <div className="flex justify-between text-xs text-white/60">
-                                        <span>Spend</span>
-                                        <span className="font-mono">{fmt(amountDisplay)} of {fmt(balanceRaw / 10 ** decimals)} {pay.symbol}</span>
-                                    </div>
+                                    <>
+                                        <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 focus-within:border-white/30">
+                                            <input
+                                                inputMode="decimal"
+                                                placeholder="0"
+                                                value={amountText}
+                                                onChange={e => setAmountText(e.target.value.replace(/[^\d.]/g, ''))}
+                                                className="min-w-0 flex-1 bg-transparent font-mono text-lg text-white outline-none placeholder:text-white/30"
+                                            />
+                                            <span className="text-sm text-white/60">{pay.symbol}</span>
+                                        </div>
+                                        <div className="flex gap-1.5">
+                                            {SHARES.map(s => (
+                                                <Chip key={s} active={amountRaw > 0n && amountRaw === shareRaw(s)} onClick={() => setAmountText(fromUnits(shareRaw(s), decimals))}>
+                                                    {s === 1 ? 'All' : `${s * 100}%`}
+                                                </Chip>
+                                            ))}
+                                        </div>
+                                        <div className="text-right text-xs text-white/50">
+                                            You hold <span className="font-mono">{fmt(Number(balance) / 10 ** decimals)}</span> {pay.symbol}
+                                        </div>
+                                    </>
                                 )}
                                 <div className="text-xs text-white/60 pt-1">Buy</div>
                                 {listError
