@@ -1,7 +1,7 @@
 {
   "name": "signet-signer",
   "displayName": "Blaze Wallet",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "The Blaze wallet for Stacks: connect to any Stacks app, sign and send, with Blaze subnets built in.",
   "author": "Charisma Labs",
   "scripts": {

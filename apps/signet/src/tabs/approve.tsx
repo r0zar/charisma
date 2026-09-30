@@ -13,6 +13,7 @@ import { CustomIcons } from "~shared/approvals/parts/Icons"
 import { colors } from "~shared/styles/theme"
 import type { ApprovalRequest } from "~background/lib/provider"
 import { SignOrderContent } from "~shared/approvals/SignOrderContent"
+import { SignOrdersContent } from "~shared/approvals/SignOrdersContent"
 import { TransactionContent } from "~shared/approvals/TransactionContent"
 import "~shared/styles/style.css"
 
@@ -43,6 +44,15 @@ function cardFor(details: Details) {
       approve: "SIGN",
       color: colors.neonOrange,
       content: <SignOrderContent origin={details.origin} address={details.address} message={message} domain={domain} />
+    }
+  }
+  if (details.method === "blaze_signStructuredMessages") {
+    const { messages } = details.params as { messages: string[] }
+    return {
+      title: `SIGN ${messages.length.toLocaleString("en-US")} ORDERS`,
+      approve: "SIGN ALL",
+      color: colors.neonOrange,
+      content: <SignOrdersContent origin={details.origin} address={details.address} messages={messages} />
     }
   }
   if (details.method === "stx_signMessage") {

@@ -38,6 +38,12 @@ interface Pending extends ApprovalRequest {
 
 const pending = new Map<string, Pending>()
 
+/** Most orders one bulk approval may sign (a year of hourly buys is under 9,000) */
+const MAX_BULK = 10_000
+
+/** The Blaze protocol's SIP-018 domain (blaze-sdk's BLAZE_V1_DOMAIN), serialized */
+const BLAZE_DOMAIN = Cl.serialize(Cl.tuple({ name: Cl.stringAscii("BLAZE_PROTOCOL"), version: Cl.stringAscii("v1.0"), "chain-id": Cl.uint(1) }))
+
 const CONNECT_METHODS = ["getAddresses", "stx_getAddresses", "wallet_connect"]
 const TX_METHODS = ["stx_transferStx", "stx_callContract"]
 
@@ -179,6 +185,30 @@ async function handleRpc(message: { id: string; method: string; params?: unknown
     // SIP-018 structured data, the format blaze-v1 recovers signers from
     const signature = signStructuredData({ ...parsed, privateKey: account.privateKey })
     return reply({ signature, publicKey: account.publicKey })
+  }
+
+  if (message.method === "blaze_signStructuredMessages") {
+    // Many Blaze orders from one approval (WALLET-SPEC.md): hex-serialized like stx_signStructuredMessage
+    const { messages, domain } = (message.params ?? {}) as { messages?: unknown; domain?: unknown }
+    if (typeof domain !== "string" || !Array.isArray(messages) || messages.length === 0 || messages.some(m => typeof m !== "string")) {
+      return fail(InvalidParams, "blaze_signStructuredMessages needs a hex-serialized domain and a list of hex-serialized messages")
+    }
+    if (messages.length > MAX_BULK) return fail(InvalidParams, `Blaze Wallet signs at most ${MAX_BULK} orders at once`)
+    let parsed: { domain: ReturnType<typeof Cl.deserialize>; messages: ReturnType<typeof Cl.deserialize>[] }
+    try {
+      parsed = { domain: Cl.deserialize(domain), messages: (messages as string[]).map(m => Cl.deserialize(m)) }
+    } catch (error) {
+      return fail(InvalidParams, `Could not read the orders: ${(error as Error).message}`)
+    }
+    // Only Blaze orders: the card can say exactly what each one does
+    if (Cl.serialize(parsed.domain) !== BLAZE_DOMAIN) {
+      return fail(InvalidParams, "blaze_signStructuredMessages only signs Blaze protocol orders")
+    }
+    if (!(await askUser(request, sender))) return fail(UserRejection, "User rejected the signatures")
+    const account = await wallet.getCurrentAccount()
+    if (!account) return fail(InternalError, "Blaze Wallet has no active account")
+    const signatures = parsed.messages.map(data => signStructuredData({ message: data, domain: parsed.domain, privateKey: account.privateKey }))
+    return reply({ signatures, publicKey: account.publicKey })
   }
 
   return fail(MethodNotFound, `Blaze Wallet does not support ${message.method} yet`)

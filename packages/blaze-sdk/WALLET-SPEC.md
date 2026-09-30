@@ -107,6 +107,23 @@ params: { id?: string }     // all of this site's rules when omitted
 result: { revoked: number }
 ```
 
+### `blaze_signStructuredMessages`
+
+Sign many Blaze messages from one approval: the plural of the standard `stx_signStructuredMessage`. The wallet
+shows one card with the count, the total each token can spend, and every payout router, instead of a prompt
+per message. (Not "multi-signature": in Stacks that means several signers on one transaction.)
+
+```
+params: {
+  domain: string      // hex-serialized Clarity tuple; must be the Blaze domain
+  messages: string[]  // hex-serialized Blaze messages, at most 10,000
+}
+result: { signatures: string[], publicKey: string }   // SIP-018 signatures, same order as messages
+```
+
+Apps check for it with `canSignInBulk()` and call it with `signTriggeredSwaps()` (both in `blaze-sdk`).
+Wallets without it answer `-32601`, and apps ask one message at a time instead.
+
 ## Not wallet methods
 
 Public data, so apps look it up directly rather than asking the wallet:
@@ -116,10 +133,6 @@ Public data, so apps look it up directly rather than asking the wallet:
 
 ## Later
 
-- **Bulk signing** (`blaze_signStructuredMessages`, the plural of the standard `stx_signStructuredMessage`): sign
-  many Blaze messages from one approval, e.g. 60 shown as one card with the count, totals per token and payout
-  router, instead of 60 separate prompts. Auto-approve rules can cover a batch too. (Not "multi-signature":
-  in Stacks that means several signers on one transaction.)
 - **Saved signatures**: signing Blaze messages to keep in the wallet and hand to a site or relayer later.
 - **Source-agnostic send**: "send 10 WELSH", with the wallet choosing wallet, subnet, or both.
 - App-specific actions (prediction markets, rewards, subnet deployment) belong to apps, built on
