@@ -37,13 +37,22 @@ export function getEnvironment(): Environment {
  * @param environment - Optional environment override (defaults to auto-detect)
  * @returns The URL for the specified host and environment
  */
+/**
+ * Hosts to reach in production even while developing locally, from DISCOVERY_USE_PRODUCTION:
+ * a comma-separated list of host names, or "all". Lets a local app use live services it isn't running.
+ */
+function forcedToProduction(hostName: string): boolean {
+  const list = (process.env.DISCOVERY_USE_PRODUCTION ?? '').split(',').map(name => name.trim()).filter(Boolean);
+  return list.includes('all') || list.includes(hostName);
+}
+
 export function getHostUrl(hostName: HostName, environment?: Environment): string {
   const host = HOSTS[hostName];
   if (!host) {
     throw new Error(`Unknown host: ${hostName}`);
   }
 
-  const env = environment || getEnvironment();
+  const env = environment || (forcedToProduction(hostName) ? 'production' : getEnvironment());
   return host[env];
 }
 
