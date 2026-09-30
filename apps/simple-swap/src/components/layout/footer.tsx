@@ -45,7 +45,7 @@ export function Footer() {
                             <span className="text-white/95 font-semibold tracking-tight">Charisma Swap</span>
                         </Link>
                         <p className="text-white/60 text-sm leading-relaxed mb-6 max-w-xs">
-                            Swap any token on Stacks, on chain or off. Best-path routing, orders that run while you&apos;re away, zero protocol fees.
+                            An open-source exchange on Stacks. It belongs to no one and is open to everyone.
                         </p>
                         <div className="flex items-center gap-3">
                             {SOCIALS.map(({ href, label, icon: Icon }) => (

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Header } from '@/components/layout/header';
+import { Footer } from '@/components/layout/footer';
 import AnalyticsPage, { count, usd } from '@/components/analytics/AnalyticsPage';
 import { getPlatformStats } from '@/lib/analytics/platform-stats';
 
@@ -22,6 +23,7 @@ export default async function Analytics() {
         <div className="relative flex flex-col min-h-screen">
             <Header />
             <AnalyticsPage stats={stats} />
+            <Footer />
         </div>
     );
 }

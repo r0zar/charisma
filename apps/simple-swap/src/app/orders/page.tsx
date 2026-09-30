@@ -2,6 +2,7 @@
 
 import { Suspense } from "react";
 import { Header } from "@/components/layout/header";
+import { Footer } from '@/components/layout/footer';
 import OrdersPanel from "@/components/orders/orders-panel";
 
 function OrdersPanelFallback() {
@@ -51,6 +52,7 @@ export default function OrdersPage() {
             <Suspense fallback={<OrdersPanelFallback />}>
                 <OrdersPanel />
             </Suspense>
+            <Footer />
         </div>
     );
 } 

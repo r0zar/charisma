@@ -38,19 +38,19 @@ export default async function SwapHomePage() {
             {/* Glass morphism badge */}
             <div className="inline-flex items-center justify-center px-4 py-2 mb-8 text-sm rounded-full bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm text-white/70 gap-x-2 transition-all duration-200 hover:bg-white/[0.05] hover:border-white/[0.12] hover:text-white/90">
               <Coins className="h-3.5 w-3.5 text-orange-400" />
-              <span>Fast and secure token swaps</span>
+              <span>Open source · Built on Stacks</span>
             </div>
 
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mb-6 text-white/95">
-              Swap tokens with
+              The open exchange for
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-orange-500/80 ml-2 inline-block">
-                confidence
+                Stacks
               </span>
             </h1>
 
             <p className="text-lg md:text-xl text-white/70 leading-relaxed mb-8 max-w-2xl mx-auto">
-              Exchange tokens on Stacks with competitive rates and minimal fees.
-              Just connect your wallet and start trading.
+              Open-source pools and routing that belong to no one and work for everyone.
+              Swap from your wallet, or off chain in an instant.
             </p>
 
             {/* Enhanced Buy CHARISMA Button and Price Quote */}
@@ -95,10 +95,10 @@ export default async function SwapHomePage() {
           {/* Section header with glass morphism */}
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-4 text-white/95">
-              Why use our exchange?
+              How it works
             </h2>
             <p className="text-white/70 max-w-2xl mx-auto text-lg">
-              We provide a seamless trading experience with advanced features and security
+              Open contracts, open standards, and no one taking a cut
             </p>
           </div>
 
@@ -108,9 +108,9 @@ export default async function SwapHomePage() {
               <div className="h-12 w-12 rounded-xl bg-green-500/20 border border-green-500/30 flex items-center justify-center mb-5 group-hover:bg-green-500/30 transition-all duration-200">
                 <Coins className="h-6 w-6 text-green-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-white/90 group-hover:text-white/95 transition-all duration-200">Best Exchange Rates</h3>
+              <h3 className="text-xl font-semibold mb-3 text-white/90 group-hover:text-white/95 transition-all duration-200">Best price, every swap</h3>
               <p className="text-white/60 group-hover:text-white/70 transition-all duration-200 leading-relaxed">
-                Get competitive rates with our optimized routing algorithm that finds the best prices across liquidity pools.
+                The router checks every pool and path, and takes the one that gives you the most.
               </p>
               <Proof>{usd(stats.tvlUsd)} across Charisma pools</Proof>
             </div>
@@ -120,9 +120,9 @@ export default async function SwapHomePage() {
               <div className="h-12 w-12 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center mb-5 group-hover:bg-blue-500/30 transition-all duration-200">
                 <Shield className="h-6 w-6 text-blue-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-white/90 group-hover:text-white/95 transition-all duration-200">Secure Transactions</h3>
+              <h3 className="text-xl font-semibold mb-3 text-white/90 group-hover:text-white/95 transition-all duration-200">Isolated pools</h3>
               <p className="text-white/60 group-hover:text-white/70 transition-all duration-200 leading-relaxed">
-                Each vault is an <span className="text-white/80 font-medium">isolated Clarity contract</span>. A flaw in one pool can't affect funds from another.
+                Each pool is its own <span className="text-white/80 font-medium">open-source Clarity contract</span>. A flaw in one can't touch funds in another.
               </p>
             </div>
 
@@ -131,9 +131,9 @@ export default async function SwapHomePage() {
               <div className="h-12 w-12 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center mb-5 group-hover:bg-purple-500/30 transition-all duration-200">
                 <Activity className="h-6 w-6 text-purple-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-white/90 group-hover:text-white/95 transition-all duration-200">Advanced Order Types</h3>
+              <h3 className="text-xl font-semibold mb-3 text-white/90 group-hover:text-white/95 transition-all duration-200">Orders that run for you</h3>
               <p className="text-white/60 group-hover:text-white/70 transition-all duration-200 leading-relaxed">
-                Execute sophisticated trading strategies with <span className="text-white/80 font-medium">limit orders</span>, DCA, and sandwich trades for maximum control over your positions.
+                <span className="text-white/80 font-medium">Limit orders</span>, DCA, In &amp; Out and range swaps. Sign once, and they carry out on their own, even while you&apos;re away.
               </p>
             </div>
 
@@ -142,9 +142,9 @@ export default async function SwapHomePage() {
               <div className="h-12 w-12 rounded-xl bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center mb-5 group-hover:bg-yellow-500/30 transition-all duration-200">
                 <Layers className="h-6 w-6 text-yellow-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-white/90 group-hover:text-white/95 transition-all duration-200">Unified LP Interface</h3>
+              <h3 className="text-xl font-semibold mb-3 text-white/90 group-hover:text-white/95 transition-all duration-200">Open pool standard</h3>
               <p className="text-white/60 group-hover:text-white/70 transition-all duration-200 leading-relaxed">
-                Every pool follows the open <span className="text-white/80 font-medium">Liquidity-Pool SIP</span>, so new AMMs are supported automatically — no custom adapters.
+                Every pool follows the open <span className="text-white/80 font-medium">Liquidity-Pool SIP</span>, so any AMM that implements it can plug in, no custom code needed.
               </p>
             </div>
 
@@ -153,9 +153,9 @@ export default async function SwapHomePage() {
               <div className="h-12 w-12 rounded-xl bg-orange-500/20 border border-orange-500/30 flex items-center justify-center mb-5 group-hover:bg-orange-500/30 transition-all duration-200">
                 <RefreshCw className="h-6 w-6 text-orange-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-white/90 group-hover:text-white/95 transition-all duration-200">Best-Path Routing</h3>
+              <h3 className="text-xl font-semibold mb-3 text-white/90 group-hover:text-white/95 transition-all duration-200">Multi-hop routing</h3>
               <p className="text-white/60 group-hover:text-white/70 transition-all duration-200 leading-relaxed">
-                Our router simulates up to 9-hop paths across all pools to secure the best possible output for your swap.
+                A single swap can route through up to 9 pools to reach the best output.
               </p>
               <Proof>{count(stats.trades)} trades routed</Proof>
             </div>
@@ -165,9 +165,9 @@ export default async function SwapHomePage() {
               <div className="h-12 w-12 rounded-xl bg-red-500/20 border border-red-500/30 flex items-center justify-center mb-5 group-hover:bg-red-500/30 transition-all duration-200">
                 <Sparkles className="h-6 w-6 text-red-400" />
               </div>
-              <h3 className="text-xl font-semibold mb-3 text-white/90 group-hover:text-white/95 transition-all duration-200">Zero Protocol Fees</h3>
+              <h3 className="text-xl font-semibold mb-3 text-white/90 group-hover:text-white/95 transition-all duration-200">Zero protocol fees</h3>
               <p className="text-white/60 group-hover:text-white/70 transition-all duration-200 leading-relaxed">
-                All trading fees go back to the community, so you can swap with confidence knowing that you're supporting the network.
+                No cut is taken. Swap fees stay in the pools, with the people who provide their liquidity.
               </p>
             </div>
           </div>
@@ -185,7 +185,7 @@ export default async function SwapHomePage() {
           <div className="mx-auto max-w-3xl bg-white/[0.02] border border-white/[0.06] rounded-2xl p-8 md:p-12 backdrop-blur-sm">
             <div className="text-center">
               <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-6 text-white/95">
-                Ready to start trading?
+                Start swapping
               </h2>
               <p className="text-lg text-white/70 mb-8 max-w-2xl mx-auto leading-relaxed">
                 Join {count(stats.traders)} traders swapping on Charisma.
@@ -203,15 +203,15 @@ export default async function SwapHomePage() {
               <div className="flex items-center justify-center gap-6 mt-8 text-sm text-white/50">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-400/50" />
-                  <span>Secure</span>
+                  <span>Open source</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-blue-400/50" />
-                  <span>Fast</span>
+                  <span>Non-custodial</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-purple-400/50" />
-                  <span>No fees</span>
+                  <span>No protocol fees</span>
                 </div>
               </div>
             </div>
