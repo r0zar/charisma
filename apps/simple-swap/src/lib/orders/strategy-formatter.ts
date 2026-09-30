@@ -257,7 +257,7 @@ function generateStrategyDescription(
         case 'zesty':
             return `Zesty trade · ZEST goes ${orders[0]?.metadata?.zesty?.side === 'down' ? 'down' : 'up'}`;
         case 'target':
-            return orders.length > 1 ? 'Target & safety net' : 'Target';
+            return orders.length > 1 ? 'Take profit + safety net' : 'Take profit';
         default:
             return `${orderCount} related orders`;
     }

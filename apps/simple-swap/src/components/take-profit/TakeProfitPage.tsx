@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import TokenDropdown from '@/components/TokenDropdown';
 import SubnetPairSelector from '@/components/range/SubnetPairSelector';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { usePrices } from '@/contexts/token-price-context';
@@ -17,6 +16,14 @@ import { listTokens } from '@/app/actions';
 const ConditionTokenChart = dynamic(() => import('@/components/condition-token-chart'), { ssr: false });
 
 const TARGETS = [0.1, 0.15, 0.25];
+
+/** Where profit is taken: steady tokens only */
+const TAKE_PROFIT_TOKENS = [
+    'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token', // sBTC
+    '.stx', // STX
+    'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1', // USDh
+    'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.susdh-token-v1', // sUSDh
+];
 const SAFETY = 0.1;
 const SHARES = [0.25, 0.5, 1];
 
@@ -36,11 +43,11 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 }
 
 /**
- * Target & Safety Net: hold any subnet token, and swap it into any token when it rises X% against it
- * (target) or falls Y% (safety net). Zesty's trade, for every pair. Two signed orders; when one runs,
- * the executor cancels the other.
+ * Take Profit: hold any subnet token, and cash it out into a steady token (sBTC, STX, USDh or sUSDh) when it
+ * rises X% against it, with an optional safety net if it falls. Two signed orders; when one runs, the
+ * executor cancels the other.
  */
-export default function TargetPage() {
+export default function TakeProfitPage() {
     const { address } = useWallet();
     const { getPrice } = usePrices();
     const { getSubnetContractId } = useSubnetTokens();
@@ -79,7 +86,10 @@ export default function TargetPage() {
     const targetRatio = ratio ? ratio * (1 + targetPct) : null;
     const safetyRatio = ratio && safetyOn ? ratio * (1 - SAFETY) : null;
 
-    const toTokens = (swappable ?? []).filter(t => t.type !== 'SUBNET' && t.contractId !== from?.contractId);
+    // The take-profit tokens the router can actually swap into, in the order above
+    const toTokens = TAKE_PROFIT_TOKENS
+        .map(id => (swappable ?? []).find(t => t.contractId === id))
+        .filter((t): t is TokenCacheData => !!t && t.contractId !== from?.contractId);
     const missingPrice = from && decimals === undefined
         ? `${from.symbol} has no decimals in the token list, so amounts can't be read safely`
         : from && to && !ratio
@@ -106,9 +116,9 @@ export default function TargetPage() {
     return (
         <div className="container max-w-7xl mx-auto px-4 py-6 space-y-6">
             <div className="space-y-1">
-                <h1 className="text-2xl font-semibold text-white/95">Target &amp; Safety Net</h1>
+                <h1 className="text-2xl font-semibold text-white/95">Take Profit</h1>
                 <p className="text-sm text-white/60">
-                    Hold any subnet token. Swap it into another token when it rises to your target, or when it falls to your safety net. Whichever happens first runs, and the other is cancelled.
+                    Holding a token on the subnet? Cash it out into sBTC, STX or a stablecoin once it&apos;s up. Add a safety net to get out if it drops instead. Whichever happens first runs, and the other is cancelled.
                 </p>
             </div>
 
@@ -137,7 +147,7 @@ export default function TargetPage() {
                 <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-5">
                     {phase === 'done' ? (
                         <div className="space-y-4">
-                            <div className="text-lg font-medium text-white/95">Trade set ✓</div>
+                            <div className="text-lg font-medium text-white/95">Take profit set ✓</div>
                             <p className="text-sm text-white/60">
                                 When {from?.symbol} reaches {targetRatio && fmt(targetRatio)} {to?.symbol}
                                 {safetyRatio ? ` or drops to ${fmt(safetyRatio)} ${to?.symbol}` : ''}, it swaps into {to?.symbol}. You can close this page.
@@ -151,7 +161,7 @@ export default function TargetPage() {
                         <>
                             <div className="space-y-2">
                                 <div className="text-xs text-white/60">You hold (on the subnet)</div>
-                                <SubnetPairSelector label="Pick a token" selected={from} onSelect={t => { setFrom(t); if (to?.contractId === t.contractId) setTo(null); }} />
+                                <SubnetPairSelector label="Pick a token" selected={from} exclude={to?.contractId} onSelect={t => { setFrom(t); if (to?.contractId === t.contractId) setTo(null); }} />
                                 {from && decimals !== undefined && (
                                     <div className="flex justify-between text-xs text-white/60">
                                         <span>Available</span>
@@ -161,12 +171,26 @@ export default function TargetPage() {
                             </div>
 
                             <div className="space-y-2">
-                                <div className="text-xs text-white/60">Swap into</div>
+                                <div className="text-xs text-white/60">Take profit in</div>
                                 {listError
                                     ? <p role="alert" className="text-sm text-red-400">Couldn&apos;t load swappable tokens: {listError}</p>
                                     : swappable
-                                        ? <TokenDropdown tokens={toTokens} selected={to} onSelect={setTo} label="Pick a token" />
-                                        : <div className="text-sm text-white/50">Loading swappable tokens…</div>}
+                                        ? (
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {toTokens.map(t => (
+                                                    <Chip key={t.contractId} active={to?.contractId === t.contractId} onClick={() => setTo(t)}>
+                                                        <span className="flex flex-col items-center gap-1">
+                                                            {t.image && (
+                                                                // eslint-disable-next-line @next/next/no-img-element
+                                                                <img src={t.image} alt="" width={20} height={20} className="rounded-full" />
+                                                            )}
+                                                            {t.symbol}
+                                                        </span>
+                                                    </Chip>
+                                                ))}
+                                            </div>
+                                        )
+                                        : <div className="text-sm text-white/50">Loading…</div>}
                             </div>
 
                             <div className="space-y-2">
@@ -188,7 +212,7 @@ export default function TargetPage() {
 
                             <div className="space-y-2">
                                 <div className="flex justify-between text-xs text-white/60">
-                                    <span>🎯 Target: swap when it rises {!TARGETS.includes(targetPct) && `(+${(targetPct * 100).toFixed(1)}%)`}</span>
+                                    <span>🎯 Take profit when it rises {!TARGETS.includes(targetPct) && `(+${(targetPct * 100).toFixed(1)}%)`}</span>
                                     {targetRatio && to && <span className="font-mono">{fmt(targetRatio)} {to.symbol}</span>}
                                 </div>
                                 <div className="flex gap-2">

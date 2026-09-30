@@ -19,7 +19,7 @@ const navigationLinks = [
 
 const advancedLinks = [
     { href: "/advanced/range", label: "Range Swaps", hint: "Sell high, buy back low, on a schedule", icon: MoveVertical },
-    { href: "/advanced/target", label: "Target & Safety Net", hint: "Swap at your target, or bail at your safety net", icon: Crosshair },
+    { href: "/advanced/take-profit", label: "Take Profit", hint: "Cash out into sBTC, STX or a stablecoin when it's up", icon: Crosshair },
 ];
 
 export function Header() {
