@@ -5,6 +5,7 @@
 import { Cl, Pc, broadcastTransaction, makeContractCall, makeSTXTokenTransfer } from "@stacks/transactions"
 import { getTokenMetadataStrict, lakehouseClient, listTokens } from "@repo/tokens"
 import * as wallet from "./wallet"
+import { hiroClient, hiroFetch } from "./hiro"
 
 const HIRO = "https://api.hiro.so"
 export const STX_ID = ".stx"
@@ -42,7 +43,7 @@ async function tokenMeta(contractId: string): Promise<TokenBalance["meta"]> {
 /** STX first, then every token with a balance */
 export async function getWalletBalances(): Promise<TokenBalance[]> {
   const { stxAddress } = await activeAccount()
-  const res = await fetch(`${HIRO}/extended/v1/address/${stxAddress}/balances`)
+  const res = await hiroFetch(`${HIRO}/extended/v1/address/${stxAddress}/balances`)
   if (!res.ok) throw new Error(`Could not load balances (Hiro ${res.status})`)
   const data = await res.json() as {
     stx: { balance: string; locked: string }
@@ -77,7 +78,7 @@ export async function sendToken(request: { contractId: string; asset: string; re
   const amount = BigInt(request.amount)
   if (amount <= 0n) throw new Error("Amount must be more than zero")
 
-  const common = { senderKey: account.privateKey, network: "mainnet" as const }
+  const common = { senderKey: account.privateKey, network: "mainnet" as const, client: hiroClient }
   const transaction = request.contractId === STX_ID
     ? await makeSTXTokenTransfer({ ...common, recipient: request.recipient, amount, memo: request.memo ?? "" })
     : await makeContractCall({
@@ -95,7 +96,7 @@ export async function sendToken(request: { contractId: string; asset: string; re
         postConditionMode: "deny"
       })
 
-  const result = await broadcastTransaction({ transaction, network: "mainnet" })
+  const result = await broadcastTransaction({ transaction, network: "mainnet", client: hiroClient })
   if ("error" in result) throw new Error(`The network rejected the transfer: ${result.reason ?? result.error}`)
   return { txid: result.txid }
 }

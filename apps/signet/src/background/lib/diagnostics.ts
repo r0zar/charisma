@@ -5,6 +5,7 @@
 import { listTokens } from "@repo/tokens"
 import { Cl, cvToValue, fetchCallReadOnlyFunction } from "@stacks/transactions"
 import * as wallet from "./wallet"
+import { hiroClient, hiroFetch } from "./hiro"
 
 const HIRO = "https://api.hiro.so"
 
@@ -29,6 +30,15 @@ export interface Diagnostics {
   account: { address: string; lockExpiresAt: number | null }
 }
 
+/** Map over items a few at a time, so a burst of reads doesn't trip Hiro's rate limit */
+async function inBatches<T, R>(items: T[], size: number, work: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = []
+  for (let i = 0; i < items.length; i += size) {
+    results.push(...await Promise.all(items.slice(i, i + size).map(work)))
+  }
+  return results
+}
+
 async function timed<T>(work: () => Promise<T>): Promise<{ value: T; latencyMs: number }> {
   const start = performance.now()
   const value = await work()
@@ -48,7 +58,7 @@ async function subnetBalance(contractId: string, address: string): Promise<strin
   const [contractAddress, contractName] = contractId.split(".")
   const result = await fetchCallReadOnlyFunction({
     contractAddress, contractName, functionName: "get-balance",
-    functionArgs: [Cl.principal(address)], senderAddress: address, network: "mainnet"
+    functionArgs: [Cl.principal(address)], senderAddress: address, network: "mainnet", client: hiroClient
   })
   const value = cvToValue(result)
   // get-balance returns a uint, or (ok uint) on some subnets
@@ -62,7 +72,7 @@ export async function getDiagnostics(): Promise<Diagnostics> {
 
   const [network, cache] = await Promise.all([
     timed(async () => {
-      const res = await fetch(`${HIRO}/v2/info`)
+      const res = await hiroFetch(`${HIRO}/v2/info`)
       if (!res.ok) throw new Error(`Stacks network unavailable (Hiro ${res.status})`)
       return (await res.json()) as { stacks_tip_height: number }
     }),
@@ -72,7 +82,7 @@ export async function getDiagnostics(): Promise<Diagnostics> {
   if (cache.value.length === 0) throw new Error("Charisma's token cache returned no tokens")
 
   const subnetTokens = cache.value.filter(token => token.type === "SUBNET")
-  const subnets = await Promise.all(subnetTokens.map(async (token): Promise<SubnetDiagnostic> => {
+  const subnets = await inBatches(subnetTokens, 4, async (token): Promise<SubnetDiagnostic> => {
     const base = (token as { base?: string | null }).base ?? null
     const entry = { contractId: token.contractId, symbol: token.symbol, decimals: token.decimals, base, issues: issuesOf({ ...token, base }) }
     try {
@@ -80,7 +90,7 @@ export async function getDiagnostics(): Promise<Diagnostics> {
     } catch (error) {
       return { ...entry, balance: null, error: (error as Error).message }
     }
-  }))
+  })
 
   return {
     checkedAt: Date.now(),

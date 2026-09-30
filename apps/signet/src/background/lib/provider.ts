@@ -16,6 +16,7 @@ import {
   signStructuredData
 } from "@stacks/transactions"
 import * as wallet from "./wallet"
+import { hiroClient } from "./hiro"
 
 /** JSON-RPC error codes used by @stacks/connect */
 const MethodNotFound = -32601
@@ -128,6 +129,7 @@ async function handleRpc(message: { id: string; method: string; params?: unknown
     const common = {
       senderKey: account.privateKey,
       network: "mainnet" as const,
+      client: hiroClient,
       ...(params.fee !== undefined && { fee: BigInt(params.fee) }),
       ...(params.nonce !== undefined && { nonce: BigInt(params.nonce) })
     }
@@ -143,7 +145,7 @@ async function handleRpc(message: { id: string; method: string; params?: unknown
           postConditions: tx.postConditions as never,
           postConditionMode: tx.postConditionMode
         })
-    const result = await broadcastTransaction({ transaction, network: "mainnet" })
+    const result = await broadcastTransaction({ transaction, network: "mainnet", client: hiroClient })
     if ("error" in result) return fail(InternalError, `The network rejected the transaction: ${result.reason ?? result.error}`)
     return reply({ txid: result.txid, transaction: transaction.serialize() })
   }

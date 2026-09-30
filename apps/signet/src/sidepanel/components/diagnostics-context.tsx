@@ -1,11 +1,12 @@
 /**
- * Real Diagnostics data for the hologram, loaded from the background and refreshed every minute (about 20 Hiro reads each).
+ * Real Diagnostics data for the header, footer and hologram, loaded from the background. Each check is about
+ * 20 Hiro reads, so it refreshes every 5 minutes and only while the side panel is visible (Hiro rate-limits).
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { sendMessage } from "~shared/context/utils"
 import type { Diagnostics } from "~background/lib/diagnostics"
 
-const REFRESH_MS = 60_000
+const REFRESH_MS = 5 * 60_000
 
 interface DiagnosticsState {
   diag: Diagnostics | null
@@ -31,7 +32,7 @@ export function DiagnosticsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     refresh()
-    const timer = setInterval(refresh, REFRESH_MS)
+    const timer = setInterval(() => { if (document.visibilityState === 'visible') refresh() }, REFRESH_MS)
     return () => clearInterval(timer)
   }, [])
 
