@@ -120,8 +120,8 @@ async function fetchPage(router: string, offset: number, retries = 4): Promise<H
     signal: AbortSignal.timeout(20000),
     cache: 'no-store',
   });
-  // Rate limited: wait as long as Hiro asks, then try again
-  if (res.status === 429 && retries > 0) {
+  // Rate limited or briefly down: wait (as long as Hiro asks, when it says), then try again
+  if ((res.status === 429 || res.status >= 500) && retries > 0) {
     await new Promise(resolve => setTimeout(resolve, Number(res.headers.get('retry-after') ?? 10) * 1000));
     return fetchPage(router, offset, retries - 1);
   }

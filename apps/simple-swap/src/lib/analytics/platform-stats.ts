@@ -202,4 +202,4 @@ async function computePlatformStats(): Promise<PlatformStats> {
 }
 
 /** Platform totals, recomputed at most every 15 minutes (the page and its share image read the same numbers) */
-export const getPlatformStats = unstable_cache(computePlatformStats, ['platform-stats-v3'], { revalidate: 900 });
+export const getPlatformStats = unstable_cache(computePlatformStats, ['platform-stats-v4'], { revalidate: 900 });
