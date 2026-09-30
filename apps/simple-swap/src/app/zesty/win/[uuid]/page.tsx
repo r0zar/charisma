@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!win) return {};
   const title = `I called it: ZEST went ${win.side}, +${win.pct.toFixed(1)}% on Zesty`;
   const description = 'Think ZEST goes up or down? Pick a side, pick how much, walk away. Zesty sells for you, even while you sleep.';
-  return { title, description, openGraph: { title, description }, twitter: { card: 'summary_large_image', title, description } };
+  return { title, description, openGraph: { title, description, siteName: 'Zesty', type: 'website', url: `https://zesty.charisma.rocks/win/${(await params).uuid}` }, twitter: { card: 'summary_large_image', title, description } };
 }
 
 /** Where a shared win lands: the result, then one button to try it. */

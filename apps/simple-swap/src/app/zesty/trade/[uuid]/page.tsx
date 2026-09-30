@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!trade) return {};
   const title = headline(trade.side);
   const description = `Entry ${formatSats(trade.entrySats)}, target ${formatSats(trade.targetSats)}. Pick a side, walk away. Zesty trades it for you.`;
-  return { title, description, openGraph: { title, description }, twitter: { card: 'summary_large_image', title, description } };
+  return { title, description, openGraph: { title, description, siteName: 'Zesty', type: 'website', url: `https://zesty.charisma.rocks/trade/${(await params).uuid}` }, twitter: { card: 'summary_large_image', title, description } };
 }
 
 /** Where a shared trade lands: the call, then one button to make your own. */
