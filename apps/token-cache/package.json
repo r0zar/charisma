@@ -15,7 +15,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "blocklist": "node scripts/blocklist.mjs"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.3",

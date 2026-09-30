@@ -13,21 +13,24 @@ const corsHeaders = {
 };
 
 /**
- * GET handler for fetching all blacklisted tokens
- * **Only works in development mode.**
+ * Changing the block list needs the admin key (Authorization: Bearer <TOKEN_CACHE_ADMIN_KEY>);
+ * local development is allowed without it.
  */
-export async function GET(req: NextRequest) {
-    // Strict check for development environment
-    if (process.env.NODE_ENV !== 'development') {
-        return NextResponse.json(
-            {
-                success: false,
-                error: 'This endpoint is only available in development mode.'
-            },
-            { status: 403, headers: corsHeaders }
-        );
-    }
+function isAdmin(req: NextRequest): boolean {
+    if (process.env.NODE_ENV === 'development') return true;
+    const key = process.env.TOKEN_CACHE_ADMIN_KEY;
+    return !!key && req.headers.get('authorization') === `Bearer ${key}`;
+}
 
+const forbidden = () => NextResponse.json(
+    { success: false, error: 'Admin key required (Authorization: Bearer <TOKEN_CACHE_ADMIN_KEY>)' },
+    { status: 403, headers: corsHeaders }
+);
+
+/**
+ * GET handler for fetching all blacklisted tokens. Public: wallets and apps use it to hide scam tokens.
+ */
+export async function GET() {
     try {
         const blacklistedTokens = await getBlacklistedTokenIds();
 
@@ -53,20 +56,10 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * POST handler for adding a token to the blacklist
- * **Only works in development mode.**
+ * POST handler for adding a token to the blacklist (admin key required)
  */
 export async function POST(req: NextRequest) {
-    // Strict check for development environment
-    if (process.env.NODE_ENV !== 'development') {
-        return NextResponse.json(
-            {
-                success: false,
-                error: 'This endpoint is only available in development mode.'
-            },
-            { status: 403, headers: corsHeaders }
-        );
-    }
+    if (!isAdmin(req)) return forbidden();
 
     try {
         const body = await req.json();
@@ -101,20 +94,10 @@ export async function POST(req: NextRequest) {
 }
 
 /**
- * DELETE handler for removing a token from the blacklist
- * **Only works in development mode.**
+ * DELETE handler for removing a token from the blacklist (admin key required)
  */
 export async function DELETE(req: NextRequest) {
-    // Strict check for development environment
-    if (process.env.NODE_ENV !== 'development') {
-        return NextResponse.json(
-            {
-                success: false,
-                error: 'This endpoint is only available in development mode.'
-            },
-            { status: 403, headers: corsHeaders }
-        );
-    }
+    if (!isAdmin(req)) return forbidden();
 
     try {
         const { searchParams } = new URL(req.url);
