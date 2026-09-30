@@ -3,7 +3,8 @@
 import React from "react";
 import Link from "next/link";
 import { WalletButton } from "../wallet-button";
-import { BarChart3, ChevronDown, Coins, Crosshair, Menu, MoveVertical, Repeat, Settings, Shield } from "lucide-react";
+import { BarChart3, ChevronDown, Coins, Menu, Settings, Shield } from "lucide-react";
+import { advancedLinks } from "./nav-links";
 import { useWallet } from "@/contexts/wallet-context";
 import { Drawer } from "vaul";
 import { Button } from "@/components/ui/button";
@@ -15,12 +16,6 @@ const navigationLinks = [
     { href: "/swap", label: "Swap" },
     { href: "/orders", label: "Orders" },
     // { href: "/tokens", label: "Tokens" },
-];
-
-const advancedLinks = [
-    { href: "/advanced/range", label: "Range Swaps", hint: "Sell high, buy back low, on a schedule", icon: MoveVertical },
-    { href: "/advanced/in-and-out", label: "In & Out", hint: "Buy a token now, sell it at a profit later", icon: Crosshair },
-    { href: "/advanced/dca", label: "DCA", hint: "Buy a little at a time, on a schedule", icon: Repeat },
 ];
 
 export function Header() {
