@@ -5,7 +5,7 @@ import { BigButton, Card, ErrorNote, SatsPrice, TokenIcon } from '../ui';
 import { exitSats, type Holdings } from '@/lib/zesty/plan';
 import type { ZestyTrade } from '../use-zesty-trade';
 import { LiveProfit } from './Profit';
-import { SHARE_TEXT, ShareLink } from '../Share';
+import { SHARE_TEXT, ShareLink, tradeUrl } from '../Share';
 
 export function Watch({ trade, zestSats, holdings, busy, error, onSellNow, onCancel }: {
   trade: ZestyTrade;
@@ -61,7 +61,7 @@ export function Watch({ trade, zestSats, holdings, busy, error, onSellNow, onCan
         </div>
       </Card>
       {error && <ErrorNote message={error} />}
-      <ShareLink text={SHARE_TEXT.live(trade.side)} label="Share my trade on X ↗" className="self-center" />
+      <ShareLink text={SHARE_TEXT.live(trade.side)} url={trade.target ? tradeUrl(trade.target.uuid) : undefined} label="Share my trade on X ↗" className="self-center" />
       <div className="mt-auto flex gap-3">
         <BigButton variant="outline" onClick={onSellNow} disabled={busy || trade.state !== 'waiting'}>{up ? 'Sell now' : 'Buy now'}</BigButton>
         <BigButton variant="quiet" onClick={onCancel} disabled={busy}>Cancel</BigButton>

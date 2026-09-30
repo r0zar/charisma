@@ -9,7 +9,7 @@ import { BigButton, Card, ErrorNote, SatsPrice, StepTitle } from '../ui';
 import { formatAmount, formatUsd } from '../use-zesty-money';
 import type { ZestyTrade } from '../use-zesty-trade';
 import { LiveProfit, ProfitBanner } from './Profit';
-import { SHARE_TEXT, ShareLink, shareWin } from '../Share';
+import { SHARE_TEXT, ShareLink, tradeUrl, shareWin } from '../Share';
 
 const STATE_LABEL: Record<ZestyTrade['state'], string> = {
   converting: 'Starting',
@@ -71,7 +71,7 @@ function FillDetails({ trade, order, holdings }: { trade: ZestyTrade; order: Lim
       </dl>
       {trade.state === 'won' && gain
         ? <BigButton onClick={() => shareWin(order).catch(err => setError((err as Error).message))}>Share my win 🏆</BigButton>
-        : <ShareLink text={SHARE_TEXT.finished} className="self-start" />}
+        : <ShareLink text={SHARE_TEXT.finished} url={trade.target ? tradeUrl(trade.target.uuid) : undefined} className="self-start" />}
       {explorer}
     </>
   );
@@ -112,7 +112,7 @@ function TradeRow({ trade, holdings, onChange }: { trade: ZestyTrade; holdings: 
         <span className="text-right">{up ? 'Sell at' : 'Buy at'}<br /><strong className="font-medium text-black"><SatsPrice sats={exitSats(trade.target?.targetPrice ?? '0')} /></strong></span>
       </div>
       )}
-      {live && <ShareLink text={SHARE_TEXT.live(trade.side)} label="Share this trade on X ↗" className="self-start" />}
+      {live && <ShareLink text={SHARE_TEXT.live(trade.side)} url={trade.target ? tradeUrl(trade.target.uuid) : undefined} label="Share this trade on X ↗" className="self-start" />}
       {live && (
         <div className="flex gap-3">
           {trade.state === 'waiting' && trade.target && (

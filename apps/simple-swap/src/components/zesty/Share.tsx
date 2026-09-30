@@ -37,15 +37,18 @@ export async function shareWin(order: LimitOrder) {
   else window.location.href = intent;
 }
 
+/** A trade's own page (with its preview card), by its target order id */
+export const tradeUrl = (targetUuid: string) => `${ZESTY_URL}/trade/${targetUuid}`;
+
 /** A full-width share button */
 export function ShareButton({ text, label = 'Share on X', variant = 'outline' }: { text: string; label?: string; variant?: 'primary' | 'outline' | 'quiet' }) {
   return <BigButton variant={variant} onClick={() => shareOnX(text)}>{label}</BigButton>;
 }
 
 /** A small inline share link, for tight spots */
-export function ShareLink({ text, label = 'Share on X ↗', className = '' }: { text: string; label?: string; className?: string }) {
+export function ShareLink({ text, url, label = 'Share on X ↗', className = '' }: { text: string; url?: string; label?: string; className?: string }) {
   return (
-    <button type="button" onClick={() => shareOnX(text)} className={`min-h-[44px] text-[14px] text-[#B8410F] underline underline-offset-4 hover:text-black ${className}`}>
+    <button type="button" onClick={() => shareOnX(text, url)} className={`min-h-[44px] text-[14px] text-[#B8410F] underline underline-offset-4 hover:text-black ${className}`}>
       {label}
     </button>
   );
