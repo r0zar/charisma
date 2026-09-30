@@ -58,7 +58,7 @@ export function Header() {
                             </Link>
                         ))}
                         <DropdownMenu>
-                            <DropdownMenuTrigger aria-haspopup="menu" className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.05] rounded-xl transition-all duration-200">
+                            <DropdownMenuTrigger aria-haspopup="menu" className="flex cursor-pointer items-center gap-1 px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.05] rounded-xl transition-all duration-200">
                                 Advanced <ChevronDown className="h-3.5 w-3.5" />
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
