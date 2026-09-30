@@ -14,7 +14,7 @@ export const config: PlasmoCSConfig = {
 }
 
 const ICON = `data:image/svg+xml;base64,${btoa(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="#010409"/><path d="M64 16 106 40v48L64 112 22 88V40z" fill="none" stroke="#7DF9FF" stroke-width="6"/><text x="64" y="82" text-anchor="middle" font-family="monospace" font-size="52" font-weight="bold" fill="#7DF9FF">S</text></svg>'
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="#010409"/><path d="M64 16 106 40v48L64 112 22 88V40z" fill="none" stroke="#7DF9FF" stroke-width="6" stroke-linejoin="round"/><path d="M64 36c3 10 14 15 14 30 0 9-6 16-14 16s-14-7-14-16c0-6 3-10 6-13 0 6 2 9 5 10-1-11 3-20 3-27z" fill="#7DF9FF"/><path d="M64 60c2 6 7 8 7 14 0 4-3 7-7 7s-7-3-7-7c0-3 1-5 3-6 0 3 1 4 2 4 0-5 2-8 2-12z" fill="#010409"/></svg>'
 )}`
 
 const provider = {
@@ -43,5 +43,5 @@ declare global {
 window.SignetProvider = provider
 window.wbip_providers = [
   ...(window.wbip_providers ?? []),
-  { id: "SignetProvider", name: "Signet", icon: ICON, webUrl: "https://github.com/r0zar/signet" }
+  { id: "SignetProvider", name: "Blaze Wallet", icon: ICON, webUrl: "https://charisma.rocks" }
 ]

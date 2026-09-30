@@ -1,8 +1,8 @@
 {
   "name": "signet-signer",
-  "displayName": "Signet Signer",
+  "displayName": "Blaze Wallet",
   "version": "0.1.1",
-  "description": "A secure wallet for connecting to decentralized applications and signing blockchain transactions",
+  "description": "The Blaze wallet for Stacks: connect to any Stacks app, sign and send, with Blaze subnets built in.",
   "author": "Charisma Labs",
   "scripts": {
     "build": "plasmo build",
@@ -40,8 +40,8 @@
     "typescript": "5.3.3"
   },
   "manifest": {
-    "name": "Signet Signer",
-    "description": "A secure wallet for connecting to decentralized applications and signing blockchain transactions",
+    "name": "Blaze Wallet",
+    "description": "The Blaze wallet for Stacks: connect to any Stacks app, sign and send, with Blaze subnets built in.",
     "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnSZTHNAdsOJq1A3Ii/DOZ+Y7xb9KI2Qz1JxNRQty6cLIXA4sm+OwD/tiPgvHJI5zdGXcR+hz9ChnWJLfCp3ju+lRFEJ0Y1cqbVRVN/m7rhp9x/IAFf37uIF2nnb5W3aBeYJzW0r3Kf8SUWvnUvfqYc5mbO1UXi6znHxFmiwekDoXlozDKzT/MSKxTHd1D9yBV0Ht5BCUSNmBPvrZRlbWkotC8rnlbpcWCpYUc7kTmllI9oNnNdgdLbZW3tXnB9KHZubyjK+FM+Ub6IWk0ewlZPHif3PwjSI9KZJWOgtRNSQJ6+JuMJOEGuqGVBQ1xd4Ljv34fC/EYcMeKVghD/5pZwIDAQAB",
     "permissions": [
       "storage",

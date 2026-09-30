@@ -186,7 +186,7 @@ export function StatusDisplay() {
   };
 
   // Display status text
-  const statusText = isLoading ? "SYNCING" : error ? "ERROR" : "SIGNET";
+  const statusText = isLoading ? "SYNCING" : error ? "ERROR" : "BLAZE";
 
   // Fixed border properties that don't animate
   const borderColor = error
@@ -265,7 +265,7 @@ export function StatusDisplay() {
           textShadow: '0 0 4px rgba(125, 249, 255, 0.2)',
           letterSpacing: '0.5px',
         }}>
-          SIGNET
+          BLAZE
         </span>
       </div>
 

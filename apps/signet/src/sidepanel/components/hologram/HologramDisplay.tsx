@@ -246,7 +246,7 @@ export function HologramDisplay() {
             ),
             // No pulse animation for stability
             display: 'inline-block'
-          }}>SIGNET</animated.span>
+          }}>BLAZE</animated.span>
           <span>v1.0</span>
         </div>
 

@@ -126,7 +126,7 @@ export function ConsoleView() {
 
   // Log lines from the latest real checks
   useEffect(() => {
-    const logs: string[] = ['SIGNET NETWORK MONITOR', ''];
+    const logs: string[] = ['BLAZE NETWORK MONITOR', ''];
 
     if (diag) {
       const held = diag.subnets.filter(subnet => subnet.balance && subnet.balance !== '0');

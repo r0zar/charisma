@@ -64,7 +64,7 @@ function cardFor(details: Details) {
 
 async function ask<T>(action: string, extra: object = {}): Promise<T> {
   const response = await chrome.runtime.sendMessage({ type: "signet-approval", action, requestId, ...extra })
-  if (!response || response.error) throw new Error(response?.error ?? "Signet did not answer")
+  if (!response || response.error) throw new Error(response?.error ?? "Blaze Wallet did not answer")
   return response.result
 }
 
@@ -122,7 +122,7 @@ export default function Approve() {
       .catch(err => setError(err.message))
 
   const card = details && cardFor(details)
-  const hold = !details?.unlocked ? "UNLOCK SIGNET FIRST" : !visible ? "CHECKING…" : undefined
+  const hold = !details?.unlocked ? "UNLOCK WALLET FIRST" : !visible ? "CHECKING…" : undefined
 
   return (
     <div ref={frame} style={{ position: "fixed", inset: 0, fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -146,12 +146,12 @@ export default function Approve() {
                 {card.content}
                 {!details.unlocked && (
                   <Note onClick={() => windowId !== undefined && chrome.sidePanel.open({ windowId })}>
-                    🔐 Signet is locked. Open Signet to unlock ›
+                    🔐 Blaze Wallet is locked. Open it to unlock ›
                   </Note>
                 )}
                 {stuck && !inWindow && (
                   <Note onClick={() => ask("window").catch(err => setError(err.message))}>
-                    Something is covering this card. Continue in a Signet window ›
+                    Something is covering this card. Continue in a Blaze Wallet window ›
                   </Note>
                 )}
                 {error && <div style={{ color: colors.neonRed, fontSize: "11px", marginTop: "8px" }}>{error}</div>}

@@ -58,7 +58,7 @@ async function subnetBalance(contractId: string, address: string): Promise<strin
 
 export async function getDiagnostics(): Promise<Diagnostics> {
   const account = await wallet.getCurrentAccount()
-  if (!account) throw new Error("Signet has no active account")
+  if (!account) throw new Error("Blaze Wallet has no active account")
 
   const [network, cache] = await Promise.all([
     timed(async () => {

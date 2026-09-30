@@ -58,8 +58,8 @@ interface TxParams {
 
 /** Read and check transaction params before asking the user; throws a descriptive error */
 function readTx(method: string, p: TxParams) {
-  if (p.network && p.network !== "mainnet") throw new Error("Signet only works on mainnet for now")
-  if (p.sponsored) throw new Error("Signet doesn't support sponsored transactions yet")
+  if (p.network && p.network !== "mainnet") throw new Error("Blaze Wallet only works on mainnet for now")
+  if (p.sponsored) throw new Error("Blaze Wallet doesn't support sponsored transactions yet")
   const postConditions = (p.postConditions ?? []).map(pc => {
     if (typeof pc !== "string") throw new Error("Post conditions must be hex-serialized")
     return deserializePostConditionWire(pc)
@@ -103,13 +103,13 @@ async function handleRpc(message: { id: string; method: string; params?: unknown
   const reply = (result: unknown) => ({ jsonrpc: "2.0", id: message.id, result })
   const fail = (code: number, text: string) => ({ jsonrpc: "2.0", id: message.id, error: { code, message: text } })
 
-  if (!sender.tab?.id || !sender.origin) return fail(InternalError, "Signet can only answer requests from a browser tab")
+  if (!sender.tab?.id || !sender.origin) return fail(InternalError, "Blaze Wallet can only answer requests from a browser tab")
   const request: ApprovalRequest = { origin: sender.origin, method: message.method, params: message.params }
 
   if (CONNECT_METHODS.includes(message.method)) {
     if (!(await askUser(request, sender))) return fail(UserRejection, "User rejected the connection")
     const account = await wallet.getCurrentAccount()
-    if (!account) return fail(InternalError, "Signet has no active account")
+    if (!account) return fail(InternalError, "Blaze Wallet has no active account")
     return reply({ addresses: [{ symbol: "STX", address: account.stxAddress, publicKey: account.publicKey }] })
   }
 
@@ -123,7 +123,7 @@ async function handleRpc(message: { id: string; method: string; params?: unknown
     }
     if (!(await askUser(request, sender))) return fail(UserRejection, "User rejected the transaction")
     const account = await wallet.getCurrentAccount()
-    if (!account) return fail(InternalError, "Signet has no active account")
+    if (!account) return fail(InternalError, "Blaze Wallet has no active account")
 
     const common = {
       senderKey: account.privateKey,
@@ -153,7 +153,7 @@ async function handleRpc(message: { id: string; method: string; params?: unknown
     if (typeof text !== "string") return fail(InvalidParams, "stx_signMessage needs a message string")
     if (!(await askUser(request, sender))) return fail(UserRejection, "User rejected the signature")
     const account = await wallet.getCurrentAccount()
-    if (!account) return fail(InternalError, "Signet has no active account")
+    if (!account) return fail(InternalError, "Blaze Wallet has no active account")
     // Stacks signed-message format (verifyMessageSignatureRsv checks it)
     const signature = signMessageHashRsv({ messageHash: toHex(hashMessage(text)), privateKey: account.privateKey })
     return reply({ signature, publicKey: account.publicKey })
@@ -173,13 +173,13 @@ async function handleRpc(message: { id: string; method: string; params?: unknown
     }
     if (!(await askUser(request, sender))) return fail(UserRejection, "User rejected the signature")
     const account = await wallet.getCurrentAccount()
-    if (!account) return fail(InternalError, "Signet has no active account")
+    if (!account) return fail(InternalError, "Blaze Wallet has no active account")
     // SIP-018 structured data, the format blaze-v1 recovers signers from
     const signature = signStructuredData({ ...parsed, privateKey: account.privateKey })
     return reply({ signature, publicKey: account.publicKey })
   }
 
-  return fail(MethodNotFound, `Signet does not support ${message.method} yet`)
+  return fail(MethodNotFound, `Blaze Wallet does not support ${message.method} yet`)
 }
 
 /** Only Signet's own pages (the approval frame or window) may read or answer approvals. */

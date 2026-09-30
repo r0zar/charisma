@@ -12,7 +12,7 @@ interface Notification3DProps {
  */
 export default function NotificationCube({
   color = colors.cyber,
-  label = 'SIGNET NOTIFICATION',
+  label = 'BLAZE NOTIFICATION',
   onClose
 }: Notification3DProps) {
   return (

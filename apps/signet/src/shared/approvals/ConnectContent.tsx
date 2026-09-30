@@ -13,7 +13,7 @@ export const ConnectContent: React.FC<{ origin: string; address: string | null }
     <OriginBanner
       origin={origin}
       type={BannerType.INFO}
-      message="wants to connect to Signet"
+      message="wants to connect to Blaze Wallet"
     />
 
     <div style={commonStyles.explanationContainer}>

@@ -22,7 +22,7 @@ export interface TokenBalance {
 
 async function activeAccount() {
   const account = await wallet.getCurrentAccount()
-  if (!account) throw new Error("Signet has no active account")
+  if (!account) throw new Error("Blaze Wallet has no active account")
   return account
 }
 

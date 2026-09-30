@@ -41,7 +41,7 @@ function UnlockView() {
   };
 
   return (
-    <HudScreen title="SIGNET VAULT" stats={[{ label: 'STATUS', value: hasWallet ? 'LOCKED' : 'NEW', tone: 'amber' }]}>
+    <HudScreen title="BLAZE VAULT" stats={[{ label: 'STATUS', value: hasWallet ? 'LOCKED' : 'NEW', tone: 'amber' }]}>
     <HudPanel title={hasWallet ? 'UNLOCK' : 'CREATE PASSWORD'} tone={hasWallet ? 'cyan' : 'amber'}>
       <HudLabel>{hasWallet ? 'Password' : 'New password (8+ characters)'}</HudLabel>
       <PasswordField value={password} onChange={setPassword} onEnter={submit} placeholder={hasWallet ? 'Enter your password...' : 'Enter a strong password...'} label="Password" />
@@ -156,7 +156,7 @@ function NewSeed({ onDone, onBack }: { onDone: (seedPhraseId: string) => void; o
     return (
       <HudPanel title="WRITE THESE DOWN" tone="amber" right={<BackLink onClick={onBack} />} gap={8}>
         <HudLine tone="amber">These 24 words are the only way to recover this wallet</HudLine>
-        <HudLine tone="amber">Anyone who sees them controls your funds. Signet can't recover them</HudLine>
+        <HudLine tone="amber">Anyone who sees them controls your funds. Blaze Wallet can't recover them</HudLine>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', margin: '4px 0' }}>
           {words.map((word, i) => (
             <div key={i} style={{ display: 'flex', gap: '6px', padding: '5px 6px', border: '1px solid rgba(255, 204, 0, 0.3)', borderRadius: '2px', background: 'rgba(0, 0, 0, 0.35)', fontSize: '10px' }}>
