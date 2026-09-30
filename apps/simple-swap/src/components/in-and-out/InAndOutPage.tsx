@@ -12,6 +12,8 @@ import { useWallet } from '@/contexts/wallet-context';
 import { boughtAmount, buyFromWallet, placeInAndOutOrder } from '@/lib/in-and-out/orders';
 import { waitForConfirmation } from '@/lib/zesty/subnet';
 import { listTokens } from '@/app/actions';
+import { Chip } from '@/components/advanced/Chip';
+import { fromUnits, toUnits } from '@/lib/units';
 
 const ConditionTokenChart = dynamic(() => import('@/components/condition-token-chart'), { ssr: false });
 
@@ -28,36 +30,8 @@ const SAFETY = 0.1;
 const FORM_KEY = 'in-and-out:form';
 const SHARES = [0.05, 0.1, 0.25, 0.5, 1];
 
-/** A typed decimal amount in smallest units, exactly; anything unreadable is zero */
-function toUnits(text: string, decimals: number): bigint {
-    const match = text.trim().match(/^(\d*)(?:\.(\d*))?$/);
-    if (!match || (!match[1] && !match[2])) return 0n;
-    const fraction = (match[2] ?? '').slice(0, decimals).padEnd(decimals, '0');
-    return BigInt((match[1] || '0') + fraction);
-}
-
-/** Smallest units as a plain decimal, for the amount box */
-function fromUnits(raw: bigint, decimals: number): string {
-    const text = raw.toString().padStart(decimals + 1, '0');
-    const whole = text.slice(0, text.length - decimals);
-    const fraction = text.slice(text.length - decimals).replace(/0+$/, '');
-    return fraction ? `${whole}.${fraction}` : whole;
-}
-
 /** Up to 6 significant digits, no exponent */
 const fmt = (n: number) => n.toLocaleString('en-US', { maximumSignificantDigits: 6 });
-
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={`flex-1 rounded-lg border px-2 py-2 text-sm transition-colors ${active ? 'border-white/40 bg-white/[0.08] text-white' : 'border-white/[0.08] bg-white/[0.02] text-white/60 hover:text-white/90'}`}
-        >
-            {children}
-        </button>
-    );
-}
 
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
     return (
