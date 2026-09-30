@@ -79,6 +79,12 @@
 
 /* BASE LAYER ------------------------------------------------- */
 @layer base {
+  /* Tailwind 4 dropped the pointer on buttons; every clickable button gets it back */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
   * {
     @apply border-border;
   }
