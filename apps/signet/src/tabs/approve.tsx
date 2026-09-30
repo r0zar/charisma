@@ -138,7 +138,6 @@ export default function Approve() {
           approveHold={hold}
           notification={{
             title: card.title,
-            type: "SDK_PERMISSION",
             color: card.color,
             customIcon: CustomIcons.checkExtension,
             message: (

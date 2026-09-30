@@ -26,7 +26,6 @@
     "@stacks/transactions": "^7.0.4",
     "@stacks/wallet-sdk": "^7.0.4",
     "blaze-sdk": "workspace:*",
-    "framer-motion": "^12.4.10",
     "plasmo": "^0.89.4",
     "react": "18.2.0",
     "react-dom": "18.2.0"
