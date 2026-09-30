@@ -1,11 +1,14 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-/** zesty.charisma.rocks (and zesty.localhost in dev) serves the Zesty page from this app. */
+/** Subdomains served from this app: zesty.charisma.rocks → /zesty, wallet.charisma.rocks → /wallet (and *.localhost in dev). */
+const SUBDOMAIN_APPS = ['zesty', 'wallet'];
+
 export function middleware(req: NextRequest) {
   const host = req.headers.get('host') ?? '';
-  if (host.startsWith('zesty.') && !req.nextUrl.pathname.startsWith('/zesty')) {
+  const app = SUBDOMAIN_APPS.find(name => host.startsWith(`${name}.`));
+  if (app && !req.nextUrl.pathname.startsWith(`/${app}`)) {
     const url = req.nextUrl.clone();
-    url.pathname = `/zesty${url.pathname === '/' ? '' : url.pathname}`;
+    url.pathname = `/${app}${url.pathname === '/' ? '' : url.pathname}`;
     return NextResponse.rewrite(url);
   }
   return NextResponse.next();
