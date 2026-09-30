@@ -3,14 +3,14 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import SubnetPairSelector from '@/components/range/SubnetPairSelector';
 import TokenDropdown from '@/components/TokenDropdown';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { usePrices } from '@/contexts/token-price-context';
 import { useSubnetTokens } from '@/contexts/subnet-tokens-context';
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
-import { boughtAmount, placeInAndOutOrder } from '@/lib/in-and-out/orders';
+import { boughtAmount, buyFromWallet, placeInAndOutOrder } from '@/lib/in-and-out/orders';
+import { waitForConfirmation } from '@/lib/zesty/subnet';
 import { listTokens } from '@/app/actions';
 
 const ConditionTokenChart = dynamic(() => import('@/components/condition-token-chart'), { ssr: false });
@@ -63,7 +63,7 @@ export default function InAndOutPage() {
     const { address } = useWallet();
     const { getPrice } = usePrices();
     const { getSubnetContractId } = useSubnetTokens();
-    const { getSubnetBalance } = useBalances(address ? [address] : []);
+    const { getSubnetBalance, getTokenBalance } = useBalances(address ? [address] : []);
     // Only tokens the router can trade, the same list the swap page offers
     const [swappable, setSwappable] = useState<TokenCacheData[] | null>(null);
     const [listError, setListError] = useState<string | null>(null);
@@ -84,12 +84,25 @@ export default function InAndOutPage() {
     const [targetPct, setTargetPct] = useState(0.15);
     const [safetyOn, setSafetyOn] = useState(true);
     const [phase, setPhase] = useState<'setup' | 'signing' | 'done'>('setup');
+    const [progress, setProgress] = useState('');
     const [error, setError] = useState<string | null>(null);
 
     const paySubnet = pay ? getSubnetContractId(pay.contractId) : null;
     const buySubnet = buy ? getSubnetContractId(buy.contractId) : null;
-    const balanceRaw = address && paySubnet ? getSubnetBalance(address, paySubnet) : 0;
+    // What you hold, wherever it sits: the subnet part is spent first (just a signature), the rest from the wallet
+    const held = (t: TokenCacheData) => {
+        if (!address) return { subnet: 0n, wallet: 0n };
+        const subnetId = getSubnetContractId(t.contractId);
+        return {
+            subnet: BigInt(Math.floor(subnetId ? getSubnetBalance(address, subnetId) : 0)),
+            wallet: BigInt(Math.floor(getTokenBalance(address, t.contractId))),
+        };
+    };
+    const payHeld = pay ? held(pay) : { subnet: 0n, wallet: 0n };
+    const balanceRaw = Number(payHeld.subnet + payHeld.wallet);
     const amountRaw = BigInt(Math.floor(balanceRaw * share));
+    const fromSubnet = amountRaw < payHeld.subnet ? amountRaw : payHeld.subnet;
+    const fromWallet = amountRaw - fromSubnet;
     // Never guess decimals: a token without them in the token list can't be traded here
     const decimals = pay?.decimals;
     const amountDisplay = decimals !== undefined ? Number(amountRaw) / 10 ** decimals : 0;
@@ -102,6 +115,11 @@ export default function InAndOutPage() {
     const safetyRatio = ratio && safetyOn ? ratio * (1 - SAFETY) : null;
 
     // Anything the router trades that has a subnet version (the buy lands on the subnet)
+    const payable = (swappable ?? []).filter(t => {
+        if (t.type === 'SUBNET') return false;
+        const h = held(t);
+        return h.subnet + h.wallet > 0n;
+    });
     const buyable = (swappable ?? []).filter(t =>
         t.type !== 'SUBNET' && t.contractId !== pay?.contractId && t.contractId !== cashOut?.contractId && !!getSubnetContractId(t.contractId));
     const cashOutTokens = CASH_OUT_TOKENS
@@ -113,8 +131,8 @@ export default function InAndOutPage() {
         : buy && cashOut && !ratio
             ? `No price for ${!priceBuy ? buy.symbol : cashOut.symbol} right now, so a target can't be set`
             : null;
-    const ready = !!(address && pay && buy && cashOut && paySubnet && buySubnet && ratio && decimals !== undefined && amountRaw > 0n);
-    const signatures = safetyOn ? 3 : 2;
+    const ready = !!(address && pay && buy && cashOut && buySubnet && ratio && decimals !== undefined && amountRaw > 0n);
+    const signatures = (fromSubnet > 0n ? 1 : 0) + (fromWallet > 0n ? 1 : 0) + (safetyOn ? 2 : 1);
 
     const pickPay = (t: TokenCacheData) => {
         setPay(t);
@@ -125,14 +143,31 @@ export default function InAndOutPage() {
     };
 
     const start = async () => {
-        if (!ready || !pay || !buy || !cashOut || !paySubnet || !buySubnet || !ratio || !targetRatio) return;
+        if (!ready || !pay || !buy || !cashOut || !buySubnet || !ratio || !targetRatio) return;
         setError(null);
         setPhase('signing');
         const common = { wallet: address!, strategyId: crypto.randomUUID(), strategySize: signatures, entryRatio: ratio };
         try {
-            // The exits sell what the buy delivers at worst, so they're sized before signing anything
-            const bought = await boughtAmount(paySubnet, buySubnet, amountRaw);
-            await placeInAndOutOrder({ ...common, role: 'buy', inputSubnet: paySubnet, outputToken: buySubnet, amount: amountRaw, movePct: 0 });
+            // The exits sell what the buy delivers at worst
+            let bought = 0n;
+            let txid: string | null = null;
+            if (fromWallet > 0n) {
+                setProgress('Approve the purchase in your wallet…');
+                const purchase = await buyFromWallet(address!, pay.contractId, buySubnet, fromWallet);
+                txid = purchase.txid;
+                bought += purchase.bought;
+            }
+            if (fromSubnet > 0n) {
+                setProgress('Sign the purchase…');
+                bought += await boughtAmount(paySubnet!, buySubnet, fromSubnet);
+                await placeInAndOutOrder({ ...common, role: 'buy', inputSubnet: paySubnet!, outputToken: buySubnet, amount: fromSubnet, movePct: 0 });
+            }
+            // The exits can only sell what has arrived
+            if (txid) {
+                setProgress('Buying… this takes about a minute');
+                await waitForConfirmation(txid);
+            }
+            setProgress('Sign the sale…');
             const exit = { ...common, inputSubnet: buySubnet, outputToken: cashOut.contractId, amount: bought };
             await placeInAndOutOrder({ ...exit, role: 'target', movePct: targetPct, trigger: { token: buy.contractId, base: cashOut.contractId, ratio: targetRatio, direction: 'gt' } });
             if (safetyRatio) {
@@ -192,8 +227,10 @@ export default function InAndOutPage() {
                     ) : (
                         <>
                             <Step n={1} title="In: buy now">
-                                <div className="text-xs text-white/60">Pay with (on the subnet)</div>
-                                <SubnetPairSelector label="Pick a token you hold" selected={pay} exclude={buy?.contractId} onSelect={pickPay} />
+                                <div className="text-xs text-white/60">Pay with</div>
+                                {!address
+                                    ? <div className="text-sm text-white/60">Connect a wallet to pick a token.</div>
+                                    : swappable && <TokenDropdown tokens={payable.filter(t => t.contractId !== buy?.contractId)} selected={pay} onSelect={pickPay} label="Pick a token you hold" showBalances includeStx={false} />}
                                 {pay && (
                                     <div className="flex gap-2">
                                         {SHARES.map(s => <Chip key={s} active={share === s} onClick={() => setShare(s)}>{s === 1 ? 'All' : `${s * 100}%`}</Chip>)}
@@ -257,10 +294,10 @@ export default function InAndOutPage() {
                                 disabled={!ready || phase === 'signing'}
                                 className="w-full rounded-lg bg-white/90 px-4 py-3 text-sm font-medium text-black hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
                             >
-                                {phase === 'signing' ? 'Signing in your wallet…' : `Buy now & set the exit (${signatures} signatures)`}
+                                {phase === 'signing' ? progress : `Buy now & set the exit (${signatures} signatures)`}
                             </button>
                             <p className="text-xs text-white/50">
-                                Drag the target line on the chart to fine-tune it. The buy runs right away; the sale waits for its price. Proceeds go to your wallet.
+                                Drag the target line on the chart to fine-tune it. The buy runs right away; the sale waits for its price. Keep this page open until the sale is signed. Proceeds go to your wallet.
                             </p>
                         </>
                     )}
