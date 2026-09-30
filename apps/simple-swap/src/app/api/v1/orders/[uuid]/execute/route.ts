@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getOrder, fillOrder } from '@/lib/orders/store';
-import { executeTrade, cancelOtherZestyExit } from '@/lib/orders/executor';
+import { executeTrade, cancelOtherExits } from '@/lib/orders/executor';
 import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
 import { 
   authenticateOrderOperation,
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, { params }: { params: { uuid: strin
         
         // Note: fillOrder is still used here as it's the store function, different from the deprecated processor function
         await fillOrder(order.uuid, executionResult.txid);
-        await cancelOtherZestyExit(order);
+        await cancelOtherExits(order);
 
         // Send notification (fire-and-forget style, errors handled within the function)
         sendOrderExecutedNotification(order, executionResult.txid).catch(err => {

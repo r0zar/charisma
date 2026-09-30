@@ -19,6 +19,7 @@ const navigationLinks = [
 
 const advancedLinks = [
     { href: "/advanced/range", label: "Range Swaps", hint: "Sell high, buy back low, on a schedule" },
+    { href: "/advanced/target", label: "Target & Safety Net", hint: "Swap when it hits your target, or bail at your safety net" },
 ];
 
 export function Header() {

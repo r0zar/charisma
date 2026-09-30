@@ -355,17 +355,21 @@ async function releaseLock(uuid: string): Promise<void> {
  * Loops through all open orders and executes any that meet their price condition.
  * Returns the UUIDs of all orders that were filled during this run.
  */
+/** An exit that spends the same funds as its siblings: Zesty's target/safety, or any order marked metadata.oco. */
+const isExit = (o: LimitOrder) =>
+    (o.strategyType === 'zesty' && o.metadata?.zesty?.role !== 'convert') || o.metadata?.oco === true;
+
 /**
- * A Zesty trade has two exits (target and safety net) that spend the same funds:
- * once one runs, cancel the other so it can't fire later.
+ * Exits of one trade (a target and a safety net) spend the same funds:
+ * once one runs, cancel the others in the same strategy so they can't fire later.
  */
-export async function cancelOtherZestyExit(order: LimitOrder): Promise<void> {
-    if (order.strategyType !== 'zesty' || !order.strategyId || order.metadata?.zesty?.role === 'convert') return;
+export async function cancelOtherExits(order: LimitOrder): Promise<void> {
+    if (!order.strategyId || !isExit(order)) return;
     const siblings = (await listOrders(order.owner)).filter(o =>
-        o.strategyId === order.strategyId && o.uuid !== order.uuid && o.status === 'open' && o.metadata?.zesty?.role !== 'convert');
+        o.strategyId === order.strategyId && o.uuid !== order.uuid && o.status === 'open' && isExit(o));
     for (const sibling of siblings) {
         await cancelOrder(sibling.uuid);
-        console.log({ orderUuid: order.uuid, cancelled: sibling.uuid }, 'Cancelled the other Zesty exit');
+        console.log({ orderUuid: order.uuid, cancelled: sibling.uuid }, 'Cancelled the other exit');
     }
 }
 
@@ -505,7 +509,7 @@ export async function processOpenOrders(): Promise<string[]> {
 
                 console.log({ orderUuid: order.uuid, txid: executionResult.txid }, 'Trade executed successfully. Marking order as filled.');
                 await fillOrder(order.uuid, executionResult.txid);
-                await cancelOtherZestyExit(order);
+                await cancelOtherExits(order);
 
                 // Add transaction to tx-monitor-client queue for monitoring
                 try {
