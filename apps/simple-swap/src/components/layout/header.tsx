@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { WalletButton } from "../wallet-button";
-import { ChevronDown, Coins, Menu, Settings, Shield } from "lucide-react";
+import { ChevronDown, Coins, Crosshair, Menu, MoveVertical, Settings, Shield } from "lucide-react";
 import { useWallet } from "@/contexts/wallet-context";
 import { Drawer } from "vaul";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,8 @@ const navigationLinks = [
 ];
 
 const advancedLinks = [
-    { href: "/advanced/range", label: "Range Swaps", hint: "Sell high, buy back low, on a schedule" },
-    { href: "/advanced/target", label: "Target & Safety Net", hint: "Swap when it hits your target, or bail at your safety net" },
+    { href: "/advanced/range", label: "Range Swaps", hint: "Sell high, buy back low, on a schedule", icon: MoveVertical },
+    { href: "/advanced/target", label: "Target & Safety Net", hint: "Swap at your target, or bail at your safety net", icon: Crosshair },
 ];
 
 export function Header() {
@@ -61,12 +61,17 @@ export function Header() {
                             <DropdownMenuTrigger aria-haspopup="menu" className="flex cursor-pointer items-center gap-1 px-4 py-2 text-sm font-medium text-white/70 hover:text-white hover:bg-white/[0.05] rounded-xl transition-all duration-200">
                                 Advanced <ChevronDown className="h-3.5 w-3.5" />
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
+                            <DropdownMenuContent align="start" className="w-[340px] p-1.5">
                                 {advancedLinks.map((link) => (
-                                    <DropdownMenuItem key={link.href}>
-                                        <Link href={link.href} className="flex flex-col items-start gap-0.5 w-full">
-                                            <span className="text-sm text-white/90">{link.label}</span>
-                                            <span className="text-xs text-white/50">{link.hint}</span>
+                                    <DropdownMenuItem key={link.href} className="cursor-pointer rounded-lg p-0">
+                                        <Link href={link.href} className="flex w-full items-center gap-3 p-2.5">
+                                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04] text-white/80">
+                                                <link.icon className="h-4 w-4" />
+                                            </span>
+                                            <span className="flex min-w-0 flex-col">
+                                                <span className="text-sm font-medium text-white/90">{link.label}</span>
+                                                <span className="truncate text-xs text-white/50">{link.hint}</span>
+                                            </span>
                                         </Link>
                                     </DropdownMenuItem>
                                 ))}
@@ -134,9 +139,10 @@ export function Header() {
                                             <Link
                                                 key={link.href}
                                                 href={link.href}
-                                                className="flex items-center py-3 px-4 rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] transition-all duration-200"
+                                                className="flex items-center gap-3 py-3 px-4 rounded-xl text-white/70 hover:text-white hover:bg-white/[0.08] transition-all duration-200"
                                                 onClick={() => setIsOpen(false)}
                                             >
+                                                <link.icon className="h-4 w-4" />
                                                 {link.label}
                                             </Link>
                                         ))}

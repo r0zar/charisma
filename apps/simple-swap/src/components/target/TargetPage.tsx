@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import TokenDropdown from '@/components/TokenDropdown';
@@ -12,6 +12,7 @@ import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
 import { createExitOrder } from '@/lib/target/create-exit-order';
+import { listTokens } from '@/app/actions';
 
 const ConditionTokenChart = dynamic(() => import('@/components/condition-token-chart'), { ssr: false });
 
@@ -44,7 +45,18 @@ export default function TargetPage() {
     const { getPrice } = usePrices();
     const { getSubnetContractId } = useSubnetTokens();
     const { getSubnetBalance } = useBalances(address ? [address] : []);
-    const { tokens } = useTokenMetadata();
+    // Only tokens the router can trade, the same list the swap page offers
+    const [swappable, setSwappable] = useState<TokenCacheData[] | null>(null);
+    const [listError, setListError] = useState<string | null>(null);
+    useEffect(() => {
+        listTokens()
+            .then(result => {
+                if (!result.success || !result.tokens) throw new Error(result.error ?? 'Swappable tokens unavailable');
+                // Same shape the swap page feeds its token pickers (dexterity-sdk's token list)
+                setSwappable(result.tokens as unknown as TokenCacheData[]);
+            })
+            .catch(err => setListError((err as Error).message));
+    }, []);
 
     const [from, setFrom] = useState<TokenCacheData | null>(null);
     const [to, setTo] = useState<TokenCacheData | null>(null);
@@ -67,7 +79,7 @@ export default function TargetPage() {
     const targetRatio = ratio ? ratio * (1 + targetPct) : null;
     const safetyRatio = ratio && safetyOn ? ratio * (1 - SAFETY) : null;
 
-    const toTokens = Object.values(tokens).filter(t => t.type !== 'SUBNET' && t.contractId !== from?.contractId);
+    const toTokens = (swappable ?? []).filter(t => t.type !== 'SUBNET' && t.contractId !== from?.contractId);
     const missingPrice = from && decimals === undefined
         ? `${from.symbol} has no decimals in the token list, so amounts can't be read safely`
         : from && to && !ratio
@@ -108,7 +120,11 @@ export default function TargetPage() {
                             baseToken={to}
                             targetPrice={targetRatio ? targetRatio.toString() : ''}
                             direction="gt"
-                            onTargetPriceChange={() => {}}
+                            onTargetPriceChange={price => {
+                                // Dragging the line sets the target; it must stay above today's price
+                                const next = Number(price) / ratio - 1;
+                                if (Number.isFinite(next) && next > 0) setTargetPct(Math.round(next * 1000) / 1000);
+                            }}
                             className="flex-1 min-h-[480px]"
                         />
                     ) : (
@@ -146,7 +162,11 @@ export default function TargetPage() {
 
                             <div className="space-y-2">
                                 <div className="text-xs text-white/60">Swap into</div>
-                                <TokenDropdown tokens={toTokens} selected={to} onSelect={setTo} label="Pick a token" />
+                                {listError
+                                    ? <p role="alert" className="text-sm text-red-400">Couldn&apos;t load swappable tokens: {listError}</p>
+                                    : swappable
+                                        ? <TokenDropdown tokens={toTokens} selected={to} onSelect={setTo} label="Pick a token" />
+                                        : <div className="text-sm text-white/50">Loading swappable tokens…</div>}
                             </div>
 
                             <div className="space-y-2">
@@ -168,7 +188,7 @@ export default function TargetPage() {
 
                             <div className="space-y-2">
                                 <div className="flex justify-between text-xs text-white/60">
-                                    <span>🎯 Target: swap when it rises</span>
+                                    <span>🎯 Target: swap when it rises {!TARGETS.includes(targetPct) && `(+${(targetPct * 100).toFixed(1)}%)`}</span>
                                     {targetRatio && to && <span className="font-mono">{fmt(targetRatio)} {to.symbol}</span>}
                                 </div>
                                 <div className="flex gap-2">
@@ -178,7 +198,7 @@ export default function TargetPage() {
 
                             <label className="flex items-center justify-between gap-3 text-sm text-white/80 cursor-pointer">
                                 <span>🛡️ Safety net: swap if it falls {SAFETY * 100}%{safetyRatio && to ? ` (${fmt(safetyRatio)} ${to.symbol})` : ''}</span>
-                                <input type="checkbox" checked={safetyOn} onChange={e => setSafetyOn(e.target.checked)} className="h-4 w-4 accent-purple-400" />
+                                <input type="checkbox" checked={safetyOn} onChange={e => setSafetyOn(e.target.checked)} className="h-4 w-4 cursor-pointer accent-white" />
                             </label>
 
                             {(error || missingPrice) && <p role="alert" className="text-sm text-red-400">{error ?? missingPrice}</p>}
@@ -192,7 +212,7 @@ export default function TargetPage() {
                                 {phase === 'signing' ? 'Signing in your wallet…' : `Sign ${safetyOn ? '2 orders' : '1 order'}`}
                             </button>
                             <p className="text-xs text-white/50">
-                                Spends tokens already on the subnet. The swap pays out to your wallet. Prices come from Charisma&apos;s price feed.
+                                Drag the target line on the chart to fine-tune it. Spends tokens already on the subnet. The swap pays out to your wallet. Prices come from Charisma&apos;s price feed.
                             </p>
                         </>
                     )}

@@ -415,6 +415,79 @@ export default function ConditionTokenChart({
         // All band values are read through bandRef.
     }, [hasBand, data]);
 
+    // Drag the target line (charts without a band): grab it within a few pixels and move it up or down.
+    // Clicking elsewhere still sets it, via subscribeClick above.
+    const dragTargetRef = useRef(targetPrice);
+    dragTargetRef.current = targetPrice;
+    useEffect(() => {
+        const container = containerRef.current;
+        const chart = chartRef.current;
+        if (!container || !chart || hasBand || !data || data.length === 0) return;
+
+        const HIT_PX = 10;
+        let pointerId: number | null = null;
+        let captured = false;
+
+        const onDown = (e: PointerEvent) => {
+            const current = parseFloat(dragTargetRef.current);
+            const series = seriesRef.current;
+            if (!series || !isValidPrice(current)) return;
+            const y = e.clientY - container.getBoundingClientRect().top;
+            const ly = series.priceToCoordinate(current);
+            if (ly === null || Math.abs(ly - y) > HIT_PX) return;
+            try { container.setPointerCapture(e.pointerId); } catch { return; }
+            pointerId = e.pointerId;
+            captured = false;
+            draggingRef.current = true;
+            chart.priceScale('left').applyOptions({ autoScale: false });
+            chart.applyOptions({ handleScroll: false, handleScale: false });
+            container.style.cursor = 'ns-resize';
+            e.preventDefault();
+        };
+        const onCapture = (e: PointerEvent) => {
+            if (e.pointerId === pointerId) captured = true;
+        };
+        const onMove = (e: PointerEvent) => {
+            const series = seriesRef.current;
+            if (!series) return;
+            const y = e.clientY - container.getBoundingClientRect().top;
+            if (pointerId === null) {
+                // Hovering near the line hints that it can be dragged
+                const current = parseFloat(dragTargetRef.current);
+                const ly = isValidPrice(current) ? series.priceToCoordinate(current) : null;
+                container.style.cursor = ly !== null && Math.abs(ly - y) <= HIT_PX ? 'ns-resize' : '';
+                return;
+            }
+            if (!captured || e.pointerId !== pointerId) return;
+            const price = series.coordinateToPrice(y);
+            if (price === null || !isValidPrice(price)) return;
+            onTargetPriceChangeRef.current(price.toString());
+        };
+        const onUp = () => {
+            if (pointerId === null) return;
+            pointerId = null;
+            // Let the click that ends a drag pass without also re-setting the line
+            setTimeout(() => { draggingRef.current = false; }, 0);
+            chart.priceScale('left').applyOptions({ autoScale: true });
+            chart.applyOptions({ handleScroll: true, handleScale: true });
+            container.style.cursor = '';
+        };
+
+        container.addEventListener('pointerdown', onDown, true);
+        container.addEventListener('gotpointercapture', onCapture);
+        container.addEventListener('pointermove', onMove);
+        container.addEventListener('pointerup', onUp);
+        container.addEventListener('pointercancel', onUp);
+        return () => {
+            draggingRef.current = false;
+            container.removeEventListener('pointerdown', onDown, true);
+            container.removeEventListener('gotpointercapture', onCapture);
+            container.removeEventListener('pointermove', onMove);
+            container.removeEventListener('pointerup', onUp);
+            container.removeEventListener('pointercancel', onUp);
+        };
+    }, [hasBand, data]);
+
     // Draw the target line. Depends on `data` so it re-runs after the chart is rebuilt.
     useEffect(() => {
         const series = seriesRef.current;
