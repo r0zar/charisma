@@ -11,7 +11,7 @@ export interface DisplayOrder extends LimitOrder {
 
 export interface StrategyDisplayData {
     id: string;
-    type: 'dca' | 'single' | 'twitter' | 'split' | 'batch' | 'range' | 'zesty' | 'target';
+    type: 'dca' | 'single' | 'twitter' | 'split' | 'batch' | 'range' | 'zesty' | 'in-and-out';
     description: string;
     orders: DisplayOrder[];
     totalOrders: number;
@@ -256,8 +256,8 @@ function generateStrategyDescription(
             return `Range swap · ${Math.ceil(orderCount / 2)} windows`;
         case 'zesty':
             return `Zesty trade · ZEST goes ${orders[0]?.metadata?.zesty?.side === 'down' ? 'down' : 'up'}`;
-        case 'target':
-            return orders.length > 1 ? 'Take profit + safety net' : 'Take profit';
+        case 'in-and-out':
+            return orders.length > 2 ? 'In & Out · with safety net' : 'In & Out';
         default:
             return `${orderCount} related orders`;
     }

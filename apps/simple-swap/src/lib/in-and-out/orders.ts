@@ -1,26 +1,39 @@
 import { signTriggeredSwap } from 'blaze-sdk';
+import { getQuote } from '@/app/actions';
+import { SWAP_COST } from '@/lib/zesty/plan';
 import { SIGNER_PAYOUT_ROUTER, type LimitOrder, type NewOrderRequest } from '@/lib/orders/types';
 
-/** One exit of a Target & Safety Net trade: sell `from` (subnet) into `to` when from/to crosses a ratio. */
-export interface ExitOrderSpec {
-  wallet: string;
-  strategyId: string;
-  role: 'target' | 'safety';
-  /** Subnet contract the funds come from */
-  fromSubnet: string;
-  /** Mainnet contract of the held token (the condition token) */
-  fromToken: string;
-  /** Token paid out to the wallet, and the base the ratio is priced in */
-  toToken: string;
-  /** Smallest units of `from` */
-  amount: bigint;
-  /** from/to ratio that triggers this exit */
+export type InAndOutRole = 'buy' | 'target' | 'safety';
+
+/** When an exit runs: `token` priced in `base` crosses `ratio` */
+export interface ExitTrigger {
+  token: string;
+  base: string;
   ratio: number;
   direction: 'gt' | 'lt';
-  /** Shown in Orders: the ratio when the trade started and the chosen move */
+}
+
+/** One order of an In & Out trade */
+export interface InAndOutOrderSpec {
+  wallet: string;
+  strategyId: string;
+  /** How many orders the trade has (buy + target, plus the safety net when on) */
+  strategySize: number;
+  role: InAndOutRole;
+  /** Subnet contract the funds come from */
+  inputSubnet: string;
+  /** Token paid out */
+  outputToken: string;
+  /** Smallest units of the input */
+  amount: bigint;
+  /** No trigger: runs right away (the buy) */
+  trigger?: ExitTrigger;
+  /** Shown in Orders: the price when the trade started and the chosen move */
   entryRatio: number;
   movePct: number;
 }
+
+const ROLE_POSITION: Record<InAndOutRole, number> = { buy: 1, target: 2, safety: 3 };
 
 /** A ratio as the order API wants it: plain decimal, at most 18 places, never zero */
 function ratioString(ratio: number): string {
@@ -32,32 +45,33 @@ function ratioString(ratio: number): string {
 }
 
 /**
- * Sign one exit with the wallet and submit it. Both exits of a trade share the strategy id and
- * metadata.oco, so when one runs the executor cancels the other (they spend the same funds).
+ * Sign one order with the wallet and submit it. The exits share the strategy id and metadata.oco,
+ * so when one runs the executor cancels the other (they spend the same tokens).
  */
-export async function createExitOrder(spec: ExitOrderSpec): Promise<LimitOrder> {
+export async function placeInAndOutOrder(spec: InAndOutOrderSpec): Promise<LimitOrder> {
   if (spec.amount <= 0n) throw new Error('Amount must be more than zero');
   const uuid = crypto.randomUUID();
-  const signature = await signTriggeredSwap({ subnet: spec.fromSubnet, uuid, amount: spec.amount, multihopContractId: SIGNER_PAYOUT_ROUTER });
+  const signature = await signTriggeredSwap({ subnet: spec.inputSubnet, uuid, amount: spec.amount, multihopContractId: SIGNER_PAYOUT_ROUTER });
+
+  const condition = spec.trigger
+    ? { conditionToken: spec.trigger.token, baseAsset: spec.trigger.base, targetPrice: ratioString(spec.trigger.ratio), direction: spec.trigger.direction }
+    : { conditionToken: '*', targetPrice: '0', direction: 'gt' as const };
 
   const payload: NewOrderRequest = {
     owner: spec.wallet,
-    inputToken: spec.fromSubnet,
-    outputToken: spec.toToken,
+    inputToken: spec.inputSubnet,
+    outputToken: spec.outputToken,
     amountIn: spec.amount.toString(),
-    conditionToken: spec.fromToken,
-    baseAsset: spec.toToken,
-    targetPrice: ratioString(spec.ratio),
-    direction: spec.direction,
+    ...condition,
     recipient: spec.wallet,
     router: SIGNER_PAYOUT_ROUTER,
     signature,
     uuid,
     strategyId: spec.strategyId,
-    strategyType: 'target',
-    strategySize: 2,
-    strategyPosition: spec.role === 'target' ? 1 : 2,
-    metadata: { oco: true, target: { role: spec.role, entryRatio: spec.entryRatio, movePct: spec.movePct } },
+    strategyType: 'in-and-out',
+    strategySize: spec.strategySize,
+    strategyPosition: ROLE_POSITION[spec.role],
+    metadata: { oco: spec.role !== 'buy', inAndOut: { role: spec.role, entryRatio: spec.entryRatio, movePct: spec.movePct } },
   };
 
   const res = await fetch('/api/v1/orders/new', {
@@ -70,4 +84,18 @@ export async function createExitOrder(spec: ExitOrderSpec): Promise<LimitOrder> 
     throw new Error(`The ${spec.role} order was not accepted: ${body.error ?? res.status}`);
   }
   return ((await res.json()) as { data: LimitOrder }).data;
+}
+
+/**
+ * How much of `toSubnet` buying with `amount` of `fromSubnet` delivers at worst, after the executor's
+ * slippage. The exits are signed for this, so they always fit what the buy delivers.
+ */
+export async function boughtAmount(fromSubnet: string, toSubnet: string, amount: bigint): Promise<bigint> {
+  const quote = await getQuote(fromSubnet, toSubnet, amount.toString());
+  if (!quote.success || !quote.data || quote.data instanceof Error || !quote.data.amountOut) {
+    throw new Error(`No route to buy with this token right now: ${quote.error ?? 'empty quote'}`);
+  }
+  const out = BigInt(Math.floor(quote.data.amountOut * (1 - SWAP_COST)));
+  if (out <= 0n) throw new Error('This amount buys too little to sell back later. Try a larger amount.');
+  return out;
 }

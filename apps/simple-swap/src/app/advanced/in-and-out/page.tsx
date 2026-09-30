@@ -1,13 +1,13 @@
 "use client";
 
 import { Header } from '@/components/layout/header';
-import TakeProfitPage from '@/components/take-profit/TakeProfitPage';
+import InAndOutPage from '@/components/in-and-out/InAndOutPage';
 
-export default function AdvancedTakeProfitPage() {
+export default function AdvancedInAndOutPage() {
     return (
         <div className="relative flex flex-col min-h-screen">
             <Header />
-            <TakeProfitPage />
+            <InAndOutPage />
         </div>
     );
 }

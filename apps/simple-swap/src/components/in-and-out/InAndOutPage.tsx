@@ -4,21 +4,21 @@ import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import SubnetPairSelector from '@/components/range/SubnetPairSelector';
+import TokenDropdown from '@/components/TokenDropdown';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { usePrices } from '@/contexts/token-price-context';
 import { useSubnetTokens } from '@/contexts/subnet-tokens-context';
-import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
-import { createExitOrder } from '@/lib/target/create-exit-order';
+import { boughtAmount, placeInAndOutOrder } from '@/lib/in-and-out/orders';
 import { listTokens } from '@/app/actions';
 
 const ConditionTokenChart = dynamic(() => import('@/components/condition-token-chart'), { ssr: false });
 
 const TARGETS = [0.1, 0.15, 0.25];
 
-/** Where profit is taken: steady tokens only */
-const TAKE_PROFIT_TOKENS = [
+/** Where the profit is taken: steady tokens only */
+const CASH_OUT_TOKENS = [
     'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token', // sBTC
     '.stx', // STX
     'SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.usdh-token-v1', // USDh
@@ -42,12 +42,24 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
     );
 }
 
+function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+    return (
+        <div className="space-y-2">
+            <div className="flex items-center gap-2 text-sm font-medium text-white/90">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-xs">{n}</span>
+                {title}
+            </div>
+            {children}
+        </div>
+    );
+}
+
 /**
- * Take Profit: hold any subnet token, and cash it out into a steady token (sBTC, STX, USDh or sUSDh) when it
- * rises X% against it, with an optional safety net if it falls. Two signed orders; when one runs, the
- * executor cancels the other.
+ * In & Out: buy a token now with something you hold on the subnet, and sell it into a steady token
+ * (sBTC, STX, USDh or sUSDh) once it's up X%, with an optional safety net if it falls. The buy runs
+ * right away; the two exits wait for their price, and when one runs the executor cancels the other.
  */
-export default function TakeProfitPage() {
+export default function InAndOutPage() {
     const { address } = useWallet();
     const { getPrice } = usePrices();
     const { getSubnetContractId } = useSubnetTokens();
@@ -65,47 +77,67 @@ export default function TakeProfitPage() {
             .catch(err => setListError((err as Error).message));
     }, []);
 
-    const [from, setFrom] = useState<TokenCacheData | null>(null);
-    const [to, setTo] = useState<TokenCacheData | null>(null);
+    const [pay, setPay] = useState<TokenCacheData | null>(null);
+    const [buy, setBuy] = useState<TokenCacheData | null>(null);
+    const [cashOut, setCashOut] = useState<TokenCacheData | null>(null);
     const [share, setShare] = useState(0.5);
     const [targetPct, setTargetPct] = useState(0.15);
     const [safetyOn, setSafetyOn] = useState(true);
     const [phase, setPhase] = useState<'setup' | 'signing' | 'done'>('setup');
     const [error, setError] = useState<string | null>(null);
 
-    const fromSubnet = from ? getSubnetContractId(from.contractId) : null;
-    const balanceRaw = address && fromSubnet ? getSubnetBalance(address, fromSubnet) : 0;
+    const paySubnet = pay ? getSubnetContractId(pay.contractId) : null;
+    const buySubnet = buy ? getSubnetContractId(buy.contractId) : null;
+    const balanceRaw = address && paySubnet ? getSubnetBalance(address, paySubnet) : 0;
     const amountRaw = BigInt(Math.floor(balanceRaw * share));
     // Never guess decimals: a token without them in the token list can't be traded here
-    const decimals = from?.decimals;
+    const decimals = pay?.decimals;
     const amountDisplay = decimals !== undefined ? Number(amountRaw) / 10 ** decimals : 0;
 
-    const priceFrom = from ? getPrice(from.contractId) : null;
-    const priceTo = to ? getPrice(to.contractId) : null;
-    const ratio = priceFrom && priceTo ? priceFrom / priceTo : null;
+    // The bought token, priced in the token the profit is taken in
+    const priceBuy = buy ? getPrice(buy.contractId) : null;
+    const priceOut = cashOut ? getPrice(cashOut.contractId) : null;
+    const ratio = priceBuy && priceOut ? priceBuy / priceOut : null;
     const targetRatio = ratio ? ratio * (1 + targetPct) : null;
     const safetyRatio = ratio && safetyOn ? ratio * (1 - SAFETY) : null;
 
-    // The take-profit tokens the router can actually swap into, in the order above
-    const toTokens = TAKE_PROFIT_TOKENS
+    // Anything the router trades that has a subnet version (the buy lands on the subnet)
+    const buyable = (swappable ?? []).filter(t =>
+        t.type !== 'SUBNET' && t.contractId !== pay?.contractId && t.contractId !== cashOut?.contractId && !!getSubnetContractId(t.contractId));
+    const cashOutTokens = CASH_OUT_TOKENS
         .map(id => (swappable ?? []).find(t => t.contractId === id))
-        .filter((t): t is TokenCacheData => !!t && t.contractId !== from?.contractId);
-    const missingPrice = from && decimals === undefined
-        ? `${from.symbol} has no decimals in the token list, so amounts can't be read safely`
-        : from && to && !ratio
-            ? `No price for ${!priceFrom ? from.symbol : to!.symbol} right now, so a trigger can't be set`
+        .filter((t): t is TokenCacheData => !!t);
+
+    const problem = pay && decimals === undefined
+        ? `${pay.symbol} has no decimals in the token list, so amounts can't be read safely`
+        : buy && cashOut && !ratio
+            ? `No price for ${!priceBuy ? buy.symbol : cashOut.symbol} right now, so a target can't be set`
             : null;
-    const ready = !!(address && from && to && fromSubnet && ratio && decimals !== undefined && amountRaw > 0n);
+    const ready = !!(address && pay && buy && cashOut && paySubnet && buySubnet && ratio && decimals !== undefined && amountRaw > 0n);
+    const signatures = safetyOn ? 3 : 2;
+
+    const pickPay = (t: TokenCacheData) => {
+        setPay(t);
+        if (buy?.contractId === t.contractId) setBuy(null);
+        // Paying with a steady token? Take the profit back in the same one
+        const steady = cashOutTokens.find(c => c.contractId === t.contractId);
+        if (steady) setCashOut(steady);
+    };
 
     const start = async () => {
-        if (!ready || !from || !to || !fromSubnet || !ratio || !targetRatio) return;
+        if (!ready || !pay || !buy || !cashOut || !paySubnet || !buySubnet || !ratio || !targetRatio) return;
         setError(null);
         setPhase('signing');
-        const strategyId = crypto.randomUUID();
-        const common = { wallet: address!, strategyId, fromSubnet, fromToken: from.contractId, toToken: to.contractId, amount: amountRaw, entryRatio: ratio };
+        const common = { wallet: address!, strategyId: crypto.randomUUID(), strategySize: signatures, entryRatio: ratio };
         try {
-            await createExitOrder({ ...common, role: 'target', ratio: targetRatio, direction: 'gt', movePct: targetPct });
-            if (safetyRatio) await createExitOrder({ ...common, role: 'safety', ratio: safetyRatio, direction: 'lt', movePct: -SAFETY });
+            // The exits sell what the buy delivers at worst, so they're sized before signing anything
+            const bought = await boughtAmount(paySubnet, buySubnet, amountRaw);
+            await placeInAndOutOrder({ ...common, role: 'buy', inputSubnet: paySubnet, outputToken: buySubnet, amount: amountRaw, movePct: 0 });
+            const exit = { ...common, inputSubnet: buySubnet, outputToken: cashOut.contractId, amount: bought };
+            await placeInAndOutOrder({ ...exit, role: 'target', movePct: targetPct, trigger: { token: buy.contractId, base: cashOut.contractId, ratio: targetRatio, direction: 'gt' } });
+            if (safetyRatio) {
+                await placeInAndOutOrder({ ...exit, role: 'safety', movePct: -SAFETY, trigger: { token: buy.contractId, base: cashOut.contractId, ratio: safetyRatio, direction: 'lt' } });
+            }
             setPhase('done');
         } catch (err) {
             setError((err as Error).message);
@@ -116,18 +148,18 @@ export default function TakeProfitPage() {
     return (
         <div className="container max-w-7xl mx-auto px-4 py-6 space-y-6">
             <div className="space-y-1">
-                <h1 className="text-2xl font-semibold text-white/95">Take Profit</h1>
+                <h1 className="text-2xl font-semibold text-white/95">In &amp; Out</h1>
                 <p className="text-sm text-white/60">
-                    Holding a token on the subnet? Cash it out into sBTC, STX or a stablecoin once it&apos;s up. Add a safety net to get out if it drops instead. Whichever happens first runs, and the other is cancelled.
+                    Buy a token now, and sell it automatically once it&apos;s up. You pick the profit; it cashes out into sBTC, STX or a stablecoin.
                 </p>
             </div>
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
                 <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 flex flex-col">
-                    {from && to && ratio ? (
+                    {buy && cashOut && ratio ? (
                         <ConditionTokenChart
-                            token={from}
-                            baseToken={to}
+                            token={buy}
+                            baseToken={cashOut}
                             targetPrice={targetRatio ? targetRatio.toString() : ''}
                             direction="gt"
                             onTargetPriceChange={price => {
@@ -139,93 +171,85 @@ export default function TakeProfitPage() {
                         />
                     ) : (
                         <div className="h-full min-h-[480px] flex items-center justify-center text-sm text-white/50">
-                            {missingPrice ?? 'Pick what you hold and what to swap into to see the chart.'}
+                            {problem ?? 'Pick what to buy and where to cash out to see the chart.'}
                         </div>
                     )}
                 </div>
 
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-5">
+                <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-6">
                     {phase === 'done' ? (
                         <div className="space-y-4">
-                            <div className="text-lg font-medium text-white/95">Take profit set ✓</div>
+                            <div className="text-lg font-medium text-white/95">You&apos;re in ✓</div>
                             <p className="text-sm text-white/60">
-                                When {from?.symbol} reaches {targetRatio && fmt(targetRatio)} {to?.symbol}
-                                {safetyRatio ? ` or drops to ${fmt(safetyRatio)} ${to?.symbol}` : ''}, it swaps into {to?.symbol}. You can close this page.
+                                Buying {buy?.symbol} now. It sells into {cashOut?.symbol} at {targetRatio && fmt(targetRatio)} {cashOut?.symbol}
+                                {safetyRatio ? `, or at ${fmt(safetyRatio)} if it drops first` : ''}. You can close this page.
                             </p>
                             <div className="flex gap-2">
                                 <Link href="/orders" className="flex-1 rounded-lg border border-white/20 px-3 py-2 text-center text-sm text-white hover:bg-white/[0.06]">View in Orders</Link>
-                                <button type="button" onClick={() => setPhase('setup')} className="flex-1 rounded-lg border border-white/[0.08] px-3 py-2 text-sm text-white/70 hover:text-white">Set another</button>
+                                <button type="button" onClick={() => setPhase('setup')} className="flex-1 rounded-lg border border-white/[0.08] px-3 py-2 text-sm text-white/70 hover:text-white">Start another</button>
                             </div>
                         </div>
                     ) : (
                         <>
-                            <div className="space-y-2">
-                                <div className="text-xs text-white/60">You hold (on the subnet)</div>
-                                <SubnetPairSelector label="Pick a token" selected={from} exclude={to?.contractId} onSelect={t => { setFrom(t); if (to?.contractId === t.contractId) setTo(null); }} />
-                                {from && decimals !== undefined && (
-                                    <div className="flex justify-between text-xs text-white/60">
-                                        <span>Available</span>
-                                        <span className="font-mono">{fmt(balanceRaw / 10 ** decimals)} {from.symbol}</span>
+                            <Step n={1} title="In: buy now">
+                                <div className="text-xs text-white/60">Pay with (on the subnet)</div>
+                                <SubnetPairSelector label="Pick a token you hold" selected={pay} exclude={buy?.contractId} onSelect={pickPay} />
+                                {pay && (
+                                    <div className="flex gap-2">
+                                        {SHARES.map(s => <Chip key={s} active={share === s} onClick={() => setShare(s)}>{s === 1 ? 'All' : `${s * 100}%`}</Chip>)}
                                     </div>
                                 )}
-                            </div>
-
-                            <div className="space-y-2">
-                                <div className="text-xs text-white/60">Take profit in</div>
+                                {pay && decimals !== undefined && (
+                                    <div className="flex justify-between text-xs text-white/60">
+                                        <span>Spend</span>
+                                        <span className="font-mono">{fmt(amountDisplay)} of {fmt(balanceRaw / 10 ** decimals)} {pay.symbol}</span>
+                                    </div>
+                                )}
+                                <div className="text-xs text-white/60 pt-1">Buy</div>
                                 {listError
                                     ? <p role="alert" className="text-sm text-red-400">Couldn&apos;t load swappable tokens: {listError}</p>
                                     : swappable
-                                        ? (
-                                            <div className="grid grid-cols-4 gap-2">
-                                                {toTokens.map(t => (
-                                                    <Chip key={t.contractId} active={to?.contractId === t.contractId} onClick={() => setTo(t)}>
-                                                        <span className="flex flex-col items-center gap-1">
-                                                            {t.image && (
-                                                                // eslint-disable-next-line @next/next/no-img-element
-                                                                <img src={t.image} alt="" width={20} height={20} className="rounded-full" />
-                                                            )}
-                                                            {t.symbol}
-                                                        </span>
-                                                    </Chip>
-                                                ))}
-                                            </div>
-                                        )
+                                        ? <TokenDropdown tokens={buyable} selected={buy} onSelect={setBuy} label="Pick a token to buy" includeStx={false} />
                                         : <div className="text-sm text-white/50">Loading…</div>}
-                            </div>
+                            </Step>
 
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-xs text-white/60">
-                                    <span>Amount</span>
-                                    {from && <span className="font-mono">{fmt(amountDisplay)} {from.symbol}</span>}
-                                </div>
-                                <div className="flex gap-2">
-                                    {SHARES.map(s => <Chip key={s} active={share === s} onClick={() => setShare(s)}>{s === 1 ? 'All' : `${s * 100}%`}</Chip>)}
-                                </div>
-                            </div>
-
-                            {ratio && from && to && (
-                                <div className="flex justify-between text-xs text-white/60">
-                                    <span>Now</span>
-                                    <span className="font-mono">1 {from.symbol} = {fmt(ratio)} {to.symbol}</span>
-                                </div>
-                            )}
-
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-xs text-white/60">
-                                    <span>🎯 Take profit when it rises {!TARGETS.includes(targetPct) && `(+${(targetPct * 100).toFixed(1)}%)`}</span>
-                                    {targetRatio && to && <span className="font-mono">{fmt(targetRatio)} {to.symbol}</span>}
+                            <Step n={2} title="Out: sell at a profit">
+                                <div className="text-xs text-white/60">Cash out into</div>
+                                {swappable && (
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {cashOutTokens.map(t => (
+                                            <Chip key={t.contractId} active={cashOut?.contractId === t.contractId} onClick={() => { setCashOut(t); if (buy?.contractId === t.contractId) setBuy(null); }}>
+                                                <span className="flex flex-col items-center gap-1">
+                                                    {t.image && (
+                                                        // eslint-disable-next-line @next/next/no-img-element
+                                                        <img src={t.image} alt="" width={20} height={20} className="rounded-full" />
+                                                    )}
+                                                    {t.symbol}
+                                                </span>
+                                            </Chip>
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="flex justify-between text-xs text-white/60 pt-1">
+                                    <span>🎯 Sell when it&apos;s up {!TARGETS.includes(targetPct) && `(+${(targetPct * 100).toFixed(1)}%)`}</span>
+                                    {targetRatio && cashOut && <span className="font-mono">{fmt(targetRatio)} {cashOut.symbol}</span>}
                                 </div>
                                 <div className="flex gap-2">
                                     {TARGETS.map(t => <Chip key={t} active={targetPct === t} onClick={() => setTargetPct(t)}>+{t * 100}%</Chip>)}
                                 </div>
-                            </div>
+                                {ratio && buy && cashOut && (
+                                    <div className="flex justify-between text-xs text-white/50">
+                                        <span>Now</span>
+                                        <span className="font-mono">1 {buy.symbol} = {fmt(ratio)} {cashOut.symbol}</span>
+                                    </div>
+                                )}
+                                <label className="flex items-center justify-between gap-3 pt-1 text-sm text-white/80 cursor-pointer">
+                                    <span>🛡️ Safety net: sell if it falls {SAFETY * 100}%{safetyRatio && cashOut ? ` (${fmt(safetyRatio)} ${cashOut.symbol})` : ''}</span>
+                                    <input type="checkbox" checked={safetyOn} onChange={e => setSafetyOn(e.target.checked)} className="h-4 w-4 cursor-pointer accent-white" />
+                                </label>
+                            </Step>
 
-                            <label className="flex items-center justify-between gap-3 text-sm text-white/80 cursor-pointer">
-                                <span>🛡️ Safety net: swap if it falls {SAFETY * 100}%{safetyRatio && to ? ` (${fmt(safetyRatio)} ${to.symbol})` : ''}</span>
-                                <input type="checkbox" checked={safetyOn} onChange={e => setSafetyOn(e.target.checked)} className="h-4 w-4 cursor-pointer accent-white" />
-                            </label>
-
-                            {(error || missingPrice) && <p role="alert" className="text-sm text-red-400">{error ?? missingPrice}</p>}
+                            {(error || problem) && <p role="alert" className="text-sm text-red-400">{error ?? problem}</p>}
 
                             <button
                                 type="button"
@@ -233,10 +257,10 @@ export default function TakeProfitPage() {
                                 disabled={!ready || phase === 'signing'}
                                 className="w-full rounded-lg bg-white/90 px-4 py-3 text-sm font-medium text-black hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
                             >
-                                {phase === 'signing' ? 'Signing in your wallet…' : `Sign ${safetyOn ? '2 orders' : '1 order'}`}
+                                {phase === 'signing' ? 'Signing in your wallet…' : `Buy now & set the exit (${signatures} signatures)`}
                             </button>
                             <p className="text-xs text-white/50">
-                                Drag the target line on the chart to fine-tune it. Spends tokens already on the subnet. The swap pays out to your wallet. Prices come from Charisma&apos;s price feed.
+                                Drag the target line on the chart to fine-tune it. The buy runs right away; the sale waits for its price. Proceeds go to your wallet.
                             </p>
                         </>
                     )}
