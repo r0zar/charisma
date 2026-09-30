@@ -70,8 +70,14 @@ export function TokenIcon({ token, size = 20 }: { token: ZestyTokenKey; size?: n
   const { getTokenImage } = useTokenMetadata();
   const src = getTokenImage(ZESTY_TOKENS[token].mainnet);
   if (!src) return <span className="inline-block rounded-full bg-[#E0E0E0]" style={{ width: size, height: size }} />;
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt={ZESTY_TOKENS[token].symbol} width={size} height={size} className="rounded-full" />;
+  // Logos often draw their own circle slightly off-center; zooming a hair inside a round frame makes the
+  // frame's clean circle the edge you see
+  return (
+    <span className="inline-block shrink-0 overflow-hidden rounded-full" style={{ width: size, height: size }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt={ZESTY_TOKENS[token].symbol} width={size} height={size} className="block h-full w-full scale-[1.06] object-cover" />
+    </span>
+  );
 }
 
 export function ErrorNote({ message }: { message: string }) {
