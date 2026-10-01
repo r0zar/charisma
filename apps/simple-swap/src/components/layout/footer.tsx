@@ -20,6 +20,14 @@ const COLUMNS: { title: string; links: { href: string; label: string; external?:
     },
     { title: 'Advanced', links: advancedLinks.map(({ href, label }) => ({ href, label })) },
     {
+        title: 'Build',
+        links: [
+            { href: 'https://launchpad.charisma.rocks/templates/sip10', label: 'Launch a token', external: true },
+            { href: 'https://launchpad.charisma.rocks/templates/liquidity-pool', label: 'Create a pool', external: true },
+            { href: 'https://invest.charisma.rocks/pools', label: 'Add liquidity', external: true },
+        ],
+    },
+    {
         title: 'Resources',
         links: [
             { href: 'https://docs.charisma.rocks', label: 'Documentation', external: true },
@@ -37,7 +45,7 @@ export function Footer({ className = 'mt-16' }: { className?: string }) {
         <footer className={`relative border-t border-white/[0.06] ${className}`}>
             <div className="absolute inset-0 bg-gradient-to-t from-white/[0.01] to-transparent pointer-events-none" />
             <div className="container relative z-10 py-16">
-                <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-12 md:grid-cols-3 lg:grid-cols-5">
                     <div>
                         <Link href="/" className="flex items-center gap-3 group mb-4">
                             <div className="h-8 w-8 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center backdrop-blur-sm group-hover:bg-white/[0.12] transition-all duration-200">
