@@ -22,6 +22,7 @@ interface RequestBody {
         externalPoolId?: string,
         engineContractId?: string,
         stxWrapper?: string,
+        forwardsInputFee?: boolean,
         type?: string,
         protocol?: string
     };
@@ -47,6 +48,7 @@ interface Vault {
     externalPoolId: string;
     engineContractId: string;
     stxWrapper?: string; // Asset the pool swaps STX through, e.g. Arkadiko's wSTX ("contract::token")
+    forwardsInputFee?: boolean; // The pool sends part of the input on to a fee address (e.g. Velar)
     tokenA?: TokenData; // Now optional
     tokenB?: TokenData; // Now optional
     tokenBContract?: string; // For SUBLINK type
@@ -118,6 +120,7 @@ async function confirmVaultHandler(req: NextRequest, { params }: { params: { con
             externalPoolId: lpToken.externalPoolId || "",
             engineContractId: lpToken.engineContractId || "",
             ...(lpToken.stxWrapper ? { stxWrapper: lpToken.stxWrapper } : {}),
+            ...(lpToken.forwardsInputFee ? { forwardsInputFee: true } : {}),
         };
 
         // Add tokenA and tokenB if they exist

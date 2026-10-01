@@ -26,6 +26,7 @@ export interface Hop {
         contractId: string;
         externalPoolId?: string;
         stxWrapper?: string;  // Asset the pool swaps STX through ("contract::token"), e.g. Arkadiko's wSTX
+        forwardsInputFee?: boolean;  // The pool sends part of the input on to a fee address (e.g. Velar)
         type: string;
     };
     opcode: number;        // Opcode for the vault operation
@@ -210,6 +211,11 @@ export function buildPostConditions(route: Route, routerCID: string, slippage: n
             const outputPrincipal = getOutputPrincipal(hop);
             const amtOutWithSlippage = builder.applyGteSlippage(amtOut);
             builder.addGte(outputPrincipal, getAssetId(hop.tokenOut), amtOutWithSlippage);
+        }
+
+        // The pool forwards a slice of the input to its fee address; it can never be more than the input
+        if (hop.vault.forwardsInputFee && !isSubnet(hop.tokenIn)) {
+            builder.addLte(getOutputPrincipal(hop), getAssetId(hop.tokenIn), builder.applyLteSlippage(amtIn));
         }
 
         // Some pools swap STX through a wrapper token: STX in is wrapped and the router pays the wrapper in;

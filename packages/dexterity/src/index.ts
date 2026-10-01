@@ -61,6 +61,8 @@ export interface Vault {
   spotPrice?: number;
   /** Asset this pool swaps STX through ("contract::token"), e.g. Arkadiko's wSTX; see stxWrapperPostConditions */
   stxWrapper?: string;
+  /** The pool sends part of the input on to a fee address (e.g. Velar), so it also sends some of the input token */
+  forwardsInputFee?: boolean;
 }
 
 /** Bitflow DLMM (bin) and stableswap pools: their reserves don't imply their price, unlike x·y=k pools */
@@ -772,6 +774,8 @@ export const buildSwapPostConditions = async (
     mk(tokenIn, maxIn, sender, 'lte'),
     mk(tokenOut, minOut, vault.externalPoolId || vault.contractId, 'gte'),
     ...stxWrapperPostConditions(hop, sender, maxIn, minOut, BigInt(Math.ceil(Number(amtOut) * (1 + effectiveSlippage)))),
+    // The pool forwards a slice of the input to its fee address; it can never be more than the input
+    ...(vault.forwardsInputFee ? [mk(tokenIn, maxIn, vault.externalPoolId || vault.contractId, 'lte')] : []),
   ];
 };
 
