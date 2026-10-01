@@ -93,7 +93,10 @@ export default function Home() {
             </div>
           </div>
           <div className="flex min-w-0 flex-col gap-4">
-            <div className="[&_.cx-segment:nth-child(n+2)]:hidden" dangerouslySetInnerHTML={{ __html: specimen('ModeToggle') }} />
+            <div className="cx-segment self-start" role="group" aria-label="Swap mode">
+              <button type="button" aria-pressed="false"><span className="cx-dot" />Instant</button>
+              <button type="button" aria-pressed="true"><span className="cx-dot cx-dot-blaze" />Triggered</button>
+            </div>
             <div dangerouslySetInnerHTML={{ __html: specimen('StrategyCard') }} />
           </div>
         </div>
