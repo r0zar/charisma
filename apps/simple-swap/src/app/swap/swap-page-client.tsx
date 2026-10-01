@@ -10,6 +10,7 @@ import { WalletBalanceProvider } from '@/contexts/wallet-balance-context';
 import { SwapInformationSidebar } from '@/components/swap-interface/swap-information-sidebar';
 import { RouteIntelligenceSidebar } from '@/components/swap-interface/route-intelligence-sidebar';
 import { X, BarChart3, Info } from 'lucide-react';
+import { Footer } from '@/components/layout/footer';
 
 interface SwapPageClientProps {
     tokens: any[];
@@ -169,6 +170,7 @@ export default function SwapPageClient({ tokens, searchParams, initialBalances }
                             </div>
                         </main>
                     </div>
+                    <Footer />
                 </SwapPageWithProviders>
             </WalletBalanceProvider>
         </SwapTokensProvider>

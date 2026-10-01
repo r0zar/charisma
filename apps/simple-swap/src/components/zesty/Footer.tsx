@@ -13,7 +13,7 @@ export function Footer() {
   const [thanks, setThanks] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/v1/zesty/solver')
+    fetch('/api/v1/solver')
       .then(async res => {
         const body = await res.json();
         if (!res.ok) throw new Error(body.error ?? `Solver balance unavailable (${res.status})`);

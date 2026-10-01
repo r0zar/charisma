@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Coins, ExternalLink, Github, MessageSquare, Twitter } from 'lucide-react';
 import { advancedLinks } from './nav-links';
+import { TipJar } from './tip-jar';
 
 const SOCIALS = [
     { href: 'https://x.com/CharismaBTC', label: 'Charisma on X', icon: Twitter },
@@ -83,6 +84,10 @@ export function Footer() {
                             </ul>
                         </div>
                     ))}
+                </div>
+
+                <div className="mt-12 max-w-md">
+                    <TipJar />
                 </div>
 
                 <div className="mt-12 pt-8 border-t border-white/[0.06] text-sm text-white/50">
