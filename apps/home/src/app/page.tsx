@@ -12,6 +12,13 @@ const specimen = (name: string) => {
   return s.html;
 };
 
+/** The light-realm hero: three overlapping coins, each bobbing on its own beat */
+const CLUSTER = [
+  { src: '/tokens/stx.png', style: { width: '38%', left: '4%', top: '6%', animationDelay: '-1.6s' } },
+  { src: '/tokens/usdcx.png', style: { width: '42%', right: '2%', bottom: '6%', animationDelay: '-3.2s' } },
+  { src: '/tokens/sbtc.png', style: { width: '54%', left: '23%', top: '22%', animationDelay: '0s' } },
+];
+
 const BLAZE_POINTS = [
   ['Sign once', 'Approve an order with one signature. Charisma’s solver executes it when your price hits.'],
   ['Instant and gasless', 'Blaze is a Stacks subnet: transfers settle in a moment and cost you nothing.'],
@@ -48,12 +55,23 @@ export default function Home() {
           <div className="relative flex justify-center py-6">
             <div className="grid-texture absolute inset-[-10%]" aria-hidden />
             <div className="hero-glow absolute inset-[-25%]" aria-hidden />
-            {/* the floating 8-bit crest from the original charisma.rocks; still when the visitor prefers less motion */}
-            <picture className="relative">
-              <source srcSet="/brand/logos/charisma-mark-pixel.png" media="(prefers-reduced-motion: reduce)" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/brand/logos/charisma-crest-floating.gif" alt="The Charisma crest" width={640} height={640} className="w-[256px] sm:w-[320px] [image-rendering:pixelated]" />
-            </picture>
+            {/* Dark · RPG: the floating 8-bit crest from the original charisma.rocks (still under reduced motion) */}
+            <div className="cx-dark-only">
+              <picture className="relative">
+                <source srcSet="/brand/logos/charisma-mark-pixel.png" media="(prefers-reduced-motion: reduce)" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/logos/charisma-crest-floating.gif" alt="The Charisma crest" width={640} height={640} className="w-[256px] sm:w-[320px] [image-rendering:pixelated]" />
+              </picture>
+            </div>
+            {/* Light · Bitcoin: the tokens Charisma trades most, sBTC, STX and USDCx */}
+            <div className="cx-light-only">
+              <div className="token-cluster relative h-[256px] w-[256px] sm:h-[320px] sm:w-[320px]" role="img" aria-label="sBTC, STX and USDCx">
+                {CLUSTER.map(t => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img key={t.src} src={t.src} alt="" className="bob absolute rounded-full" style={t.style} />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
         <div className="mx-auto max-w-[1200px] px-5 pb-20 sm:px-8"><StatsStrip /></div>

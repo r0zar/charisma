@@ -37,7 +37,7 @@ import { THEME_SCRIPT, ThemeToggle } from '@repo/brand/react';
 transpilePackages: ['@repo/brand'],
 ```
 
-- **Themes:** with no `data-theme`, tokens follow `prefers-color-scheme`. The toggle sets `data-theme="light"` or `"dark"` and remembers it; picking System clears it. Any element with `data-theme` pins its subtree.
+- **Themes:** with no `data-theme`, tokens follow `prefers-color-scheme`. The toggle sets `data-theme="light"` or `"dark"` and remembers it; picking System clears it. Any element with `data-theme` pins its subtree. Wrap realm-specific content in `cx-dark-only` or `cx-light-only`; both follow System, Light and Dark.
 - **Radius and spacing** already match Tailwind's scale: `rounded-lg` (8px), `rounded-xl` (12px) and `rounded-2xl` (16px) are `radius-sm`, `radius-md` and `radius-lg`.
 - **Logos and favicons:** copy them from `logos/` and `favicons/` into the app's `public/`, or import them as files.
 

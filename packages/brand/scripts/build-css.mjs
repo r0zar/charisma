@@ -45,6 +45,18 @@ ${body('light', '    ')}
 ${body('light')}
 }
 
+/* Realm-only wrappers: show their contents in one realm. display: contents keeps the children's own layout. */
+.cx-dark-only { display: contents; }
+.cx-light-only { display: none; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) .cx-dark-only { display: none; }
+  :root:not([data-theme]) .cx-light-only { display: contents; }
+}
+[data-theme="light"] .cx-dark-only { display: none; }
+[data-theme="light"] .cx-light-only { display: contents; }
+[data-theme="dark"] .cx-dark-only { display: contents; }
+[data-theme="dark"] .cx-light-only { display: none; }
+
 :root {
 ${[...fixed, ...fonts].join('\n')}
 }
