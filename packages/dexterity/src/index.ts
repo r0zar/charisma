@@ -506,9 +506,10 @@ export class Router {
       console.log(`[router] findAllPaths: Node ${from} has ${node.edges.size} edges to ${groups.size} unique targets`);
     }
 
-    // DFS once per neighbour token (evaluatePath picks the best pool per hop), never revisiting a token
+    // DFS once per neighbour token (evaluatePath picks the best pool per hop), never revisiting a token,
+    // except returning to the destination, which closes a loop when from === to (arbitrage)
     groups.forEach((_edges, tgt) => {
-      if (nextPath.some(t => t.contractId === tgt)) return;
+      if (tgt !== to && nextPath.some(t => t.contractId === tgt)) return;
       out.push(...this.findAllPaths(tgt, to, nextPath));
     });
 
@@ -530,9 +531,9 @@ export class Router {
         const node = this.nodes.get(a.contractId);
         if (!node) throw new Error('node miss');
 
-        // All pools connecting a → b
+        // All pools connecting a → b, never reusing a pool earlier in this route (out and back through one pool only loses)
         const edges = Array.from(node.edges.values()).filter(
-          e => e.target.contractId === b.contractId,
+          e => e.target.contractId === b.contractId && !hops.some(h => h.vault.contractId === e.vault.contractId),
         );
         if (!edges.length) throw new Error('edge miss');
 
