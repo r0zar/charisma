@@ -48,8 +48,12 @@ export default function Home() {
           <div className="relative flex justify-center py-6">
             <div className="grid-texture absolute inset-[-10%]" aria-hidden />
             <div className="hero-glow absolute inset-[-25%]" aria-hidden />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/brand/logos/charisma-mark.png" alt="The Charisma crest" className="relative w-[200px] sm:w-[280px] drop-shadow-[0_28px_56px_rgba(0,0,0,.5)]" />
+            {/* the floating 8-bit crest from the original charisma.rocks; still when the visitor prefers less motion */}
+            <picture className="relative">
+              <source srcSet="/brand/logos/charisma-mark-pixel.png" media="(prefers-reduced-motion: reduce)" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/brand/logos/charisma-crest-floating.gif" alt="The Charisma crest" width={640} height={640} className="w-[256px] sm:w-[320px] [image-rendering:pixelated]" />
+            </picture>
           </div>
         </div>
         <div className="mx-auto max-w-[1200px] px-5 pb-20 sm:px-8"><StatsStrip /></div>

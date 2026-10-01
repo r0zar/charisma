@@ -52,7 +52,7 @@ transpilePackages: ['@repo/brand'],
 | `fonts.css`, `fonts/` | Ysabeau Infant (variable, plus italic) and DM Mono 400/500, as woff2, with OFL licences |
 | `components/components.css` | The `cx-` component classes: static renditions of the real app widgets, for marketing pages and docs |
 | `components/specimens.json` | The 20 component specimens (markup + guidelines), rendered by brand.charisma.rocks |
-| `logos/` | The smooth crest (`charisma-mark.png`) and the pixel crests, for game moments only |
+| `logos/` | The smooth crest (`charisma-mark.png`), the pixel crests for game moments, and `charisma-crest-floating.gif`, the floating 8-bit crest for the charisma.rocks hero |
 | `react/` | `ThemeToggle` (System → Light → Dark) and `THEME_SCRIPT`, the pre-paint script that applies a saved pick |
 | `favicons/` | favicon.ico, 16/32 px, apple-touch, android 192/512, `site.webmanifest` |
 

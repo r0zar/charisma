@@ -10,6 +10,7 @@ const MARKS = [
   { file: 'charisma-mark-pixel.png', title: '8-bit crest', use: 'Game and RPG moments only: Meme Roulette, the lottery, quests, loading and 404 screens.', pixel: true },
   { file: 'charisma-mark-pixel-square.png', title: '8-bit tile', use: 'Square avatars on game surfaces.', pixel: true },
   { file: 'charisma-glyph-pixel.png', title: 'Pixel glyph', use: 'Decoration only, never the logo.', pixel: true },
+  { file: 'charisma-crest-floating.gif', title: 'Floating crest', use: 'The animated 8-bit crest bobbing over its shadow, for the charisma.rocks hero. Swap to the still 8-bit crest for reduced motion.', pixel: true },
 ];
 const CORE = ['Swap', 'Invest', 'Launchpad', 'Docs'];
 const ENDORSED = ['Zesty', 'Meme Roulette', 'Blaze Wallet', 'Tokemon'];
@@ -25,7 +26,7 @@ export default function LogoPage() {
     <>
       <PageIntro eyebrow="Logo" title="The crest">A blackletter C inside a crimson disc. It is the one element that looks the same in both realms, and every Charisma app shows it.</PageIntro>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {MARKS.map(m => (
           <div key={m.file} className="cx-card flex flex-col gap-4">
             <div className="grid-texture flex h-40 items-center justify-center rounded-xl bg-surface-sunken">
