@@ -641,7 +641,8 @@ export class Router {
       pathsToEvaluate.map(p => this.evaluatePath(p, amount))
     );
 
-    const ok = routes.filter((r): r is Route => !(r instanceof Error));
+    // A pool that would refuse the trade quotes 0, so a zero-output route isn't a route
+    const ok = routes.filter((r): r is Route => !(r instanceof Error) && r.amountOut > 0);
 
     if (this.config.debug) {
       console.log(`[router] ${ok.length} valid routes found`);
