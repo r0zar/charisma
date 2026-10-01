@@ -21,7 +21,7 @@ import {
 } from '@stacks/transactions';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 import { STACKS_MAINNET } from '@stacks/network';
-import { DEFAULT_ROUTER_CONFIG, MULTIHOP_CONTRACT_ID, MULTIHOP_CONTRACT_IDS, STX_CONTRACT_ID, WRAPPED_STX_CONTRACT_ID } from '../../constants';
+import { DEFAULT_ROUTER_CONFIG, MAX_SOLVER_FEE_USTX, MULTIHOP_CONTRACT_ID, MULTIHOP_CONTRACT_IDS, STX_CONTRACT_ID, WRAPPED_STX_CONTRACT_ID } from '../../constants';
 import { recoverSigner } from '../../core';
 import { ContractCallTxOptions } from '../types';
 import { buildPostConditions, Token, Hop, Route } from './utils/postconditions';
@@ -252,6 +252,18 @@ export async function findSignedRouter(
 }
 
 /**
+ * makeContractCall with the network fee capped at MAX_SOLVER_FEE_USTX: an estimated (or given) fee above the
+ * cap is replaced by the cap, so mempool spam can't make the solver overpay.
+ */
+export async function makeCappedContractCall(txOptions: ContractCallTxOptions) {
+    const fee = txOptions.fee !== undefined ? BigInt(txOptions.fee) : undefined;
+    if (fee !== undefined) return makeContractCall({ ...txOptions, fee: fee > MAX_SOLVER_FEE_USTX ? MAX_SOLVER_FEE_USTX : fee });
+    const estimated = await makeContractCall(txOptions);
+    if (BigInt(estimated.auth.spendingCondition.fee) <= MAX_SOLVER_FEE_USTX) return estimated;
+    return makeContractCall({ ...txOptions, fee: MAX_SOLVER_FEE_USTX });
+}
+
+/**
  * Executes a multihop transaction using native Clarity values
  * 
  * @param txConfig - The transaction configuration with native Clarity values
@@ -282,7 +294,7 @@ export async function broadcastMultihopTransaction(
         txOptions.nonce = txConfig.nonce;
     }
 
-    const transaction = await makeContractCall(txOptions);
+    const transaction = await makeCappedContractCall(txOptions);
 
     // Broadcast transaction
     return await broadcastTransaction({ transaction, network: STACKS_MAINNET });

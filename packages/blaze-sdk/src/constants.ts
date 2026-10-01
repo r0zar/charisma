@@ -25,3 +25,9 @@ export function routerConfigFor(contractId: string) {
     const [routerAddress, routerName] = contractId.split('.');
     return { routerAddress, routerName };
 }
+
+/**
+ * Most a solver will pay in network fees for one transaction: 0.01 STX. The fee estimator follows the
+ * mempool, which spam can push to several STX; confirmed contract calls typically pay ~0.001 STX.
+ */
+export const MAX_SOLVER_FEE_USTX = 10_000n;

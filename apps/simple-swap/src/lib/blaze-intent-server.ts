@@ -4,7 +4,6 @@ import {
     stringAsciiCV, someCV, noneCV, uintCV, principalCV, tupleCV, signStructuredData,
     ClarityValue,
     validateStacksAddress,
-    makeContractCall,
     broadcastTransaction,
     PostConditionMode,
     StacksTransactionWire
@@ -15,6 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 import { kv } from '@vercel/kv';
 import { callReadOnlyFunction } from '@repo/polyglot';
+import { makeCappedContractCall } from 'blaze-sdk';
 import { BLAZE_SIGNER_CONTRACT_ID, BLAZE_SIGNER_PRIVATE_KEY } from './constants';
 
 // ----- CONFIGURATION CONSTANTS -----
@@ -195,7 +195,7 @@ async function processAndBroadcastBlazeIntent(
         };
 
         console.log(`Broadcasting Stacks tx for intent ${intentDetails.uuid} (${intentDetails.intent}) to ${intentDetails.contract} calling ${functionName}`);
-        const transaction: StacksTransactionWire = await makeContractCall(txOptions);
+        const transaction: StacksTransactionWire = await makeCappedContractCall(txOptions);
 
         // Corrected: broadcastTransaction expects an object with transaction and network
         const broadcastResponse = await broadcastTransaction({ transaction: transaction, network: networkInstance });
