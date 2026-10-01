@@ -61,8 +61,8 @@ export interface Vault {
   spotPrice?: number;
 }
 
-/** Bitflow DLMM pools: liquidity sits in price bins, so reserves aren't a price */
-export const isBinPool = (v: Vault): boolean => !!v.externalPoolId?.includes('dlmm-pool');
+/** Bitflow DLMM (bin) and stableswap pools: their reserves don't imply their price, unlike x·y=k pools */
+export const isPricedByQuote = (v: Vault): boolean => /dlmm-pool|stableswap/.test(v.externalPoolId ?? '');
 
 export interface GraphEdge { vault: Vault; target: Token }
 export interface GraphNode { token: Token; edges: Map<string, GraphEdge> }
@@ -807,16 +807,16 @@ export const loadVaults = async (router: Router, dexCacheUrl: string = getDexCac
 };
 
 /**
- * Give each bin pool its current price from a tiny live quote (about 0.01% of its A balance), so route
+ * Give each bin or stable pool its current price from a tiny live quote (about 0.01% of its A balance), so route
  * ranking sees the real price. A pool whose quote fails keeps no spotPrice and is ranked as x·y=k.
  */
 export const withSpotPrices = async (vaults: Vault[]): Promise<Vault[]> =>
   Promise.all(vaults.map(async (v) => {
-    if (!isBinPool(v) || v.reservesA <= 0) return v;
+    if (!isPricedByQuote(v) || v.reservesA <= 0) return v;
     const probe = Math.max(1, Math.floor(v.reservesA / 10_000));
     const q = await quoteVault(v, probe, OPCODES.SWAP_A_TO_B);
     if (!q || q.dx <= 0 || q.dy <= 0) {
-      console.warn(`[router] couldn't price bin pool ${v.contractId}; ranking it by reserves`);
+      console.warn(`[router] couldn't price pool ${v.contractId}; ranking it by reserves`);
       return v;
     }
     // Undo the pool fee so the spot price is fee-free; estimateOutput applies the fee once
