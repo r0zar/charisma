@@ -32,9 +32,9 @@ const COLUMNS: { title: string; links: { href: string; label: string; external?:
 const linkClass = 'text-white/60 hover:text-white/90 transition-colors duration-200 text-sm inline-flex items-center gap-1';
 
 /** Site footer: only links that go somewhere real */
-export function Footer() {
+export function Footer({ className = 'mt-16' }: { className?: string }) {
     return (
-        <footer className="relative mt-16 border-t border-white/[0.06]">
+        <footer className={`relative border-t border-white/[0.06] ${className}`}>
             <div className="absolute inset-0 bg-gradient-to-t from-white/[0.01] to-transparent pointer-events-none" />
             <div className="container relative z-10 py-16">
                 <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-4">
@@ -63,6 +63,9 @@ export function Footer() {
                                 </a>
                             ))}
                         </div>
+                        <div className="mt-6">
+                            <TipJar />
+                        </div>
                     </div>
 
                     {COLUMNS.map(column => (
@@ -84,10 +87,6 @@ export function Footer() {
                             </ul>
                         </div>
                     ))}
-                </div>
-
-                <div className="mt-12 max-w-md">
-                    <TipJar />
                 </div>
 
                 <div className="mt-12 pt-8 border-t border-white/[0.06] text-sm text-white/50">

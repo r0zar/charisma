@@ -170,7 +170,7 @@ export default function SwapPageClient({ tokens, searchParams, initialBalances }
                             </div>
                         </main>
                     </div>
-                    <Footer />
+                    <Footer className="mt-0" />
                 </SwapPageWithProviders>
             </WalletBalanceProvider>
         </SwapTokensProvider>
