@@ -53,7 +53,16 @@ export interface Vault {
   tokenB: Token;
   reservesA: number;
   reservesB: number;
+  /**
+   * Bin-based (DLMM) pools only: units of B per unit of A at the current price, from a tiny live quote.
+   * Their total balances are spread across price bins, so they don't give the price the way an
+   * x·y=k pool's reserves do.
+   */
+  spotPrice?: number;
 }
+
+/** Bitflow DLMM pools: liquidity sits in price bins, so reserves aren't a price */
+export const isBinPool = (v: Vault): boolean => !!v.externalPoolId?.includes('dlmm-pool');
 
 export interface GraphEdge { vault: Vault; target: Token }
 export interface GraphNode { token: Token; edges: Map<string, GraphEdge> }
@@ -367,6 +376,13 @@ export class Router {
     if (opcode === OPCODES.OP_DEPOSIT || opcode === OPCODES.OP_WITHDRAW) {
       // For subnet operations, assume 1:1 with small fee
       return amountIn * feeMultiplier;
+    }
+
+    // Bin pools: straight line at the current price, capped by what the pool holds
+    if (vault.spotPrice) {
+      if (opcode === OPCODES.SWAP_A_TO_B) return Math.min(vault.reservesB, amountIn * vault.spotPrice) * feeMultiplier;
+      if (opcode === OPCODES.SWAP_B_TO_A) return Math.min(vault.reservesA, amountIn / vault.spotPrice) * feeMultiplier;
+      return 0;
     }
 
     // Standard swap estimation using constant product formula
@@ -785,10 +801,28 @@ export const fetchVaults = async (dexCacheUrl: string = getDexCacheUrl()): Promi
  * Convenience wrapper – populate Router straight from dex‑cache.
  */
 export const loadVaults = async (router: Router, dexCacheUrl: string = getDexCacheUrl()): Promise<Vault[]> => {
-  const vaults = await fetchVaults(dexCacheUrl);
+  const vaults = await withSpotPrices(await fetchVaults(dexCacheUrl));
   router.loadVaults(vaults);
   return vaults;
 };
+
+/**
+ * Give each bin pool its current price from a tiny live quote (about 0.01% of its A balance), so route
+ * ranking sees the real price. A pool whose quote fails keeps no spotPrice and is ranked as x·y=k.
+ */
+export const withSpotPrices = async (vaults: Vault[]): Promise<Vault[]> =>
+  Promise.all(vaults.map(async (v) => {
+    if (!isBinPool(v) || v.reservesA <= 0) return v;
+    const probe = Math.max(1, Math.floor(v.reservesA / 10_000));
+    const q = await quoteVault(v, probe, OPCODES.SWAP_A_TO_B);
+    if (!q || q.dx <= 0 || q.dy <= 0) {
+      console.warn(`[router] couldn't price bin pool ${v.contractId}; ranking it by reserves`);
+      return v;
+    }
+    // Undo the pool fee so the spot price is fee-free; estimateOutput applies the fee once
+    const feeMultiplier = 1 - v.fee / 1_000_000;
+    return { ...v, spotPrice: q.dy / q.dx / (feeMultiplier || 1) };
+  }));
 
 export const createRouter = async (cfg: Partial<RouterConfig> = {}) => {
   const router = new Router({ ...defaultConfig, ...cfg });
