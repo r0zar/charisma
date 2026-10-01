@@ -681,10 +681,8 @@ export const listVaultTokens = async (): Promise<Token[]> => {
     const vaults = await getAllVaultData();
     const tokenMap = new Map<string, Token>(); // Key: contractId, Value: Token object
 
-    const filteredVaults = vaults.filter(v =>
-        (v.type === 'POOL' || v.type === 'SUBLINK') &&
-        v.protocol === 'CHARISMA'
-    );
+    // Every routable pool's tokens, including wrapped third-party pools (e.g. Bitflow USDCx)
+    const filteredVaults = vaults.filter(v => v.type === 'POOL' || v.type === 'SUBLINK');
 
     for (const vault of filteredVaults) {
         // Process tokenA if it exists
