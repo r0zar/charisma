@@ -1,0 +1,44 @@
+{
+  "name": "@repo/brand",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Charisma brand: design tokens (Dark · RPG / Light · Bitcoin), fonts, logos and favicons",
+  "exports": {
+    "./tokens.css": "./tokens.css",
+    "./theme.css": "./theme.css",
+    "./shadcn.css": "./shadcn.css",
+    "./fonts.css": "./fonts.css",
+    "./tokens.json": "./tokens.json",
+    "./fonts/*": "./fonts/*",
+    "./logos/*": "./logos/*",
+    "./favicons/*": "./favicons/*",
+    "./components.css": "./components/components.css",
+    "./specimens.json": "./components/specimens.json",
+    "./react": "./react/index.ts"
+  },
+  "files": [
+    "tokens.css",
+    "theme.css",
+    "shadcn.css",
+    "fonts.css",
+    "tokens.json",
+    "fonts",
+    "logos",
+    "favicons",
+    "components",
+    "react"
+  ],
+  "scripts": {
+    "generate": "node scripts/build-css.mjs"
+  },
+  "peerDependencies": {
+    "lucide-react": ">=0.525.0",
+    "react": "^19"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "lucide-react": "^0.525.0",
+    "react": "^19"
+  }
+}

@@ -1,0 +1,210 @@
+/* Charisma components: static renditions of the real app widgets. Every value comes from tokens.css. Prefix: cx- */
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-sans); font-size: 16px; line-height: 24px; -webkit-font-smoothing: antialiased; }
+.cx-stage { padding: var(--space-5); display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: flex-start; }
+.cx-stack { display: flex; flex-direction: column; gap: var(--space-3); }
+.cx-row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.cx-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.cx-label { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-muted); }
+.cx-muted { color: var(--ink-muted); }
+.cx-body { color: var(--ink-body); }
+.cx-icon { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.cx-icon-lg { width: 20px; height: 20px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* ── Surfaces ─────────────────────────────────────── */
+.cx-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--space-5); box-shadow: var(--shadow-card); backdrop-filter: blur(8px); }
+.cx-pane { background: var(--surface-sunken); border: 1px solid var(--line-soft); border-radius: var(--radius-lg); padding: var(--space-5); }
+.cx-raised { background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); }
+
+/* ── Buttons ──────────────────────────────────────── */
+.cx-btn { font: inherit; font-size: 14px; line-height: 20px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); height: 40px; padding: 0 var(--space-5); border-radius: var(--radius-md); border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; transition: background .2s, border-color .2s, transform .1s; white-space: nowrap; }
+.cx-btn:hover { background: var(--surface-hover); border-color: var(--line-strong); }
+.cx-btn:active { transform: scale(.98); }
+.cx-btn-primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); box-shadow: var(--shadow-cta); }
+.cx-btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.cx-btn-quiet { background: none; border-color: transparent; color: var(--ink-body); }
+.cx-btn-quiet:hover { background: var(--surface-hover); border-color: transparent; color: var(--ink); }
+.cx-btn-lg { height: 56px; font-size: 16px; padding: 0 var(--space-6); }
+.cx-btn-block { width: 100%; }
+.cx-btn[disabled], .cx-btn[aria-disabled="true"] { opacity: .5; cursor: not-allowed; box-shadow: none; transform: none; }
+.cx-spinner { width: 16px; height: 16px; border-radius: var(--radius-pill); border: 2px solid currentColor; border-right-color: transparent; animation: cx-spin .8s linear infinite; flex: none; }
+@keyframes cx-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .cx-spinner, .cx-pulse, .cx-skeleton { animation: none; } }
+
+/* ── Chips & pills ────────────────────────────────── */
+.cx-chip { font: inherit; font-size: 13px; line-height: 18px; font-weight: 600; height: 30px; padding: 0 var(--space-3); border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--surface); color: var(--ink-body); cursor: pointer; display: inline-flex; align-items: center; gap: var(--space-1); }
+.cx-chip:hover { background: var(--surface-hover); color: var(--ink); }
+.cx-chip[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-text); }
+.cx-chip-round { border-radius: var(--radius-pill); }
+.cx-pill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 var(--space-2); border-radius: var(--radius-pill); font-family: var(--font-mono); font-size: 11px; line-height: 14px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase; background: var(--surface-hover); color: var(--ink-body); white-space: nowrap; }
+.cx-pill::before { content: ""; width: 6px; height: 6px; border-radius: var(--radius-pill); background: currentColor; }
+.cx-pill-plain::before { display: none; }
+.cx-pill-accent { background: var(--accent-soft); color: var(--accent-text); }
+.cx-pill-blaze { background: var(--blaze-soft); color: var(--blaze); }
+.cx-pill-success { background: var(--success-soft); color: var(--success); }
+.cx-pill-danger { background: var(--danger-soft); color: var(--danger); }
+.cx-pill-warning { background: var(--warning-soft); color: var(--warning); }
+
+/* ── Token logo ───────────────────────────────────── */
+.cx-token { position: relative; display: inline-flex; flex: none; width: 32px; height: 32px; border-radius: var(--radius-pill); background: var(--surface-hover); color: var(--ink-body); align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.cx-token img { width: 100%; height: 100%; border-radius: var(--radius-pill); object-fit: cover; }
+.cx-token-sm { width: 20px; height: 20px; font-size: 8px; }
+.cx-token-lg { width: 48px; height: 48px; font-size: 15px; }
+.cx-token-blaze { position: absolute; right: -3px; bottom: -3px; width: 45%; height: 45%; min-width: 12px; min-height: 12px; border-radius: var(--radius-pill); background: var(--blaze); color: var(--bg); border: 2px solid var(--bg); display: flex; align-items: center; justify-content: center; }
+.cx-token-blaze svg { width: 70%; height: 70%; fill: currentColor; stroke: none; }
+.cx-token-pair { display: inline-flex; }
+.cx-token-pair .cx-token + .cx-token { margin-left: -10px; box-shadow: 0 0 0 2px var(--bg); }
+
+/* ── Header ───────────────────────────────────────── */
+.cx-header { height: 64px; display: flex; align-items: center; gap: var(--space-6); padding: 0 var(--space-6); background: var(--chrome); color: var(--on-chrome); border-bottom: 1px solid var(--line); }
+.cx-lockup { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--on-chrome); font-size: 18px; line-height: 24px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+.cx-lockup img { width: 28px; height: 28px; border-radius: var(--radius-pill); }
+.cx-lockup b { font-weight: 700; color: var(--chrome-accent); }
+.cx-lockup-on-page { color: var(--ink); }
+.cx-lockup-on-page b { color: var(--accent-text); }
+.cx-nav { display: flex; gap: var(--space-1); flex: 1; }
+.cx-nav a { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; color: var(--on-chrome-muted); text-decoration: none; font-size: 14px; line-height: 20px; font-weight: 600; padding: 6px var(--space-3); border-radius: var(--radius-sm); }
+.cx-nav a:hover { color: var(--on-chrome); }
+.cx-nav a[aria-current="page"] { color: var(--chrome-accent); }
+.cx-header .cx-btn { border-color: transparent; }
+.cx-header .cx-wallet-connected { background: none; border-color: var(--on-chrome-muted); color: var(--on-chrome); }
+.cx-header .cx-wallet-connected:hover { border-color: var(--on-chrome); background: none; }
+.cx-theme-toggle { width: 36px; height: 36px; padding: 0; border-radius: var(--radius-md); background: none; border: 1px solid transparent; color: var(--on-chrome-muted); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.cx-theme-toggle:hover { color: var(--on-chrome); border-color: var(--on-chrome-muted); }
+
+/* ── Wallet button ────────────────────────────────── */
+.cx-wallet { min-width: 140px; }
+.cx-wallet-connected { background: var(--surface); border-color: var(--line); color: var(--ink); font-family: var(--font-mono); font-weight: 400; font-size: 13px; box-shadow: none; }
+.cx-wallet-connected::before { content: ""; width: 8px; height: 8px; border-radius: var(--radius-pill); background: var(--success); }
+
+/* ── Mode toggle ──────────────────────────────────── */
+.cx-segment { display: inline-flex; padding: var(--space-1); gap: var(--space-1); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); }
+.cx-segment button { font: inherit; font-size: 13px; line-height: 18px; font-weight: 600; display: inline-flex; align-items: center; gap: var(--space-2); height: 32px; padding: 0 var(--space-3); border: 0; border-radius: var(--radius-sm); background: none; color: var(--ink-muted); cursor: pointer; }
+.cx-segment button[aria-pressed="true"] { background: var(--surface-selected); color: var(--ink); }
+.cx-segment button[disabled] { opacity: .45; cursor: not-allowed; }
+.cx-dot { width: 7px; height: 7px; border-radius: var(--radius-pill); background: var(--accent); flex: none; }
+.cx-dot-blaze { background: var(--blaze); }
+
+/* ── Swap card ────────────────────────────────────── */
+.cx-swap { width: 420px; max-width: 100%; display: flex; flex-direction: column; gap: 0; }
+.cx-swap-pane { background: var(--surface-sunken); border: 1px solid var(--line-soft); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); }
+.cx-swap-top { display: flex; justify-content: space-between; align-items: center; }
+.cx-swap-amount { display: flex; align-items: center; gap: var(--space-3); }
+.cx-swap-input { flex: 1; min-width: 0; font-family: var(--font-mono); font-size: 32px; line-height: 38px; letter-spacing: -.02em; background: none; border: 0; padding: 0; color: var(--ink); outline: none; }
+.cx-swap-input::placeholder { color: var(--ink-faint); }
+.cx-token-trigger { font: inherit; display: inline-flex; align-items: center; gap: var(--space-2); height: 40px; padding: 0 var(--space-3) 0 6px; border-radius: var(--radius-pill); border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 15px; font-weight: 700; cursor: pointer; }
+.cx-token-trigger:hover { background: var(--surface-hover); }
+.cx-swap-reverse { align-self: center; margin: -14px 0; z-index: 1; width: 40px; height: 40px; border-radius: var(--radius-pill); background: var(--surface-raised); border: 1px solid var(--line); color: var(--ink-body); display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.cx-swap-reverse:hover { color: var(--ink); border-color: var(--line-strong); }
+.cx-swap-foot { margin-top: var(--space-5); }
+
+/* ── Route details ────────────────────────────────── */
+.cx-route { display: flex; flex-direction: column; gap: 0; width: 380px; max-width: 100%; }
+.cx-route-path { display: flex; align-items: center; gap: var(--space-2); padding-bottom: var(--space-3); border-bottom: 1px solid var(--line-soft); margin-bottom: var(--space-2); }
+.cx-route-path .cx-icon { color: var(--ink-faint); width: 14px; height: 14px; }
+.cx-kv { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); padding: 6px 0; font-size: 14px; line-height: 20px; color: var(--ink-muted); }
+.cx-kv > :last-child:not(.cx-pill) { color: var(--ink); font-family: var(--font-mono); font-size: 13px; }
+.cx-kv-success > :last-child:not(.cx-pill) { color: var(--success); }
+
+/* ── Token picker ─────────────────────────────────── */
+.cx-picker { width: 420px; max-width: 100%; background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-3); }
+.cx-search { display: flex; align-items: center; gap: var(--space-2); height: 48px; padding: 0 var(--space-4); border-radius: var(--radius-lg); background: var(--surface-sunken); border: 1px solid var(--line); color: var(--ink-muted); }
+.cx-search input { flex: 1; min-width: 0; font: inherit; font-size: 15px; background: none; border: 0; outline: none; color: var(--ink); }
+.cx-search input::placeholder { color: var(--ink-muted); }
+.cx-search kbd { font-family: var(--font-mono); font-size: 11px; padding: 2px 6px; border-radius: 6px; border: 1px solid var(--line); color: var(--ink-muted); }
+.cx-list { display: flex; flex-direction: column; gap: var(--space-2); }
+.cx-token-row { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3); border-radius: var(--radius-md); background: var(--surface); border: 1px solid var(--line); cursor: pointer; }
+.cx-token-row:hover { background: var(--surface-hover); border-color: var(--line-strong); }
+.cx-token-row[aria-selected="true"] { background: var(--surface-selected); border-color: var(--accent-line); }
+.cx-token-row-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cx-token-row-name strong { font-size: 15px; line-height: 20px; color: var(--ink); display: flex; align-items: center; gap: var(--space-2); }
+.cx-token-row-name span { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
+.cx-token-row-bal { text-align: right; display: flex; flex-direction: column; font-family: var(--font-mono); font-size: 14px; line-height: 20px; color: var(--ink); }
+.cx-token-row-bal span { font-size: 12px; line-height: 16px; color: var(--ink-muted); }
+
+/* ── Strategy (order) card ────────────────────────── */
+.cx-order { width: 400px; max-width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); cursor: pointer; transition: border-color .3s, background .3s; }
+.cx-order:hover { background: var(--surface-hover); border-color: var(--line-strong); }
+.cx-order-fresh { border-color: var(--success); box-shadow: 0 0 0 1px var(--success-soft); }
+.cx-order-head { display: flex; justify-content: space-between; align-items: center; gap: var(--space-3); }
+.cx-order-title { display: flex; align-items: center; gap: var(--space-3); font-size: 15px; line-height: 20px; font-weight: 700; }
+.cx-order-title small { display: block; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--ink-muted); }
+.cx-progress { height: 6px; border-radius: var(--radius-pill); background: var(--surface-hover); overflow: hidden; }
+.cx-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.cx-order-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
+.cx-order-grid div { display: flex; flex-direction: column; gap: 2px; }
+.cx-order-grid b { font-family: var(--font-mono); font-weight: 400; font-size: 14px; line-height: 20px; color: var(--ink); }
+
+/* ── Stat tile & ranked table ─────────────────────── */
+.cx-stat { min-width: 180px; flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-md); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); }
+.cx-stat-value { font-family: var(--font-mono); font-size: 32px; line-height: 38px; letter-spacing: -.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.cx-stat-note { font-size: 13px; line-height: 18px; color: var(--ink-muted); }
+.cx-proof { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: var(--radius-pill); background: var(--surface); border: 1px solid var(--line); font-size: 12px; line-height: 16px; color: var(--ink-muted); text-decoration: none; }
+.cx-proof::before { content: ""; width: 6px; height: 6px; border-radius: var(--radius-pill); background: var(--success); }
+.cx-table { width: 100%; max-width: 560px; border-collapse: collapse; font-size: 14px; line-height: 20px; }
+.cx-table th { text-align: left; font-family: var(--font-mono); font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-muted); padding: 0 var(--space-3) var(--space-2); border-bottom: 1px solid var(--line); }
+.cx-table td { padding: var(--space-3); border-bottom: 1px solid var(--line-soft); color: var(--ink); }
+.cx-table td.cx-num, .cx-table th.cx-num { text-align: right; }
+.cx-table td:first-child { color: var(--ink-muted); width: 24px; }
+.cx-rank-1 td:first-child { color: var(--gold); font-weight: 700; }
+.cx-cell-token { display: flex; align-items: center; gap: var(--space-2); font-weight: 700; }
+.cx-bars { display: flex; align-items: flex-end; gap: 3px; height: 72px; }
+.cx-bars span { flex: 1; background: var(--accent); border-radius: 2px 2px 0 0; opacity: .85; }
+
+/* ── Toast ────────────────────────────────────────── */
+.cx-toast { width: 356px; max-width: 100%; display: flex; gap: var(--space-3); align-items: flex-start; padding: var(--space-4); background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-md); box-shadow: var(--shadow-overlay); }
+.cx-toast-icon { width: 28px; height: 28px; border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; flex: none; background: var(--surface-hover); color: var(--ink-body); }
+.cx-toast-success .cx-toast-icon { background: var(--success-soft); color: var(--success); }
+.cx-toast-error .cx-toast-icon { background: var(--danger-soft); color: var(--danger); }
+.cx-toast-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.cx-toast-body strong { font-size: 14px; line-height: 20px; color: var(--ink); }
+.cx-toast-body span { font-size: 13px; line-height: 18px; color: var(--ink-muted); }
+.cx-toast-body a { color: var(--accent-text); font-size: 13px; line-height: 18px; font-weight: 600; text-decoration: none; margin-top: var(--space-1); display: inline-flex; align-items: center; gap: 4px; }
+
+/* ── Dialog ───────────────────────────────────────── */
+.cx-scrim { background: var(--overlay); padding: var(--space-8) var(--space-5); border-radius: var(--radius-lg); display: flex; justify-content: center; }
+.cx-dialog { width: 420px; max-width: 100%; background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); }
+.cx-dialog h3 { margin: 0; font-size: 19px; line-height: 24px; font-weight: 700; }
+.cx-dialog p { margin: 0; font-size: 15px; line-height: 22px; color: var(--ink-body); }
+.cx-dialog-actions { display: flex; gap: var(--space-3); justify-content: flex-end; }
+
+/* ── Choice card (Zesty side picker) ──────────────── */
+.cx-choice { width: 360px; max-width: 100%; display: flex; gap: var(--space-4); align-items: flex-start; padding: var(--space-5); background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius-lg); cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.cx-choice:hover, .cx-choice[aria-pressed="true"] { border-color: var(--line-strong); }
+.cx-choice-icon { width: 48px; height: 48px; border-radius: var(--radius-pill); display: flex; align-items: center; justify-content: center; flex: none; background: var(--accent); color: var(--on-accent); }
+.cx-choice-icon-ink { background: var(--ink); color: var(--bg); }
+.cx-choice-text strong { display: block; font-size: 19px; line-height: 24px; font-weight: 800; text-transform: uppercase; letter-spacing: .02em; color: var(--ink); }
+.cx-choice-text span { display: block; margin-top: 4px; font-size: 15px; line-height: 22px; color: var(--ink-body); }
+
+/* ── Steps ────────────────────────────────────────── */
+.cx-steps-bar { display: flex; gap: var(--space-2); width: 380px; max-width: 100%; }
+.cx-steps-bar span { flex: 1; height: 4px; border-radius: var(--radius-pill); background: var(--line); }
+.cx-steps-bar span[data-done] { background: var(--accent); }
+.cx-stepper { display: flex; align-items: center; gap: var(--space-2); }
+.cx-step { display: flex; align-items: center; gap: var(--space-2); font-size: 13px; line-height: 18px; font-weight: 600; color: var(--ink-muted); }
+.cx-step i { font-style: normal; width: 28px; height: 28px; border-radius: var(--radius-pill); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 12px; color: var(--ink-muted); }
+.cx-step[data-state="done"] i { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.cx-step[data-state="current"] { color: var(--ink); }
+.cx-step[data-state="current"] i { border-color: var(--accent); color: var(--accent-text); }
+.cx-step-line { width: 32px; height: 1px; background: var(--line); }
+
+/* ── Empty & loading ──────────────────────────────── */
+.cx-empty { width: 360px; max-width: 100%; display: flex; flex-direction: column; align-items: center; text-align: center; gap: var(--space-3); padding: var(--space-8) var(--space-5); border: 1px dashed var(--line); border-radius: var(--radius-lg); }
+.cx-empty-icon { width: 56px; height: 56px; border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; color: var(--ink-muted); }
+.cx-empty strong { font-size: 16px; line-height: 22px; color: var(--ink); }
+.cx-empty span { font-size: 14px; line-height: 20px; color: var(--ink-muted); }
+.cx-skeleton { background: var(--surface-hover); border-radius: var(--radius-sm); animation: cx-pulse 1.6s ease-in-out infinite; }
+@keyframes cx-pulse { 50% { opacity: .45; } }
+
+/* ── Footer & tip jar ─────────────────────────────── */
+.cx-footer { background: var(--chrome); color: var(--on-chrome-muted); padding: var(--space-8) var(--space-6); display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: var(--space-6); border-top: 1px solid var(--line); }
+.cx-footer h4 { margin: 0 0 var(--space-3); font-family: var(--font-mono); font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--on-chrome); }
+.cx-footer a { display: block; color: var(--on-chrome-muted); text-decoration: none; font-size: 14px; line-height: 26px; }
+.cx-footer a:hover { color: var(--on-chrome); }
+.cx-footer p { margin: var(--space-2) 0 var(--space-4); font-size: 14px; line-height: 20px; }
+.cx-tip { display: flex; flex-direction: column; gap: var(--space-2); }
+.cx-tip .cx-chip { background: none; color: var(--on-chrome); border-color: var(--on-chrome-muted); }
+.cx-tip .cx-chip:hover { border-color: var(--on-chrome); }
+.cx-footer .cx-lockup { display: inline-flex; font-size: 17px; }
+.cx-lockup img { display: block; }
+@media (max-width: 640px) { .cx-footer { grid-template-columns: 1fr 1fr; } }

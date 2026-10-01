@@ -1,0 +1,158 @@
+/* GENERATED from tokens.json by scripts/build-css.mjs. Do not edit by hand. */
+/* No data-theme on <html>: follow the device. data-theme="light" | "dark": the visitor's pick (or a pinned subtree). */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --brand: #c1121f;
+  --bg: #0b0606;
+  --bg-glow: #c1121f33;
+  --texture: #ffffff0f;
+  --edge: #0b060600;
+  --surface-sunken: #ffffff05;
+  --surface: #ffffff08;
+  --surface-hover: #ffffff14;
+  --surface-selected: #ffffff1f;
+  --surface-raised: #160d0e;
+  --overlay: #000000cc;
+  --line: #ffffff14;
+  --line-soft: #ffffff0f;
+  --line-strong: #ffffff40;
+  --ink: #f3eded;
+  --ink-body: #c9bebf;
+  --ink-muted: #968a8b;
+  --ink-faint: #6e6465;
+  --accent: #c1121f;
+  --accent-hover: #d6202d;
+  --on-accent: #ffffff;
+  --accent-text: #ff4d6d;
+  --accent-soft: #c1121f26;
+  --accent-line: #c1121f66;
+  --chrome: #070404;
+  --on-chrome: #f3eded;
+  --on-chrome-muted: #a89c9d;
+  --chrome-accent: #ff4d6d;
+  --blaze: #2dd4bf;
+  --blaze-soft: #2dd4bf1f;
+  --success: #4ade80;
+  --success-soft: #22c55e26;
+  --danger: #f87171;
+  --danger-soft: #ef444426;
+  --warning: #fbbf24;
+  --warning-soft: #f59e0b26;
+  --gold: #e8b04b;
+  --focus: #ff4d6d;
+  --shadow-cta: 0 8px 32px #c1121f59;
+  --shadow-overlay: 0 24px 64px #000000b3;
+  --shadow-card: inset 0 1px 0 #ffffff0d;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --brand: #c1121f;
+    --bg: #f7f7f7;
+    --bg-glow: #f7f7f700;
+    --texture: #ffffff00;
+    --edge: #fc6432;
+    --surface-sunken: #f7f7f7;
+    --surface: #ffffff;
+    --surface-hover: #f0f0f0;
+    --surface-selected: var(--accent-soft);
+    --surface-raised: #ffffff;
+    --overlay: #00000066;
+    --line: #e5e5e5;
+    --line-soft: #eeeeee;
+    --line-strong: #000000;
+    --ink: #141414;
+    --ink-body: #3d3d3d;
+    --ink-muted: #5c5c5c;
+    --ink-faint: #8f8f8f;
+    --accent: #fc6432;
+    --accent-hover: #ff7a4d;
+    --on-accent: #000000;
+    --accent-text: #b8410f;
+    --accent-soft: #fff4ef;
+    --accent-line: #ffd9c9;
+    --chrome: #000000;
+    --on-chrome: #ffffff;
+    --on-chrome-muted: #b3b3b3;
+    --chrome-accent: #fc6432;
+    --blaze: #0f766e;
+    --blaze-soft: #e6f6f4;
+    --success: #1b7a3a;
+    --success-soft: #e8f5ec;
+    --danger: #b42318;
+    --danger-soft: #fdecea;
+    --warning: #8a5a00;
+    --warning-soft: #fdf3e1;
+    --gold: #946200;
+    --focus: #b8410f;
+    --shadow-cta: none;
+    --shadow-overlay: 0 24px 64px #00000029;
+    --shadow-card: none;
+  }
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --brand: #c1121f;
+  --bg: #f7f7f7;
+  --bg-glow: #f7f7f700;
+  --texture: #ffffff00;
+  --edge: #fc6432;
+  --surface-sunken: #f7f7f7;
+  --surface: #ffffff;
+  --surface-hover: #f0f0f0;
+  --surface-selected: var(--accent-soft);
+  --surface-raised: #ffffff;
+  --overlay: #00000066;
+  --line: #e5e5e5;
+  --line-soft: #eeeeee;
+  --line-strong: #000000;
+  --ink: #141414;
+  --ink-body: #3d3d3d;
+  --ink-muted: #5c5c5c;
+  --ink-faint: #8f8f8f;
+  --accent: #fc6432;
+  --accent-hover: #ff7a4d;
+  --on-accent: #000000;
+  --accent-text: #b8410f;
+  --accent-soft: #fff4ef;
+  --accent-line: #ffd9c9;
+  --chrome: #000000;
+  --on-chrome: #ffffff;
+  --on-chrome-muted: #b3b3b3;
+  --chrome-accent: #fc6432;
+  --blaze: #0f766e;
+  --blaze-soft: #e6f6f4;
+  --success: #1b7a3a;
+  --success-soft: #e8f5ec;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --warning: #8a5a00;
+  --warning-soft: #fdf3e1;
+  --gold: #946200;
+  --focus: #b8410f;
+  --shadow-cta: none;
+  --shadow-overlay: 0 24px 64px #00000029;
+  --shadow-card: none;
+}
+
+:root {
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+  --font-sans: "Ysabeau Infant", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}

@@ -1,0 +1,25 @@
+/*
+ * shadcn/ui names mapped onto the Charisma tokens, so existing components/ui files pick up the brand untouched.
+ * Import after theme.css. One deliberate gap: shadcn's `accent` means a hover fill, but here `accent` is the brand
+ * action colour (from theme.css). When migrating, change `bg-accent` / `focus:bg-accent` in components/ui to
+ * `bg-surface-hover`.
+ */
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--ink);
+  --color-popover: var(--surface-raised);
+  --color-popover-foreground: var(--ink);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+  --color-secondary: var(--surface-hover);
+  --color-secondary-foreground: var(--ink);
+  --color-muted: var(--surface-hover);
+  --color-muted-foreground: var(--ink-muted);
+  --color-accent-foreground: var(--ink);
+  --color-destructive: var(--danger);
+  --color-border: var(--line);
+  --color-input: var(--line);
+  --color-ring: var(--focus);
+}

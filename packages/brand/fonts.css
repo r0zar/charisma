@@ -1,0 +1,6 @@
+/* Ysabeau Infant (words) and DM Mono (numbers, labels). Both are SIL Open Font License 1.1; see fonts/OFL-*.txt.
+ * Next.js apps can use next/font/local with these files instead of importing this stylesheet. */
+@font-face { font-family: "Ysabeau Infant"; src: url("./fonts/YsabeauInfant.woff2") format("woff2"); font-weight: 1 1000; font-style: normal; font-display: swap; }
+@font-face { font-family: "Ysabeau Infant"; src: url("./fonts/YsabeauInfant-Italic.woff2") format("woff2"); font-weight: 1 1000; font-style: italic; font-display: swap; }
+@font-face { font-family: "DM Mono"; src: url("./fonts/DMMono-Regular.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "DM Mono"; src: url("./fonts/DMMono-Medium.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }

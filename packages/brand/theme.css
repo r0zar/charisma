@@ -1,0 +1,47 @@
+/*
+ * Tailwind v4 hookup for the Charisma tokens.
+ *   @import "tailwindcss";
+ *   @import "@repo/brand/tokens.css";
+ *   @import "@repo/brand/theme.css";
+ * Gives utilities named after the tokens: bg-surface, text-ink-muted, border-line, bg-accent, text-on-accent, bg-blaze…
+ * Radius and spacing already match Tailwind's scale: radius-sm = rounded-lg (8px), radius-md = rounded-xl (12px),
+ * radius-lg = rounded-2xl (16px), and space-N = Tailwind's N.
+ */
+@theme inline {
+  --color-brand: var(--brand);
+  --color-bg: var(--bg);
+  --color-bg-glow: var(--bg-glow);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-surface-selected: var(--surface-selected);
+  --color-surface-raised: var(--surface-raised);
+  --color-overlay: var(--overlay);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-body: var(--ink-body);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-on-accent: var(--on-accent);
+  --color-accent-text: var(--accent-text);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-chrome: var(--chrome);
+  --color-on-chrome: var(--on-chrome);
+  --color-on-chrome-muted: var(--on-chrome-muted);
+  --color-chrome-accent: var(--chrome-accent);
+  --color-blaze: var(--blaze);
+  --color-blaze-soft: var(--blaze-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-gold: var(--gold);
+  --color-focus: var(--focus);
+}

@@ -1,0 +1,20 @@
+@import "tailwindcss";
+@import "@repo/brand/tokens.css";
+@import "@repo/brand/fonts.css";
+@import "@repo/brand/theme.css";
+@import "@repo/brand/components.css";
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--font-sans); }
+  h1, h2, h3 { text-wrap: balance; }
+  button, a { cursor: pointer; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--accent-text); }
+.hero-glow { background: radial-gradient(closest-side, var(--bg-glow), transparent); }
+.grid-texture { background-image: linear-gradient(var(--texture) 1px, transparent 1px), linear-gradient(90deg, var(--texture) 1px, transparent 1px); background-size: 32px 32px; mask-image: radial-gradient(closest-side, #000 40%, transparent); }
+/* light realm: the Zesty edge bar under the hero */
+.edge-bar { height: 12px; background: var(--edge); }
