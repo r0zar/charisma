@@ -19,7 +19,7 @@
 /* light realm: the Zesty edge bar under the hero */
 .edge-bar { height: 12px; background: var(--edge); }
 
-/* light-realm hero coins: a slow, offset bob, with a soft paper shadow and a bg-coloured rim */
+/* hero coins: a slow, offset bob, a bg-coloured rim and the realm's overlay shadow */
 .token-cluster img { box-shadow: 0 0 0 6px var(--bg), var(--shadow-overlay); }
 @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 .bob { animation: bob 4.8s ease-in-out infinite; }

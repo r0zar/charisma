@@ -2,6 +2,7 @@ import { ArrowRight, BookOpen, Github, Palette, Webhook } from 'lucide-react';
 import specimens from '@repo/brand/specimens.json';
 import { AppIndex } from '@/components/app-index';
 import { StatsStrip } from '@/components/stats-strip';
+import { TokenCluster, type Coin } from '@/components/token-cluster';
 import { LINKS } from '@/lib/site';
 
 export const revalidate = 900;
@@ -12,11 +13,18 @@ const specimen = (name: string) => {
   return s.html;
 };
 
-/** The light-realm hero: three overlapping coins, each bobbing on its own beat */
-const CLUSTER = [
-  { src: '/tokens/stx.png', style: { width: '38%', left: '4%', top: '6%', animationDelay: '-1.6s' } },
-  { src: '/tokens/usdcx.png', style: { width: '42%', right: '2%', bottom: '6%', animationDelay: '-3.2s' } },
-  { src: '/tokens/sbtc.png', style: { width: '54%', left: '23%', top: '22%', animationDelay: '0s' } },
+/** Hero coins. Later entries sit on top; negative delays offset each coin's bob. */
+const DARK_COINS: Coin[] = [
+  { src: '/tokens/leo.png', label: 'LEO', style: { width: '27%', right: '6%', top: '2%', animationDelay: '-1.1s' } },
+  { src: '/tokens/welsh.png', label: 'WELSH', style: { width: '30%', left: '2%', top: '9%', animationDelay: '-2.4s' } },
+  { src: '/tokens/shark.png', label: 'SHARK', style: { width: '28%', left: '6%', bottom: '5%', animationDelay: '-3.5s' } },
+  { src: '/tokens/pepe.png', label: 'PEPE', style: { width: '30%', right: '1%', bottom: '11%', animationDelay: '-0.6s' } },
+  { src: '/tokens/cha.png', label: 'CHA', pixel: true, style: { width: '46%', left: '27%', top: '26%', animationDelay: '0s' } },
+];
+const LIGHT_COINS: Coin[] = [
+  { src: '/tokens/stx.png', label: 'STX', style: { width: '38%', left: '4%', top: '6%', animationDelay: '-1.6s' } },
+  { src: '/tokens/usdcx.png', label: 'USDCx', style: { width: '42%', right: '2%', bottom: '6%', animationDelay: '-3.2s' } },
+  { src: '/tokens/sbtc.png', label: 'sBTC', style: { width: '54%', left: '23%', top: '22%', animationDelay: '0s' } },
 ];
 
 const BLAZE_POINTS = [
@@ -55,23 +63,10 @@ export default function Home() {
           <div className="relative flex justify-center py-6">
             <div className="grid-texture absolute inset-[-10%]" aria-hidden />
             <div className="hero-glow absolute inset-[-25%]" aria-hidden />
-            {/* Dark · RPG: the floating 8-bit crest from the original charisma.rocks (still under reduced motion) */}
-            <div className="cx-dark-only">
-              <picture className="relative">
-                <source srcSet="/brand/logos/charisma-mark-pixel.png" media="(prefers-reduced-motion: reduce)" />
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/brand/logos/charisma-crest-floating.gif" alt="The Charisma crest" width={640} height={640} className="w-[256px] sm:w-[320px] [image-rendering:pixelated]" />
-              </picture>
-            </div>
-            {/* Light · Bitcoin: the tokens Charisma trades most, sBTC, STX and USDCx */}
-            <div className="cx-light-only">
-              <div className="token-cluster relative h-[256px] w-[256px] sm:h-[320px] sm:w-[320px]" role="img" aria-label="sBTC, STX and USDCx">
-                {CLUSTER.map(t => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img key={t.src} src={t.src} alt="" className="bob absolute rounded-full" style={t.style} />
-                ))}
-              </div>
-            </div>
+            {/* Dark · RPG: the community coins around the 8-bit CHA */}
+            <div className="cx-dark-only"><TokenCluster coins={DARK_COINS} /></div>
+            {/* Light · Bitcoin: the tokens Charisma trades most */}
+            <div className="cx-light-only"><TokenCluster coins={LIGHT_COINS} /></div>
           </div>
         </div>
         <div className="mx-auto max-w-[1200px] px-5 pb-20 sm:px-8"><StatsStrip /></div>
