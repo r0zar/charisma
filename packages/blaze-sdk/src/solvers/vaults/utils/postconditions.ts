@@ -25,6 +25,7 @@ export interface Hop {
     vault: {               // Vault contract that performs the swap
         contractId: string;
         externalPoolId?: string;
+        stxWrapper?: string;  // Asset the pool swaps STX through ("contract::token"), e.g. Arkadiko's wSTX
         type: string;
     };
     opcode: number;        // Opcode for the vault operation
@@ -209,6 +210,17 @@ export function buildPostConditions(route: Route, routerCID: string, slippage: n
             const outputPrincipal = getOutputPrincipal(hop);
             const amtOutWithSlippage = builder.applyGteSlippage(amtOut);
             builder.addGte(outputPrincipal, getAssetId(hop.tokenOut), amtOutWithSlippage);
+        }
+
+        // Some pools swap STX through a wrapper token: STX in is wrapped and the router pays the wrapper in;
+        // STX out arrives as the wrapper and is unwrapped from the router
+        const wrapper = hop.vault.stxWrapper;
+        if (wrapper) {
+            if (hop.tokenIn.contractId === STX_CONTRACT_ID) builder.addLte(routerCID, wrapper, builder.applyLteSlippage(amtIn));
+            if (hop.tokenOut.contractId === STX_CONTRACT_ID) {
+                builder.addGte(getOutputPrincipal(hop), wrapper, builder.applyGteSlippage(amtOut));
+                builder.addLte(routerCID, wrapper, builder.applyLteSlippage(amtOut));
+            }
         }
     });
 

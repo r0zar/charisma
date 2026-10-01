@@ -59,6 +59,8 @@ export interface Vault {
    * x·y=k pool's reserves do.
    */
   spotPrice?: number;
+  /** Asset this pool swaps STX through ("contract::token"), e.g. Arkadiko's wSTX; see stxWrapperPostConditions */
+  stxWrapper?: string;
 }
 
 /** Bitflow DLMM (bin) and stableswap pools: their reserves don't imply their price, unlike x·y=k pools */
@@ -769,7 +771,26 @@ export const buildSwapPostConditions = async (
   return [
     mk(tokenIn, maxIn, sender, 'lte'),
     mk(tokenOut, minOut, vault.externalPoolId || vault.contractId, 'gte'),
+    ...stxWrapperPostConditions(hop, sender, maxIn, minOut, BigInt(Math.ceil(Number(amtOut) * (1 + effectiveSlippage)))),
   ];
+};
+
+/**
+ * Some pools swap STX through a wrapper token (the vault's `stxWrapper`): STX in is wrapped and the sender pays
+ * the wrapper in; STX out arrives as the wrapper and is unwrapped from the sender. Deny-mode swaps must list those moves.
+ */
+export const stxWrapperPostConditions = (hop: Hop, sender: string, maxIn: bigint, minOut: bigint, maxOut: bigint) => {
+  const wrapper = hop.vault.stxWrapper;
+  if (!wrapper) return [];
+  const [contract, token] = wrapper.split('::') as [`${string}.${string}`, string];
+  const pool = hop.vault.externalPoolId || hop.vault.contractId;
+  const pcs = [];
+  if (hop.tokenIn.contractId === '.stx') pcs.push(Pc.principal(sender).willSendLte(maxIn).ft(contract, token));
+  if (hop.tokenOut.contractId === '.stx') {
+    pcs.push(Pc.principal(pool).willSendGte(minOut).ft(contract, token));
+    pcs.push(Pc.principal(sender).willSendLte(maxOut).ft(contract, token));
+  }
+  return pcs;
 };
 
 /***************************************************************

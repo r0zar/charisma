@@ -21,6 +21,7 @@ interface RequestBody {
         lpRebatePercent?: number,
         externalPoolId?: string,
         engineContractId?: string,
+        stxWrapper?: string,
         type?: string,
         protocol?: string
     };
@@ -45,6 +46,7 @@ interface Vault {
     fee: number;
     externalPoolId: string;
     engineContractId: string;
+    stxWrapper?: string; // Asset the pool swaps STX through, e.g. Arkadiko's wSTX ("contract::token")
     tokenA?: TokenData; // Now optional
     tokenB?: TokenData; // Now optional
     tokenBContract?: string; // For SUBLINK type
@@ -115,6 +117,7 @@ async function confirmVaultHandler(req: NextRequest, { params }: { params: { con
             fee,
             externalPoolId: lpToken.externalPoolId || "",
             engineContractId: lpToken.engineContractId || "",
+            ...(lpToken.stxWrapper ? { stxWrapper: lpToken.stxWrapper } : {}),
         };
 
         // Add tokenA and tokenB if they exist
