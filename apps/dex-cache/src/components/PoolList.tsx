@@ -103,7 +103,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
     const [blacklisting, setBlacklisting] = useState<string | null>(null);
     const [expandedVault, setExpandedVault] = useState<string | null>(null);
     const [prices, setPrices] = useState<KraxelPriceData | null>(serverPrices || null);
-    const [sortBy, setSortBy] = useState<'fee' | 'tvl' | 'myTvl' | null>(null);
+    const [sortBy, setSortBy] = useState<'fee' | 'tvl' | 'myTvl' | null>('tvl');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
     const isDev = process.env.NODE_ENV === 'development';
 

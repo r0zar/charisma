@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
         hostname: '**',
       },
     ],
+    // Token and pool icons are often SVG (ALEX, Arkadiko, Hermetica…); serve them sandboxed so they can't run scripts
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 };
 
