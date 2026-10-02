@@ -6,7 +6,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { updateActivityReply, deleteActivityReply } from '@/lib/activity-storage';
+import { updateActivityReply, deleteActivityReply, getActivityReply } from '@/lib/activity-storage';
+import { notAuthor, replyMessage, replySigner } from '@/lib/reply-auth';
 import { kv } from '@vercel/kv';
 
 export async function GET(
@@ -75,6 +76,12 @@ export async function PUT(
         { status: 400 }
       );
     }
+
+    const existing = await getActivityReply(replyId);
+    if (!existing) return NextResponse.json({ error: 'Reply not found' }, { status: 404 });
+    const auth = await replySigner(request, replyMessage.edit(replyId, content));
+    if ('denied' in auth) return auth.denied;
+    if (auth.signer !== existing.author) return notAuthor();
     
     // Update reply
     const updatedReply = await updateActivityReply(replyId, {
@@ -124,6 +131,12 @@ export async function DELETE(
       );
     }
     
+    const existing = await getActivityReply(replyId);
+    if (!existing) return NextResponse.json({ error: 'Reply not found' }, { status: 404 });
+    const auth = await replySigner(request, replyMessage.remove(replyId));
+    if ('denied' in auth) return auth.denied;
+    if (auth.signer !== existing.author) return notAuthor();
+
     // Delete reply
     const deleted = await deleteActivityReply(replyId);
     

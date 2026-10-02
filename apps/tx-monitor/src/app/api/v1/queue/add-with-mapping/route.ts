@@ -5,7 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { addToQueue } from '@/lib/transaction-monitor';
-import { storeTransactionMapping } from '@/lib/activity-integration';
+import { recordNamesTransaction, storeTransactionMapping } from '@/lib/activity-integration';
 
 interface AddWithMappingRequest {
   transactions: Array<{
@@ -46,6 +46,14 @@ export async function POST(request: NextRequest) {
         );
       }
       
+      // Only a record that already names this transaction can be linked to it
+      if (!(await recordNamesTransaction(tx.txid, tx.recordId, tx.recordType))) {
+        return NextResponse.json(
+          { error: `The ${tx.recordType} record ${tx.recordId} doesn't name transaction ${tx.txid}` },
+          { status: 403 }
+        );
+      }
+
       txids.push(tx.txid);
       mappings.push({
         txid: tx.txid,

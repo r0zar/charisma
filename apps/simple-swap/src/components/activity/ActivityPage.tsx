@@ -402,11 +402,7 @@ export const ActivityPage: React.FC = () => {
       console.log('Adding reply to activity:', activityId, content);
 
       // Call API to add reply
-      const newReply = await addActivityReply(
-        activityId,
-        content,
-        userAddress
-      );
+      const newReply = await addActivityReply(activityId, content);
 
       // Update activities state
       setActivities(prev => prev.map(activity => {
@@ -465,12 +461,7 @@ export const ActivityPage: React.FC = () => {
       }
 
       // Call API to update reply
-      const updatedReply = await updateActivityReply(
-        activityId,
-        replyId,
-        newContent,
-        userAddress
-      );
+      const updatedReply = await updateActivityReply(activityId, replyId, newContent);
 
       // Update both activities and filteredActivities
       const updateReplies = (activities: ActivityItem[]) =>

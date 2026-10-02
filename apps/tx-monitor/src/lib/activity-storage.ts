@@ -269,6 +269,15 @@ export async function getActivityReplies(activityId: string): Promise<Reply[]> {
 }
 
 /**
+ * Get one reply
+ */
+export async function getActivityReply(replyId: string): Promise<Reply | null> {
+  const replyData = await kv.hget(REPLY_HASH_KEY, replyId);
+  if (!replyData) return null;
+  return (typeof replyData === 'string' ? JSON.parse(replyData) : replyData) as Reply;
+}
+
+/**
  * Update reply
  */
 export async function updateActivityReply(replyId: string, updates: Partial<Reply>): Promise<Reply | null> {

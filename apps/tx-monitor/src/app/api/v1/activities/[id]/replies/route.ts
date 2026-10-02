@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getActivityReplies, addActivityReply } from '@/lib/activity-storage';
 import { Reply } from '@/lib/activity-types';
+import { replyMessage, replySigner } from '@/lib/reply-auth';
 
 export async function GET(
   request: NextRequest,
@@ -58,15 +59,19 @@ export async function POST(
     }
     
     const body = await request.json();
-    const { content, author } = body;
+    const { content } = body;
     
     // Validate required fields
-    if (!content || !author) {
+    if (!content) {
       return NextResponse.json(
-        { error: 'Content and author are required' },
+        { error: 'Content is required' },
         { status: 400 }
       );
     }
+
+    // The author is whoever signed it, never what the body claims
+    const auth = await replySigner(request, replyMessage.add(activityId, content));
+    if ('denied' in auth) return auth.denied;
     
     // Create reply object
     const reply: Reply = {
@@ -74,7 +79,7 @@ export async function POST(
       activityId,
       content,
       timestamp: Date.now(),
-      author,
+      author: auth.signer,
       metadata: {
         isEdited: false
       }

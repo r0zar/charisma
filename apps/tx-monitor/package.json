@@ -43,6 +43,7 @@
     "@stacks/transactions": "7.1.0",
     "@stacks/wallet-sdk": "7.1.2",
     "@vercel/kv": "^3.0.0",
+    "blaze-sdk": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^16.4.5",

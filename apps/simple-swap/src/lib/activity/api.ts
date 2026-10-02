@@ -4,6 +4,7 @@
  */
 
 import { ActivityItem, ActivityFeedOptions, ActivityFeedResult, Reply } from './types';
+import { signedFetchWithTimestamp } from 'blaze-sdk';
 
 // Use tx-monitor service for activities
 const TX_MONITOR_URL = process.env.NEXT_PUBLIC_TX_MONITOR_URL || 'http://localhost:3012';
@@ -115,19 +116,17 @@ export async function fetchActivityReplies(activityId: string): Promise<Reply[]>
  */
 export async function addActivityReply(
   activityId: string, 
-  content: string, 
-  author: string
+  content: string
 ): Promise<Reply> {
   try {
-    const response = await fetch(`${API_BASE}/${activityId}/replies`, {
+    // Signed by the wallet; the signer is the author (tx-monitor src/lib/reply-auth.ts builds the same message)
+    const response = await signedFetchWithTimestamp(`${API_BASE}/${activityId}/replies`, {
       method: 'POST',
+      message: `Reply to activity ${activityId}: ${content}`,
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        content,
-        author
-      })
+      body: JSON.stringify({ content })
     });
     
     if (!response.ok) {
@@ -149,19 +148,17 @@ export async function addActivityReply(
 export async function updateActivityReply(
   activityId: string,
   replyId: string,
-  content: string,
-  author: string
+  content: string
 ): Promise<Reply> {
   try {
-    const response = await fetch(`${API_BASE}/${activityId}/replies/${replyId}`, {
+    // Only the reply's author can edit it: the wallet signs the new words
+    const response = await signedFetchWithTimestamp(`${API_BASE}/${activityId}/replies/${replyId}`, {
       method: 'PUT',
+      message: `Edit reply ${replyId}: ${content}`,
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        content,
-        author
-      })
+      body: JSON.stringify({ content })
     });
     
     if (!response.ok) {
@@ -185,8 +182,9 @@ export async function deleteActivityReply(
   replyId: string
 ): Promise<void> {
   try {
-    const response = await fetch(`${API_BASE}/${activityId}/replies/${replyId}`, {
-      method: 'DELETE'
+    const response = await signedFetchWithTimestamp(`${API_BASE}/${activityId}/replies/${replyId}`, {
+      method: 'DELETE',
+      message: `Delete reply ${replyId}`
     });
     
     if (!response.ok) {

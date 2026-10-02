@@ -2,7 +2,7 @@
 
 import React, { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Database, Download, Zap, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Database, Download, Zap } from 'lucide-react';
 import { ADMIN_CONFIG, getPageSize } from '@/lib/admin-config';
 import { InfoTooltip } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
@@ -168,23 +168,6 @@ export default function OrderManagement() {
                         <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
                             <Download className="w-4 h-4 mr-2" />
                             Export All Orders
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={async () => {
-                            try {
-                                const { getHostUrl } = await import('@modules/discovery');
-                                const TX_MONITOR_URL = process.env.NEXT_PUBLIC_TX_MONITOR_URL || getHostUrl('tx-monitor');
-                                const response = await fetch(`${TX_MONITOR_URL}/api/v1/admin/trigger`, { method: 'POST' });
-                                if (response.ok) {
-                                    alert('Transaction monitoring triggered successfully');
-                                } else {
-                                    alert('Failed to trigger transaction monitoring');
-                                }
-                            } catch (error) {
-                                alert('Error triggering transaction monitoring');
-                            }
-                        }}>
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            Check Transactions
                         </Button>
                     </div>
                 </div>

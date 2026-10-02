@@ -18,29 +18,39 @@ interface ActivityUpdatePayload {
   currentStatus: TransactionStatus;
 }
 
+/** Swap's KV hashes for the records a transaction can be linked to (Swap and the monitor share one store) */
+const RECORD_HASH: Record<'order' | 'swap', string> = { order: 'orders', swap: 'swap-records' };
+const bareTxid = (txid?: string) => (txid ?? '').replace(/^0x/, '').toLowerCase();
+
 /**
- * Store transaction-to-record mapping when transactions are added to queue
+ * Whether Swap's own record names this transaction. Anyone can ask to link a txid to a record, so a link only counts
+ * when the record itself carries that txid: a forged link to someone else's record never matches.
+ */
+export async function recordNamesTransaction(txid: string, recordId: string, recordType: 'order' | 'swap'): Promise<boolean> {
+  const raw = await kv.hget(RECORD_HASH[recordType], recordId);
+  if (!raw) return false;
+  const record = (typeof raw === 'string' ? JSON.parse(raw) : raw) as { txid?: string };
+  return !!record.txid && bareTxid(record.txid) === bareTxid(txid);
+}
+
+/**
+ * Store transaction-to-record mapping when transactions are added to queue. Throws when the record doesn't name the
+ * transaction.
  */
 export async function storeTransactionMapping(
   txid: string,
   recordId: string,
   recordType: 'order' | 'swap'
 ): Promise<void> {
-  try {
-    const mapping = {
-      recordId,
-      recordType,
-      timestamp: Date.now()
-    };
-
-    await kv.set(`tx_mapping:${txid}`, mapping, { ex: 7 * 24 * 60 * 60 }); // Keep for 7 days
-    console.log(`[TX-MONITOR] Stored mapping for ${txid} -> ${recordType} ${recordId} (activity will be created when transaction completes)`);
-    
-    // NOTE: No longer creating initial activity here - wait for transaction success
-    // This prevents activities with outputAmount = 0
-  } catch (error) {
-    console.error(`[TX-MONITOR] Error storing transaction mapping for ${txid}:`, error);
+  if (!(await recordNamesTransaction(txid, recordId, recordType))) {
+    throw new Error(`The ${recordType} record ${recordId} doesn't name transaction ${txid}, so they can't be linked`);
   }
+  const mapping = {
+    recordId,
+    recordType,
+    timestamp: Date.now()
+  };
+  await kv.set(`tx_mapping:${txid}`, mapping, { ex: 7 * 24 * 60 * 60 }); // Keep for 7 days
 }
 
 /**
@@ -52,8 +62,10 @@ export async function getTransactionMapping(txid: string): Promise<{
   timestamp: number;
 } | null> {
   try {
-    const mapping = await kv.get(`tx_mapping:${txid}`);
-    return mapping as any;
+    const mapping = (await kv.get(`tx_mapping:${txid}`)) as { recordId: string; recordType: 'order' | 'swap'; timestamp: number } | null;
+    // Links stored before they were checked are checked here too
+    if (mapping && !(await recordNamesTransaction(txid, mapping.recordId, mapping.recordType))) return null;
+    return mapping;
   } catch (error) {
     console.error(`[TX-MONITOR] Error getting transaction mapping for ${txid}:`, error);
     return null;

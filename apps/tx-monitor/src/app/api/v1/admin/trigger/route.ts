@@ -5,9 +5,12 @@ import { isFinalStatus } from '@/lib/types';
 
 /**
  * Manually trigger transaction monitoring for all queued transactions
- * POST /api/v1/admin/trigger
+ * POST /api/v1/admin/trigger, with the cron's secret: each run checks every queued transaction against Hiro
  */
 export async function POST(request: NextRequest) {
+    if (!process.env.CRON_SECRET || request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     const startTime = Date.now();
     
     try {
