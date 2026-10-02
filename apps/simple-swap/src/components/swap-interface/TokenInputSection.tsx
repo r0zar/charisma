@@ -85,9 +85,10 @@ export default function TokenInputSection() {
         };
     }, [address, baseContractId, getTokenBalance, getSubnetBalance, getFormattedMainnetBalance, getFormattedSubnetBalance, subnetDisplayTokens, useSubnetFrom]);
 
-    // A v1/v2 pair's subnet balance (CHA, WELSH, sBTC) is one number across Blaze v1 and v2; the tooltip shows where it sits
+    // A v1/v2 pair's subnet balance (CHA, WELSH, sBTC) is one number across Blaze v1 and v2; while some is still on v1,
+    // the tooltip shows where it sits
     const fromPair = pairOf(subnetDisplayTokens.find(t => t.base === baseContractId)?.contractId);
-    const chaParts = address && fromPair
+    const splitParts = address && fromPair && getSubnetBalanceExact(address, fromPair.v1) > 0
         ? [['Blaze v1', fromPair.v1], ['Blaze v2', fromPair.v2]]
             .map(([part, subnet]) => ({ label: part, amount: formatTokenAmount(getSubnetBalanceExact(address, subnet), fromPair.decimals) }))
         : undefined;
@@ -225,7 +226,7 @@ export default function TokenInputSection() {
                         </div>
 
                         <div className="text-right flex-shrink-0">
-                            <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} subnetParts={chaParts} activeLabel={tooltipData.activeLabel} side="bottom">
+                            <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} subnetParts={splitParts} activeLabel={tooltipData.activeLabel} side="bottom">
                                 <div className="cursor-help">
                                     <div className="text-sm font-semibold text-ink">
                                         {compactBalance} {selectedFromToken.symbol}

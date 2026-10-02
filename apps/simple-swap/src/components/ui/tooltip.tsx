@@ -67,7 +67,7 @@ export function InfoTooltip({ content, children, side = "top" }: TooltipProps) {
 interface BalanceTooltipProps {
     mainnet: string;
     subnet?: string;
-    /** Where the subnet balance sits, when it's split (CHA on Blaze v1 and v2) */
+    /** Where the subnet balance sits while it is split across Blaze v1 and v2 (during the migration) */
     subnetParts?: { label: string; amount: string }[];
     activeLabel: string;
     children?: React.ReactNode;
