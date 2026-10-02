@@ -24,13 +24,11 @@ export const BaseStrategyCard: React.FC<BaseStrategyCardLayoutProps> = ({
  "group relative rounded-2xl border transition-all duration-300 cursor-pointer",
                 isRecentlyUpdated
                     ? 'border-success/[0.3] bg-success-soft shadow-emerald-500/[0.1] ring-1 ring-success/[0.2]'
-                    : 'border-line bg-surface hover:bg-chrome hover:border-line-strong',
+                    : 'border-line bg-surface hover:bg-surface-hover hover:border-line-strong',
                 "backdrop-blur-sm"
             )}
             onClick={onClick}
         >
-            {/* Subtle gradient overlay */}
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
 
             {/* Recently Updated Indicator */}
             {isRecentlyUpdated && (

@@ -234,7 +234,7 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
                         )}
 
                         {/* Hover Overlay */}
-                        <div className="absolute top-0 left-0 right-0 bottom-0 bg-chrome opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
+                        <div className="absolute top-0 left-0 right-0 bottom-0 bg-overlay opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
                             <button className="cursor-pointer button-primary text-sm py-2 px-4">
                                 <CreditCard className="h-4 w-4 mr-2" />
                                 {item.type === SHOP_CATEGORIES.OFFER ? 'View Offer' : 'Purchase'}

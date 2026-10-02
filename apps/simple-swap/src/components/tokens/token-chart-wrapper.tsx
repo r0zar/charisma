@@ -8,7 +8,7 @@ function ChartLoadingSpinner() {
     return (
         <div className="w-full h-[400px] relative rounded-2xl overflow-hidden border border-line-soft bg-surface">
             {/* Blur background */}
-            <div className="absolute inset-0 bg-overlay backdrop-blur-sm z-10" />
+            <div className="absolute inset-0 bg-bg/80 backdrop-blur-sm z-10" />
             
             {/* Centered spinner and text */}
             <div className="absolute inset-0 flex flex-col items-center justify-center z-20">

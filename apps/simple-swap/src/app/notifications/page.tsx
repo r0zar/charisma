@@ -296,7 +296,6 @@ function NotificationSettingsContent() {
                                 <div className="h-16 w-16 rounded-2xl bg-surface border border-line flex items-center justify-center">
                                     <div className="h-8 w-8 text-ink-faint">🔔</div>
                                 </div>
-                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
                             </div>
                             <h3 className="text-lg font-medium text-ink-body mb-2">Connect Your Wallet</h3>
                             <p className="text-sm text-center max-w-md leading-relaxed">
@@ -335,7 +334,6 @@ function NotificationSettingsContent() {
                                     <div className="space-y-6">
                                         {notificationTypes.map(({ category, notifications }) => (
                                             <div key={category} className="relative p-6 rounded-2xl bg-surface border border-line backdrop-blur-sm overflow-hidden">
-                                                <div className="absolute inset-0 bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
                                                 <div className="relative">
                                                     <h2 className="text-xl font-semibold text-ink mb-6">{category}</h2>
                                                     {notifications.map(({ key, title, description }) => {
@@ -374,7 +372,6 @@ function NotificationSettingsContent() {
                                                                                 }`}
                                                                                 onClick={() => !isDisabled && handleNotificationToggle(key)}
                                                                             >
-                                                                                <div className="absolute inset-0 bg-gradient-to-r from-surface to-transparent" />
                                                                             </div>
                                                                             <div
                                                                                 className={`absolute top-0.5 left-0.5 w-5 h-5 bg-ink rounded-full shadow-sm transition-all duration-200 pointer-events-none ${
@@ -394,7 +391,6 @@ function NotificationSettingsContent() {
                                                                         className="w-full px-4 py-3 rounded-xl bg-surface border border-line text-ink text-sm placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/20 transition-all duration-200 disabled:opacity-50 backdrop-blur-sm"
                                                                         disabled={isSaving || !userPrincipal}
                                                                     />
-                                                                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-surface-sunken to-transparent pointer-events-none" />
                                                                 </div>
                                                             </div>
                                                         );

@@ -365,7 +365,7 @@ export default function BackfillManager() {
                     <button
                         onClick={() => runBackfill(false)}
                         disabled={loading || !preview || preview.eligible === 0}
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-success text-bg rounded-lg hover:bg-success transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-success-fill text-on-fill rounded-lg hover:bg-success-fill transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />

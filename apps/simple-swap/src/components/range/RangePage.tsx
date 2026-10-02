@@ -211,7 +211,7 @@ export default function RangePage() {
                 <p className="text-sm text-ink-muted">Sell at the top line, buy back at the bottom line, every window, for as long as you choose.</p>
             </div>
             <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-                <div className="rounded-xl border border-line bg-surface-sunken p-4 flex flex-col">
+                <div className="rounded-xl border border-line bg-surface p-4 flex flex-col">
                     <div className="flex-1 min-h-[560px]">
                         {ready && tokenA && tokenB ? (
                             <ConditionTokenChart

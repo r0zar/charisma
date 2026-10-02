@@ -366,7 +366,7 @@ export default function TokenTable({
                         placeholder="Search tokens..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        className="w-full h-12 pl-12 pr-12 rounded-xl border border-line bg-surface-sunken text-ink placeholder:text-ink-muted focus:outline-none focus:border-line-strong transition-colors duration-200"
+                        className="w-full h-12 pl-12 pr-12 rounded-xl border border-line bg-surface text-ink placeholder:text-ink-muted focus:outline-none focus:border-line-strong transition-colors duration-200"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-xs text-ink-faint border border-line rounded px-2 py-1 bg-surface select-none">
                         /

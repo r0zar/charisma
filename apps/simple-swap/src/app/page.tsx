@@ -31,7 +31,6 @@ export default async function SwapHomePage() {
       {/* Hero Section */}
       <section className="relative pb-16 pt-8 md:pt-16 overflow-hidden">
         {/* Background glass effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
         
         <div className="container relative z-10">
           <div className="mx-auto max-w-3xl text-center">
@@ -67,7 +66,7 @@ export default async function SwapHomePage() {
             </div>
 
             {/* Proof of life: live platform numbers */}
-            <Link href="/analytics" className="group mx-auto grid max-w-2xl grid-cols-3 divide-x divide-line-soft rounded-2xl bg-surface-sunken border border-line-soft backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong">
+            <Link href="/analytics" className="group mx-auto grid max-w-2xl grid-cols-3 divide-x divide-line-soft rounded-2xl bg-surface border border-line backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong">
               {[
                 [count(stats.trades), 'trades'],
                 [count(stats.traders), 'traders'],
@@ -89,7 +88,6 @@ export default async function SwapHomePage() {
       {/* Features Section */}
       <section className="py-16 relative overflow-hidden">
         {/* Background glass effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
         
         <div className="container relative z-10">
           {/* Section header with glass morphism */}
@@ -104,7 +102,7 @@ export default async function SwapHomePage() {
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {/* Feature 1 - Best Exchange Rates */}
-            <div className="group bg-surface-sunken border border-line-soft rounded-xl p-6 backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong cursor-default">
+            <div className="group bg-surface border border-line rounded-xl p-6 backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong cursor-default">
               <div className="h-12 w-12 rounded-xl bg-success/20 border border-success/30 flex items-center justify-center mb-5 group-hover:bg-success/30 transition-all duration-200">
                 <Coins className="h-6 w-6 text-success" />
               </div>
@@ -116,7 +114,7 @@ export default async function SwapHomePage() {
             </div>
 
             {/* Feature 2 - Secure Transactions */}
-            <div className="group bg-surface-sunken border border-line-soft rounded-xl p-6 backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong cursor-default">
+            <div className="group bg-surface border border-line rounded-xl p-6 backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong cursor-default">
               <div className="h-12 w-12 rounded-xl bg-accent/20 border border-accent/30 flex items-center justify-center mb-5 group-hover:bg-accent/30 transition-all duration-200">
                 <Shield className="h-6 w-6 text-accent-text" />
               </div>
@@ -127,7 +125,7 @@ export default async function SwapHomePage() {
             </div>
 
             {/* Feature 3 - Advanced Order Types */}
-            <div className="group bg-surface-sunken border border-line-soft rounded-xl p-6 backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong cursor-default">
+            <div className="group bg-surface border border-line rounded-xl p-6 backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong cursor-default">
               <div className="h-12 w-12 rounded-xl bg-blaze/20 border border-blaze/30 flex items-center justify-center mb-5 group-hover:bg-blaze/30 transition-all duration-200">
                 <Activity className="h-6 w-6 text-blaze" />
               </div>
@@ -138,7 +136,7 @@ export default async function SwapHomePage() {
             </div>
 
             {/* Feature 4 - Unified LP Interface */}
-            <div className="group bg-surface-sunken border border-line-soft rounded-xl p-6 backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong cursor-default">
+            <div className="group bg-surface border border-line rounded-xl p-6 backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong cursor-default">
               <div className="h-12 w-12 rounded-xl bg-warning/20 border border-warning/30 flex items-center justify-center mb-5 group-hover:bg-warning/30 transition-all duration-200">
                 <Layers className="h-6 w-6 text-warning" />
               </div>
@@ -149,7 +147,7 @@ export default async function SwapHomePage() {
             </div>
 
             {/* Feature 5 - Best-Path Routing */}
-            <div className="group bg-surface-sunken border border-line-soft rounded-xl p-6 backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong cursor-default">
+            <div className="group bg-surface border border-line rounded-xl p-6 backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong cursor-default">
               <div className="h-12 w-12 rounded-xl bg-accent/20 border border-accent/30 flex items-center justify-center mb-5 group-hover:bg-accent/30 transition-all duration-200">
                 <RefreshCw className="h-6 w-6 text-accent-text" />
               </div>
@@ -161,7 +159,7 @@ export default async function SwapHomePage() {
             </div>
 
             {/* Feature 6 - Zero Protocol Fees */}
-            <div className="group bg-surface-sunken border border-line-soft rounded-xl p-6 backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong cursor-default">
+            <div className="group bg-surface border border-line rounded-xl p-6 backdrop-blur-sm transition-all duration-200 hover:bg-surface-hover hover:border-line-strong cursor-default">
               <div className="h-12 w-12 rounded-xl bg-danger/20 border border-danger/30 flex items-center justify-center mb-5 group-hover:bg-danger/30 transition-all duration-200">
                 <Sparkles className="h-6 w-6 text-danger" />
               </div>
@@ -177,12 +175,11 @@ export default async function SwapHomePage() {
       {/* CTA Section */}
       <section className="py-16 relative overflow-hidden mt-auto">
         {/* Enhanced background glass effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-surface-sunken via-transparent to-accent/[0.005] pointer-events-none" />
         <div className="absolute inset-0 backdrop-blur-[1px] opacity-50" />
 
         <div className="container relative z-10">
           {/* Glass container for the CTA content */}
-          <div className="mx-auto max-w-3xl bg-surface-sunken border border-line-soft rounded-2xl p-8 md:p-12 backdrop-blur-sm">
+          <div className="mx-auto max-w-3xl bg-surface border border-line rounded-2xl p-8 md:p-12 backdrop-blur-sm">
             <div className="text-center">
               <h2 className="text-3xl md:text-4xl font-semibold tracking-tight mb-6 text-ink">
                 Start swapping

@@ -1333,7 +1333,7 @@ export default function BotsSettings() {
 
                   {/* Funding Alert Overlay */}
                   {needsFunding(bot) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-chrome backdrop-blur-sm rounded-xl">
+                    <div className="absolute inset-0 flex items-center justify-center bg-bg/80 backdrop-blur-sm rounded-xl">
                       <div className="bg-warning-soft border border-warning  rounded-lg p-6 shadow-xl max-w-sm mx-4 backdrop-blur-md">
                         <div className="text-center">
                           <div className="w-12 h-12 rounded-xl bg-warning-soft border border-warning  flex items-center justify-center mx-auto mb-4">
@@ -1371,7 +1371,7 @@ export default function BotsSettings() {
 
                   {/* LP Token Alert Overlay for Yield Farming */}
                   {!needsFunding(bot) && needsLpTokens(bot) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-chrome backdrop-blur-sm rounded-xl">
+                    <div className="absolute inset-0 flex items-center justify-center bg-bg/80 backdrop-blur-sm rounded-xl">
                       <div className="bg-accent-soft border border-accent  rounded-lg p-6 shadow-xl max-w-sm mx-4 backdrop-blur-md">
                         <div className="text-center">
                           <div className="w-12 h-12 rounded-xl bg-accent-soft border border-accent  flex items-center justify-center mx-auto mb-4">
@@ -1435,7 +1435,7 @@ export default function BotsSettings() {
 
                   {/* Multi-Token Setup Overlay for Yield Farming */}
                   {!needsFunding(bot) && userHasAllLpTokens() && bot.strategy === 'yield-farming' && !botHasLpTokens(bot) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-chrome backdrop-blur-sm rounded-xl">
+                    <div className="absolute inset-0 flex items-center justify-center bg-bg/80 backdrop-blur-sm rounded-xl">
                       <div className="bg-success-soft border border-success  rounded-lg p-6 shadow-xl max-w-md mx-4 backdrop-blur-md">
                         <div className="text-center mb-4">
                           <div className="w-12 h-12 rounded-xl bg-success-soft border border-success  flex items-center justify-center mx-auto mb-4">
@@ -1490,7 +1490,7 @@ export default function BotsSettings() {
                                       size="sm"
                                       onClick={() => handleSendLpTokens(bot.id, contractId, maxAmount)}
                                       disabled={sendingLpTokens === bot.id}
-                                      className="bg-success hover:bg-success text-bg text-xs px-3 py-1"
+                                      className="bg-success-fill hover:bg-success-fill text-on-fill text-xs px-3 py-1"
                                     >
                                       {sendingLpTokens === bot.id ? 'Sending...' : statusText}
                                     </Button>
@@ -1735,7 +1735,7 @@ export default function BotsSettings() {
                       }
                     }}
                     disabled={withdrawingBot === withdrawalConfirmBot}
-                    className="bg-blaze hover:bg-blaze text-bg"
+                    className="bg-blaze-fill hover:bg-blaze-fill text-on-fill"
                   >
                     {withdrawingBot === withdrawalConfirmBot ? 'Withdrawing...' : `Withdraw All ${withdrawableTokens.length} Tokens`}
                   </Button>

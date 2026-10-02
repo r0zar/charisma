@@ -177,7 +177,7 @@ export default function DcaPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_260px] items-start">
-            <div className="rounded-xl border border-line bg-surface-sunken p-4 space-y-5">
+            <div className="rounded-xl border border-line bg-surface p-4 space-y-5">
                 {phase === 'done' ? (
                     <div className="space-y-4">
                         <div className="text-lg font-medium text-ink">Your DCA is running ✓</div>

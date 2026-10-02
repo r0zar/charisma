@@ -1159,7 +1159,7 @@ export default function TwitterTriggersClient() {
                     </div>
                     <Link
                         href="/admin/twitter-triggers/testing"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blaze text-bg rounded-lg hover:bg-blaze transition-colors text-sm font-medium"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blaze-fill text-on-fill rounded-lg hover:bg-blaze-fill transition-colors text-sm font-medium"
                     >
                         <TestTube className="w-4 h-4" />
                         Open Testing Dashboard

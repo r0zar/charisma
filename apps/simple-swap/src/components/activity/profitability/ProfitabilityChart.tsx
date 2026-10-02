@@ -236,7 +236,7 @@ export const ProfitabilityChart: React.FC<ProfitabilityChartProps> = ({
         />
         
         {loading && (
-          <div className="absolute inset-0 bg-overlay flex items-center justify-center backdrop-blur-sm rounded-lg">
+          <div className="absolute inset-0 bg-bg/80 flex items-center justify-center backdrop-blur-sm rounded-lg">
             <div className="flex items-center gap-3 text-sm text-ink-body">
               <div className="h-4 w-4 border-2 border-line-strong border-t-ink/80 rounded-full animate-spin" />
               <span>Loading chart...</span>

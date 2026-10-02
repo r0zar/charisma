@@ -65,7 +65,7 @@ export default function SettingsPage() {
 
   if (!connected) {
     return (
-      <div className="min-h-screen bg-overlay">
+      <div className="min-h-screen bg-bg">
         <Header />
         <div className="container max-w-6xl mx-auto p-6">
           <div className="flex flex-col items-center justify-center py-16">
@@ -83,7 +83,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-overlay">
+    <div className="min-h-screen bg-bg">
       <Header />
 
       <div className="container max-w-7xl mx-auto p-4 sm:p-6">

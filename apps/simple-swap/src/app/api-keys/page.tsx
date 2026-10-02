@@ -231,7 +231,7 @@ export default function ApiKeysPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-overlay">
+      <div className="min-h-screen bg-bg">
         <Header />
         <div className="container max-w-4xl mx-auto p-6">
           <Card className="bg-surface border-line backdrop-blur-sm">
@@ -249,7 +249,7 @@ export default function ApiKeysPage() {
   }
 
   return (
-    <div className="min-h-screen bg-overlay">
+    <div className="min-h-screen bg-bg">
       <Header />
       
       <div className="container max-w-6xl mx-auto p-6">
@@ -269,7 +269,7 @@ export default function ApiKeysPage() {
                   Create API Key
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-overlay border-line">
+              <DialogContent className="bg-surface-raised border-line">
                 <DialogHeader>
                   <DialogTitle className="text-ink">Create New API Key</DialogTitle>
                   <DialogDescription className="text-ink-body">
@@ -364,7 +364,7 @@ export default function ApiKeysPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2 p-3 bg-chrome rounded-lg border border-success/20">
+              <div className="flex items-center gap-2 p-3 bg-surface-sunken rounded-lg border border-success/20">
                 <code className="flex-1 text-success text-sm font-mono break-all">
                   {showNewKey ? newApiKey : '•'.repeat(48)}
                 </code>

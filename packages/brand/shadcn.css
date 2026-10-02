@@ -18,7 +18,8 @@
   --color-muted: var(--surface-hover);
   --color-muted-foreground: var(--ink-muted);
   --color-accent-foreground: var(--ink);
-  --color-destructive: var(--danger);
+  --color-destructive: var(--danger-fill);
+  --color-destructive-foreground: var(--on-fill);
   --color-border: var(--line);
   --color-input: var(--line);
   --color-ring: var(--focus);

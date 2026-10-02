@@ -414,7 +414,7 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
             {/* Clean chart container */}
             <div ref={containerRef} className="w-full relative rounded-2xl overflow-hidden border border-line-soft bg-surface">
                 {loading && (
-                    <div className="absolute inset-0 bg-overlay flex items-center justify-center z-10 backdrop-blur-sm">
+                    <div className="absolute inset-0 bg-bg/80 flex items-center justify-center z-10 backdrop-blur-sm">
                         <div className="flex items-center gap-3 text-sm text-ink-body">
                             <div className="h-4 w-4 border-2 border-line-strong border-t-ink/80 rounded-full animate-spin" />
                             <span>Loading chart data...</span>

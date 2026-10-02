@@ -20,7 +20,7 @@ export default function RangePreview({ preview, quoteError, runway, busy, onCrea
     const costText = preview.routeCostUsd !== null ? usd(preview.routeCostUsd) : (quoteError ?? WAITING_FOR_QUOTES);
     return (
         <div className="space-y-3">
-            <div className="rounded-xl border border-line bg-surface-sunken p-4 space-y-2 text-sm">
+            <div className="rounded-xl border border-line bg-surface p-4 space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-ink-muted">Spread</span><span className="font-mono">{(preview.spread * 100).toFixed(1)}%</span></div>
                 <div className="flex justify-between"><span className="text-ink-muted">Per completed cycle</span><span className={`font-mono ${preview.netPerCycle > 0 ? 'text-success' : 'text-accent-text'}`}>{usd(preview.netPerCycle)}</span></div>
                 <div className="flex justify-between gap-3">
@@ -46,7 +46,7 @@ export default function RangePreview({ preview, quoteError, runway, busy, onCrea
                 type="button"
                 disabled={blocked || busy}
                 onClick={onCreate}
-                className="w-full rounded-xl bg-blaze px-4 py-3 text-sm font-semibold text-bg disabled:opacity-50"
+                className="w-full rounded-xl bg-blaze-fill px-4 py-3 text-sm font-semibold text-on-fill disabled:opacity-50"
             >
                 {blocked ? 'Fix the items above' : `Create ${preview.orderCount} orders`}
                 <span className="block text-xs font-normal opacity-80">

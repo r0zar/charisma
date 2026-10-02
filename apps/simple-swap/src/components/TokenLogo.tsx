@@ -45,8 +45,8 @@ function TokenFlameOverlay({ size }: { size: 'sm' | 'md' | 'lg' }) {
         lg: "p-1",
     };
     return (
-        <div className={`absolute -top-1 -right-1 bg-danger rounded-full ${flameContainerClasses[size]} shadow-sm`}>
-            <Flame className={`text-ink ${flameSizeClasses[size]}`} />
+        <div className={`absolute -top-1 -right-1 bg-blaze-fill rounded-full ring-2 ring-bg ${flameContainerClasses[size]}`}>
+            <Flame className={`text-on-fill fill-current ${flameSizeClasses[size]}`} />
         </div>
     );
 }

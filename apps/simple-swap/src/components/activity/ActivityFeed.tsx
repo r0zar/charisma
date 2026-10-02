@@ -105,7 +105,6 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = React.memo(({
           <div className="h-16 w-16 rounded-2xl bg-surface border border-line flex items-center justify-center">
             <BarChart3 className="w-8 h-8 text-ink-faint" />
           </div>
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
         </div>
         <h3 className="text-lg font-medium text-ink-body mb-2">No activity yet</h3>
         <p className="text-sm text-center max-w-md leading-relaxed mb-6">
@@ -212,8 +211,6 @@ export const ActivityFeedSkeleton: React.FC = () => {
                 key={cardIndex}
                 className="group relative p-6 rounded-2xl border border-line bg-surface backdrop-blur-sm animate-pulse"
               >
-                {/* Subtle gradient overlay */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
 
                 <div className="relative space-y-4">
                   {/* Header row */}

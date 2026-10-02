@@ -42,6 +42,10 @@
   --color-danger-soft: var(--danger-soft);
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
+  --color-blaze-fill: var(--blaze-fill);
+  --color-success-fill: var(--success-fill);
+  --color-danger-fill: var(--danger-fill);
+  --color-on-fill: var(--on-fill);
   --color-gold: var(--gold);
   --color-focus: var(--focus);
 }

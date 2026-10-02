@@ -33,7 +33,7 @@ export default function BlazeWalletPitch({ connected, buys, cap }: { connected: 
                 href={BLAZE_WALLET_URL}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block rounded-lg bg-accent/90 px-3 py-2 text-center text-sm font-medium text-bg hover:bg-accent"
+                className="block rounded-lg bg-accent/90 px-3 py-2 text-center text-sm font-medium text-on-accent hover:bg-accent"
             >
                 Get Blaze Wallet →
             </a>

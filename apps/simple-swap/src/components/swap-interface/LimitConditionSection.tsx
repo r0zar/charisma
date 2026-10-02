@@ -440,7 +440,7 @@ export default function LimitConditionSection() {
                         <div className="flex items-center justify-between mb-1.5">
                             <div className="flex items-center space-x-2.5">
                                 <div className={`w-4 h-4 rounded border transition-all duration-200 flex items-center justify-center ${hasTimeTrigger
-                                    ? 'bg-success border-success text-bg'
+                                    ? 'bg-success-fill border-success text-on-fill'
                                     : 'border-line-strong'
                                     }`}>
                                     {hasTimeTrigger && (

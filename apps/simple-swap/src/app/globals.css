@@ -20,6 +20,9 @@
   * {
     @apply border-line;
   }
+  html {
+    background-color: var(--chrome);
+  }
   body {
     background-color: var(--bg);
     color: var(--ink);

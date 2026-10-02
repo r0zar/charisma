@@ -331,7 +331,7 @@ export default function ApiKeysSettings() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2 p-3 bg-chrome rounded-xl border border-success/20">
+            <div className="flex items-center gap-2 p-3 bg-surface-sunken rounded-xl border border-success/20">
               <code className="flex-1 text-success text-sm font-mono break-all">
                 {showNewKey ? newApiKey : '•'.repeat(48)}
               </code>

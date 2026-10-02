@@ -49,9 +49,7 @@ function PremiumComparisonCard({ period, change, isRelative, compareSymbol }: Pr
     };
 
     return (
-        <div className={`group relative p-4 sm:p-6 rounded-2xl border bg-surface backdrop-blur-sm transition-all duration-300 hover:bg-chrome hover:shadow-lg ${getBorderGlow(change)}`}>
-            {/* Subtle gradient overlay */}
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
+        <div className={`group relative p-4 sm:p-6 rounded-2xl border bg-surface backdrop-blur-sm transition-all duration-300 hover:bg-surface-hover hover:shadow-lg ${getBorderGlow(change)}`}>
 
             <div className="relative flex flex-col items-center space-y-2 sm:space-y-3">
                 <div className="text-xs text-ink-muted uppercase tracking-wider font-medium group-hover:text-ink-body transition-colors duration-300 text-center">
@@ -321,9 +319,7 @@ export default function TokenDetailClient({ detail, tokens: initialTokens, prelo
 
             {/* Premium comparison stats - mobile responsive grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-                <div className="group relative p-4 sm:p-6 rounded-2xl border border-line bg-surface backdrop-blur-sm transition-all duration-300 hover:bg-chrome hover:border-line-strong hover:shadow-lg">
-                    {/* Subtle gradient overlay */}
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
+                <div className="group relative p-4 sm:p-6 rounded-2xl border border-line bg-surface backdrop-blur-sm transition-all duration-300 hover:bg-surface-hover hover:border-line-strong hover:shadow-lg">
 
                     <div className="relative flex flex-col items-center space-y-2 sm:space-y-3">
                         <div className="text-xs text-ink-muted uppercase tracking-wider font-medium group-hover:text-ink-body transition-colors duration-300 text-center">

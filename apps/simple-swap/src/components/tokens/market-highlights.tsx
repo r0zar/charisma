@@ -165,7 +165,7 @@ export default function MarketHighlights({ tokenSummaries, priceHistories = {}, 
                         Market Avg
                         <div className="group relative">
                             <Info className="h-3 w-3 text-ink-faint hover:text-ink-muted cursor-help" />
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-3 bg-overlay border border-line rounded-lg shadow-lg text-xs text-ink-body opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-3 bg-surface-raised border border-line rounded-lg shadow-lg text-xs text-ink-body opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
                                 <div className="font-medium mb-1 text-ink">Market Cap Weighted</div>
                                 <div className="text-ink-muted">
                                     Larger tokens have proportionally more influence, providing accurate market representation.

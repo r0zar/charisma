@@ -481,7 +481,7 @@ export default function ComponentTester() {
                     <button 
                         onClick={testTwitterReply}
                         disabled={replyLoading || !replyTargetTweetUrl.trim() || !replyMessage.trim()}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-success text-bg rounded-lg hover:bg-success transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-success-fill text-on-fill rounded-lg hover:bg-success-fill transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {replyLoading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />

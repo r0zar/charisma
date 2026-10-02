@@ -135,7 +135,7 @@ export default function SwapButton() {
             className={`w-full py-3.5 rounded-xl font-semibold transition-all transform relative overflow-hidden ${isDisabled
                 ? 'bg-accent/60 text-on-accent cursor-pointer opacity-70 hover:opacity-80'
                 : isSubnetShift
-                    ? 'bg-blaze text-bg hover:bg-blaze/90 active:scale-[0.99]'
+                    ? 'bg-blaze-fill text-on-fill hover:bg-blaze-fill/90 active:scale-[0.99]'
                     : 'bg-accent text-on-accent shadow-[var(--shadow-cta)] hover:bg-accent-hover active:scale-[0.99]'
                 }`}
         >

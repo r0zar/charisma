@@ -121,7 +121,7 @@ function SwapInterfaceContentInner() {
             {/* Right Side - Send/Receive (2/5) */}
             <div className="col-span-2">
               {/* Token Input */}
-              <div className="bg-surface-sunken border border-line-soft rounded-2xl p-5 backdrop-blur-sm mb-6">
+              <div className="bg-surface border border-line rounded-2xl p-5 backdrop-blur-sm mb-6">
                 <TokenInputSection />
               </div>
 
@@ -131,7 +131,7 @@ function SwapInterfaceContentInner() {
               </div>
 
               {/* Token Output */}
-              <div className="bg-surface-sunken border border-line-soft rounded-2xl p-5 backdrop-blur-sm mt-6 mb-6">
+              <div className="bg-surface border border-line rounded-2xl p-5 backdrop-blur-sm mt-6 mb-6">
                 <TokenOutputSection />
               </div>
 
@@ -150,7 +150,7 @@ function SwapInterfaceContentInner() {
             </div>
 
             {/* Token Input */}
-            <div className="bg-surface-sunken border border-line-soft rounded-2xl p-5 backdrop-blur-sm mb-6">
+            <div className="bg-surface border border-line rounded-2xl p-5 backdrop-blur-sm mb-6">
               <TokenInputSection />
             </div>
 
@@ -160,7 +160,7 @@ function SwapInterfaceContentInner() {
             </div>
 
             {/* Token Output */}
-            <div className="bg-surface-sunken border border-line-soft rounded-2xl p-5 backdrop-blur-sm mt-6 mb-6">
+            <div className="bg-surface border border-line rounded-2xl p-5 backdrop-blur-sm mt-6 mb-6">
               <TokenOutputSection />
             </div>
 
@@ -175,7 +175,7 @@ function SwapInterfaceContentInner() {
         /* Swap Mode - Traditional Centered Layout */
         <div className="max-w-2xl mx-auto">
           {/* Token Input */}
-          <div className="bg-surface-sunken border border-line-soft rounded-2xl p-5 backdrop-blur-sm mb-6">
+          <div className="bg-surface border border-line rounded-2xl p-5 backdrop-blur-sm mb-6">
             <TokenInputSection />
           </div>
 
@@ -185,7 +185,7 @@ function SwapInterfaceContentInner() {
           </div>
 
           {/* Token Output */}
-          <div className="bg-surface-sunken border border-line-soft rounded-2xl p-5 backdrop-blur-sm mt-6 mb-6">
+          <div className="bg-surface border border-line rounded-2xl p-5 backdrop-blur-sm mt-6 mb-6">
             <TokenOutputSection />
           </div>
 

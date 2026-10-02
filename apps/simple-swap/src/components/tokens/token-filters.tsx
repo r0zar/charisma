@@ -96,7 +96,7 @@ export default function TokenFilters({
                             className="bg-transparent border border-line rounded-xl px-3 py-2 text-sm text-ink focus:outline-none focus:border-line-strong transition-colors duration-200"
                         >
                             {sortOptions.map((option) => (
-                                <option key={option.id} value={option.id} className="bg-overlay text-ink">
+                                <option key={option.id} value={option.id} className="bg-surface-raised text-ink">
                                     {option.label}
                                 </option>
                             ))}

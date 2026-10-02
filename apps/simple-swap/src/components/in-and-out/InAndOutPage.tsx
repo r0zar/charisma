@@ -209,7 +209,7 @@ export default function InAndOutPage() {
             </div>
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-                <div className="rounded-xl border border-line bg-surface-sunken p-4 flex flex-col">
+                <div className="rounded-xl border border-line bg-surface p-4 flex flex-col">
                     {buy && cashOut && ratio ? (
                         <ConditionTokenChart
                             token={buy}
@@ -230,7 +230,7 @@ export default function InAndOutPage() {
                     )}
                 </div>
 
-                <div className="rounded-xl border border-line bg-surface-sunken p-4 space-y-6">
+                <div className="rounded-xl border border-line bg-surface p-4 space-y-6">
                     {phase === 'done' ? (
                         <div className="space-y-4">
                             <div className="text-lg font-medium text-ink">You&apos;re in ✓</div>

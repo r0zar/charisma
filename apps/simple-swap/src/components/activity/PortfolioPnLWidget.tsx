@@ -168,8 +168,7 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
 
   // Dashboard Style (Clean grid with ranking badges)
   const renderDashboardStyle = () => (
-    <div className="relative rounded-2xl border border-line bg-surface backdrop-blur-sm hover:bg-chrome hover:border-line-strong transition-all duration-300 p-6">
-      <div className="bg-gradient-to-br from-surface-sunken to-transparent absolute inset-0 rounded-2xl pointer-events-none" />
+    <div className="relative rounded-2xl border border-line bg-surface backdrop-blur-sm hover:bg-surface-hover hover:border-line-strong transition-all duration-300 p-6">
 
       {/* Portfolio Header */}
       <div className="relative flex items-center justify-between mb-6">
@@ -243,7 +242,7 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
 
   // Command Center Style (Futuristic with hexagonal badges)
   const renderCommandStyle = () => (
-    <div className="relative rounded-2xl border border-line bg-surface backdrop-blur-sm hover:bg-chrome hover:border-line-strong transition-all duration-300 p-6 overflow-hidden">
+    <div className="relative rounded-2xl border border-line bg-surface backdrop-blur-sm hover:bg-surface-hover hover:border-line-strong transition-all duration-300 p-6 overflow-hidden">
       <div className="bg-gradient-to-r from-accent/[0.05] to-accent/[0.05] absolute inset-0 rounded-2xl pointer-events-none" />
 
       {/* Background Effects */}
@@ -321,7 +320,7 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
 
   // Terminal Style (Gaming/cyberpunk with medals)
   const renderTerminalStyle = () => (
-    <div className="relative rounded-2xl border border-line bg-surface backdrop-blur-sm hover:bg-chrome hover:border-line-strong transition-all duration-300 p-6 font-mono overflow-hidden">
+    <div className="relative rounded-2xl border border-line bg-surface backdrop-blur-sm hover:bg-surface-hover hover:border-line-strong transition-all duration-300 p-6 font-mono overflow-hidden">
       <div className="bg-gradient-to-r from-success/[0.03] to-blaze/[0.03] absolute inset-0 rounded-2xl pointer-events-none" />
 
       {/* Animated Background Lines */}

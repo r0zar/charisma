@@ -27,7 +27,7 @@ function ShareOnX({ text }: { text: string }) {
 
 function Card({ label, value, hint }: { label: string; value: string; hint?: string }) {
     return (
-        <div className="rounded-xl border border-line bg-surface-sunken p-5">
+        <div className="rounded-xl border border-line bg-surface p-5">
             <div className="text-xs uppercase tracking-wide text-ink-muted">{label}</div>
             <div className="mt-2 font-mono text-3xl font-semibold text-ink">{value}</div>
             {hint && <div className="mt-1 text-xs text-ink-muted">{hint}</div>}
@@ -51,7 +51,7 @@ function PeriodRow({ rows }: { rows: [string, Period][] }) {
     return (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {rows.map(([label, p]) => (
-                <div key={label} className="rounded-xl border border-line bg-surface-sunken p-4">
+                <div key={label} className="rounded-xl border border-line bg-surface p-4">
                     <div className="text-xs text-ink-muted">{label}</div>
                     <div className="mt-1 font-mono text-xl text-ink">{usd(p.volumeUsd)}</div>
                     <div className="text-xs text-ink-muted">{count(p.trades)} trades</div>
@@ -65,7 +65,7 @@ function PeriodRow({ rows }: { rows: [string, Period][] }) {
 function WeeklyChart({ weeks }: { weeks: PlatformStats['weekly'] }) {
     const max = Math.max(...weeks.map(w => w.volumeUsd), 1);
     return (
-        <div className="rounded-xl border border-line bg-surface-sunken p-4">
+        <div className="rounded-xl border border-line bg-surface p-4">
             <div className="flex h-48 items-end gap-[2px]">
                 {weeks.map(w => (
                     <div
@@ -86,7 +86,7 @@ function WeeklyChart({ weeks }: { weeks: PlatformStats['weekly'] }) {
 
 function Table({ head, rows }: { head: string; rows: { key: string; name: ReactNode; volumeUsd: number; trades: number }[] }) {
     return (
-        <div className="overflow-hidden rounded-xl border border-line bg-surface-sunken">
+        <div className="overflow-hidden rounded-xl border border-line bg-surface">
             <div className="grid grid-cols-[24px_1fr_auto_auto] gap-3 border-b border-line-soft px-4 py-2 text-xs text-ink-muted">
                 <span>#</span><span>{head}</span><span className="w-24 text-right">Volume</span><span className="w-16 text-right">Trades</span>
             </div>

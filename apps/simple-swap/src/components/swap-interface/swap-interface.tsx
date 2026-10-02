@@ -87,7 +87,6 @@ function SwapInterfaceInner({ urlParams: _unused, headerOnly = false }: { urlPar
         {/* Limit Order Conditions */}
         {mode === 'order' && (
           <div className="glass-card p-6 shadow-xl border border-line">
-            <div className="absolute inset-0 bg-gradient-to-br from-surface-sunken via-transparent to-blaze/[0.03] pointer-events-none rounded-2xl" />
             <div className="relative">
               <LimitConditionSection />
             </div>
@@ -96,7 +95,6 @@ function SwapInterfaceInner({ urlParams: _unused, headerOnly = false }: { urlPar
 
         {/* Token Input */}
         <div className="glass-card p-6 shadow-xl border border-line relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-surface-sunken via-transparent to-accent/[0.02] pointer-events-none rounded-2xl" />
           <div className="relative">
             <TokenInputSection />
           </div>
@@ -109,7 +107,6 @@ function SwapInterfaceInner({ urlParams: _unused, headerOnly = false }: { urlPar
 
         {/* Token Output */}
         <div className="glass-card p-6 shadow-xl border border-line relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-surface-sunken via-transparent to-success/[0.02] pointer-events-none rounded-2xl" />
           <div className="relative">
             <TokenOutputSection />
           </div>
@@ -122,7 +119,6 @@ function SwapInterfaceInner({ urlParams: _unused, headerOnly = false }: { urlPar
 
         {/* Action Controls */}
         <div className="glass-card p-6 shadow-xl border border-line">
-          <div className="absolute inset-0 bg-gradient-to-br from-surface-sunken via-transparent to-accent/[0.02] pointer-events-none rounded-2xl" />
           <div className="relative space-y-4">
             <ErrorAlert />
             {mode === 'swap' && <SwapButton />}

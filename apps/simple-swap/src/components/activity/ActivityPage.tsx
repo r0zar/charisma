@@ -777,8 +777,6 @@ export const ActivityPage: React.FC = () => {
         {/* Premium Filter Panel */}
         {showFilters && (
           <div className="rounded-2xl border border-line bg-surface backdrop-blur-sm animate-in fade-in duration-300">
-            {/* Subtle gradient overlay */}
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
 
             <div className="relative p-6 space-y-6">
               {/* Activity Types */}

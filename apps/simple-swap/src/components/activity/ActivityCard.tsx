@@ -188,14 +188,12 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
 
   return (
     <div
-      className={`group relative rounded-2xl border transition-all duration-300 cursor-pointer border-line bg-surface hover:bg-chrome hover:border-line-strong backdrop-blur-sm ${className}`}
+      className={`group relative rounded-2xl border transition-all duration-300 cursor-pointer border-line bg-surface hover:bg-surface-hover hover:border-line-strong backdrop-blur-sm ${className}`}
       onClick={handleCardClick}
       aria-label={`${getActivityDescription(activity)}. Click to ${showReplies ? 'hide' : 'show'} replies.`}
       role="article"
       title={`Click to ${showReplies ? 'hide' : 'show'} replies`}
     >
-      {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
 
       <div className="relative p-3 sm:p-6 space-y-4">
         {/* Header Row */}

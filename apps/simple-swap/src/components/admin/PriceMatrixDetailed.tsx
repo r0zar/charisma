@@ -29,7 +29,7 @@ function PriceSeriesDialog({ open, onClose, contractId, symbol }: { open: boolea
 
     if (!open || !contractId) return null;
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-chrome">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-overlay">
             <div className="bg-card rounded-lg shadow-lg p-6 min-w-[340px] max-w-full relative">
                 <button className="absolute top-2 right-2 text-muted-foreground hover:text-foreground" onClick={onClose}>&times;</button>
                 <h2 className="text-lg font-semibold mb-2">Recent Price Series: <span className="font-mono">{symbol || contractId}</span></h2>

@@ -165,7 +165,7 @@ export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string; conditio
             <div className={`w-1.5 h-1.5 rounded-full ${config.indicatorColor} ${status === 'open' ? 'animate-pulse' : ''}`} />
             <span>{config.label}</span>
             {conditionIcon && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-overlay border border-line-strong rounded-full flex items-center justify-center text-[10px] leading-none">
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-surface-raised border border-line rounded-full flex items-center justify-center text-[10px] leading-none">
                     {conditionIcon}
                 </div>
             )}
@@ -809,7 +809,6 @@ export default function OrdersPanel() {
                         <div className="h-16 w-16 rounded-2xl bg-surface border border-line flex items-center justify-center">
                             <ClipboardList className="h-8 w-8 text-ink-faint" />
                         </div>
-                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
                     </div>
                     <h3 className="text-lg font-medium text-ink-body mb-2">Connect Your Wallet</h3>
                     <p className="text-sm text-center max-w-md leading-relaxed">
@@ -904,7 +903,6 @@ export default function OrdersPanel() {
                     <div className="grid gap-6">
                         {Array.from({ length: 3 }).map((_, i) => (
                             <div key={i} className="group relative p-6 rounded-2xl border border-line bg-surface backdrop-blur-sm animate-pulse">
-                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
                                 <div className="relative space-y-4">
                                     {/* Header row */}
                                     <div className="flex items-start justify-between">
@@ -949,7 +947,6 @@ export default function OrdersPanel() {
                                 <div className="h-16 w-16 rounded-2xl bg-surface border border-line flex items-center justify-center">
                                     <ClipboardList className="h-8 w-8 text-ink-faint" />
                                 </div>
-                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
                             </div>
                             <h3 className="text-lg font-medium text-ink-body mb-2">{displayOrders.length === 0 ? 'No orders yet' : 'No matching orders'}</h3>
                             <p className="text-sm text-center max-w-md leading-relaxed">
@@ -1004,7 +1001,7 @@ export default function OrdersPanel() {
             {/* Premium cancel confirmation dialog */}
             {confirmUuid && (
                 <Dialog open onOpenChange={(open) => { if (!open) setConfirmUuid(null); }}>
-                    <DialogContent className="border-line bg-chrome backdrop-blur-xl">
+                    <DialogContent className="border-line bg-surface-raised">
                         <DialogHeader>
                             <DialogTitle className="text-ink">Cancel Order</DialogTitle>
                             <DialogDescription className="text-ink-muted">
@@ -1033,7 +1030,7 @@ export default function OrdersPanel() {
             {/* Bulk cancel confirmation dialog */}
             {confirmBulk && (
                 <Dialog open onOpenChange={(open) => { if (!open) setConfirmBulk(null); }}>
-                    <DialogContent className="border-line bg-chrome backdrop-blur-xl">
+                    <DialogContent className="border-line bg-surface-raised">
                         <DialogHeader>
                             <DialogTitle className="text-ink">Cancel Orders</DialogTitle>
                             <DialogDescription className="text-ink-muted">

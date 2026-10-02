@@ -62,11 +62,9 @@ export const ReplyComposer: React.FC<ReplyComposerProps> = ({
 
   return (
     <div 
-      className={`rounded-2xl border border-line bg-surface backdrop-blur-sm transition-all duration-300 ${isFocused ? 'border-line-strong bg-chrome' : ''} ${className}`}
+      className={`rounded-2xl border border-line bg-surface backdrop-blur-sm transition-all duration-300 ${isFocused ? 'border-line-strong bg-surface-hover' : ''} ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
       
       <div className="relative p-4 space-y-4">
         {/* Main compose area */}

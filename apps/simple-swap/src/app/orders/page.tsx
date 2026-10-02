@@ -11,7 +11,6 @@ function OrdersPanelFallback() {
             <div className="space-y-6">
                 {Array.from({ length: 3 }).map((_, i) => (
                     <div key={i} className="group relative p-6 rounded-2xl border border-line bg-surface backdrop-blur-sm animate-pulse">
-                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
                         <div className="relative space-y-4">
                             <div className="flex items-start justify-between">
                                 <div className="space-y-2">
