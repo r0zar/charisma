@@ -21,7 +21,7 @@ function HomepageHeader() {
           <Link
             className="button button--primary button--lg"
             to="/docs/intro">
-            Explore Charisma Docs
+            Start here
           </Link>
         </div>
       </div>
@@ -34,7 +34,7 @@ export default function Home(): ReactNode {
   return (
     <Layout
       title={`${siteConfig.title} - Developer Documentation`}
-      description="Official developer documentation for Charisma's suite of DeFi products, including the DEX API and Blaze intent-based execution layer on Stacks.">
+      description="Developer docs for Charisma on Stacks: the DEX API, Blaze signed intents, prices, data APIs and tokenomics.">
       <HomepageHeader />
       <main>
         <HomepageFeatures />

@@ -1,11 +1,36 @@
 .features {
-  display: flex;
-  align-items: center;
-  padding: 2rem 0;
-  width: 100%;
+  padding: 3rem 0 4rem;
 }
 
-.featureSvg {
-  height: 200px;
-  width: 200px;
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.card {
+  display: block;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+  color: var(--ink-body);
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.card:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-hover);
+  color: var(--ink-body);
+  text-decoration: none;
+}
+
+.card h3 {
+  margin-bottom: 0.35rem;
+  color: var(--ink);
+}
+
+.card p {
+  margin: 0;
+  font-size: 0.95rem;
 }

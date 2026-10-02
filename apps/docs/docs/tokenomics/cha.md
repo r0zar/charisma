@@ -1,34 +1,49 @@
 ---
-id: cha-token
-title: CHA – Supply & Wrapping
-sidebar_position: 2
+sidebar_position: 1
+title: CHA
 ---
 
-# CHA – Supply Protection & Wrapping
+# CHA
 
-## Supply throttle
+CHA is Charisma's main token. New CHA only comes from wrapping DMG 1:1 (a Legacy path, still live), and wrapping is rate-limited on-chain.
 
-* **Max mint / burn:** 1 CHA every **1 440 Bitcoin blocks** (~1 week)
-* **Annual change ceiling:** ≈ 52 CHA (&lt;0.05 % of supply)
-* **Multisig:** 3-of-4 (Rozar, Kraqen, MooningShark, Vinzo) must approve any parameter change.
-* **Upgrade plan:** raise the cooldown to 100 000 blocks (~1.9 years) per token.
+Contract: [`SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token`](https://explorer.hiro.so/txid/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token?chain=mainnet). Live supply: `get-total-supply`.
 
-Inflating total supply by just **1 %** would take millennia.
+## Wrap, unwrap and burn
 
-## Wrapping DMG ⇄ CHA
+| Call | What happens | Amount limit |
+|---|---|---|
+| `wrap` | Locks your DMG, mints equal CHA | `max-liquidity-flow`; larger requests are cut to it |
+| `unwrap` | Burns your CHA, releases equal DMG | None. The code's cap only applies to wallets without a Red Pill, which can't call it |
+| `burn` | Destroys your CHA; its DMG stays locked | None, and no throttle |
 
-1. Lock 1 DMG → receive 1 CHA  
-2. Burn 1 CHA → unlock 1 DMG  
-3. Each action restarts the cooldown timer.  
-4. Initially gated by the soul-bound **Red Pill NFT** issued to recovery supporters.
+```mermaid
+flowchart TD
+  call["wrap or unwrap"] --> pill{"Caller holds a Red Pill?"}
+  pill -->|"no"| e403["Fails: err u403"]
+  pill -->|"yes"| slot{"Deploy block + counter ≤ current block?"}
+  slot -->|"no"| e402["Fails: err u402, wait for the next slot"]
+  slot -->|"yes"| bump["Counter moves forward by blocks-per-tx"]
+  bump -->|"wrap"| mint["Lock DMG, mint CHA"]
+  bump -->|"unwrap"| out["Burn CHA, release DMG"]
+```
 
-The throttle guarantees an orderly, first-come-first-served queue and removes classic bank-run risk.
+Everyone shares one counter. It started at the deploy block, so unused slots pile up and can be used back to back (`get-txs-available`; `get-blocks-until-unlock` shows the wait). "Block" means Stacks tenure height, which moves at most once per Bitcoin block.
 
-## Market context
+## Mint ceiling
 
-Only **132 k CHA** exist (market-cap ≈ $48 k). Comparable Stacks tokens:  
-Velar ≈ $8.2 M • ALEX ≈ $30 M.
+Live values on 1 October 2026:
 
-The protocol treasury is secured by the same **3-of-4 multisig** (`SM203CS4ESKFNCZMRBYA2C0TNW0E40B7JWNQB7P39`) and currently holds **≈ 25 000 CHA** (~20 % of supply). These reserves are earmarked for future listing fees and liquidity provisioning.
+| Read-only call | Value | Bounds the DAO can set |
+|---|---|---|
+| `get-blocks-per-tx` | 1,440 (about 10 days of Bitcoin blocks) | 1 to 100,000 |
+| `get-max-liquidity-flow` | 1 CHA | 1 to 1,000 CHA |
 
-Given similar DeFi utility but extreme supply discipline, CHA appears materially undervalued. 
+~52,560 Bitcoin blocks a year ÷ 1,440 = at most **~36.5 CHA a year**, plus any open slots. Tenures recently ran slower than Bitcoin blocks, so the real pace is lower. The DAO can move both settings within the bounds ([Governance](./governance.md)).
+
+## Red Pill gate
+
+`wrap` and `unwrap` require a [Red Pill](https://explorer.hiro.so/txid/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.red-pill-nft?chain=mainnet). The check is hard-coded; nobody can remove it.
+
+- Soulbound: `transfer` always fails.
+- Minting is open at the time of writing (`get-paused` is false): one per wallet, up to `get-mint-limit`, costing `get-price` µSTX unless you're on the original free-claim list.

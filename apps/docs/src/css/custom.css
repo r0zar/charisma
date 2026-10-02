@@ -95,3 +95,15 @@ html[data-theme] {
 .card { background-color: var(--surface); border: 1px solid var(--line); box-shadow: none; }
 .pagination-nav__link { border-color: var(--line); background: var(--surface); }
 .pagination-nav__link:hover { border-color: var(--line-strong); }
+
+/* diagrams (```mermaid blocks) sit on a card */
+.docusaurus-mermaid-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--ifm-leading);
+  padding: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  background: var(--surface);
+}

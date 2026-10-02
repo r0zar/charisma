@@ -2,34 +2,28 @@ import { themes as prismThemes } from 'prism-react-renderer';
 import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
-// This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
+const EDIT_URL = 'https://github.com/r0zar/charisma/tree/main/apps/docs/';
 
 const config: Config = {
   title: 'Charisma Docs',
   tagline: 'Build Bitcoin DeFi on Stacks',
   favicon: 'img/favicon.ico',
-
-  // Set the production url of your site here
   url: 'https://docs.charisma.rocks',
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
-
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'facebook', // Usually your GitHub org/user name.
-  projectName: 'docusaurus', // Usually your repo name.
+  organizationName: 'r0zar',
+  projectName: 'charisma',
 
   onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
+  onBrokenMarkdownLinks: 'throw',
 
-  // Even if you don't use internationalization, you can use this field to set
-  // useful metadata like html lang. For example, if your site is Chinese, you
-  // may want to replace "en" with "zh-Hans".
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
   },
+
+  // ```mermaid code blocks render as diagrams
+  markdown: { mermaid: true },
+  themes: ['@docusaurus/theme-mermaid'],
 
   presets: [
     [
@@ -37,26 +31,9 @@ const config: Config = {
       {
         docs: {
           sidebarPath: './sidebars.ts',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/r0zar/charisma/tree/main/apps/docs/',
+          editUrl: EDIT_URL,
         },
-        blog: {
-          showReadingTime: true,
-          feedOptions: {
-            type: ['rss', 'atom'],
-            xslt: true,
-          },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/r0zar/charisma/tree/main/apps/docs/',
-          // Useful options to enforce blogging best practices
-          onInlineTags: 'warn',
-          onInlineAuthors: 'warn',
-          onUntruncatedBlogPosts: 'warn',
-        },
+        blog: false,
         theme: {
           customCss: './src/css/custom.css',
         },
@@ -64,56 +41,30 @@ const config: Config = {
     ],
   ],
 
-
   themeConfig: {
-    // Replace with your project's social card
     image: 'img/charisma-docs-card.png',
     // System by default: the toggle cycles System → Light · Bitcoin → Dark · RPG, like every Charisma app
     colorMode: {
       respectPrefersColorScheme: true,
     },
+    mermaid: {
+      theme: { light: 'neutral', dark: 'dark' },
+      options: { fontFamily: 'var(--font-sans)' },
+    },
     navbar: {
       title: 'Charisma',
       logo: {
-        alt: 'Charisma Logo',
+        alt: 'Charisma',
         src: 'img/charisma.png',
       },
       items: [
-        {
-          type: 'doc',
-          docId: 'intro',
-          position: 'left',
-          label: 'Intro',
-        },
-        {
-          type: 'docSidebar',
-          sidebarId: 'tutorialSidebar',
-          position: 'left',
-          label: 'DEX',
-        },
-        {
-          type: 'docSidebar',
-          sidebarId: 'blazeSidebar',
-          position: 'left',
-          label: 'Blaze',
-        },
-        {
-          type: 'docSidebar',
-          sidebarId: 'tokenomicsSidebar',
-          position: 'left',
-          label: 'Tokenomics',
-        },
-        {
-          type: 'docSidebar',
-          sidebarId: 'pricesSidebar',
-          position: 'left',
-          label: 'Pricing',
-        },
-        {
-          href: 'https://github.com/r0zar/charisma',
-          label: 'GitHub',
-          position: 'right',
-        },
+        { type: 'doc', docId: 'intro', position: 'left', label: 'Start here' },
+        { type: 'docSidebar', sidebarId: 'dexSidebar', position: 'left', label: 'DEX API' },
+        { type: 'docSidebar', sidebarId: 'blazeSidebar', position: 'left', label: 'Blaze' },
+        { type: 'docSidebar', sidebarId: 'pricesSidebar', position: 'left', label: 'Prices' },
+        { type: 'docSidebar', sidebarId: 'dataApisSidebar', position: 'left', label: 'Data APIs' },
+        { type: 'docSidebar', sidebarId: 'tokenomicsSidebar', position: 'left', label: 'Tokenomics' },
+        { href: 'https://github.com/r0zar/charisma', label: 'GitHub', position: 'right' },
       ],
     },
     footer: {
@@ -122,40 +73,29 @@ const config: Config = {
         {
           title: 'Docs',
           items: [
-            {
-              label: 'DEX',
-              to: '/docs/dex-api/overview',
-            },
-            {
-              label: 'Blaze',
-              to: '/docs/blaze-api/overview',
-            },
-            {
-              label: 'Pricing',
-              to: '/docs/prices/overview',
-            },
+            { label: 'Start here', to: '/docs/intro' },
+            { label: 'DEX API', to: '/docs/dex-api/overview' },
+            { label: 'Blaze', to: '/docs/blaze-api/introduction' },
+            { label: 'Prices', to: '/docs/prices/overview' },
+            { label: 'Data APIs', to: '/docs/data-apis/overview' },
+            { label: 'Tokenomics', to: '/docs/tokenomics/cha' },
+          ],
+        },
+        {
+          title: 'Apps',
+          items: [
+            { label: 'Charisma Swap', href: 'https://swap.charisma.rocks' },
+            { label: 'Charisma Invest', href: 'https://invest.charisma.rocks' },
+            { label: 'Charisma Launchpad', href: 'https://launchpad.charisma.rocks' },
+            { label: 'Brand', href: 'https://brand.charisma.rocks' },
           ],
         },
         {
           title: 'Community',
           items: [
-            {
-              label: 'Discord',
-              href: 'https://discord.gg/ZvDmqQskpy',
-            },
-            {
-              label: 'X',
-              href: 'https://x.com/CharismaBTC',
-            },
-          ],
-        },
-        {
-          title: 'More',
-          items: [
-            {
-              label: 'GitHub',
-              href: 'https://github.com/r0zar/charisma',
-            },
+            { label: 'Discord', href: 'https://discord.gg/ZvDmqQskpy' },
+            { label: 'X', href: 'https://x.com/CharismaBTC' },
+            { label: 'GitHub', href: 'https://github.com/r0zar/charisma' },
           ],
         },
       ],

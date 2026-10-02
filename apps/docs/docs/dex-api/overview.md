@@ -1,38 +1,70 @@
 ---
-slug: overview
 sidebar_position: 1
-title: Introduction to the Charisma DEX
+title: Overview
 ---
 
-# Charisma DEX: Composability and Power Through Vaults
+# Overview
 
-**The Charisma Decentralized Exchange (DEX) is engineered for flexibility and power on the Stacks blockchain, distinguished by its innovative Vault architecture. This system enables seamless interoperability between diverse smart contracts, creating a highly composable environment for developers.**
+An HTTP API for quoting swaps on Charisma and placing signed swap orders that Charisma runs for you.
 
-At its heart, the Charisma DEX facilitates token swaps, but its true strength lies in the **`vault-trait`**. This interface standardizes how contracts interact by defining an `execute` function that accepts serialized arguments in a command pattern. This transforms various on-chain applications—liquidity pools like [`x-pool.clar`](https://explorer.hiro.so/txid/SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dexterity-pool-v1), bridges, loan protocols, and more—into compatible modules that can be chained together in sophisticated ways, as exemplified by the [`x-multihop.clar`](https://explorer.hiro.so/txid/SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9) router.
+**Base URL:** `https://swap.charisma.rocks/api/v1`
 
-Our goal is to provide reliable infrastructure for trading and to empower developers to build next-generation financial applications by leveraging this unified execution layer.
+Requests and responses are JSON. Tokens are contract IDs, and STX is `.stx`. Order amounts are integer strings in the token's smallest unit. Only `/quote` sends CORS headers, so call every other endpoint from a server.
 
-## Key Aspects of the Charisma DEX
+## Authentication
 
-*   **Vault Architecture & Composability**: The `vault-trait` and its standardized `execute` function allow different types of smart contracts (liquidity pools, bridges, etc.) to be treated as interchangeable modules. This enables complex sequences of operations and the creation of novel financial products.
-*   **Open & Accessible**: The DEX offers public HTTP endpoints for accessing live pricing data, querying orders, and initiating trades that can trigger these composable vault operations.
-*   **Off-Chain Order Management**: Create and manage limit or triggered orders off-chain, which can then execute intricate on-chain logic through the vault system.
-*   **Programmatic Control**: A comprehensive API allows developers to integrate DEX functionalities and the power of vault compositions into their applications, automate trading strategies, or build custom trading interfaces.
-*   **Focus on Security**: Order creation and execution require cryptographic signatures, ensuring that actions, including complex vault interactions, are authorized by the asset owner.
-*   **Developer Empowerment**: Beyond simple swaps, the DEX API and vault system enable sophisticated use cases, such as building custom oracles that trigger multi-step vault operations, intricate reward systems, and automated portfolio management tools that span multiple protocols.
+| Mode | Used by | How |
+| --- | --- | --- |
+| None | `/quote`, `/orders` reads, `/subnet-tokens`, `/balances` | Nothing to send. |
+| Order signature | `POST /orders/new` | A SIP-018 signature in the body's `signature` field. See [Create an order](./orders-new.md). |
+| Signed message | Cancel, execute, API-key management | The wallet signs a message with `stx_signMessage`. Send the result in the `x-signature` and `x-public-key` headers. |
+| API key | Cancel, execute | Send the `x-api-key: ck_live_…` header. See [API keys](./api-keys.md). |
 
-## Navigating These Documents
+## Endpoints
 
-This section provides the information you need to understand and interact with the Charisma DEX and its vault architecture:
+| Method | Path | Auth | Purpose |
+| --- | --- | --- | --- |
+| `GET` | [`/quote`](./quote.md) | None | Find the best route and output for a swap |
+| `POST` | [`/orders/new`](./orders-new.md) | Order signature | Create an order |
+| `GET` | [`/orders`](./orders.md) | None | List orders |
+| `GET` | [`/orders/{uuid}`](./orders.md#get-ordersuuid) | None | Get one order |
+| `PATCH` | [`/orders/{uuid}/cancel`](./orders-cancel-execute.md) | Signed message or API key | Cancel an order |
+| `POST` | [`/orders/{uuid}/execute`](./orders-cancel-execute.md) | Signed message or API key | Run an order now |
+| `GET`, `POST` | [`/api-keys`](./api-keys.md) | Signed message | List or create API keys |
+| `GET`, `DELETE` | [`/api-keys/{keyId}`](./api-keys.md) | Signed message | Get a key's stats, or revoke it |
+| `GET` | `/subnet-tokens` | None | List subnet tokens. `pairings` maps each mainnet token to its subnet token. |
+| `GET` | `/balances/{address}` | None | Get an address's STX, token and subnet balances. Add `?includeZero=true` to include zero balances. |
 
-*   **Programmatic Order Management**: Dive deep into [advanced order creation, cancellation, and execution strategies](./programmatic-order-management.md). This guide details how to leverage the API to build your own oracle systems, implement automated trading bots that utilize vault compositions, create innovative reward mechanisms, and manage the full order lifecycle. It also covers key technical considerations for developers.
-*   **Core API Endpoints**: Detailed information on specific functionalities:
-    *   [Quoting](./quote.md): Get the best price for a token swap, potentially across multiple vaults.
-    *   [Orders Overview](./orders.md): General information about orders on the DEX.
-    *   [Creating Orders](./orders-new.md): How to submit new limit or triggered orders that can interact with the vault system.
-    *   [Managing Orders](./orders-uuid.md): Fetch, [cancel](./orders-cancel.md), or [force execute](./orders-execute.md) existing orders.
-*   **Technical Summary**: For a concise overview of the REST API, including base URLs, authentication, and error models, see the [DEX API Technical Summary](./api-technical-summary.md).
+## Errors
 
-**The Charisma DEX, with its powerful vault architecture, aims to be a cornerstone for decentralized finance on Stacks, offering a highly adaptable trading venue and a versatile toolkit for developers.**
+| Endpoint | Error body |
+| --- | --- |
+| `/quote` | `{ "success": false, "error": "…" }` |
+| `/orders/*` | `{ "error": "…" }`. An invalid `/orders/new` body also returns `"details": ["field: message"]`. |
+| Auth failures and `/api-keys` | `{ "error": "…", "timestamp": "…" }`. Some also include `details`. |
 
-We encourage you to explore these documents to see how you can utilize the Charisma DEX for your trading needs or development projects. 
+The status code says what kind of failure it was: `400` bad input, `401` auth failed, `403` someone else's key, `404` not found, `409` uuid already used, `429` rate limited, `500` server error.
+
+## Order lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> open: POST /orders/new
+    open --> broadcasted: executor or /execute sends the swap
+    broadcasted --> confirmed: transaction succeeded
+    broadcasted --> failed: transaction aborted
+    open --> cancelled: owner cancels, or it expires
+    broadcasted --> cancelled: transaction dropped or never lands
+```
+
+| Status | Meaning | Fields that get set |
+| --- | --- | --- |
+| `open` | Waiting to run | `createdAt` |
+| `broadcasted` | The swap transaction has been sent | `txid`, `broadcastedAt` |
+| `confirmed` | The swap succeeded on-chain | `blockHeight`, `blockTime`, `confirmedAt` |
+| `failed` | The transaction aborted on-chain | `failedAt`, `failureReason` (for example `abort_by_post_condition`) |
+| `cancelled` | The order will never run | `cancelledAt` |
+
+- **Executor.** It checks every `open` order once a minute. Price-triggered orders run when their condition is met, and `"*"` orders run on the next pass. Manual orders wait for [`/execute`](./orders-cancel-execute.md).
+- **Settlement.** A second job, also running every minute, moves `broadcasted` orders to `confirmed` or `failed`. If the transaction is dropped, or has not landed 24 hours after `broadcastedAt`, the order becomes `cancelled`. Orders sent before `broadcastedAt` existed only have the 90-day limit.
+- **Automatic cancellation.** An order is cancelled when its `validTo` passes, when it is 90 days old, when its `inputToken` turns out not to be a subnet token, or when a sibling exit runs (see [one-cancels-other](./orders-new.md#order-kinds)).

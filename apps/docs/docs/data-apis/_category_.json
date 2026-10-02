@@ -1,6 +1,5 @@
 {
-    "label": "Prices",
-    "position": 4,
+    "label": "Data APIs",
     "link": {
         "type": "doc",
         "id": "overview"

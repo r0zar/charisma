@@ -1,117 +1,59 @@
 ---
-slug: overview
 sidebar_position: 1
-title: Introduction to Charisma Pricing System
+title: How prices work
 ---
 
-# Charisma Pricing System: Multi-Path Discovery with sBTC Anchoring
+# How prices work
 
-**The Charisma Pricing System provides real-time, manipulation-resistant token prices through sophisticated multi-path discovery algorithms anchored to Bitcoin's market value via sBTC. This system powers accurate pricing across the Charisma ecosystem while maintaining reliability and transparency.**
+Every 5 minutes a job prices each token by swapping a little sBTC into it and back out through the Charisma router.
 
-The pricing infrastructure analyzes multiple trading routes through liquidity pools, calculates confidence scores for each path, and provides comprehensive pricing data that developers can trust for their applications. By leveraging sBTC as a price anchor and implementing decimal-aware calculations, the system delivers institutional-grade pricing accuracy.
+## The anchor
 
-## Key Features
+sBTC is priced at 1 BTC, and BTC/USD is Kraken's last trade price. Kraken is the only source. If it doesn't answer, the run stops and writes nothing, so prices go stale rather than wrong.
 
-### Multi-Path Price Discovery
-- **Route Analysis**: Examines all possible trading paths between tokens and sBTC
-- **Path Weighting**: Prioritizes routes based on liquidity depth and reliability
-- **Alternative Paths**: Provides backup pricing routes for redundancy
-- **Confidence Scoring**: Quantifies reliability of each price calculation
+## Each run
 
-### sBTC Price Anchoring
-- **Bitcoin Integration**: Uses sBTC as the primary price reference point
-- **Real-time Updates**: Fetches current BTC prices from multiple oracle sources
-- **Fallback Mechanisms**: Maintains pricing stability during oracle outages
-- **Stablecoin Support**: Special handling for USD-pegged tokens
+```mermaid
+flowchart TD
+  start["Every 5 minutes"] --> btc{"BTC/USD from Kraken"}
+  btc -->|"no answer"| stop["Run stops, nothing written"]
+  btc -->|"price"| list["Token list from invest /api/v1/tokens"]
+  list -->|"fetch fails"| stop
+  list --> buy["Quote 1,000 sats of sBTC → token"]
+  buy --> sell["Quote the tokens received → sBTC"]
+  buy -->|"no route"| skip["Token skipped, keeps its last price"]
+  sell -->|"no route"| skip
+  sell --> mid["Geometric mean of both prices × BTC/USD"]
+  mid --> sub["Subnet tokens copy their base token's price"]
+  sub --> bq[("BigQuery token_prices")]
+  bq -->|"read by"| api["Lakehouse and invest price APIs"]
+```
 
-### Specialized Token Handling
-- **Stablecoin Pricing**: Fixed $1.00 pricing for optimal trading experience
-- **Decimal-Aware Math**: Proper conversion between atomic units and decimal values
-- **Exchange Rate Accuracy**: Ensures correct price ratios between tokens (fixed 100x inflation bug)
-- **Precision Maintenance**: Maintains calculation accuracy across token scales
-- **Atomic Reserve Handling**: Converts reserves to decimal values before exchange rate calculations
+| Step | Detail |
+|---|---|
+| Tokens | Every token in `https://invest.charisma.rocks/api/v1/tokens` except sBTC and subnet tokens. |
+| Quotes | `https://swap.charisma.rocks/api/v1/quote`, 1,000 sats (0.00001 sBTC) in. |
+| Mid price | The buy price pays fees going in and the sell price pays them coming out. Their geometric mean cancels the fees. |
+| Subnets | A subnet token (`type: SUBNET`) gets its base token's price, if the base priced in this run. |
+| Storage | One row per token, all sharing one timestamp. |
 
-### Liquidity Analysis
-- **Pool Distribution**: Analyzes liquidity spread across trading pairs
-- **Risk Assessment**: Evaluates concentration and diversification risks
-- **Market Cap Calculations**: Derives accurate market capitalizations
-- **Reserve Tracking**: Monitors real-time pool reserve levels
+Source: [`scripts/calculate-token-prices.ts`](https://github.com/r0zar/lakehouse/blob/main/scripts/calculate-token-prices.ts) in the lakehouse repo.
 
-## Core Components
+## Routes
 
-### Price Graph
-The system constructs a graph of all available tokens and their trading relationships:
-- **Nodes**: Represent individual tokens with metadata
-- **Edges**: Represent trading pairs with liquidity information
-- **Pathfinding**: Algorithms to discover optimal trading routes
-- **Liquidity Weighting**: Routes prioritized by available liquidity
+The router (`dexterity-sdk`) searches paths of up to 4 hops through Charisma pools and wrapped external pools from Bitflow, ALEX, Arkadiko and Velar. Bitflow DLMM (bin) pools and stableswaps don't reveal a price from their reserves, so the router probes each with a tiny live quote (`withSpotPrices`) to rank routes. The top-ranked routes are then quoted on-chain, and the best output wins.
 
-### Calculation Engine
-Advanced algorithms process pricing data with recent improvements:
-- **Decimal-Aware Exchange Rates**: Proper atomic-to-decimal conversion before calculations
-- **Outlier Filtering**: Removes prices >50% from median for accuracy
-- **Weighted Path Aggregation**: Combines multiple routes using liquidity-based weights
-- **Confidence Metrics**: Statistical reliability measures with consistency scoring
-- **Alternative Analysis**: Backup route evaluation with theoretical pricing
-- **Stablecoin Pool Handling**: Skips constant product for stablecoin/stablecoin pairs
+Stablecoins get no special treatment. There is no $1 override: a stablecoin is worth whatever its route says.
 
-### Cache System
-Performance optimization through intelligent caching:
-- **Reserve Caching**: Stores pool data with configurable TTL
-- **Price Caching**: Maintains recent calculations for quick access
-- **BTC Oracle Cache**: Buffers external price feeds
-- **Stale-While-Revalidate**: Serves cached data while updating
+## Known limits
 
-## Use Cases
+Examples are live readings from 1 October 2026.
 
-### DeFi Applications
-- **Trading Interfaces**: Real-time price feeds for swap interfaces
-- **Portfolio Tracking**: Accurate asset valuation
-- **Arbitrage Detection**: Multi-path price comparison
-- **Risk Management**: Liquidity and concentration analysis
+| Limit | Example | What to do |
+|---|---|---|
+| Thin routes misprice. A price is only as good as the pools on its best route. | xBTC reads $108,276 (1.27 sBTC). Its route is sBTC → STX → USDA → xBTC, ending in a small Arkadiko pool. USDA reads $1.49 through a 4-hop route. | Sanity-check before relying on a price. Bitcoin wrappers should sit near 1 sBTC; stablecoins near $1. |
+| Stale rows never expire. The latest row per token is served however old it is. | VELAR's price was last written 29 July 2025. | Check `lastUpdated`. More than a few runs old means stale. |
+| Subnet duplicates share a symbol. | Two `sBTC` entries: `SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token` and its subnet `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v1`. | Key on contract ID, never symbol. |
+| Unknown tokens show placeholder metadata. | A priced token missing from the metadata list returns `"symbol": "UNKNOWN"`, `"name": "Unknown Token"`, `"decimals": 6`, `"image": ""`. | Don't use `decimals` for amount math when `symbol` is `UNKNOWN`. |
 
-### Analytics Platforms
-- **Market Data**: Comprehensive token pricing information
-- **Historical Analysis**: Price trend tracking capabilities
-- **Liquidity Metrics**: Pool performance evaluation
-- **Confidence Tracking**: Price reliability assessment
-
-### Developer Integration
-- **REST API**: Simple HTTP endpoints for price data
-- **Real-time Updates**: WebSocket connections for live prices
-- **Batch Processing**: Efficient bulk price calculations
-- **Filtering Options**: Customizable data queries
-
-## Getting Started
-
-The pricing system is accessible through RESTful APIs and provides comprehensive documentation for integration. Developers can access real-time prices, historical data, and detailed calculation information through simple HTTP requests.
-
-Key endpoints include:
-- [`/api/v1/prices`](https://invest.charisma.rocks/api/v1/prices) - Bulk token pricing with filtering
-- `/api/v1/prices/[tokenId]` - Individual token price details
-- Token detail pages with liquidity analysis
-
-For detailed API documentation, see [API Reference](api-reference.md).
-
-## Architecture Overview
-
-The system operates on several layers:
-1. **Data Layer**: Pool reserves and token metadata
-2. **Graph Layer**: Trading relationship modeling
-3. **Calculation Layer**: Multi-path price discovery
-4. **API Layer**: RESTful interface for consumers
-5. **UI Layer**: Web interfaces for visualization
-
-Each layer is designed for reliability, performance, and accuracy, ensuring that pricing data meets the demands of production DeFi applications.
-
-## Next Steps
-
-Explore the detailed documentation to understand how to integrate and use the Charisma Pricing System:
-
-- [Architecture Details](architecture.md) - Technical system design
-- [API Reference](api-reference.md) - Endpoint documentation
-- [Price Discovery](price-discovery.md) - Algorithm explanations
-- [Stablecoin Pricing](stablecoin-pricing.md) - Fixed $1 pricing strategy
-- [Troubleshooting](troubleshooting.md) - Common issues and solutions
-
-The Charisma Pricing System provides the foundation for accurate, reliable token pricing across the Stacks ecosystem.
+See [Prices API](./api-reference.md) for endpoints and fields.
