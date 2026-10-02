@@ -1,7 +1,7 @@
 ;; The Charisma Token
 ;; https://charisma.rocks
 
-;; (impl-trait .charisma-traits-v1.sip010-ft-trait)
+(impl-trait .dao-traits-v4.sip010-ft-trait)
 
 (define-constant err-unauthorized (err u401))
 (define-constant err-liquidity-lock (err u402))
@@ -10,7 +10,7 @@
 (define-constant err-invalid-input (err u405))
 
 (define-constant contract (as-contract tx-sender))
-(define-constant unlock-block burn-block-height)
+(define-constant unlock-block block-height)
 
 (define-fungible-token charisma)
 
@@ -32,7 +32,7 @@
 ;; --- Authorization checks
 
 (define-read-only (is-dao-or-extension)
-    (or (is-eq tx-sender .dungeon-master) (contract-call? .dungeon-master is-extension contract-caller))
+    (or (is-eq tx-sender 'SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dungeon-master) (contract-call? 'SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dungeon-master is-extension contract-caller))
 )
 
 (define-read-only (is-authorized)
@@ -40,12 +40,11 @@
 )
 
 (define-read-only (is-red-pilled)
-    ;; (ok (asserts! (contract-call? .red-pill-nft has-balance tx-sender) err-not-red-pilled))
-    (ok true)
+    (ok (asserts! (contract-call? .red-pill-nft has-balance tx-sender) err-not-red-pilled))
 )
 
 (define-read-only (is-unlocked)
-	(ok (asserts! (>= burn-block-height (+ unlock-block (var-get block-counter))) err-liquidity-lock))
+	(ok (asserts! (>= block-height (+ unlock-block (var-get block-counter))) err-liquidity-lock))
 )
 
 ;; --- Internal DAO functions
@@ -103,45 +102,45 @@
 	)
 )
 
-;; (define-public (wrap (amount uint))
-;;     (let
-;;         (
-;;             (sender tx-sender)
-;;             (red-pilled (try! (is-red-pilled)))
-;;             (max-amount (var-get max-liquidity-flow))
-;;             (amount-in (if (> amount max-amount) max-amount amount))
-;;         )
-;;         (try! (is-unlocked))
-;;         (var-set block-counter (+ (var-get block-counter) (var-get blocks-per-tx)))
-;;         (try! (contract-call? .dme000-governance-token transfer amount-in sender contract none))
-;;         (try! (ft-mint? charisma amount-in sender))
-;;         (ok {
-;;             block-counter: (var-get block-counter),
-;;             max-liquidity-flow: max-amount,
-;;             token-amount: amount-in
-;;         })
-;;     )
-;; )
+(define-public (wrap (amount uint))
+    (let
+        (
+            (sender tx-sender)
+            (red-pilled (try! (is-red-pilled)))
+            (max-amount (var-get max-liquidity-flow))
+            (amount-in (if (> amount max-amount) max-amount amount))
+        )
+        (try! (is-unlocked))
+        (var-set block-counter (+ (var-get block-counter) (var-get blocks-per-tx)))
+        (try! (contract-call? 'SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dme000-governance-token transfer amount-in sender contract none))
+        (try! (ft-mint? charisma amount-in sender))
+        (ok {
+            block-counter: (var-get block-counter),
+            max-liquidity-flow: max-amount,
+            token-amount: amount-in
+        })
+    )
+)
 
-;; (define-public (unwrap (amount uint))
-;;     (let
-;;         (
-;;             (sender tx-sender)
-;;             (red-pilled (try! (is-red-pilled)))
-;;             (max-amount (var-get max-liquidity-flow))
-;;             (amount-out (if (and (not red-pilled) (> amount max-amount)) max-amount amount))
-;;         )
-;;         (try! (is-unlocked))
-;;         (var-set block-counter (+ (var-get block-counter) (var-get blocks-per-tx)))
-;;         (try! (ft-burn? charisma amount-out tx-sender))
-;;         (try! (as-contract (contract-call? .dme000-governance-token transfer amount-out contract sender none)))
-;;         (ok {
-;;             block-counter: (var-get block-counter),
-;;             max-liquidity-flow: max-amount,
-;;             token-amount: amount-out
-;;         })
-;;     )
-;; )
+(define-public (unwrap (amount uint))
+    (let
+        (
+            (sender tx-sender)
+            (red-pilled (try! (is-red-pilled)))
+            (max-amount (var-get max-liquidity-flow))
+            (amount-out (if (and (not red-pilled) (> amount max-amount)) max-amount amount))
+        )
+        (try! (is-unlocked))
+        (var-set block-counter (+ (var-get block-counter) (var-get blocks-per-tx)))
+        (try! (ft-burn? charisma amount-out tx-sender))
+        (try! (as-contract (contract-call? 'SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dme000-governance-token transfer amount-out contract sender none)))
+        (ok {
+            block-counter: (var-get block-counter),
+            max-liquidity-flow: max-amount,
+            token-amount: amount-out
+        })
+    )
+)
 
 (define-public (burn (amount uint))
   (ft-burn? charisma amount tx-sender)
@@ -157,15 +156,15 @@
 
 (define-read-only (get-txs-available)
     (begin
-        (asserts! (>= burn-block-height (+ unlock-block (var-get block-counter))) (ok u0))
-        (ok (/ (- burn-block-height (+ unlock-block (var-get block-counter))) (var-get blocks-per-tx)))
+        (asserts! (>= block-height (+ unlock-block (var-get block-counter))) (ok u0))
+        (ok (/ (- block-height (+ unlock-block (var-get block-counter))) (var-get blocks-per-tx)))
     )
 )
 
 (define-read-only (get-blocks-until-unlock)
     (begin
-        (asserts! (< burn-block-height (+ unlock-block (var-get block-counter))) (ok u0))
-	    (ok (- (+ unlock-block (var-get block-counter)) burn-block-height))
+        (asserts! (< block-height (+ unlock-block (var-get block-counter))) (ok u0))
+	    (ok (- (+ unlock-block (var-get block-counter)) block-height))
     )
 )
 
@@ -225,5 +224,3 @@
     (ok transferOk)
   )
 )
-
-(ft-mint? charisma u10000000000000000 tx-sender)

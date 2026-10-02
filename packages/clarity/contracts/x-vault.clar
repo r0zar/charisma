@@ -1,5 +1,5 @@
 ;; Traits
-(impl-trait .charisma-traits-v1.vault-trait)
+(impl-trait .local-traits.vault-trait)
 
 ;; Constants
 (define-constant DEPLOYER tx-sender)

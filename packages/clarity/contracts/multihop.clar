@@ -5,7 +5,7 @@
 ;;   that implement the execute/quote interface.
 
 ;; Use Traits
-(use-trait pool-trait .charisma-traits-v1.liquidity-pool-trait)
+(use-trait pool-trait .dexterity-traits-v0.liquidity-pool-trait)
 
 ;; @desc Execute swap through a single pool
 (define-private (execute-swap 

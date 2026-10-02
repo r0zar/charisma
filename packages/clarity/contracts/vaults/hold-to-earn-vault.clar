@@ -2,7 +2,7 @@
 ;; Version: 1.0.0
 ;; Description: A vault for harvesting hold-to-earn energy rewards
 
-(impl-trait .charisma-traits-v1.liquidity-pool-trait)
+(impl-trait .dexterity-traits-v0.liquidity-pool-trait)
 
 ;; Constants
 (define-constant DEPLOYER tx-sender)

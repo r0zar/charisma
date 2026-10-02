@@ -60,6 +60,39 @@ plan:
     - id: 0
       transactions:
         - emulated-contract-publish:
+            contract-name: extension-trait
+            emulated-sender: SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ
+            path: "./.cache/requirements/SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.extension-trait.clar"
+            clarity-version: 1
+        - emulated-contract-publish:
+            contract-name: proposal-trait
+            emulated-sender: SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ
+            path: "./.cache/requirements/SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.proposal-trait.clar"
+            clarity-version: 1
+        - emulated-contract-publish:
+            contract-name: dungeon-master
+            emulated-sender: SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ
+            path: "./.cache/requirements/SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dungeon-master.clar"
+            clarity-version: 1
+        - emulated-contract-publish:
+            contract-name: governance-token-trait
+            emulated-sender: SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ
+            path: "./.cache/requirements/SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.governance-token-trait.clar"
+            clarity-version: 1
+        - emulated-contract-publish:
+            contract-name: sip010-ft-trait
+            emulated-sender: SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ
+            path: "./.cache/requirements/SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.sip010-ft-trait.clar"
+            clarity-version: 1
+        - emulated-contract-publish:
+            contract-name: dme000-governance-token
+            emulated-sender: SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ
+            path: "./.cache/requirements/SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dme000-governance-token.clar"
+            clarity-version: 1
+      epoch: "2.05"
+    - id: 1
+      transactions:
+        - emulated-contract-publish:
             contract-name: blaze
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/blaze.clar
@@ -68,6 +101,11 @@ plan:
             contract-name: charisma-traits-v1
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/charisma-traits-v1.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: dexterity-traits-v0
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/external/dexterity-traits-v0.clar
             clarity-version: 3
         - emulated-contract-publish:
             contract-name: multihop
@@ -80,20 +118,45 @@ plan:
             path: contracts/burn-swapper-v3.clar
             clarity-version: 3
         - emulated-contract-publish:
-            contract-name: dungeon-master
+            contract-name: charisma-claims
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/dungeon-master.clar
-            clarity-version: 3
+            path: contracts/external/charisma-claims.clar
+            clarity-version: 2
+        - emulated-contract-publish:
+            contract-name: dao-traits-v4
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/external/dao-traits-v4.clar
+            clarity-version: 2
+        - emulated-contract-publish:
+            contract-name: red-pill-nft
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/external/red-pill-nft.clar
+            clarity-version: 2
         - emulated-contract-publish:
             contract-name: charisma-token
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/charisma-token.clar
-            clarity-version: 3
+            clarity-version: 2
+        - emulated-contract-publish:
+            contract-name: extension-trait
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/dao/extension-trait.clar
+            clarity-version: 1
+        - emulated-contract-publish:
+            contract-name: proposal-trait
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/dao/proposal-trait.clar
+            clarity-version: 1
+        - emulated-contract-publish:
+            contract-name: dungeon-master
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/dungeon-master.clar
+            clarity-version: 1
         - emulated-contract-publish:
             contract-name: energy
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/energy.clar
-            clarity-version: 3
+            clarity-version: 2
         - emulated-contract-publish:
             contract-name: hold-to-earn
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
@@ -103,6 +166,11 @@ plan:
             contract-name: hold-to-earn-vault
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/vaults/hold-to-earn-vault.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: local-traits
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/local/local-traits.clar
             clarity-version: 3
         - emulated-contract-publish:
             contract-name: x-charisma-token

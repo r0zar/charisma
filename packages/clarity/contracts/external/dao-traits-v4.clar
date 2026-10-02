@@ -52,6 +52,18 @@
 	)
 )
 
+(define-trait cdk-trait
+	(
+		(tap (uint) (response (tuple (type (string-ascii 256)) (land-id uint) (land-amount uint) (energy uint)) uint))
+	)
+)
+
+(define-trait edk-trait
+	(
+		(tap (uint <cdk-trait> (optional uint)) (response (tuple (type (string-ascii 256)) (land-id uint) (land-amount uint) (energy uint)) uint))
+	)
+)
+
 (define-trait ft-plus-trait
   ((mint (uint principal) (response bool uint))
    (burn (uint principal) (response bool uint))
@@ -70,39 +82,3 @@
 (define-trait share-fee-to-trait
   ((receive (uint bool uint) (response bool uint))
 ))
-
-(define-trait rulebook-trait 
-	(
-		;; Experience Token Operations
-		(reward (uint principal) (response bool uint))
-		(punish (uint principal) (response bool uint))
-
-		;; Energy Token Operations
-		(energize (uint principal) (response bool uint))
-		(exhaust (uint principal) (response bool uint))
-
-		;; Protocol Operations
-		(pay-to-play () (response bool uint))
-
-		;; Governance Token Operations
-		(transfer (uint principal principal) (response bool uint))
-		(mint (uint principal) (response bool uint))
-		(burn (uint principal) (response bool uint))
-		(lock (uint principal) (response bool uint))
-		(unlock (uint principal) (response bool uint))
-
-		;; Authorization Operations
-		(is-owner (principal) (response bool uint))
-		(is-verified-interaction (principal) (response bool uint))
-	)
-)
-
-(define-trait interaction-trait
-  (
-    ;; Execute an action with a specified rulebook
-    (execute (<rulebook-trait> (string-ascii 32)) (response (string-ascii 32) (string-ascii 32)))
-
-    ;; Get the interaction's URI for metadata
-    (get-interaction-uri () (response (optional (string-utf8 256)) uint))
-  )
-)

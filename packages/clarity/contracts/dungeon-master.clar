@@ -1,7 +1,8 @@
-;; DungeonMaster is the fun DAO to rule them all.
+;; DungeonMaster is the fun DAO to rule them all. 
+;; By Ross Ragsdale
 
-(use-trait proposal-trait .charisma-traits-v1.proposal-trait)
-(use-trait extension-trait .charisma-traits-v1.extension-trait)
+(use-trait proposal-trait .proposal-trait.proposal-trait)
+(use-trait extension-trait .extension-trait.extension-trait)
 
 (define-constant err-unauthorized (err u1000))
 (define-constant err-already-executed (err u1001))
@@ -10,8 +11,6 @@
 (define-data-var executive principal tx-sender)
 (define-map executed-proposals principal uint)
 (define-map extensions principal bool)
-
-(map-set extensions .dungeon-keeper true)
 
 ;; --- Authorization check
 
@@ -56,7 +55,7 @@
 (define-public (execute (proposal <proposal-trait>) (sender principal))
 	(begin
 		(try! (is-self-or-extension))
-		(asserts! (map-insert executed-proposals (contract-of proposal) burn-block-height) err-already-executed)
+		(asserts! (map-insert executed-proposals (contract-of proposal) block-height) err-already-executed)
 		(print {event: "execute", proposal: proposal})
 		(as-contract (contract-call? proposal execute sender))
 	)

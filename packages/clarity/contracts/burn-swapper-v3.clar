@@ -6,7 +6,7 @@
 
 ;; Use Traits
 (use-trait ft-trait .charisma-traits-v1.sip010-ft-trait)
-(use-trait pool-trait .charisma-traits-v1.liquidity-pool-trait)
+(use-trait pool-trait .dexterity-traits-v0.liquidity-pool-trait)
 
 ;; Constants
 (define-constant CONTRACT (as-contract tx-sender))

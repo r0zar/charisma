@@ -1,6 +1,6 @@
 ;; Energy
 
-(impl-trait .charisma-traits-v1.sip010-ft-trait)
+(impl-trait .dao-traits-v4.sip010-ft-trait)
 
 (define-constant err-unauthorized (err u401))
 (define-constant err-not-token-owner (err u4))
@@ -15,7 +15,7 @@
 ;; --- Authorization check
 
 (define-public (is-dao-or-extension)
-	(ok (asserts! (or (is-eq tx-sender .dungeon-master) (contract-call? .dungeon-master is-extension contract-caller)) err-unauthorized))
+	(ok (asserts! (or (is-eq tx-sender 'SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dungeon-master) (contract-call? 'SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dungeon-master is-extension contract-caller)) err-unauthorized))
 )
 
 ;; --- Internal DAO functions

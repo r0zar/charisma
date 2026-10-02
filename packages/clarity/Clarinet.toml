@@ -5,6 +5,51 @@ authors = []
 telemetry = false
 cache_dir = "./.cache"
 
+# Mainnet contracts the synced sources call by full principal (fetched from chain).
+[[project.requirements]]
+contract_id = "SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dungeon-master"
+
+[[project.requirements]]
+contract_id = "SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dme000-governance-token"
+
+# Deployed dependencies, copied verbatim from chain.
+# contracts/external = SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS, contracts/dao = SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.
+[contracts.dao-traits-v4]
+path = "contracts/external/dao-traits-v4.clar"
+clarity_version = 2
+epoch = 3.0
+
+[contracts.dexterity-traits-v0]
+path = "contracts/external/dexterity-traits-v0.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.charisma-claims]
+path = "contracts/external/charisma-claims.clar"
+clarity_version = 2
+epoch = 3.0
+
+[contracts.red-pill-nft]
+path = "contracts/external/red-pill-nft.clar"
+clarity_version = 2
+epoch = 3.0
+
+[contracts.proposal-trait]
+path = "contracts/dao/proposal-trait.clar"
+clarity_version = 1
+epoch = 3.0
+
+[contracts.extension-trait]
+path = "contracts/dao/extension-trait.clar"
+clarity_version = 1
+epoch = 3.0
+
+# Local-only trait (vault-trait) for the not-deployed luffy-vault and x-vault.
+[contracts.local-traits]
+path = "contracts/local/local-traits.clar"
+clarity_version = 3
+epoch = 3.0
+
 [contracts.charisma-traits-v1]
 path = "contracts/charisma-traits-v1.clar"
 clarity_version = 3
@@ -12,7 +57,7 @@ epoch = 3.0
 
 [contracts.dungeon-master]
 path = "contracts/dungeon-master.clar"
-clarity_version = 3
+clarity_version = 1
 epoch = 3.0
 
 [contracts.welshcorgicoin-token]
@@ -22,7 +67,7 @@ epoch = 3.0
 
 [contracts.charisma-token]
 path = "contracts/charisma-token.clar"
-clarity_version = 3
+clarity_version = 2
 epoch = 3.0
 
 [contracts.blaze]
@@ -82,7 +127,7 @@ epoch = 3.0
 
 [contracts.energy]
 path = "contracts/energy.clar"
-clarity_version = 3
+clarity_version = 2
 epoch = 3.0
 
 [contracts.multihop]
