@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccountBalances, callReadOnlyFunction } from '@repo/polyglot';
 import { principalCV, validateStacksAddress } from '@stacks/transactions';
 import { fetchMetadata } from '@repo/tokens';
-import { SUBNET_V2_OF } from 'blaze-sdk';
+import { BLAZE_V2_SUBNETS } from 'blaze-sdk';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -68,7 +68,7 @@ export async function GET(
     });
 
     // The token list can be a CDN copy from before the Blaze v2 subnets were registered: always read those too
-    const subnetIds = [...new Set([...subnetTokens.map((token: any) => token.contractId as string), ...Object.values(SUBNET_V2_OF)])];
+    const subnetIds = [...new Set([...subnetTokens.map((token: any) => token.contractId as string), ...BLAZE_V2_SUBNETS])];
 
     // Fetch subnet balances in parallel
     const subnetBalancePromises = subnetIds.map(async (contractId) => {

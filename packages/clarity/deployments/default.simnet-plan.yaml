@@ -208,6 +208,19 @@ plan:
             path: contracts/deployed/luffy-vault.clar
             clarity-version: 3
         - emulated-contract-publish:
+            contract-name: stx-subnet-v2
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/test/stx-subnet-v2.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: stx-sublink-v2
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/test/stx-sublink-v2.clar
+            clarity-version: 3
+      epoch: "3.0"
+    - id: 2
+      transactions:
+        - emulated-contract-publish:
             contract-name: sub-link
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/deployed/sub-link.clar
@@ -217,9 +230,6 @@ plan:
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/test/welsh-subnet-v1.clar
             clarity-version: 3
-      epoch: "3.0"
-    - id: 2
-      transactions:
         - emulated-contract-publish:
             contract-name: welsh-sublink-v1
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM

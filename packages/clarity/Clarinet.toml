@@ -113,6 +113,16 @@ path = "contracts/test/welsh-sublink-v2.clar"
 clarity_version = 3
 epoch = 3.0
 
+[contracts.stx-subnet-v2]
+path = "contracts/test/stx-subnet-v2.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.stx-sublink-v2]
+path = "contracts/test/stx-sublink-v2.clar"
+clarity_version = 3
+epoch = 3.0
+
 [contracts.x-welshcorgicoin-token]
 path = "contracts/x-welshcorgicoin-token.clar"
 clarity_version = 3

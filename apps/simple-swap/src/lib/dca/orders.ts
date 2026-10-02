@@ -1,8 +1,9 @@
 import { canSignInBulk, signTriggeredSwap, signTriggeredSwaps } from 'blaze-sdk';
 import { request } from '@stacks/connect';
-import { Cl, Pc } from '@stacks/transactions';
+import { Cl } from '@stacks/transactions';
 import type { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { SIGNER_PAYOUT_ROUTER, type LimitOrder, type NewOrderRequest } from '@/lib/orders/types';
+import { baseTokenLeaves } from '@/lib/subnet-deposit';
 
 /** One buy of a DCA plan: swap `amount` of the subnet token into `to` any time inside its window */
 export interface DcaBuySpec {
@@ -85,14 +86,13 @@ export async function placeDcaBuys(specs: DcaBuySpec[], onProgress: (text: strin
 
 /** Move a token from the wallet onto the subnet, where the buys spend it. Returns the txid. */
 export async function depositToSubnet(wallet: string, token: TokenCacheData, subnet: string, amount: bigint): Promise<string> {
-  if (!token.identifier) throw new Error(`${token.symbol} has no asset name in the token list, so it can't be moved safely`);
   const result = await request('stx_callContract', {
     contract: subnet as `${string}.${string}`,
     functionName: 'deposit',
     functionArgs: [Cl.uint(amount), Cl.none()],
     postConditionMode: 'deny',
     network: 'mainnet',
-    postConditions: [Pc.principal(wallet).willSendEq(amount).ft(token.contractId as `${string}.${string}`, token.identifier)],
+    postConditions: [baseTokenLeaves(wallet, token, amount)],
   });
   if (!result?.txid) throw new Error(`Moving ${token.symbol} out of your wallet was not sent`);
   return result.txid;

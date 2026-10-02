@@ -35,12 +35,17 @@ export const WELSH_SUBLINK_V2_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T
 /** sBTC on Blaze v2, and its sublink */
 export const SBTC_SUBNET_V2_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v2";
 export const SBTC_SUBLINK_V2_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-sublink-v2";
+/** STX on Blaze v2 (native STX in, stx-transfer? out), and its sublink. There's no v1 STX subnet */
+export const STX_SUBNET_V2_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-subnet-v2";
+export const STX_SUBLINK_V2_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-sublink-v2";
 /** Each Blaze v1 subnet that has a Blaze v2 successor, and that successor */
 export const SUBNET_V2_OF: Record<string, string> = {
     "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1": CHARISMA_SUBNET_V2_CONTRACT_ID,
     "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v1": WELSH_SUBNET_V2_CONTRACT_ID,
     "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v1": SBTC_SUBNET_V2_CONTRACT_ID,
 };
+/** Every Blaze v2 subnet Charisma deployed */
+export const BLAZE_V2_SUBNETS = [...Object.values(SUBNET_V2_OF), STX_SUBNET_V2_CONTRACT_ID];
 
 // Token constants for STX handling
 export const STX_CONTRACT_ID = ".stx";

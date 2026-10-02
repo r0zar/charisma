@@ -1,5 +1,5 @@
 import { getContractInfo } from "@repo/polyglot";
-import { BLAZE_CONTRACT_ID, BLAZE_V1_DOMAIN, BLAZE_V2_CONTRACT_ID, BLAZE_V2_DOMAIN, SUBNET_V2_OF } from "./constants";
+import { BLAZE_CONTRACT_ID, BLAZE_V1_DOMAIN, BLAZE_V2_CONTRACT_ID, BLAZE_V2_DOMAIN, BLAZE_V2_SUBNETS } from "./constants";
 
 export type BlazeVersion = 1 | 2;
 
@@ -19,7 +19,7 @@ const V1_SUBNETS = [
 // Known subnets never touch the network: a browser reading contract sources without an API key gets rate-limited
 const versions = new Map<string, BlazeVersion>([
     ...V1_SUBNETS.map((id): [string, BlazeVersion] => [id, 1]),
-    ...Object.values(SUBNET_V2_OF).map((id): [string, BlazeVersion] => [id, 2]),
+    ...BLAZE_V2_SUBNETS.map((id): [string, BlazeVersion] => [id, 2]),
 ]);
 
 /**

@@ -11,7 +11,7 @@ import { request } from '@stacks/connect';
 import { TransactionResult } from '@stacks/connect/dist/types/methods';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { signTriggeredSwap } from 'blaze-sdk';
-import { uintCV, noneCV, Pc } from '@stacks/transactions';
+import { uintCV, noneCV } from '@stacks/transactions';
 import { formatTokenAmount, convertToMicroUnits } from '../lib/swap-utils';
 import { useSwapTokens } from '../contexts/swap-tokens-context';
 import { useOrderConditions } from '../contexts/order-conditions-context';
@@ -23,6 +23,7 @@ import { useWallet } from '@/contexts/wallet-context';
 import { TxMonitorClient } from '@repo/tx-monitor-client';
 import { registerTransactionForMonitoring } from '@/lib/activity/tx-monitor-client';
 import { toast } from 'sonner';
+import { baseTokenLeaves } from '@/lib/subnet-deposit';
 
 // Initialize tx-monitor client
 const txMonitorClient = new TxMonitorClient();
@@ -1052,9 +1053,7 @@ export function useRouterTrading() {
           uintCV(Number(microAmount)),
           noneCV()
         ],
-        postConditions: [
-          Pc.principal(walletAddress).willSendEq(Number(microAmount)).ft(mainnetToken.contractId as any, mainnetToken.identifier)
-        ]
+        postConditions: [baseTokenLeaves(walletAddress, mainnetToken, Number(microAmount))]
       };
 
       const result = await request('stx_callContract', params);

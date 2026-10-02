@@ -12,6 +12,7 @@ player's pace.
 | `charisma-sublink-v2` | The vault that moves CHA in and out of the v2 subnet (`0x05` / `0x06`) |
 | `welsh-token-subnet-v2`, `welsh-sublink-v2` | WELSH on Blaze v2, and its sublink |
 | `sbtc-token-subnet-v2`, `sbtc-sublink-v2` | sBTC on Blaze v2, and its sublink |
+| `stx-subnet-v2`, `stx-sublink-v2` | Native STX on Blaze v2 (`stx-transfer?` in and out), and its sublink. Tested in `tests/stx-subnet.test.ts` |
 
 Sources: `contracts/blaze-v2.clar`, `contracts/routers/x-multihop-v2.clar`, `contracts/subnets/`. The Launchpad's
 `subnet-wrapper-v2.template.clar` is what new subnets are made from. `tests/blaze-v2.test.ts` runs all of it end to end

@@ -20,8 +20,11 @@ and the [design notes](https://github.com/r0zar/charisma/blob/main/packages/clar
 | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-sublink-v2` | Moves WELSH in and out of the v2 subnet |
 | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v2` | sBTC on Blaze v2 |
 | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-sublink-v2` | Moves sBTC in and out of the v2 subnet |
+| `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-subnet-v2` | STX on Blaze v2. STX isn't a SIP-010 token, so deposits and withdrawals use `stx-transfer?`; everything signed inside works like any other subnet |
+| `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-sublink-v2` | Moves STX in and out of the STX subnet |
 
-CHA, WELSH and sBTC hold most of the money in subnets, so they moved first. Every other subnet stays on v1 and keeps
+CHA, WELSH and sBTC hold most of the money in subnets, so they moved first. STX is new to Blaze, and on v2 from day
+one, so anyone who just holds STX can set a triggered swap without leaving it. Every other subnet stays on v1 and keeps
 working. Its owner can deploy a v2 subnet and sublink from [Launchpad](https://launchpad.charisma.rocks/templates).
 
 ## What changed
