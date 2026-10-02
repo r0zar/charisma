@@ -59,10 +59,7 @@ html[data-theme] {
   --docusaurus-highlighted-code-line-bg: var(--surface-selected);
 }
 
-/* the canvas past the page is chrome, so overscroll under the footer (and above the header) stays the bar colour */
-html { background-color: var(--chrome); }
-body { background-color: var(--bg); }
-
+/* no chrome canvas here (unlike the Next apps): Infima pins body to the viewport height, so html paints the page */
 /* the header bar: "Charisma Docs" lockup, nav and toggle on chrome in both realms */
 .navbar { border-bottom: 1px solid var(--line); }
 .navbar__title { color: var(--on-chrome); font-weight: 700; letter-spacing: -0.01em; }
