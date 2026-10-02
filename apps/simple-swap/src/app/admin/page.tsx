@@ -96,11 +96,11 @@ export default function AdminDashboard() {
                         className="block bg-card rounded-lg border border-border p-6 hover:border-primary/50 hover:shadow-md transition-all duration-200"
                     >
                         <div className="flex items-center mb-4">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${action.color === 'red' ? 'bg-red-500/20 text-red-400' :
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${action.color === 'red' ? 'bg-danger/20 text-danger' :
                                 action.color === 'blue' ? 'bg-primary/20 text-primary' :
-                                    action.color === 'green' ? 'bg-green-500/20 text-green-400' :
-                                        action.color === 'orange' ? 'bg-orange-500/20 text-orange-400' :
-                                            action.color === 'teal' ? 'bg-teal-500/20 text-teal-400' :
+                                    action.color === 'green' ? 'bg-success/20 text-success' :
+                                        action.color === 'orange' ? 'bg-accent/20 text-accent-text' :
+                                            action.color === 'teal' ? 'bg-blaze/20 text-blaze' :
                                                 'bg-secondary/20 text-secondary'
                                 }`}>
                                 {action.icon}

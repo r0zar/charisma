@@ -332,7 +332,7 @@ export default function TokenPurchaseForm() {
                                         )}
                                         <button
                                             type="button"
-                                            className="ml-2 p-1 rounded cursor-pointer hover:bg-accent transition-colors"
+                                            className="ml-2 p-1 rounded cursor-pointer hover:bg-surface-hover transition-colors"
                                             onClick={handleRefreshPrices}
                                             aria-label="Refresh prices"
                                             disabled={false}

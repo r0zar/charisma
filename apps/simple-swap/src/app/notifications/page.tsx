@@ -291,22 +291,22 @@ function NotificationSettingsContent() {
             <main className="flex-1 py-8 md:py-12">
                 <div className="container max-w-6xl">
                     {!connected ? (
-                        <div className="flex flex-col items-center justify-center py-16 text-white/40">
+                        <div className="flex flex-col items-center justify-center py-16 text-ink-muted">
                             <div className="relative mb-6">
-                                <div className="h-16 w-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center">
-                                    <div className="h-8 w-8 text-white/30">🔔</div>
+                                <div className="h-16 w-16 rounded-2xl bg-surface border border-line flex items-center justify-center">
+                                    <div className="h-8 w-8 text-ink-faint">🔔</div>
                                 </div>
-                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
                             </div>
-                            <h3 className="text-lg font-medium text-white/70 mb-2">Connect Your Wallet</h3>
+                            <h3 className="text-lg font-medium text-ink-body mb-2">Connect Your Wallet</h3>
                             <p className="text-sm text-center max-w-md leading-relaxed">
                                 Please connect your wallet to manage your notification preferences and receive real-time updates.
                             </p>
                         </div>
                     ) : isLoading ? (
                         <div className="flex flex-col items-center justify-center py-16">
-                            <div className="h-8 w-8 border-2 border-white/30 border-t-white/80 rounded-full animate-spin mb-4" />
-                            <p className="text-white/60">Loading your notification settings...</p>
+                            <div className="h-8 w-8 border-2 border-line-strong border-t-ink/80 rounded-full animate-spin mb-4" />
+                            <p className="text-ink-muted">Loading your notification settings...</p>
                         </div>
                     ) : (
                         <div className="grid md:grid-cols-3 gap-8">
@@ -316,41 +316,41 @@ function NotificationSettingsContent() {
                                     {/* Header Section */}
                                     <div className="space-y-4">
                                         <div>
-                                            <h1 className="text-3xl font-medium text-white/95 tracking-wide mb-3">Notification Settings</h1>
-                                            <p className="text-white/60 max-w-2xl text-base leading-relaxed">
+                                            <h1 className="text-3xl font-medium text-ink tracking-wide mb-3">Notification Settings</h1>
+                                            <p className="text-ink-muted max-w-2xl text-base leading-relaxed">
                                                 Configure your notification preferences to stay updated on trades, bids, offers, and other important events.
                                             </p>
                                         </div>
                                     </div>
                                     {error && (
-                                        <div className="relative p-4 rounded-2xl bg-red-500/[0.08] border border-red-500/[0.15] backdrop-blur-sm overflow-hidden" role="alert">
-                                            <div className="absolute inset-0 bg-gradient-to-r from-red-500/[0.02] to-transparent pointer-events-none" />
+                                        <div className="relative p-4 rounded-2xl bg-danger/[0.08] border border-danger/[0.15] backdrop-blur-sm overflow-hidden" role="alert">
+                                            <div className="absolute inset-0 bg-gradient-to-r from-danger/[0.02] to-transparent pointer-events-none" />
                                             <div className="relative">
-                                                <strong className="font-semibold text-red-400">Error:</strong>
-                                                <span className="block sm:inline text-red-300 ml-2">{error}</span>
+                                                <strong className="font-semibold text-danger">Error:</strong>
+                                                <span className="block sm:inline text-danger ml-2">{error}</span>
                                             </div>
                                         </div>
                                     )}
                                     {/* Notification Categories */}
                                     <div className="space-y-6">
                                         {notificationTypes.map(({ category, notifications }) => (
-                                            <div key={category} className="relative p-6 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm overflow-hidden">
-                                                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                                            <div key={category} className="relative p-6 rounded-2xl bg-surface border border-line backdrop-blur-sm overflow-hidden">
+                                                <div className="absolute inset-0 bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
                                                 <div className="relative">
-                                                    <h2 className="text-xl font-semibold text-white/90 mb-6">{category}</h2>
+                                                    <h2 className="text-xl font-semibold text-ink mb-6">{category}</h2>
                                                     {notifications.map(({ key, title, description }) => {
                                                         const isPending = pendingToggles.has(key);
                                                         const isDisabled = !userPrincipal || isLoading || isPending;
                                                         return (
-                                                            <div key={key} className="py-4 border-b border-white/[0.08] last:border-b-0">
+                                                            <div key={key} className="py-4 border-b border-line last:border-b-0">
                                                                 <div className="flex items-start justify-between mb-4">
                                                                     <div className="flex-1">
-                                                                        <h3 className="text-base font-semibold text-white/90">{title}</h3>
-                                                                        <p className="text-sm text-white/60 mt-1 leading-relaxed">{description}</p>
+                                                                        <h3 className="text-base font-semibold text-ink">{title}</h3>
+                                                                        <p className="text-sm text-ink-muted mt-1 leading-relaxed">{description}</p>
                                                                         {isPending && (
                                                                             <div className="flex items-center gap-2 mt-2">
-                                                                                <div className="h-3 w-3 border-2 border-blue-400/60 border-t-blue-400 rounded-full animate-spin" />
-                                                                                <span className="text-xs text-blue-400">Saving changes...</span>
+                                                                                <div className="h-3 w-3 border-2 border-accent/60 border-t-accent rounded-full animate-spin" />
+                                                                                <span className="text-xs text-accent-text">Saving changes...</span>
                                                                             </div>
                                                                         )}
                                                                     </div>
@@ -367,17 +367,17 @@ function NotificationSettingsContent() {
                                                                             <div
                                                                                 className={`relative w-12 h-6 rounded-full transition-all duration-200 cursor-pointer overflow-hidden ${
                                                                                     isDisabled
-                                                                                        ? 'bg-white/[0.08] cursor-not-allowed'
+                                                                                        ? 'bg-surface-hover cursor-not-allowed'
                                                                                         : uiToggleState[key]
-                                                                                            ? 'bg-blue-500/80 shadow-lg shadow-blue-500/20'
-                                                                                            : 'bg-white/[0.12] hover:bg-white/[0.15]'
+                                                                                            ? 'bg-accent/80 shadow-lg shadow-blue-500/20'
+                                                                                            : 'bg-surface-selected hover:bg-surface-selected'
                                                                                 }`}
                                                                                 onClick={() => !isDisabled && handleNotificationToggle(key)}
                                                                             >
-                                                                                <div className="absolute inset-0 bg-gradient-to-r from-white/[0.05] to-transparent" />
+                                                                                <div className="absolute inset-0 bg-gradient-to-r from-surface to-transparent" />
                                                                             </div>
                                                                             <div
-                                                                                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-200 pointer-events-none ${
+                                                                                className={`absolute top-0.5 left-0.5 w-5 h-5 bg-ink rounded-full shadow-sm transition-all duration-200 pointer-events-none ${
                                                                                     uiToggleState[key] ? 'transform translate-x-6' : ''
                                                                                 } ${isPending ? 'animate-pulse' : ''}`}
                                                                             />
@@ -391,10 +391,10 @@ function NotificationSettingsContent() {
                                                                         value={recipientIds[key] || ''}
                                                                         onChange={(e) => handleRecipientIdChange(key, e.target.value)}
                                                                         onBlur={() => handleRecipientIdSave(key)}
-                                                                        className="w-full px-4 py-3 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/90 text-sm placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/20 transition-all duration-200 disabled:opacity-50 backdrop-blur-sm"
+                                                                        className="w-full px-4 py-3 rounded-xl bg-surface border border-line text-ink text-sm placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/20 transition-all duration-200 disabled:opacity-50 backdrop-blur-sm"
                                                                         disabled={isSaving || !userPrincipal}
                                                                     />
-                                                                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-white/[0.01] to-transparent pointer-events-none" />
+                                                                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-surface-sunken to-transparent pointer-events-none" />
                                                                 </div>
                                                             </div>
                                                         );
@@ -410,40 +410,40 @@ function NotificationSettingsContent() {
                             <div className="md:col-span-1">
                                 <div className="sticky top-24 space-y-6">
                                     {/* Setup Instructions */}
-                                    <div className="relative p-6 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.02] to-transparent pointer-events-none" />
+                                    <div className="relative p-6 rounded-2xl bg-surface border border-line backdrop-blur-sm overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.02] to-transparent pointer-events-none" />
                                         <div className="relative">
-                                            <h3 className="text-lg font-semibold text-white/90 mb-4 flex items-center gap-2">
-                                                <div className="h-1.5 w-1.5 bg-blue-400 rounded-full" />
+                                            <h3 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
+                                                <div className="h-1.5 w-1.5 bg-accent rounded-full" />
                                                 Setup Guide
                                             </h3>
-                                            <div className="text-sm text-white/70 space-y-4">
+                                            <div className="text-sm text-ink-body space-y-4">
                                                 <div className="flex items-start gap-3">
-                                                    <div className="mt-1.5 h-1.5 w-1.5 bg-white/40 rounded-full flex-shrink-0" />
+                                                    <div className="mt-1.5 h-1.5 w-1.5 bg-line-strong rounded-full flex-shrink-0" />
                                                     <div>
-                                                        <p className="font-medium text-white/80 mb-1">Get Your Chat ID</p>
+                                                        <p className="font-medium text-ink-body mb-1">Get Your Chat ID</p>
                                                         <p className="leading-relaxed">
                                                             Message{' '}
-                                                            <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors duration-200 underline underline-offset-2">@userinfobot</a>{' '}
+                                                            <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:text-accent-text transition-colors duration-200 underline underline-offset-2">@userinfobot</a>{' '}
                                                             to get your numerical Telegram Chat ID
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-start gap-3">
-                                                    <div className="mt-1.5 h-1.5 w-1.5 bg-white/40 rounded-full flex-shrink-0" />
+                                                    <div className="mt-1.5 h-1.5 w-1.5 bg-line-strong rounded-full flex-shrink-0" />
                                                     <div>
-                                                        <p className="font-medium text-white/80 mb-1">Start Bot Chat</p>
+                                                        <p className="font-medium text-ink-body mb-1">Start Bot Chat</p>
                                                         <p className="leading-relaxed">
                                                             Start a conversation with{' '}
-                                                            <a href="https://t.me/BuiltOnBitcoin_bot" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors duration-200 underline underline-offset-2">@BuiltOnBitcoin_bot</a>{' '}
+                                                            <a href="https://t.me/BuiltOnBitcoin_bot" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:text-accent-text transition-colors duration-200 underline underline-offset-2">@BuiltOnBitcoin_bot</a>{' '}
                                                             so it can send you messages
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-start gap-3">
-                                                    <div className="mt-1.5 h-1.5 w-1.5 bg-white/40 rounded-full flex-shrink-0" />
+                                                    <div className="mt-1.5 h-1.5 w-1.5 bg-line-strong rounded-full flex-shrink-0" />
                                                     <div>
-                                                        <p className="font-medium text-white/80 mb-1">Configure Notifications</p>
+                                                        <p className="font-medium text-ink-body mb-1">Configure Notifications</p>
                                                         <p className="leading-relaxed">
                                                             Enter your Chat ID and toggle the notifications you want to receive
                                                         </p>
@@ -454,24 +454,24 @@ function NotificationSettingsContent() {
                                     </div>
                                     
                                     {/* Status */}
-                                    <div className="relative p-6 rounded-2xl bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-green-500/[0.02] to-transparent pointer-events-none" />
+                                    <div className="relative p-6 rounded-2xl bg-surface border border-line backdrop-blur-sm overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-success/[0.02] to-transparent pointer-events-none" />
                                         <div className="relative">
-                                            <h3 className="text-lg font-semibold text-white/90 mb-4 flex items-center gap-2">
-                                                <div className="h-1.5 w-1.5 bg-green-400 rounded-full" />
+                                            <h3 className="text-lg font-semibold text-ink mb-4 flex items-center gap-2">
+                                                <div className="h-1.5 w-1.5 bg-success rounded-full" />
                                                 Status
                                             </h3>
                                             <div className="space-y-3 text-sm">
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-white/60">Service:</span>
+                                                    <span className="text-ink-muted">Service:</span>
                                                     <div className="flex items-center gap-2">
-                                                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                                        <span className="text-green-400 font-medium">Active</span>
+                                                        <div className="w-2 h-2 bg-success rounded-full"></div>
+                                                        <span className="text-success font-medium">Active</span>
                                                     </div>
                                                 </div>
                                                 <div className="flex justify-between items-center">
-                                                    <span className="text-white/60">Notifications:</span>
-                                                    <span className="text-white/80 font-medium">{Object.values(uiToggleState).filter(Boolean).length} enabled</span>
+                                                    <span className="text-ink-muted">Notifications:</span>
+                                                    <span className="text-ink-body font-medium">{Object.values(uiToggleState).filter(Boolean).length} enabled</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -493,8 +493,8 @@ function NotificationsFallback() {
             <main className="flex-1 py-8 md:py-12">
                 <div className="container max-w-6xl">
                     <div className="flex flex-col items-center justify-center py-16">
-                        <div className="h-8 w-8 border-2 border-white/30 border-t-white/80 rounded-full animate-spin mb-4" />
-                        <p className="text-white/60">Loading notification settings...</p>
+                        <div className="h-8 w-8 border-2 border-line-strong border-t-ink/80 rounded-full animate-spin mb-4" />
+                        <p className="text-ink-muted">Loading notification settings...</p>
                     </div>
                 </div>
             </main>

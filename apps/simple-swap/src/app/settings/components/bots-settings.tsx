@@ -107,10 +107,10 @@ const exampleBots: BotConfig[] = [
 ];
 
 const statusColors = {
-  active: 'bg-green-500/20 text-green-400 border-green-500/30',
-  paused: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  error: 'bg-red-500/20 text-red-400 border-red-500/30',
-  inactive: 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+  active: 'bg-success/20 text-success border-success/30',
+  paused: 'bg-warning/20 text-warning border-warning/30',
+  error: 'bg-danger/20 text-danger border-danger/30',
+  inactive: 'bg-surface-hover text-ink-muted border-line'
 };
 
 const statusIcons = {
@@ -905,14 +905,14 @@ export default function BotsSettings() {
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-white/95 mb-1">DeFi Automation Bots</h3>
-          <p className="text-sm text-white/60">
+          <h3 className="text-lg font-semibold text-ink mb-1">DeFi Automation Bots</h3>
+          <p className="text-sm text-ink-muted">
             Automated trading strategies and yield optimization
           </p>
         </div>
         <Button
           onClick={() => setIsCreateModalOpen(true)}
-          className="bg-blue-500 hover:bg-blue-600 text-white border-0 shrink-0"
+          className="bg-accent hover:bg-accent text-on-accent border-0 shrink-0"
           size="sm"
         >
           <Plus className="w-4 h-4 sm:mr-2" />
@@ -922,69 +922,69 @@ export default function BotsSettings() {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="pt-6 bg-white/[0.03] border-white/[0.08]">
+        <Card className="pt-6 bg-surface border-line">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-white/60 uppercase tracking-wider">Bots</p>
-                <p className="text-xl font-bold text-white/95">{bots.length}</p>
+                <p className="text-xs text-ink-muted uppercase tracking-wider">Bots</p>
+                <p className="text-xl font-bold text-ink">{bots.length}</p>
               </div>
-              <Bot className="w-6 h-6 text-blue-400" />
+              <Bot className="w-6 h-6 text-accent-text" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="pt-6 bg-white/[0.03] border-white/[0.08]">
+        <Card className="pt-6 bg-surface border-line">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-white/60 uppercase tracking-wider">Active</p>
-                <p className="text-xl font-bold text-green-400">
+                <p className="text-xs text-ink-muted uppercase tracking-wider">Active</p>
+                <p className="text-xl font-bold text-success">
                   {bots.filter(bot => bot.status === 'active').length}
                 </p>
               </div>
-              <Activity className="w-6 h-6 text-green-400" />
+              <Activity className="w-6 h-6 text-success" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="pt-6 bg-white/[0.03] border-white/[0.08]">
+        <Card className="pt-6 bg-surface border-line">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-white/60 uppercase tracking-wider">Gas</p>
-                <p className="text-xl font-bold text-white/95">
+                <p className="text-xs text-ink-muted uppercase tracking-wider">Gas</p>
+                <p className="text-xl font-bold text-ink">
                   {bots.reduce((sum, bot) => sum + getBotStxBalance(bot.walletAddress), 0).toFixed(3)}
                 </p>
               </div>
-              <Fuel className="w-6 h-6 text-yellow-400" />
+              <Fuel className="w-6 h-6 text-warning" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="pt-6 bg-white/[0.03] border-white/[0.08]">
+        <Card className="pt-6 bg-surface border-line">
           <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-white/60 uppercase tracking-wider">Value</p>
-                <p className="text-xl font-bold text-white/95">
+                <p className="text-xs text-ink-muted uppercase tracking-wider">Value</p>
+                <p className="text-xl font-bold text-ink">
                   ${(bots.reduce((sum, bot) => sum + getBotTotalValue(bot.walletAddress), 0)).toFixed(2)}
                 </p>
               </div>
-              <TrendingUp className="w-6 h-6 text-purple-400" />
+              <TrendingUp className="w-6 h-6 text-blaze" />
             </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Bots List */}
-      <Card className="bg-white/[0.03] border-white/[0.08]">
+      <Card className="bg-surface border-line">
         <CardHeader>
-          <CardTitle className="text-white/95 flex items-center gap-2">
+          <CardTitle className="text-ink flex items-center gap-2">
             <Bot className="w-5 h-5" />
             {userBots.length > 0 ? 'Your Bots' : 'Example Bots'}
             {userBots.length === 0 && (
-              <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+              <Badge className="text-xs bg-accent/20 text-accent-text border-accent/30">
                 <Eye className="w-3 h-3 mr-1" />
                 Preview
               </Badge>
@@ -994,24 +994,24 @@ export default function BotsSettings() {
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8">
-              <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mx-auto mb-4">
-                <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+              <div className="w-12 h-12 rounded-xl bg-surface border border-line flex items-center justify-center mx-auto mb-4">
+                <div className="w-6 h-6 border-2 border-line-strong border-t-ink/60 rounded-full animate-spin" />
               </div>
-              <h3 className="text-base font-medium text-white/90 mb-1">Loading bots...</h3>
-              <p className="text-sm text-white/60">Fetching your automation bots</p>
+              <h3 className="text-base font-medium text-ink mb-1">Loading bots...</h3>
+              <p className="text-sm text-ink-muted">Fetching your automation bots</p>
             </div>
           ) : bots.length === 0 ? (
             <div className="text-center py-8">
-              <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mx-auto mb-4">
-                <Bot className="w-6 h-6 text-white/40" />
+              <div className="w-12 h-12 rounded-xl bg-surface border border-line flex items-center justify-center mx-auto mb-4">
+                <Bot className="w-6 h-6 text-ink-muted" />
               </div>
-              <h3 className="text-base font-medium text-white/90 mb-2">No bots created yet</h3>
-              <p className="text-sm text-white/60 max-w-sm mx-auto mb-4">
+              <h3 className="text-base font-medium text-ink mb-2">No bots created yet</h3>
+              <p className="text-sm text-ink-muted max-w-sm mx-auto mb-4">
                 Create your first automation bot to start earning with DeFi strategies.
               </p>
               <Button
                 onClick={() => setIsCreateModalOpen(true)}
-                className="bg-blue-500 hover:bg-blue-600 text-white border-0"
+                className="bg-accent hover:bg-accent text-on-accent border-0"
                 size="sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -1023,26 +1023,26 @@ export default function BotsSettings() {
               {bots.map((bot) => (
                 <div
                   key={bot.id}
-                  className="relative p-3 bg-white/[0.02] rounded-lg border border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.10] transition-all duration-200"
+                  className="relative p-3 bg-surface-sunken rounded-lg border border-line-soft hover:bg-surface-hover hover:border-line transition-all duration-200"
                 >
                   <div className={`${needsFunding(bot) ? 'blur-sm' : ''}`}>
                     {/* Mobile Layout */}
                     <div className="flex flex-col gap-3 lg:hidden">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
-                            <Bot className="w-5 h-5 text-blue-400" />
+                          <div className="w-10 h-10 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center">
+                            <Bot className="w-5 h-5 text-accent-text" />
                           </div>
                           <div>
-                            <h4 className="font-medium text-white/95 text-sm">{bot.name}</h4>
-                            <p className="text-xs text-white/60">{bot.strategy}</p>
+                            <h4 className="font-medium text-ink text-sm">{bot.name}</h4>
+                            <p className="text-xs text-ink-muted">{bot.strategy}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium text-white/95">
+                          <p className="text-sm font-medium text-ink">
                             {formatCurrency(getBotTotalValue(bot.walletAddress))}
                           </p>
-                          <p className="text-xs text-white/60">Value</p>
+                          <p className="text-xs text-ink-muted">Value</p>
                         </div>
                       </div>
 
@@ -1056,7 +1056,7 @@ export default function BotsSettings() {
                           {(() => {
                             if (needsFunding(bot)) {
                               return (
-                                <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">
+                                <Badge className="text-xs bg-accent/20 text-accent-text border-accent/30">
                                   <AlertCircle className="w-3 h-3 mr-1" />
                                   Fund
                                 </Badge>
@@ -1066,28 +1066,28 @@ export default function BotsSettings() {
                               const activityStatus = getActivityStatus(bot.id);
                               if (activityStatus === 'success') {
                                 return (
-                                  <Badge className="text-xs bg-green-500/20 text-green-400 border-green-500/30">
+                                  <Badge className="text-xs bg-success/20 text-success border-success/30">
                                     <Zap className="w-3 h-3 mr-1" />
                                     Farming
                                   </Badge>
                                 );
                               } else if (activityStatus === 'pending') {
                                 return (
-                                  <Badge className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                                  <Badge className="text-xs bg-warning/20 text-warning border-warning/30">
                                     <Clock className="w-3 h-3 mr-1" />
                                     Broadcasting
                                   </Badge>
                                 );
                               } else if (activityStatus === 'failure') {
                                 return (
-                                  <Badge className="text-xs bg-red-500/20 text-red-400 border-red-500/30">
+                                  <Badge className="text-xs bg-danger/20 text-danger border-danger/30">
                                     <XCircle className="w-3 h-3 mr-1" />
                                     Failed
                                   </Badge>
                                 );
                               } else if (botHasLpTokens(bot)) {
                                 return (
-                                  <Badge className="text-xs bg-green-500/20 text-green-400 border-green-500/30">
+                                  <Badge className="text-xs bg-success/20 text-success border-success/30">
                                     <CheckCircle className="w-3 h-3 mr-1" />
                                     Ready
                                   </Badge>
@@ -1099,7 +1099,7 @@ export default function BotsSettings() {
 
                                 if (botLpTokens.length > 0) {
                                   return (
-                                    <Badge className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                                    <Badge className="text-xs bg-warning/20 text-warning border-warning/30">
                                       <Clock className="w-3 h-3 mr-1" />
                                       {3 - missingTokens.length}/3 Setup
                                     </Badge>
@@ -1108,7 +1108,7 @@ export default function BotsSettings() {
                               }
                             }
                             return bot.isExample ? (
-                              <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
+                              <Badge className="text-xs bg-accent/20 text-accent-text border-accent/30">
                                 Demo
                               </Badge>
                             ) : null;
@@ -1121,7 +1121,7 @@ export default function BotsSettings() {
                               variant="ghost"
                               onClick={() => handlePauseBot(bot.id)}
                               disabled={bot.isExample || operatingBot === bot.id}
-                              className="text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50 h-8 w-8 p-0"
+                              className="text-warning hover:text-warning hover:bg-warning/10 disabled:opacity-50 h-8 w-8 p-0"
                             >
                               <Pause className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
@@ -1131,7 +1131,7 @@ export default function BotsSettings() {
                               variant="ghost"
                               onClick={() => handleStartBot(bot.id)}
                               disabled={bot.isExample || operatingBot === bot.id}
-                              className="text-green-400 hover:text-green-300 hover:bg-green-500/10 disabled:opacity-50 h-8 w-8 p-0"
+                              className="text-success hover:text-success hover:bg-success/10 disabled:opacity-50 h-8 w-8 p-0"
                             >
                               <Play className="w-3 h-3 sm:w-4 sm:h-4" />
                             </Button>
@@ -1142,7 +1142,7 @@ export default function BotsSettings() {
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => handleViewActivity(bot.id)}
-                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 h-8 w-8 p-0"
+                                className="text-accent-text hover:text-accent-text hover:bg-accent/10 h-8 w-8 p-0"
                               >
                                 <History className="w-3 h-3 sm:w-4 sm:h-4" />
                               </Button>
@@ -1152,7 +1152,7 @@ export default function BotsSettings() {
                                   variant="ghost"
                                   onClick={() => setWithdrawalConfirmBot(bot.id)}
                                   disabled={withdrawingBot === bot.id}
-                                  className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 disabled:opacity-50 h-8 w-8 p-0"
+                                  className="text-blaze hover:text-blaze hover:bg-blaze/10 disabled:opacity-50 h-8 w-8 p-0"
                                 >
                                   <ArrowUpLeft className="w-3 h-3 sm:w-4 sm:h-4" />
                                 </Button>
@@ -1163,11 +1163,11 @@ export default function BotsSettings() {
                       </div>
 
                       {/* Mobile Details */}
-                      <div className="flex items-center justify-between text-xs text-white/50">
+                      <div className="flex items-center justify-between text-xs text-ink-muted">
                         <div className="flex items-center gap-2">
                           <span>{truncateAddress(bot.walletAddress)}</span>
                           <Copy
-                            className="w-3 h-3 text-white/40 hover:text-white/70 cursor-pointer"
+                            className="w-3 h-3 text-ink-muted hover:text-ink-body cursor-pointer"
                             onClick={() => copyToClipboard(bot.walletAddress)}
                           />
                         </div>
@@ -1178,13 +1178,13 @@ export default function BotsSettings() {
                     {/* Desktop Layout */}
                     <div className="hidden lg:flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
-                        <div className="w-10 h-10 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
-                          <Bot className="w-5 h-5 text-blue-400" />
+                        <div className="w-10 h-10 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center">
+                          <Bot className="w-5 h-5 text-accent-text" />
                         </div>
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-1">
-                            <h4 className="font-medium text-white/95 truncate">{bot.name}</h4>
+                            <h4 className="font-medium text-ink truncate">{bot.name}</h4>
                             <Badge className={`text-xs ${statusColors[bot.status]} border shrink-0`}>
                               {statusIcons[bot.status]}
                               <span className="ml-1 capitalize">{bot.status}</span>
@@ -1192,7 +1192,7 @@ export default function BotsSettings() {
                             {(() => {
                               if (needsFunding(bot)) {
                                 return (
-                                  <Badge className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30 shrink-0">
+                                  <Badge className="text-xs bg-accent/20 text-accent-text border-accent/30 shrink-0">
                                     <AlertCircle className="w-3 h-3 mr-1" />
                                     Needs Funding
                                   </Badge>
@@ -1202,28 +1202,28 @@ export default function BotsSettings() {
                                 const activityStatus = getActivityStatus(bot.id);
                                 if (activityStatus === 'success') {
                                   return (
-                                    <Badge className="text-xs bg-green-500/20 text-green-400 border-green-500/30 shrink-0">
+                                    <Badge className="text-xs bg-success/20 text-success border-success/30 shrink-0">
                                       <Zap className="w-3 h-3 mr-1" />
                                       Active Farming
                                     </Badge>
                                   );
                                 } else if (activityStatus === 'pending') {
                                   return (
-                                    <Badge className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30 shrink-0">
+                                    <Badge className="text-xs bg-warning/20 text-warning border-warning/30 shrink-0">
                                       <Clock className="w-3 h-3 mr-1" />
                                       Broadcasting
                                     </Badge>
                                   );
                                 } else if (activityStatus === 'failure') {
                                   return (
-                                    <Badge className="text-xs bg-red-500/20 text-red-400 border-red-500/30 shrink-0">
+                                    <Badge className="text-xs bg-danger/20 text-danger border-danger/30 shrink-0">
                                       <XCircle className="w-3 h-3 mr-1" />
                                       Farm Failed
                                     </Badge>
                                   );
                                 } else if (botHasLpTokens(bot)) {
                                   return (
-                                    <Badge className="text-xs bg-green-500/20 text-green-400 border-green-500/30 shrink-0">
+                                    <Badge className="text-xs bg-success/20 text-success border-success/30 shrink-0">
                                       <CheckCircle className="w-3 h-3 mr-1" />
                                       LP Ready
                                     </Badge>
@@ -1235,7 +1235,7 @@ export default function BotsSettings() {
 
                                   if (botLpTokens.length > 0) {
                                     return (
-                                      <Badge className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30 shrink-0">
+                                      <Badge className="text-xs bg-warning/20 text-warning border-warning/30 shrink-0">
                                         <Clock className="w-3 h-3 mr-1" />
                                         {3 - missingTokens.length}/3 LP Setup
                                       </Badge>
@@ -1244,21 +1244,21 @@ export default function BotsSettings() {
                                 }
                               }
                               return bot.isExample ? (
-                                <Badge className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30 shrink-0">
+                                <Badge className="text-xs bg-accent/20 text-accent-text border-accent/30 shrink-0">
                                   Example
                                 </Badge>
                               ) : null;
                             })()}
                           </div>
-                          <div className="flex items-center gap-4 text-xs text-white/50">
+                          <div className="flex items-center gap-4 text-xs text-ink-muted">
                             <div className="flex items-center gap-2">
                               <span>{truncateAddress(bot.walletAddress)}</span>
                               <Copy
-                                className="w-3 h-3 text-white/40 hover:text-white/70 cursor-pointer"
+                                className="w-3 h-3 text-ink-muted hover:text-ink-body cursor-pointer"
                                 onClick={() => copyToClipboard(bot.walletAddress)}
                               />
                               <ExternalLink
-                                className="w-3 h-3 text-white/40 hover:text-white/70 cursor-pointer"
+                                className="w-3 h-3 text-ink-muted hover:text-ink-body cursor-pointer"
                                 onClick={() => openInExplorer(bot.walletAddress)}
                               />
                             </div>
@@ -1274,8 +1274,8 @@ export default function BotsSettings() {
                         </div>
 
                         <div className="text-right shrink-0">
-                          <p className="text-xs text-white/60">Total Value</p>
-                          <p className="text-sm font-medium text-white/95">
+                          <p className="text-xs text-ink-muted">Total Value</p>
+                          <p className="text-sm font-medium text-ink">
                             {formatCurrency(getBotTotalValue(bot.walletAddress))}
                           </p>
                         </div>
@@ -1288,7 +1288,7 @@ export default function BotsSettings() {
                             variant="ghost"
                             onClick={() => handlePauseBot(bot.id)}
                             disabled={bot.isExample || operatingBot === bot.id}
-                            className="text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/10 disabled:opacity-50 px-2"
+                            className="text-warning hover:text-warning hover:bg-warning/10 disabled:opacity-50 px-2"
                           >
                             <Pause className="w-4 h-4" />
                           </Button>
@@ -1298,7 +1298,7 @@ export default function BotsSettings() {
                             variant="ghost"
                             onClick={() => handleStartBot(bot.id)}
                             disabled={bot.isExample || operatingBot === bot.id}
-                            className="text-green-400 hover:text-green-300 hover:bg-green-500/10 disabled:opacity-50 px-2"
+                            className="text-success hover:text-success hover:bg-success/10 disabled:opacity-50 px-2"
                           >
                             <Play className="w-4 h-4" />
                           </Button>
@@ -1310,7 +1310,7 @@ export default function BotsSettings() {
                               size="sm"
                               variant="ghost"
                               onClick={() => handleViewActivity(bot.id)}
-                              className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10 px-2"
+                              className="text-accent-text hover:text-accent-text hover:bg-accent/10 px-2"
                             >
                               <History className="w-4 h-4" />
                             </Button>
@@ -1320,7 +1320,7 @@ export default function BotsSettings() {
                                 variant="ghost"
                                 onClick={() => setWithdrawalConfirmBot(bot.id)}
                                 disabled={withdrawingBot === bot.id}
-                                className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 disabled:opacity-50 px-2"
+                                className="text-blaze hover:text-blaze hover:bg-blaze/10 disabled:opacity-50 px-2"
                               >
                                 <ArrowUpLeft className="w-4 h-4" />
                               </Button>
@@ -1333,14 +1333,14 @@ export default function BotsSettings() {
 
                   {/* Funding Alert Overlay */}
                   {needsFunding(bot) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-xl">
-                      <div className="bg-yellow-50 dark:bg-yellow-950/80 border border-yellow-200 dark:border-yellow-800/50 rounded-lg p-6 shadow-xl max-w-sm mx-4 backdrop-blur-md">
+                    <div className="absolute inset-0 flex items-center justify-center bg-chrome backdrop-blur-sm rounded-xl">
+                      <div className="bg-warning-soft border border-warning  rounded-lg p-6 shadow-xl max-w-sm mx-4 backdrop-blur-md">
                         <div className="text-center">
-                          <div className="w-12 h-12 rounded-xl bg-yellow-100 dark:bg-yellow-900/50 border border-yellow-200 dark:border-yellow-800/50 flex items-center justify-center mx-auto mb-4">
-                            <Wallet className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                          <div className="w-12 h-12 rounded-xl bg-warning-soft border border-warning  flex items-center justify-center mx-auto mb-4">
+                            <Wallet className="w-6 h-6 text-warning " />
                           </div>
-                          <h4 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Fund Your Bot</h4>
-                          <p className="text-sm text-yellow-700 dark:text-yellow-300 mb-4">
+                          <h4 className="text-lg font-semibold text-warning mb-2">Fund Your Bot</h4>
+                          <p className="text-sm text-warning mb-4">
                             Transfer STX to your bot wallet to start automation
                           </p>
                           <div className="flex flex-col gap-2">
@@ -1353,11 +1353,11 @@ export default function BotsSettings() {
                                 calculateFundingAmount() === 0 ? 'Insufficient STX' :
                                   `Fund with ${calculateFundingAmount().toFixed(1)} STX`}
                             </Button>
-                            <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                            <p className="text-xs text-warning ">
                               Wallet: {truncateAddress(bot.walletAddress)}
                             </p>
                             {calculateFundingAmount() > 0 && (
-                              <p className="text-xs text-yellow-600 dark:text-yellow-400">
+                              <p className="text-xs text-warning ">
                                 {calculateFundingAmount() === 5 ?
                                   '5 STX (you have 50+ STX)' :
                                   `10% of your ${getBotStxBalance(address || '').toFixed(1)} STX balance`}
@@ -1371,14 +1371,14 @@ export default function BotsSettings() {
 
                   {/* LP Token Alert Overlay for Yield Farming */}
                   {!needsFunding(bot) && needsLpTokens(bot) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-xl">
-                      <div className="bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800/50 rounded-lg p-6 shadow-xl max-w-sm mx-4 backdrop-blur-md">
+                    <div className="absolute inset-0 flex items-center justify-center bg-chrome backdrop-blur-sm rounded-xl">
+                      <div className="bg-accent-soft border border-accent  rounded-lg p-6 shadow-xl max-w-sm mx-4 backdrop-blur-md">
                         <div className="text-center">
-                          <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/50 border border-blue-200 dark:border-blue-800/50 flex items-center justify-center mx-auto mb-4">
-                            <AlertTriangle className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                          <div className="w-12 h-12 rounded-xl bg-accent-soft border border-accent  flex items-center justify-center mx-auto mb-4">
+                            <AlertTriangle className="w-6 h-6 text-accent-text " />
                           </div>
-                          <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">Need All LP Tokens</h4>
-                          <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+                          <h4 className="text-lg font-semibold text-accent-text mb-2">Need All LP Tokens</h4>
+                          <p className="text-sm text-accent-text mb-4">
                             Yield farming requires ALL 3 LP token types. Get them via swap to activate your bot.
                           </p>
 
@@ -1399,8 +1399,8 @@ export default function BotsSettings() {
 
                                 return (
                                   <div key={contractId} className="flex items-center gap-2 text-sm">
-                                    <div className={`w-2 h-2 rounded-full ${hasToken ? 'bg-green-400' : 'bg-red-400'}`} />
-                                    <span className={hasToken ? 'text-green-600 dark:text-green-400' : 'text-blue-700 dark:text-blue-300'}>
+                                    <div className={`w-2 h-2 rounded-full ${hasToken ? 'bg-success' : 'bg-danger'}`} />
+                                    <span className={hasToken ? 'text-success ' : 'text-accent-text '}>
                                       {tokenSymbol} {hasToken ? '✓' : '(missing)'}
                                     </span>
                                   </div>
@@ -1419,11 +1419,11 @@ export default function BotsSettings() {
                             <Button
                               onClick={() => window.open('https://invest.charisma.rocks', '_blank')}
                               variant="outline"
-                              className="border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                              className="border-accent text-accent-text  hover:bg-accent-soft "
                             >
                               Add Liquidity on Charisma
                             </Button>
-                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                            <p className="text-xs text-accent-text mt-2">
                               <strong>Swap:</strong> Trade existing tokens for LP tokens<br />
                               <strong>Add Liquidity:</strong> Provide liquidity to earn LP tokens
                             </p>
@@ -1435,14 +1435,14 @@ export default function BotsSettings() {
 
                   {/* Multi-Token Setup Overlay for Yield Farming */}
                   {!needsFunding(bot) && userHasAllLpTokens() && bot.strategy === 'yield-farming' && !botHasLpTokens(bot) && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-sm rounded-xl">
-                      <div className="bg-green-50 dark:bg-green-950/95 border border-green-200 dark:border-green-800/50 rounded-lg p-6 shadow-xl max-w-md mx-4 backdrop-blur-md">
+                    <div className="absolute inset-0 flex items-center justify-center bg-chrome backdrop-blur-sm rounded-xl">
+                      <div className="bg-success-soft border border-success  rounded-lg p-6 shadow-xl max-w-md mx-4 backdrop-blur-md">
                         <div className="text-center mb-4">
-                          <div className="w-12 h-12 rounded-xl bg-green-100 dark:bg-green-900/50 border border-green-200 dark:border-green-800/50 flex items-center justify-center mx-auto mb-4">
-                            <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
+                          <div className="w-12 h-12 rounded-xl bg-success-soft border border-success  flex items-center justify-center mx-auto mb-4">
+                            <CheckCircle className="w-6 h-6 text-success " />
                           </div>
-                          <h4 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-2">Setup LP Tokens</h4>
-                          <p className="text-sm text-green-700 dark:text-green-300 mb-4">
+                          <h4 className="text-lg font-semibold text-success mb-2">Setup LP Tokens</h4>
+                          <p className="text-sm text-success mb-4">
                             Send all 3 LP token types to your bot for optimal yield farming.
                           </p>
                         </div>
@@ -1465,38 +1465,38 @@ export default function BotsSettings() {
                                 (maxAmount * tokenPrice).toFixed(2) : '?';
 
                               // Determine status: confirmed > recently sent > missing
-                              let statusColor = 'bg-gray-400';
+                              let statusColor = 'bg-surface-hover';
                               let statusText = `Send (~$${usdValue})`;
                               let showButton = true;
 
                               if (botHasThis) {
-                                statusColor = 'bg-green-400';
+                                statusColor = 'bg-success';
                                 statusText = '✓ Confirmed';
                                 showButton = false;
                               } else if (recentlySent) {
-                                statusColor = 'bg-yellow-400';
+                                statusColor = 'bg-warning';
                                 statusText = '⏳ Broadcasting...';
                                 showButton = false;
                               }
 
                               return (
-                                <div key={contractId} className="flex items-center justify-between p-3 bg-white/10 rounded-lg">
+                                <div key={contractId} className="flex items-center justify-between p-3 bg-surface-hover rounded-lg">
                                   <div className="flex items-center gap-2">
                                     <div className={`w-2 h-2 rounded-full ${statusColor}`} />
-                                    <span className="text-sm font-medium text-white">{userToken.symbol}</span>
+                                    <span className="text-sm font-medium text-ink">{userToken.symbol}</span>
                                   </div>
                                   {showButton && (
                                     <Button
                                       size="sm"
                                       onClick={() => handleSendLpTokens(bot.id, contractId, maxAmount)}
                                       disabled={sendingLpTokens === bot.id}
-                                      className="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1"
+                                      className="bg-success hover:bg-success text-bg text-xs px-3 py-1"
                                     >
                                       {sendingLpTokens === bot.id ? 'Sending...' : statusText}
                                     </Button>
                                   )}
                                   {!showButton && (
-                                    <span className={`text-xs ${botHasThis ? 'text-green-400' : 'text-yellow-400'}`}>
+                                    <span className={`text-xs ${botHasThis ? 'text-success' : 'text-warning'}`}>
                                       {statusText}
                                     </span>
                                   )}
@@ -1506,7 +1506,7 @@ export default function BotsSettings() {
                           })()}
                         </div>
 
-                        <p className="text-xs text-green-600 dark:text-green-400 text-center">
+                        <p className="text-xs text-success text-center">
                           {(() => {
                             const missing = getMissingLpTokens(bot).length;
                             const recentlySent = (recentlySentTokens[bot.id] || []).length;
@@ -1539,23 +1539,23 @@ export default function BotsSettings() {
       />
 
       {/* Information Card */}
-      <Card className="pt-6 bg-white/[0.03] border-white/[0.08]">
+      <Card className="pt-6 bg-surface border-line">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
-              <AlertTriangle className="w-6 h-6 text-blue-400" />
+            <div className="w-12 h-12 rounded-xl bg-accent/20 border border-accent/30 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-6 h-6 text-accent-text" />
             </div>
             <div>
-              <h4 className="font-medium text-white/95 mb-2">About Yield Farming Bots</h4>
-              <p className="text-sm text-white/70 mb-4">
+              <h4 className="font-medium text-ink mb-2">About Yield Farming Bots</h4>
+              <p className="text-sm text-ink-body mb-4">
                 The more LP tokens you hold, the faster you generate reward tokens which can be harvested every fast block.
                 Because of this fast cycle, it makes sense to have a bot do it automatically.
                 Bots require ALL 3 LP token types (SXC, DEX, POV) to activate and begin automated farming.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div>
-                  <h5 className="font-medium text-white/90 mb-2">Requirements:</h5>
-                  <ul className="space-y-1 text-white/60">
+                  <h5 className="font-medium text-ink mb-2">Requirements:</h5>
+                  <ul className="space-y-1 text-ink-muted">
                     <li>• All 3 LP token types required</li>
                     <li>• SXC, DEX, and POV tokens</li>
                     <li>• STX for transaction fees</li>
@@ -1563,8 +1563,8 @@ export default function BotsSettings() {
                   </ul>
                 </div>
                 <div>
-                  <h5 className="font-medium text-white/90 mb-2">Setup Process:</h5>
-                  <ul className="space-y-1 text-white/60">
+                  <h5 className="font-medium text-ink mb-2">Setup Process:</h5>
+                  <ul className="space-y-1 text-ink-muted">
                     <li>• Create bot with guided setup</li>
                     <li>• Fund bot wallet with STX</li>
                     <li>• Send all 3 LP token types</li>
@@ -1582,7 +1582,7 @@ export default function BotsSettings() {
         <DialogContent className="max-w-md bg-background border border-border backdrop-blur-xl">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
-              <ArrowUpLeft className="w-5 h-5 text-purple-400" />
+              <ArrowUpLeft className="w-5 h-5 text-blaze" />
               Withdraw LP Tokens
             </DialogTitle>
           </DialogHeader>
@@ -1596,30 +1596,30 @@ export default function BotsSettings() {
             return (
               <div className="space-y-4">
                 <div className="text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center mx-auto mb-4">
-                    <ArrowUpLeft className="w-8 h-8 text-purple-400" />
+                  <div className="w-16 h-16 rounded-2xl bg-blaze/20 border border-blaze/30 flex items-center justify-center mx-auto mb-4">
+                    <ArrowUpLeft className="w-8 h-8 text-blaze" />
                   </div>
-                  <h3 className="text-lg font-semibold text-white/95 mb-2">Withdraw All Tokens</h3>
-                  <p className="text-sm text-white/60 mb-4">
+                  <h3 className="text-lg font-semibold text-ink mb-2">Withdraw All Tokens</h3>
+                  <p className="text-sm text-ink-muted mb-4">
                     This will withdraw all {withdrawableTokens.length} tokens from your bot back to your wallet.
                   </p>
                 </div>
 
                 {withdrawableTokens.length > 0 && (
-                  <div className="bg-white/[0.02] rounded-lg p-4 border border-white/[0.05]">
+                  <div className="bg-surface-sunken rounded-lg p-4 border border-line-soft">
                     <div className="space-y-3">
                       {lpTokens.length > 0 && (
                         <>
-                          <div className="text-sm text-white/60 mb-2">LP Tokens:</div>
+                          <div className="text-sm text-ink-muted mb-2">LP Tokens:</div>
                           {lpTokens.map((token) => (
-                            <div key={token.contractId} className="flex justify-between items-center py-2 border-b border-white/[0.05] last:border-b-0">
+                            <div key={token.contractId} className="flex justify-between items-center py-2 border-b border-line-soft last:border-b-0">
                               <div className="flex items-center gap-3">
                                 <div className="relative">
                                   {getTokenImage(token.contractId) ? (
                                     <img
                                       src={getTokenImage(token.contractId)!}
                                       alt={token.symbol}
-                                      className="w-8 h-8 rounded-full bg-white/10"
+                                      className="w-8 h-8 rounded-full bg-surface-hover"
                                       onError={(e) => {
                                         (e.currentTarget as HTMLImageElement).style.display = 'none';
                                         const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
@@ -1627,18 +1627,18 @@ export default function BotsSettings() {
                                       }}
                                     />
                                   ) : null}
-                                  <div className={`w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center ${getTokenImage(token.contractId) ? 'hidden' : 'flex'}`}>
-                                    <div className="w-2 h-2 rounded-full bg-blue-400" />
+                                  <div className={`w-8 h-8 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center ${getTokenImage(token.contractId) ? 'hidden' : 'flex'}`}>
+                                    <div className="w-2 h-2 rounded-full bg-accent" />
                                   </div>
                                 </div>
                                 <div className="flex flex-col">
-                                  <span className="text-white/90 font-medium text-sm">{token.symbol}</span>
-                                  <span className="text-xs text-white/50">LP Token</span>
+                                  <span className="text-ink font-medium text-sm">{token.symbol}</span>
+                                  <span className="text-xs text-ink-muted">LP Token</span>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="text-white/90 text-sm">{(parseFloat(token.balance) / 1000000).toFixed(6)}</div>
-                                <div className="text-white/60 text-xs">{calculateUsdValue(token.contractId, token.formattedBalance)}</div>
+                                <div className="text-ink text-sm">{(parseFloat(token.balance) / 1000000).toFixed(6)}</div>
+                                <div className="text-ink-muted text-xs">{calculateUsdValue(token.contractId, token.formattedBalance)}</div>
                               </div>
                             </div>
                           ))}
@@ -1647,17 +1647,17 @@ export default function BotsSettings() {
 
                       {rewardTokens.length > 0 && (
                         <>
-                          {lpTokens.length > 0 && <div className="border-t border-white/[0.05] pt-2" />}
-                          <div className="text-sm text-white/60 mb-2">Reward Tokens:</div>
+                          {lpTokens.length > 0 && <div className="border-t border-line-soft pt-2" />}
+                          <div className="text-sm text-ink-muted mb-2">Reward Tokens:</div>
                           {rewardTokens.map((token) => (
-                            <div key={token.contractId} className="flex justify-between items-center py-2 border-b border-white/[0.05] last:border-b-0">
+                            <div key={token.contractId} className="flex justify-between items-center py-2 border-b border-line-soft last:border-b-0">
                               <div className="flex items-center gap-3">
                                 <div className="relative">
                                   {getTokenImage(token.contractId) ? (
                                     <img
                                       src={getTokenImage(token.contractId)!}
                                       alt={token.symbol}
-                                      className="w-8 h-8 rounded-full bg-white/10"
+                                      className="w-8 h-8 rounded-full bg-surface-hover"
                                       onError={(e) => {
                                         (e.currentTarget as HTMLImageElement).style.display = 'none';
                                         const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
@@ -1665,28 +1665,28 @@ export default function BotsSettings() {
                                       }}
                                     />
                                   ) : null}
-                                  <div className={`w-8 h-8 rounded-full bg-yellow-500/20 border border-yellow-500/30 flex items-center justify-center ${getTokenImage(token.contractId) ? 'hidden' : 'flex'}`}>
-                                    <div className="w-2 h-2 rounded-full bg-yellow-400" />
+                                  <div className={`w-8 h-8 rounded-full bg-warning/20 border border-warning/30 flex items-center justify-center ${getTokenImage(token.contractId) ? 'hidden' : 'flex'}`}>
+                                    <div className="w-2 h-2 rounded-full bg-warning" />
                                   </div>
                                 </div>
                                 <div className="flex flex-col">
-                                  <span className="text-white/90 font-medium text-sm">{token.symbol}</span>
-                                  <span className="text-xs text-yellow-400">Reward Token</span>
+                                  <span className="text-ink font-medium text-sm">{token.symbol}</span>
+                                  <span className="text-xs text-warning">Reward Token</span>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="text-white/90 text-sm">{(parseFloat(token.balance) / 1000000).toFixed(6)}</div>
-                                <div className="text-white/60 text-xs">{calculateUsdValue(token.contractId, token.formattedBalance)}</div>
+                                <div className="text-ink text-sm">{(parseFloat(token.balance) / 1000000).toFixed(6)}</div>
+                                <div className="text-ink-muted text-xs">{calculateUsdValue(token.contractId, token.formattedBalance)}</div>
                               </div>
                             </div>
                           ))}
                         </>
                       )}
 
-                      <div className="space-y-2 pt-2 border-t border-white/[0.05]">
+                      <div className="space-y-2 pt-2 border-t border-line-soft">
                         <div className="flex justify-between">
-                          <span className="text-white/60 text-sm">Total Value:</span>
-                          <span className="text-white/90 text-sm font-medium">
+                          <span className="text-ink-muted text-sm">Total Value:</span>
+                          <span className="text-ink text-sm font-medium">
                             {(() => {
                               const totalValue = withdrawableTokens.reduce((sum, token) => {
                                 const tokenPrice = getPrice(token.contractId) || 0;
@@ -1697,8 +1697,8 @@ export default function BotsSettings() {
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-white/60 text-sm">Recipient:</span>
-                          <span className="text-white/90 font-mono text-xs">
+                          <span className="text-ink-muted text-sm">Recipient:</span>
+                          <span className="text-ink font-mono text-xs">
                             {address?.slice(0, 6)}...{address?.slice(-6)}
                           </span>
                         </div>
@@ -1707,12 +1707,12 @@ export default function BotsSettings() {
                   </div>
                 )}
 
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                <div className="bg-warning/10 border border-warning/20 rounded-lg p-3">
                   <div className="flex items-start gap-2">
-                    <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <AlertTriangle className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-yellow-300 font-medium">Multiple Transactions</p>
-                      <p className="text-xs text-yellow-400 mt-1">
+                      <p className="text-sm text-warning font-medium">Multiple Transactions</p>
+                      <p className="text-xs text-warning mt-1">
                         Each token requires a separate transaction. You'll need to approve {withdrawableTokens.length} transactions.
                       </p>
                     </div>
@@ -1723,7 +1723,7 @@ export default function BotsSettings() {
                   <Button
                     variant="ghost"
                     onClick={() => setWithdrawalConfirmBot(null)}
-                    className="text-white/70"
+                    className="text-ink-body"
                   >
                     Cancel
                   </Button>
@@ -1735,7 +1735,7 @@ export default function BotsSettings() {
                       }
                     }}
                     disabled={withdrawingBot === withdrawalConfirmBot}
-                    className="bg-purple-500 hover:bg-purple-600 text-white"
+                    className="bg-blaze hover:bg-blaze text-bg"
                   >
                     {withdrawingBot === withdrawalConfirmBot ? 'Withdrawing...' : `Withdraw All ${withdrawableTokens.length} Tokens`}
                   </Button>
@@ -1751,7 +1751,7 @@ export default function BotsSettings() {
         <DialogContent className="max-w-[95vw] sm:max-w-[600px] max-h-[85vh] p-4 sm:p-6">
           <DialogHeader className="pb-3">
             <DialogTitle className="flex items-center gap-2 text-base">
-              <Activity className="h-4 w-4 text-blue-500" />
+              <Activity className="h-4 w-4 text-accent-text" />
               <span className="hidden sm:inline">Farming Activity</span>
               <span className="sm:hidden">Activity</span>
               {activityModalBot && (() => {
@@ -1764,48 +1764,48 @@ export default function BotsSettings() {
           <div className="space-y-3 max-h-[65vh] overflow-y-auto">
             {activityModalBot && loadingActivity[activityModalBot] ? (
               <div className="flex items-center justify-center py-8">
-                <div className="w-8 h-8 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
-                <span className="ml-3 text-white/60">Loading activity...</span>
+                <div className="w-8 h-8 border-2 border-line-strong border-t-ink/60 rounded-full animate-spin" />
+                <span className="ml-3 text-ink-muted">Loading activity...</span>
               </div>
             ) : activityModalBot && activityData[activityModalBot]?.length ? (
               <div className="space-y-2">
                 {activityData[activityModalBot].map((activity) => (
-                  <div key={activity.id} className="p-3 bg-white/[0.02] rounded-lg border border-white/[0.08]">
+                  <div key={activity.id} className="p-3 bg-surface-sunken rounded-lg border border-line">
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${activity.status === 'success' ? 'bg-green-400' :
-                          activity.status === 'failure' ? 'bg-red-400' : 'bg-yellow-400'
+                        <div className={`w-2 h-2 rounded-full ${activity.status === 'success' ? 'bg-success' :
+                          activity.status === 'failure' ? 'bg-danger' : 'bg-warning'
                           }`} />
-                        <span className="text-sm font-medium text-white/90">
+                        <span className="text-sm font-medium text-ink">
                           {activity.action === 'yield-farming' ? 'Yield Farming' :
                             activity.action === 'withdraw-lp-tokens' ? 'LP Token Withdrawal' :
                               activity.action}
                         </span>
-                        <Badge className={`text-xs ${activity.status === 'success' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                          activity.status === 'failure' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
-                            'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                        <Badge className={`text-xs ${activity.status === 'success' ? 'bg-success/20 text-success border-success/30' :
+                          activity.status === 'failure' ? 'bg-danger/20 text-danger border-danger/30' :
+                            'bg-warning/20 text-warning border-warning/30'
                           }`}>
                           {activity.status === 'pending' ? 'Broadcasting...' :
                             activity.status === 'success' ? 'Confirmed' :
                               activity.status === 'failure' ? 'Failed' : activity.status}
                         </Badge>
                       </div>
-                      <span className="text-xs text-white/50">
+                      <span className="text-xs text-ink-muted">
                         {formatRelativeTime(activity.timestamp)}
                       </span>
                     </div>
 
-                    <div className="text-xs text-white/70 space-y-1">
+                    <div className="text-xs text-ink-body space-y-1">
                       {activity.action === 'withdraw-lp-tokens' && activity.amount && (
                         <div className="flex items-center gap-2">
                           <span>Amount:</span>
-                          <span className="text-white/90">{(activity.amount / 1000000).toFixed(6)} LP</span>
+                          <span className="text-ink">{(activity.amount / 1000000).toFixed(6)} LP</span>
                         </div>
                       )}
                       {activity.action === 'withdraw-lp-tokens' && activity.recipient && (
                         <div className="flex items-center gap-2">
                           <span>To:</span>
-                          <span className="text-white/90 font-mono text-xs">
+                          <span className="text-ink font-mono text-xs">
                             {activity.recipient.slice(0, 6)}...{activity.recipient.slice(-6)}
                           </span>
                         </div>
@@ -1817,7 +1817,7 @@ export default function BotsSettings() {
                             href={`https://explorer.stacks.co/txid/${activity.txid}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 underline flex items-center gap-1"
+                            className="text-accent-text hover:text-accent-text underline flex items-center gap-1"
                           >
                             {activity.txid.slice(0, 6)}...{activity.txid.slice(-6)}
                             <ExternalLink className="w-3 h-3" />
@@ -1827,17 +1827,17 @@ export default function BotsSettings() {
                       {activity.blockHeight && (
                         <div className="flex items-center gap-2">
                           <span>Block:</span>
-                          <span className="text-white/90">#{activity.blockHeight}</span>
+                          <span className="text-ink">#{activity.blockHeight}</span>
                         </div>
                       )}
                       {activity.blockTime && (
                         <div className="flex items-center gap-2">
                           <span>Confirmed:</span>
-                          <span className="text-white/90">{formatRelativeTime(activity.blockTime)}</span>
+                          <span className="text-ink">{formatRelativeTime(activity.blockTime)}</span>
                         </div>
                       )}
                       {activity.errorMessage && (
-                        <div className="text-red-400 text-xs mt-1 p-2 bg-red-500/10 rounded border border-red-500/20">
+                        <div className="text-danger text-xs mt-1 p-2 bg-danger/10 rounded border border-danger/20">
                           {activity.errorMessage.length > 100 ?
                             `${activity.errorMessage.slice(0, 100)}...` :
                             activity.errorMessage
@@ -1850,9 +1850,9 @@ export default function BotsSettings() {
               </div>
             ) : activityModalBot ? (
               <div className="text-center py-8">
-                <History className="w-12 h-12 text-white/40 mx-auto mb-3" />
-                <h3 className="text-lg font-medium text-white/90 mb-2">No Activity Yet</h3>
-                <p className="text-white/60">
+                <History className="w-12 h-12 text-ink-muted mx-auto mb-3" />
+                <h3 className="text-lg font-medium text-ink mb-2">No Activity Yet</h3>
+                <p className="text-ink-muted">
                   This bot hasn't performed any farming operations yet. Activity will appear here once the automated farming starts.
                 </p>
               </div>

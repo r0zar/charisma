@@ -222,23 +222,23 @@ export default function ApiKeysPage() {
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      active: 'bg-green-500/20 text-green-400 border-green-500/30',
-      suspended: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      revoked: 'bg-red-500/20 text-red-400 border-red-500/30'
+      active: 'bg-success/20 text-success border-success/30',
+      suspended: 'bg-warning/20 text-warning border-warning/30',
+      revoked: 'bg-danger/20 text-danger border-danger/30'
     };
     return variants[status as keyof typeof variants] || variants.active;
   };
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen bg-overlay">
         <Header />
         <div className="container max-w-4xl mx-auto p-6">
-          <Card className="bg-white/[0.03] border-white/[0.08] backdrop-blur-sm">
+          <Card className="bg-surface border-line backdrop-blur-sm">
             <CardContent className="p-8 text-center">
-              <Shield className="w-16 h-16 mx-auto mb-4 text-white/60" />
-              <h2 className="text-xl font-semibold text-white/95 mb-2">Wallet Connection Required</h2>
-              <p className="text-white/70">
+              <Shield className="w-16 h-16 mx-auto mb-4 text-ink-muted" />
+              <h2 className="text-xl font-semibold text-ink mb-2">Wallet Connection Required</h2>
+              <p className="text-ink-body">
                 Please connect your wallet to manage your API keys.
               </p>
             </CardContent>
@@ -249,7 +249,7 @@ export default function ApiKeysPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-overlay">
       <Header />
       
       <div className="container max-w-6xl mx-auto p-6">
@@ -257,40 +257,40 @@ export default function ApiKeysPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-white/95 mb-2">API Key Management</h1>
-              <p className="text-white/70">
+              <h1 className="text-3xl font-bold text-ink mb-2">API Key Management</h1>
+              <p className="text-ink-body">
                 Create and manage API keys for automated trading and order execution.
               </p>
             </div>
             <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
               <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Button className="bg-accent hover:bg-accent text-on-accent">
                   <Plus className="w-4 h-4 mr-2" />
                   Create API Key
                 </Button>
               </DialogTrigger>
-              <DialogContent className="bg-black/95 border-white/[0.08]">
+              <DialogContent className="bg-overlay border-line">
                 <DialogHeader>
-                  <DialogTitle className="text-white/95">Create New API Key</DialogTitle>
-                  <DialogDescription className="text-white/70">
+                  <DialogTitle className="text-ink">Create New API Key</DialogTitle>
+                  <DialogDescription className="text-ink-body">
                     Create a new API key for automated order execution and cancellation.
                   </DialogDescription>
                 </DialogHeader>
                 
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="name" className="text-white/90">Key Name</Label>
+                    <Label htmlFor="name" className="text-ink">Key Name</Label>
                     <Input
                       id="name"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="My Trading Bot"
-                      className="bg-white/[0.05] border-white/[0.08] text-white/95"
+                      className="bg-surface border-line text-ink"
                     />
                   </div>
 
                   <div>
-                    <Label className="text-white/90">Permissions</Label>
+                    <Label className="text-ink">Permissions</Label>
                     <div className="flex gap-2 mt-2">
                       {['execute', 'cancel'].map((permission) => (
                         <label key={permission} className="flex items-center space-x-2 cursor-pointer">
@@ -310,22 +310,22 @@ export default function ApiKeysPage() {
                                 }));
                               }
                             }}
-                            className="rounded border-white/[0.20] bg-white/[0.05]"
+                            className="rounded border-line-strong bg-surface"
                           />
-                          <span className="text-white/90 capitalize">{permission}</span>
+                          <span className="text-ink capitalize">{permission}</span>
                         </label>
                       ))}
                     </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="expires" className="text-white/90">Expiration Date (Optional)</Label>
+                    <Label htmlFor="expires" className="text-ink">Expiration Date (Optional)</Label>
                     <Input
                       id="expires"
                       type="datetime-local"
                       value={formData.expiresAt}
                       onChange={(e) => setFormData(prev => ({ ...prev, expiresAt: e.target.value }))}
-                      className="bg-white/[0.05] border-white/[0.08] text-white/95"
+                      className="bg-surface border-line text-ink"
                     />
                   </div>
 
@@ -333,14 +333,14 @@ export default function ApiKeysPage() {
                     <Button 
                       variant="outline" 
                       onClick={() => setShowCreateDialog(false)}
-                      className="border-white/[0.08] text-white/90"
+                      className="border-line text-ink"
                     >
                       Cancel
                     </Button>
                     <Button
                       onClick={createApiKey}
                       disabled={creating || !formData.name.trim() || formData.permissions.length === 0}
-                      className="bg-blue-600 hover:bg-blue-700"
+                      className="bg-accent hover:bg-accent"
                     >
                       {creating ? 'Creating...' : 'Create Key'}
                     </Button>
@@ -353,40 +353,40 @@ export default function ApiKeysPage() {
 
         {/* New API Key Display */}
         {newApiKey && (
-          <Card className="mb-6 bg-green-500/10 border-green-500/30">
+          <Card className="mb-6 bg-success/10 border-success/30">
             <CardHeader>
-              <CardTitle className="text-green-400 flex items-center">
+              <CardTitle className="text-success flex items-center">
                 <CheckCircle className="w-5 h-5 mr-2" />
                 API Key Created Successfully
               </CardTitle>
-              <CardDescription className="text-green-300/80">
+              <CardDescription className="text-success/80">
                 Copy your API key now - it will not be shown again for security reasons.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-2 p-3 bg-black/30 rounded-lg border border-green-500/20">
-                <code className="flex-1 text-green-400 text-sm font-mono break-all">
+              <div className="flex items-center gap-2 p-3 bg-chrome rounded-lg border border-success/20">
+                <code className="flex-1 text-success text-sm font-mono break-all">
                   {showNewKey ? newApiKey : '•'.repeat(48)}
                 </code>
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setShowNewKey(!showNewKey)}
-                  className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+                  className="border-success/30 text-success hover:bg-success/10"
                 >
                   {showNewKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => copyToClipboard(newApiKey)}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-success hover:bg-success"
                 >
                   <Copy className="w-4 h-4" />
                 </Button>
               </div>
               <Button
                 onClick={() => setNewApiKey(null)}
-                className="mt-3 w-full bg-green-600 hover:bg-green-700"
+                className="mt-3 w-full bg-success hover:bg-success"
               >
                 I've copied the key safely
               </Button>
@@ -395,80 +395,80 @@ export default function ApiKeysPage() {
         )}
 
         {/* API Keys List */}
-        <Card className="bg-white/[0.03] border-white/[0.08] backdrop-blur-sm">
+        <Card className="bg-surface border-line backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-white/95 flex items-center">
+            <CardTitle className="text-ink flex items-center">
               <Key className="w-5 h-5 mr-2" />
               Your API Keys
             </CardTitle>
-            <CardDescription className="text-white/70">
+            <CardDescription className="text-ink-body">
               Manage your API keys for automated trading.
             </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
               <div className="text-center py-8">
-                <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-white/70">Loading API keys...</p>
+                <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
+                <p className="text-ink-body">Loading API keys...</p>
               </div>
             ) : apiKeys.length === 0 ? (
               <div className="text-center py-8">
-                <Key className="w-16 h-16 mx-auto mb-4 text-white/40" />
-                <p className="text-white/70">No API keys found.</p>
-                <p className="text-white/50 text-sm">Create your first API key to get started with automation.</p>
+                <Key className="w-16 h-16 mx-auto mb-4 text-ink-muted" />
+                <p className="text-ink-body">No API keys found.</p>
+                <p className="text-ink-muted text-sm">Create your first API key to get started with automation.</p>
               </div>
             ) : (
               <div className="space-y-4">
                 {apiKeys.map((key) => (
-                  <div key={key.id} className="p-4 bg-white/[0.02] rounded-lg border border-white/[0.06]">
+                  <div key={key.id} className="p-4 bg-surface-sunken rounded-lg border border-line-soft">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-white/95">{key.name}</h3>
+                          <h3 className="font-semibold text-ink">{key.name}</h3>
                           <Badge className={getStatusBadge(key.status)}>
-                            {key.status}
+ {key.status}
                           </Badge>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                           <div>
-                            <p className="text-white/50">Permissions</p>
-                            <p className="text-white/90">
+                            <p className="text-ink-muted">Permissions</p>
+                            <p className="text-ink">
                               {key.permissions.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(', ')}
                             </p>
                           </div>
                           <div>
-                            <p className="text-white/50">Rate Limit</p>
-                            <p className="text-white/90">{key.rateLimit} req/min</p>
+                            <p className="text-ink-muted">Rate Limit</p>
+                            <p className="text-ink">{key.rateLimit} req/min</p>
                           </div>
                           <div>
-                            <p className="text-white/50">Created</p>
-                            <p className="text-white/90">{formatDate(key.createdAt)}</p>
+                            <p className="text-ink-muted">Created</p>
+                            <p className="text-ink">{formatDate(key.createdAt)}</p>
                           </div>
                         </div>
 
                         {key.lastUsedAt && (
                           <div className="mt-2 text-sm">
-                            <p className="text-white/50">Last used: {formatDate(key.lastUsedAt)}</p>
+                            <p className="text-ink-muted">Last used: {formatDate(key.lastUsedAt)}</p>
                           </div>
                         )}
 
                         <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                          <div className="bg-white/[0.03] p-2 rounded">
-                            <p className="text-white/50">Total Requests</p>
-                            <p className="text-white/90 font-mono">{key.usageStats.totalRequests}</p>
+                          <div className="bg-surface p-2 rounded">
+                            <p className="text-ink-muted">Total Requests</p>
+                            <p className="text-ink font-mono">{key.usageStats.totalRequests}</p>
                           </div>
-                          <div className="bg-white/[0.03] p-2 rounded">
-                            <p className="text-white/50">Executions</p>
-                            <p className="text-white/90 font-mono">{key.usageStats.executionCount}</p>
+                          <div className="bg-surface p-2 rounded">
+                            <p className="text-ink-muted">Executions</p>
+                            <p className="text-ink font-mono">{key.usageStats.executionCount}</p>
                           </div>
-                          <div className="bg-white/[0.03] p-2 rounded">
-                            <p className="text-white/50">Cancellations</p>
-                            <p className="text-white/90 font-mono">{key.usageStats.cancellationCount}</p>
+                          <div className="bg-surface p-2 rounded">
+                            <p className="text-ink-muted">Cancellations</p>
+                            <p className="text-ink font-mono">{key.usageStats.cancellationCount}</p>
                           </div>
-                          <div className="bg-white/[0.03] p-2 rounded">
-                            <p className="text-white/50">Success Rate</p>
-                            <p className="text-white/90 font-mono">
+                          <div className="bg-surface p-2 rounded">
+                            <p className="text-ink-muted">Success Rate</p>
+                            <p className="text-ink font-mono">
                               {key.usageStats.totalRequests > 0 
                                 ? Math.round((key.usageStats.successfulRequests / key.usageStats.totalRequests) * 100)
                                 : 0}%
@@ -483,7 +483,7 @@ export default function ApiKeysPage() {
                           variant="outline"
                           onClick={() => deleteApiKey(key.id, key.name)}
                           disabled={key.status !== 'active'}
-                          className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                          className="border-danger/30 text-danger hover:bg-danger/10"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -497,13 +497,13 @@ export default function ApiKeysPage() {
         </Card>
 
         {/* Security Notice */}
-        <Card className="mt-6 bg-yellow-500/10 border-yellow-500/30">
+        <Card className="mt-6 bg-warning/10 border-warning/30">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5" />
+              <AlertTriangle className="w-5 h-5 text-warning mt-0.5" />
               <div>
-                <h4 className="text-yellow-400 font-semibold">Security Best Practices</h4>
-                <ul className="text-yellow-300/80 text-sm mt-1 space-y-1">
+                <h4 className="text-warning font-semibold">Security Best Practices</h4>
+                <ul className="text-warning/80 text-sm mt-1 space-y-1">
                   <li>• Store API keys securely and never commit them to version control</li>
                   <li>• Use environment variables for production deployments</li>
                   <li>• Rotate keys regularly (monthly recommended)</li>

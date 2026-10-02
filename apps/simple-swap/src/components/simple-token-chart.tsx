@@ -171,7 +171,7 @@ export function SimpleTokenChart({
     if (loading) {
         return (
             <div 
-                className="flex items-center justify-center bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm rounded-lg"
+                className="flex items-center justify-center bg-surface-sunken border border-line-soft backdrop-blur-sm rounded-lg"
                 style={{ height }}
             >
                 <div className="flex items-center space-x-2 text-muted-foreground">
@@ -185,19 +185,19 @@ export function SimpleTokenChart({
     if (error) {
         return (
             <div 
-                className="flex flex-col items-center justify-center bg-white/[0.03] border border-red-500/[0.15] rounded-lg space-y-3"
+                className="flex flex-col items-center justify-center bg-surface border border-danger/[0.15] rounded-lg space-y-3"
                 style={{ height }}
             >
-                <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
+                <div className="flex items-center space-x-2 text-danger ">
                     <AlertCircle className="h-5 w-5" />
                     <span className="text-sm font-medium">Chart Error</span>
                 </div>
-                <p className="text-xs text-red-600/80 dark:text-red-400/80 text-center max-w-xs">
+                <p className="text-xs text-danger/80 text-center max-w-xs">
                     {error}
                 </p>
                 <button
                     onClick={loadChartData}
-                    className="text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                    className="text-xs text-danger hover:text-danger  transition-colors"
                 >
                     Try Again
                 </button>
@@ -208,7 +208,7 @@ export function SimpleTokenChart({
     return (
         <div 
             ref={chartContainerRef}
-            className="bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm rounded-lg"
+            className="bg-surface-sunken border border-line-soft backdrop-blur-sm rounded-lg"
             style={{ height }}
         />
     );

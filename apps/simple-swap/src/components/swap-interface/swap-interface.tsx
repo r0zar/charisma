@@ -86,8 +86,8 @@ function SwapInterfaceInner({ urlParams: _unused, headerOnly = false }: { urlPar
         
         {/* Limit Order Conditions */}
         {mode === 'order' && (
-          <div className="glass-card p-6 shadow-xl border border-white/[0.10]">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-purple-500/[0.03] pointer-events-none rounded-2xl" />
+          <div className="glass-card p-6 shadow-xl border border-line">
+            <div className="absolute inset-0 bg-gradient-to-br from-surface-sunken via-transparent to-blaze/[0.03] pointer-events-none rounded-2xl" />
             <div className="relative">
               <LimitConditionSection />
             </div>
@@ -95,8 +95,8 @@ function SwapInterfaceInner({ urlParams: _unused, headerOnly = false }: { urlPar
         )}
 
         {/* Token Input */}
-        <div className="glass-card p-6 shadow-xl border border-white/[0.10] relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-blue-500/[0.02] pointer-events-none rounded-2xl" />
+        <div className="glass-card p-6 shadow-xl border border-line relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-surface-sunken via-transparent to-accent/[0.02] pointer-events-none rounded-2xl" />
           <div className="relative">
             <TokenInputSection />
           </div>
@@ -108,21 +108,21 @@ function SwapInterfaceInner({ urlParams: _unused, headerOnly = false }: { urlPar
         </div>
 
         {/* Token Output */}
-        <div className="glass-card p-6 shadow-xl border border-white/[0.10] relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-green-500/[0.02] pointer-events-none rounded-2xl" />
+        <div className="glass-card p-6 shadow-xl border border-line relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-surface-sunken via-transparent to-success/[0.02] pointer-events-none rounded-2xl" />
           <div className="relative">
             <TokenOutputSection />
           </div>
         </div>
 
         {/* Compact Route Summary - Quick Overview Only */}
-        <div className="glass-card p-4 shadow-lg border border-white/[0.08]">
+        <div className="glass-card p-4 shadow-lg border border-line">
           <SwapDetails compact={true} />
         </div>
 
         {/* Action Controls */}
-        <div className="glass-card p-6 shadow-xl border border-white/[0.10]">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/[0.02] via-transparent to-orange-500/[0.02] pointer-events-none rounded-2xl" />
+        <div className="glass-card p-6 shadow-xl border border-line">
+          <div className="absolute inset-0 bg-gradient-to-br from-surface-sunken via-transparent to-accent/[0.02] pointer-events-none rounded-2xl" />
           <div className="relative space-y-4">
             <ErrorAlert />
             {mode === 'swap' && <SwapButton />}
@@ -130,7 +130,7 @@ function SwapInterfaceInner({ urlParams: _unused, headerOnly = false }: { urlPar
             
             {/* Route disclaimer for orders */}
             {mode === 'order' && quote && (
-              <p className="text-xs italic text-white/60 text-center bg-white/[0.03] border border-white/[0.06] rounded-lg p-3">
+              <p className="text-xs italic text-ink-muted text-center bg-surface border border-line-soft rounded-lg p-3">
                 Routes are optimized at execution time
               </p>
             )}

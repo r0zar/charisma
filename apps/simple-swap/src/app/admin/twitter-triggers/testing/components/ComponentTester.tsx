@@ -216,7 +216,7 @@ export default function ComponentTester() {
             {/* Twitter Scraping Test */}
             <div className="bg-card rounded-lg border border-border p-6">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-accent/20 text-accent-text flex items-center justify-center">
                         <Twitter className="w-5 h-5" />
                     </div>
                     <h3 className="text-lg font-semibold text-foreground">Twitter Scraping Test</h3>
@@ -254,9 +254,9 @@ export default function ComponentTester() {
                         <div className="bg-muted rounded-lg p-4 space-y-3">
                             <div className="flex items-center gap-2">
                                 {scrapingResult.scrapingResult.success ? (
-                                    <CheckCircle className="w-5 h-5 text-green-500" />
+                                    <CheckCircle className="w-5 h-5 text-success" />
                                 ) : (
-                                    <XCircle className="w-5 h-5 text-red-500" />
+                                    <XCircle className="w-5 h-5 text-danger" />
                                 )}
                                 <span className="font-medium">
                                     {scrapingResult.scrapingResult.success ? 'Success' : 'Failed'}
@@ -275,7 +275,7 @@ export default function ComponentTester() {
                             </div>
                             
                             {scrapingResult.scrapingResult.error && (
-                                <div className="text-sm text-red-600 bg-red-50 dark:bg-red-950 p-2 rounded">
+                                <div className="text-sm text-danger bg-danger-soft p-2 rounded">
                                     Error: {scrapingResult.scrapingResult.error}
                                 </div>
                             )}
@@ -306,7 +306,7 @@ export default function ComponentTester() {
             {/* BNS Batch Resolution Test */}
             <div className="bg-card rounded-lg border border-border p-6">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-blaze/20 text-blaze flex items-center justify-center">
                         <Hash className="w-5 h-5" />
                     </div>
                     <h3 className="text-lg font-semibold text-foreground">BNS Batch Resolution Test</h3>
@@ -330,7 +330,7 @@ export default function ComponentTester() {
                                     {bnsNames.length > 1 && (
                                         <button
                                             onClick={() => removeBnsName(index)}
-                                            className="p-2 text-muted-foreground hover:text-red-500 transition-colors"
+                                            className="p-2 text-muted-foreground hover:text-danger transition-colors"
                                         >
                                             <X className="w-4 h-4" />
                                         </button>
@@ -367,7 +367,7 @@ export default function ComponentTester() {
                         <div className="bg-muted rounded-lg p-4 space-y-3">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <CheckCircle className="w-5 h-5 text-green-500" />
+                                    <CheckCircle className="w-5 h-5 text-success" />
                                     <span className="font-medium">Batch Test Complete</span>
                                 </div>
                                 <div className="text-sm text-muted-foreground">
@@ -382,11 +382,11 @@ export default function ComponentTester() {
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground">Successful:</span>
-                                    <span className="ml-2 font-semibold text-green-600">{bnsResult.summary.successful}</span>
+                                    <span className="ml-2 font-semibold text-success">{bnsResult.summary.successful}</span>
                                 </div>
                                 <div>
                                     <span className="text-muted-foreground">Failed:</span>
-                                    <span className="ml-2 font-semibold text-red-600">{bnsResult.summary.failed}</span>
+                                    <span className="ml-2 font-semibold text-danger">{bnsResult.summary.failed}</span>
                                 </div>
                             </div>
                             
@@ -397,9 +397,9 @@ export default function ComponentTester() {
                                         <div key={index} className="flex items-center justify-between text-xs bg-background p-2 rounded border">
                                             <div className="flex items-center gap-2">
                                                 {result.success ? (
-                                                    <CheckCircle className="w-3 h-3 text-green-500" />
+                                                    <CheckCircle className="w-3 h-3 text-success" />
                                                 ) : (
-                                                    <XCircle className="w-3 h-3 text-red-500" />
+                                                    <XCircle className="w-3 h-3 text-danger" />
                                                 )}
                                                 <span className="font-mono">{result.input}</span>
                                                 {result.bnsName && result.bnsName !== result.input && (
@@ -408,11 +408,11 @@ export default function ComponentTester() {
                                             </div>
                                             <div className="text-right">
                                                 {result.success && result.address ? (
-                                                    <span className="font-mono text-green-600">
+                                                    <span className="font-mono text-success">
                                                         {result.address.slice(0, 8)}...{result.address.slice(-6)}
                                                     </span>
                                                 ) : (
-                                                    <span className="text-red-600">{result.error}</span>
+                                                    <span className="text-danger">{result.error}</span>
                                                 )}
                                             </div>
                                         </div>
@@ -427,7 +427,7 @@ export default function ComponentTester() {
             {/* Twitter Reply Test */}
             <div className="bg-card rounded-lg border border-border p-6">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-success/20 text-success flex items-center justify-center">
                         <MessageSquare className="w-5 h-5" />
                     </div>
                     <h3 className="text-lg font-semibold text-foreground">Twitter Reply Test</h3>
@@ -436,7 +436,7 @@ export default function ComponentTester() {
                 <div className="space-y-4">
                     <div className="warning-card">
                         <div className="flex items-start gap-2">
-                            <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                            <AlertTriangle className="w-4 h-4 text-warning mt-0.5" />
                             <div className="text-sm">
                                 <strong>Warning:</strong> This will send a real reply to the specified tweet using your configured Twitter account.
                                 Only use this with your own tweets or test tweets.
@@ -481,7 +481,7 @@ export default function ComponentTester() {
                     <button 
                         onClick={testTwitterReply}
                         disabled={replyLoading || !replyTargetTweetUrl.trim() || !replyMessage.trim()}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-success text-bg rounded-lg hover:bg-success transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {replyLoading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -496,9 +496,9 @@ export default function ComponentTester() {
                         <div className="bg-muted rounded-lg p-4 space-y-3">
                             <div className="flex items-center gap-2">
                                 {replyResult.success ? (
-                                    <CheckCircle className="w-5 h-5 text-green-500" />
+                                    <CheckCircle className="w-5 h-5 text-success" />
                                 ) : (
-                                    <XCircle className="w-5 h-5 text-red-500" />
+                                    <XCircle className="w-5 h-5 text-danger" />
                                 )}
                                 <span className="font-medium">
                                     {replyResult.success ? 'Reply Sent Successfully' : 'Reply Failed'}
@@ -527,7 +527,7 @@ export default function ComponentTester() {
                                             href={replyResult.replyUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="ml-2 text-blue-500 hover:text-blue-600 inline-flex items-center gap-1"
+                                            className="ml-2 text-accent-text hover:text-accent-text inline-flex items-center gap-1"
                                         >
                                             Open on Twitter
                                             <ExternalLink className="w-3 h-3" />
@@ -551,7 +551,7 @@ export default function ComponentTester() {
                             </div>
                             
                             {replyResult.error && (
-                                <div className="text-sm text-red-600 bg-red-50 dark:bg-red-950 p-2 rounded">
+                                <div className="text-sm text-danger bg-danger-soft p-2 rounded">
                                     Error: {replyResult.error}
                                 </div>
                             )}

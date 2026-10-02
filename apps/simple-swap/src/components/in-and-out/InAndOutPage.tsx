@@ -36,8 +36,8 @@ const fmt = (n: number) => n.toLocaleString('en-US', { maximumSignificantDigits:
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
     return (
         <div className="space-y-2">
-            <div className="flex items-center gap-2 text-sm font-medium text-white/90">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-xs">{n}</span>
+            <div className="flex items-center gap-2 text-sm font-medium text-ink">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-hover text-xs">{n}</span>
                 {title}
             </div>
             {children}
@@ -202,14 +202,14 @@ export default function InAndOutPage() {
     return (
         <div className="container max-w-7xl mx-auto px-4 py-6 space-y-6">
             <div className="space-y-1">
-                <h1 className="text-2xl font-semibold text-white/95">In &amp; Out</h1>
-                <p className="text-sm text-white/60">
+                <h1 className="text-2xl font-semibold text-ink">In &amp; Out</h1>
+                <p className="text-sm text-ink-muted">
                     Buy a token now, and sell it automatically once it&apos;s up. You pick the profit; it cashes out into sBTC, STX or a stablecoin.
                 </p>
             </div>
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 flex flex-col">
+                <div className="rounded-xl border border-line bg-surface-sunken p-4 flex flex-col">
                     {buy && cashOut && ratio ? (
                         <ConditionTokenChart
                             token={buy}
@@ -224,43 +224,43 @@ export default function InAndOutPage() {
                             className="flex-1 min-h-[480px]"
                         />
                     ) : (
-                        <div className="h-full min-h-[480px] flex items-center justify-center text-sm text-white/50">
+                        <div className="h-full min-h-[480px] flex items-center justify-center text-sm text-ink-muted">
                             {problem ?? 'Pick what to buy and where to cash out to see the chart.'}
                         </div>
                     )}
                 </div>
 
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-6">
+                <div className="rounded-xl border border-line bg-surface-sunken p-4 space-y-6">
                     {phase === 'done' ? (
                         <div className="space-y-4">
-                            <div className="text-lg font-medium text-white/95">You&apos;re in ✓</div>
-                            <p className="text-sm text-white/60">
+                            <div className="text-lg font-medium text-ink">You&apos;re in ✓</div>
+                            <p className="text-sm text-ink-muted">
                                 Buying {buy?.symbol} now. It sells into {cashOut?.symbol} at {targetRatio && fmt(targetRatio)} {cashOut?.symbol}
                                 {safetyRatio ? `, or at ${fmt(safetyRatio)} if it drops first` : ''}. You can close this page.
                             </p>
                             <div className="flex gap-2">
-                                <Link href="/orders" className="flex-1 rounded-lg border border-white/20 px-3 py-2 text-center text-sm text-white hover:bg-white/[0.06]">View in Orders</Link>
-                                <button type="button" onClick={() => setPhase('setup')} className="flex-1 rounded-lg border border-white/[0.08] px-3 py-2 text-sm text-white/70 hover:text-white">Start another</button>
+                                <Link href="/orders" className="flex-1 rounded-lg border border-line-strong px-3 py-2 text-center text-sm text-ink hover:bg-surface-hover">View in Orders</Link>
+                                <button type="button" onClick={() => setPhase('setup')} className="flex-1 rounded-lg border border-line px-3 py-2 text-sm text-ink-body hover:text-ink">Start another</button>
                             </div>
                         </div>
                     ) : (
                         <>
                             <Step n={1} title="In: buy now">
-                                <div className="text-xs text-white/60">Pay with</div>
+                                <div className="text-xs text-ink-muted">Pay with</div>
                                 {!address
-                                    ? <div className="text-sm text-white/60">Connect a wallet to pick a token.</div>
+                                    ? <div className="text-sm text-ink-muted">Connect a wallet to pick a token.</div>
                                     : swappable && <TokenDropdown tokens={payable.filter(t => t.contractId !== buy?.contractId)} selected={pay} onSelect={pickPay} label="Pick a token you hold" showBalances includeStx={false} />}
                                 {pay && decimals !== undefined && (
                                     <>
-                                        <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 focus-within:border-white/30">
+                                        <div className="flex items-center gap-2 rounded-lg border border-line bg-surface-sunken px-3 py-2 focus-within:border-line-strong">
                                             <input
                                                 inputMode="decimal"
                                                 placeholder="0"
                                                 value={amountText}
                                                 onChange={e => setAmountText(e.target.value.replace(/[^\d.]/g, ''))}
-                                                className="min-w-0 flex-1 bg-transparent font-mono text-lg text-white outline-none placeholder:text-white/30"
+                                                className="min-w-0 flex-1 bg-transparent font-mono text-lg text-ink outline-none placeholder:text-ink-faint"
                                             />
-                                            <span className="text-sm text-white/60">{pay.symbol}</span>
+                                            <span className="text-sm text-ink-muted">{pay.symbol}</span>
                                         </div>
                                         <div className="flex gap-1.5">
                                             {SHARES.map(s => (
@@ -269,21 +269,21 @@ export default function InAndOutPage() {
                                                 </Chip>
                                             ))}
                                         </div>
-                                        <div className="text-right text-xs text-white/50">
+                                        <div className="text-right text-xs text-ink-muted">
                                             You hold <span className="font-mono">{fmt(Number(balance) / 10 ** decimals)}</span> {pay.symbol}
                                         </div>
                                     </>
                                 )}
-                                <div className="text-xs text-white/60 pt-1">Buy</div>
+                                <div className="text-xs text-ink-muted pt-1">Buy</div>
                                 {listError
-                                    ? <p role="alert" className="text-sm text-red-400">Couldn&apos;t load swappable tokens: {listError}</p>
+                                    ? <p role="alert" className="text-sm text-danger">Couldn&apos;t load swappable tokens: {listError}</p>
                                     : swappable
                                         ? <TokenDropdown tokens={buyable} selected={buy} onSelect={setBuy} label="Pick a token to buy" includeStx={false} />
-                                        : <div className="text-sm text-white/50">Loading…</div>}
+                                        : <div className="text-sm text-ink-muted">Loading…</div>}
                             </Step>
 
                             <Step n={2} title="Out: sell at a profit">
-                                <div className="text-xs text-white/60">Cash out into</div>
+                                <div className="text-xs text-ink-muted">Cash out into</div>
                                 {swappable && (
                                     <div className="grid grid-cols-4 gap-2">
                                         {cashOutTokens.map(t => (
@@ -299,7 +299,7 @@ export default function InAndOutPage() {
                                         ))}
                                     </div>
                                 )}
-                                <div className="flex justify-between text-xs text-white/60 pt-1">
+                                <div className="flex justify-between text-xs text-ink-muted pt-1">
                                     <span>🎯 Sell when it&apos;s up {!TARGETS.includes(targetPct) && `(+${(targetPct * 100).toFixed(1)}%)`}</span>
                                     {targetRatio && cashOut && <span className="font-mono">{fmt(targetRatio)} {cashOut.symbol}</span>}
                                 </div>
@@ -307,28 +307,28 @@ export default function InAndOutPage() {
                                     {TARGETS.map(t => <Chip key={t} active={targetPct === t} onClick={() => setTargetPct(t)}>+{t * 100}%</Chip>)}
                                 </div>
                                 {ratio && buy && cashOut && (
-                                    <div className="flex justify-between text-xs text-white/50">
+                                    <div className="flex justify-between text-xs text-ink-muted">
                                         <span>Now</span>
                                         <span className="font-mono">1 {buy.symbol} = {fmt(ratio)} {cashOut.symbol}</span>
                                     </div>
                                 )}
-                                <label className="flex items-center justify-between gap-3 pt-1 text-sm text-white/80 cursor-pointer">
+                                <label className="flex items-center justify-between gap-3 pt-1 text-sm text-ink-body cursor-pointer">
                                     <span>🛡️ Safety net: sell if it falls {SAFETY * 100}%{safetyRatio && cashOut ? ` (${fmt(safetyRatio)} ${cashOut.symbol})` : ''}</span>
                                     <input type="checkbox" checked={safetyOn} onChange={e => setSafetyOn(e.target.checked)} className="h-4 w-4 cursor-pointer accent-white" />
                                 </label>
                             </Step>
 
-                            {(error || problem) && <p role="alert" className="text-sm text-red-400">{error ?? problem}</p>}
+                            {(error || problem) && <p role="alert" className="text-sm text-danger">{error ?? problem}</p>}
 
                             <button
                                 type="button"
                                 onClick={start}
                                 disabled={!ready || phase === 'signing'}
-                                className="w-full rounded-lg bg-white/90 px-4 py-3 text-sm font-medium text-black hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+                                className="w-full rounded-lg bg-ink/90 px-4 py-3 text-sm font-medium text-bg hover:bg-ink disabled:cursor-not-allowed disabled:opacity-40"
                             >
                                 {phase === 'signing' ? progress : `Buy now & set the exit (${signatures} signatures)`}
                             </button>
-                            <p className="text-xs text-white/50">
+                            <p className="text-xs text-ink-muted">
                                 Drag the target line on the chart to fine-tune it. The buy runs right away; the sale waits for its price. Keep this page open until the sale is signed. Proceeds go to your wallet.
                             </p>
                         </>

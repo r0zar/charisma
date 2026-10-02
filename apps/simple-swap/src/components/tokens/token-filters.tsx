@@ -68,12 +68,12 @@ export default function TokenFilters({
                             key={category.id}
                             onClick={() => setCategoryFilter(category.id)}
                             className={cn(
-                                "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
+ "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
                                 categoryFilter === category.id
                                     ? category.id === "arbitrage"
-                                        ? "bg-amber-500/10 text-amber-400 border border-amber-500/30"
-                                        : "bg-white/[0.08] text-white border border-white/[0.2]"
-                                    : "text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent"
+                                        ? "bg-warning/10 text-warning border border-warning/30"
+                                        : "bg-surface-hover text-ink border border-line-strong"
+                                    : "text-ink-muted hover:text-ink hover:bg-surface border border-transparent"
                             )}
                         >
                             <span className="text-xs">{category.icon}</span>
@@ -89,14 +89,14 @@ export default function TokenFilters({
                 <div className="flex items-center gap-4">
                     {/* Clean sort selector */}
                     <div className="flex items-center gap-3">
-                        <span className="text-sm text-white/40">Sort by</span>
+                        <span className="text-sm text-ink-muted">Sort by</span>
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
-                            className="bg-transparent border border-white/[0.1] rounded-xl px-3 py-2 text-sm text-white/90 focus:outline-none focus:border-white/[0.3] transition-colors duration-200"
+                            className="bg-transparent border border-line rounded-xl px-3 py-2 text-sm text-ink focus:outline-none focus:border-line-strong transition-colors duration-200"
                         >
                             {sortOptions.map((option) => (
-                                <option key={option.id} value={option.id} className="bg-black text-white">
+                                <option key={option.id} value={option.id} className="bg-overlay text-ink">
                                     {option.label}
                                 </option>
                             ))}
@@ -107,14 +107,14 @@ export default function TokenFilters({
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handleExport}
-                            className="p-2 rounded-xl hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-all duration-200"
+                            className="p-2 rounded-xl hover:bg-surface-hover text-ink-muted hover:text-ink-body transition-all duration-200"
                             title="Export data"
                         >
                             <Download className="h-4 w-4" />
                         </button>
 
                         <button
-                            className="p-2 rounded-xl hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-all duration-200"
+                            className="p-2 rounded-xl hover:bg-surface-hover text-ink-muted hover:text-ink-body transition-all duration-200"
                             title="Watchlist"
                         >
                             <Heart className="h-4 w-4" />

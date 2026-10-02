@@ -126,7 +126,7 @@ export default function BatchWalletImportDialog({
         <Button
           variant="outline"
           size="sm"
-          className="border-white/20 text-white/70 hover:text-white/90"
+          className="border-line-strong text-ink-body hover:text-ink"
         >
           <Upload className="w-4 h-4 mr-2" />
           Import Wallets
@@ -235,30 +235,30 @@ export default function BatchWalletImportDialog({
                   <div className="text-xs text-muted-foreground">Total Found</div>
                   <div className="text-lg font-semibold text-foreground">{parseResult.totalFound}</div>
                 </div>
-                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-                  <div className="text-xs text-green-400">Valid</div>
-                  <div className="text-lg font-semibold text-green-400">{parseResult.validAddresses.length}</div>
+                <div className="bg-success/10 border border-success/20 rounded-lg p-3">
+                  <div className="text-xs text-success">Valid</div>
+                  <div className="text-lg font-semibold text-success">{parseResult.validAddresses.length}</div>
                 </div>
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                  <div className="text-xs text-red-400">Invalid</div>
-                  <div className="text-lg font-semibold text-red-400">{parseResult.invalidAddresses.length}</div>
+                <div className="bg-danger/10 border border-danger/20 rounded-lg p-3">
+                  <div className="text-xs text-danger">Invalid</div>
+                  <div className="text-lg font-semibold text-danger">{parseResult.invalidAddresses.length}</div>
                 </div>
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                  <div className="text-xs text-blue-400">New</div>
-                  <div className="text-lg font-semibold text-blue-400">{newAddresses.length}</div>
+                <div className="bg-accent/10 border border-accent/20 rounded-lg p-3">
+                  <div className="text-xs text-accent-text">New</div>
+                  <div className="text-lg font-semibold text-accent-text">{newAddresses.length}</div>
                 </div>
               </div>
 
               {/* Warning Messages */}
               {existingInInput.length > 0 && (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                <div className="bg-warning/10 border border-warning/20 rounded-lg p-3">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                    <AlertCircle className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
                     <div>
-                      <div className="text-sm font-medium text-yellow-400">
+                      <div className="text-sm font-medium text-warning">
                         {existingInInput.length} address{existingInInput.length !== 1 ? 'es' : ''} already imported
                       </div>
-                      <div className="text-xs text-yellow-400/70 mt-1">
+                      <div className="text-xs text-warning/70 mt-1">
                         These addresses will be skipped during import
                       </div>
                     </div>
@@ -267,14 +267,14 @@ export default function BatchWalletImportDialog({
               )}
 
               {wouldExceedLimit && (
-                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                <div className="bg-danger/10 border border-danger/20 rounded-lg p-3">
                   <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                    <AlertCircle className="w-4 h-4 text-danger mt-0.5 flex-shrink-0" />
                     <div>
-                      <div className="text-sm font-medium text-red-400">
+                      <div className="text-sm font-medium text-danger">
                         Exceeds maximum limit ({maxAddresses} addresses)
                       </div>
-                      <div className="text-xs text-red-400/70 mt-1">
+                      <div className="text-xs text-danger/70 mt-1">
                         Only the first {maxAddresses - existingAddresses.length} new addresses will be imported
                       </div>
                     </div>
@@ -295,15 +295,15 @@ export default function BatchWalletImportDialog({
                       {previewAddresses.map((addr, index) => (
                         <div key={index} className="flex items-center gap-2 text-xs font-mono">
                           {addr.isValid ? (
-                            <Check className="w-3 h-3 text-green-400 flex-shrink-0" />
+                            <Check className="w-3 h-3 text-success flex-shrink-0" />
                           ) : (
-                            <X className="w-3 h-3 text-red-400 flex-shrink-0" />
+                            <X className="w-3 h-3 text-danger flex-shrink-0" />
                           )}
-                          <span className={addr.isValid ? 'text-foreground' : 'text-red-400'}>
+                          <span className={addr.isValid ? 'text-foreground' : 'text-danger'}>
                             {addr.address}
                           </span>
                           {existingAddresses.includes(addr.address) && (
-                            <Badge variant="outline" className="text-xs text-yellow-400 border-yellow-400/30">
+                            <Badge variant="outline" className="text-xs text-warning border-warning/30">
                               Exists
                             </Badge>
                           )}

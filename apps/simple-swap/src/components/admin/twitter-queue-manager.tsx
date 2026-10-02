@@ -184,9 +184,9 @@ export function TwitterQueueManager() {
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Queue Status</CardTitle>
                         {status.isProcessing ? (
-                            status.isPaused ? <Pause className="h-4 w-4 text-yellow-500" /> : <Activity className="h-4 w-4 text-green-500" />
+                            status.isPaused ? <Pause className="h-4 w-4 text-warning" /> : <Activity className="h-4 w-4 text-success" />
                         ) : (
-                            <AlertCircle className="h-4 w-4 text-red-500" />
+                            <AlertCircle className="h-4 w-4 text-danger" />
                         )}
                     </CardHeader>
                     <CardContent>
@@ -213,7 +213,7 @@ export function TwitterQueueManager() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <CheckCircle className="h-4 w-4 text-success" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{successRate}%</div>
@@ -226,7 +226,7 @@ export function TwitterQueueManager() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Browserless</CardTitle>
-                        <div className={`h-2 w-2 rounded-full ${status.browserlessConnected ? 'bg-green-500' : 'bg-red-500'}`} />
+                        <div className={`h-2 w-2 rounded-full ${status.browserlessConnected ? 'bg-success' : 'bg-danger'}`} />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
@@ -413,11 +413,11 @@ export function TwitterQueueManager() {
                                 </div>
                                 <div className="flex justify-between">
                                     <span>Successful:</span>
-                                    <span className="font-mono text-green-600">{status.metrics.successCount}</span>
+                                    <span className="font-mono text-success">{status.metrics.successCount}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span>Failed:</span>
-                                    <span className="font-mono text-red-600">{status.metrics.failureCount}</span>
+                                    <span className="font-mono text-danger">{status.metrics.failureCount}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span>Avg Time:</span>

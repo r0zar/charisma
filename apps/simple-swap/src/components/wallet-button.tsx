@@ -7,6 +7,7 @@ interface WalletButtonProps {
     className?: string;
 }
 
+/** Sits on the header's chrome bar: accent "Connect wallet", then the short address in mono */
 export function WalletButton({ className }: WalletButtonProps) {
     const { connected, address, isConnecting, connectWallet, disconnectWallet } = useWallet();
 
@@ -16,33 +17,27 @@ export function WalletButton({ className }: WalletButtonProps) {
                 <button
                     onClick={connectWallet}
                     disabled={isConnecting}
-                    className="relative cursor-pointer h-9 px-5 py-2 text-sm font-medium rounded-xl bg-white/[0.08] border border-white/[0.15] text-white/90 hover:bg-white/[0.12] hover:border-white/[0.25] hover:text-white disabled:opacity-50 transition-all duration-200 flex items-center justify-center min-w-[140px] backdrop-blur-sm overflow-hidden"
+                    className="h-9 min-w-[140px] px-5 rounded-xl bg-accent text-on-accent text-sm font-semibold shadow-[var(--shadow-cta)] hover:bg-accent-hover disabled:opacity-60 active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2"
                 >
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/[0.02] to-transparent pointer-events-none" />
                     {isConnecting ? (
                         <>
-                            <span className="mr-2 flex items-center justify-center">
-                                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white/80"></span>
-                            </span>
-                            <span className="truncate relative z-10">Connecting...</span>
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                            Connecting…
                         </>
                     ) : (
-                        <span className="relative z-10">Connect Wallet</span>
+                        "Connect wallet"
                     )}
                 </button>
             ) : (
                 <button
                     onClick={disconnectWallet}
-                    className="relative cursor-pointer h-9 px-4 py-2 text-sm font-medium rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/80 hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-white transition-all duration-200 backdrop-blur-sm overflow-hidden"
+                    title="Disconnect"
+                    className="h-9 min-w-[140px] px-4 rounded-xl border border-on-chrome-muted/40 text-on-chrome hover:border-on-chrome transition-all duration-200 flex items-center justify-center gap-2 font-mono text-[13px]"
                 >
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/[0.01] to-transparent pointer-events-none" />
-                    <span className="relative z-10 font-mono">
-                        {address
-                            ? `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
-                            : "Connected"}
-                    </span>
+                    <span className="h-2 w-2 rounded-full bg-success" aria-hidden />
+                    {address ? `${address.substring(0, 5)}…${address.substring(address.length - 4)}` : "Connected"}
                 </button>
             )}
         </div>
     );
-} 
+}

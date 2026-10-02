@@ -21,23 +21,23 @@ export const BaseStrategyCard: React.FC<BaseStrategyCardLayoutProps> = ({
     return (
         <div
             className={cn(
-                "group relative rounded-2xl border transition-all duration-300 cursor-pointer",
+ "group relative rounded-2xl border transition-all duration-300 cursor-pointer",
                 isRecentlyUpdated
-                    ? 'border-emerald-500/[0.3] bg-emerald-950/10 shadow-emerald-500/[0.1] ring-1 ring-emerald-500/[0.2]'
-                    : 'border-white/[0.08] bg-black/20 hover:bg-black/30 hover:border-white/[0.15]',
+                    ? 'border-success/[0.3] bg-success-soft shadow-emerald-500/[0.1] ring-1 ring-success/[0.2]'
+                    : 'border-line bg-surface hover:bg-chrome hover:border-line-strong',
                 "backdrop-blur-sm"
             )}
             onClick={onClick}
         >
             {/* Subtle gradient overlay */}
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
 
             {/* Recently Updated Indicator */}
             {isRecentlyUpdated && (
                 <>
-                    <div className="absolute top-3 right-3 w-2 h-2 bg-emerald-400 rounded-full animate-ping z-10" />
-                    <div className="absolute top-3 right-3 w-2 h-2 bg-emerald-400 rounded-full z-10" />
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-400 animate-pulse z-10 rounded-t-2xl" />
+                    <div className="absolute top-3 right-3 w-2 h-2 bg-success rounded-full animate-ping z-10" />
+                    <div className="absolute top-3 right-3 w-2 h-2 bg-success rounded-full z-10" />
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-success to-blaze animate-pulse z-10 rounded-t-2xl" />
                 </>
             )}
 

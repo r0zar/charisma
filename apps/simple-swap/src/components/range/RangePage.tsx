@@ -207,11 +207,11 @@ export default function RangePage() {
     return (
         <div className="container max-w-7xl mx-auto px-4 py-6 space-y-6">
             <div>
-                <h1 className="text-2xl font-semibold text-white/95">Range Swaps</h1>
-                <p className="text-sm text-white/60">Sell at the top line, buy back at the bottom line, every window, for as long as you choose.</p>
+                <h1 className="text-2xl font-semibold text-ink">Range Swaps</h1>
+                <p className="text-sm text-ink-muted">Sell at the top line, buy back at the bottom line, every window, for as long as you choose.</p>
             </div>
             <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
-                <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 flex flex-col">
+                <div className="rounded-xl border border-line bg-surface-sunken p-4 flex flex-col">
                     <div className="flex-1 min-h-[560px]">
                         {ready && tokenA && tokenB ? (
                             <ConditionTokenChart
@@ -223,7 +223,7 @@ export default function RangePage() {
                                 className="flex-1 min-h-[560px]"
                             />
                         ) : (
-                            <div className="h-full min-h-[560px] flex items-center justify-center text-sm text-white/50">
+                            <div className="h-full min-h-[560px] flex items-center justify-center text-sm text-ink-muted">
                                 {bothPicked ? 'Waiting for prices' : 'Pick two tokens to see the chart.'}
                             </div>
                         )}
@@ -243,7 +243,7 @@ export default function RangePage() {
                         busy={phase === 'signing'}
                         onCreate={create}
                     />
-                    {error && <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">{error}</div>}
+                    {error && <div className="rounded-lg border border-danger/30 bg-danger/10 p-3 text-xs text-danger">{error}</div>}
                 </div>
             </div>
             {legs.length > 0 && symbols && (

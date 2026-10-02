@@ -61,9 +61,9 @@ export default function TestRegistryIntegrationPage() {
         </div>
 
         {error && (
-          <Card className="border-red-500/20 bg-red-500/5">
+          <Card className="border-danger/20 bg-danger/5">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-red-600">
+              <div className="flex items-center gap-2 text-danger">
                 <span className="text-sm">{error}</span>
               </div>
             </CardContent>

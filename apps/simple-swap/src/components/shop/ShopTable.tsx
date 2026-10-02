@@ -176,7 +176,7 @@ const TableRowComponent = React.memo(({
                             <User className="h-3 w-3 text-muted-foreground" />
                             <span
                                 className={
-                                    bnsNames[item.offerCreatorAddress]
+ bnsNames[item.offerCreatorAddress]
                                         ? "font-medium text-primary"
                                         : "font-mono text-muted-foreground"
                                 }
@@ -298,7 +298,7 @@ const TableRowComponent = React.memo(({
                                 return (
                                     <Tooltip delayDuration={300}>
                                         <TooltipTrigger asChild>
-                                            <div className="flex items-center gap-1 text-green-600 dark:text-green-400 cursor-help">
+                                            <div className="flex items-center gap-1 text-success cursor-help">
                                                 <CheckCircle className="h-3 w-3" />
                                                 <span className="text-xs">Verified</span>
                                             </div>
@@ -312,7 +312,7 @@ const TableRowComponent = React.memo(({
                                 return (
                                     <Tooltip delayDuration={300}>
                                         <TooltipTrigger asChild>
-                                            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 cursor-help">
+                                            <div className="flex items-center gap-1 text-warning cursor-help">
                                                 <XCircle className="h-3 w-3" />
                                                 <span className="text-xs">
                                                     Insufficient ({balanceStatus.insufficientTokens.length})
@@ -899,12 +899,12 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
 
                         {depositPromptData && (
                             <div className="space-y-4">
-                                <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
+                                <div className="bg-warning-soft p-4 rounded-lg border border-warning ">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                                        <span className="font-medium text-amber-600 dark:text-amber-400">Action Required</span>
+                                        <AlertTriangle className="h-4 w-4 text-warning " />
+                                        <span className="font-medium text-warning ">Action Required</span>
                                     </div>
-                                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                                    <p className="text-sm text-warning ">
                                         You currently have {depositPromptData.currentBalance.toLocaleString()} {depositPromptData.tokenSymbol} but bid {depositPromptData.bidAmount.toLocaleString()} {depositPromptData.tokenSymbol}.
                                         You need to deposit at least {(depositPromptData.bidAmount - depositPromptData.currentBalance).toLocaleString()} more {depositPromptData.tokenSymbol} to the subnet.
                                     </p>
@@ -914,26 +914,26 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
                                     <h4 className="font-medium">Why deposit to the subnet?</h4>
                                     <ul className="space-y-2 text-sm text-muted-foreground">
                                         <li className="flex items-start gap-2">
-                                            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                            <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                                             <span>Enables automatic trade execution when your bid is accepted</span>
                                         </li>
                                         <li className="flex items-start gap-2">
-                                            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                            <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                                             <span>Secures your position in the trading queue</span>
                                         </li>
                                         <li className="flex items-start gap-2">
-                                            <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                            <CheckCircle className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                                             <span>Prevents failed transactions due to insufficient balance</span>
                                         </li>
                                     </ul>
                                 </div>
 
-                                <div className="bg-blue-50 dark:bg-blue-950/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                                <div className="bg-accent-soft p-4 rounded-lg border border-accent ">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                        <span className="font-medium text-blue-600 dark:text-blue-400">How to Deposit</span>
+                                        <Info className="h-4 w-4 text-accent-text " />
+                                        <span className="font-medium text-accent-text ">How to Deposit</span>
                                     </div>
-                                    <p className="text-sm text-blue-700 dark:text-blue-300">
+                                    <p className="text-sm text-accent-text ">
                                         You can deposit {depositPromptData.tokenSymbol} tokens to the Charisma subnet through the main dashboard or wallet interface.
                                         The deposit will be reflected in your subnet balance within a few minutes.
                                     </p>
@@ -999,7 +999,7 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
                                     className="bg-primary hover:bg-primary/90"
                                 >
                                     {isDepositing && (
-                                        <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                                        <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-ink border-t-transparent rounded-full"></div>
                                     )}
                                     {isDepositing ? 'Depositing...' : 'Deposit Now'}
                                 </Button>

@@ -42,12 +42,12 @@ export function CreatorInfo({ offer }: CreatorInfoProps) {
     return (
         <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-full flex items-center justify-center">
-                <Users className="h-5 w-5 text-white" />
+                <Users className="h-5 w-5 text-ink" />
             </div>
             <div className="min-w-0 flex-1">
                 <div
                     className={displayClass}
-                    title={loading ? "Loading BNS name..." : bnsName ? `${bnsName} (${offer.offerCreatorAddress})` : offer.offerCreatorAddress}
+ title={loading ? "Loading BNS name..." : bnsName ? `${bnsName} (${offer.offerCreatorAddress})` : offer.offerCreatorAddress}
                 >
                     {displayName}
                 </div>

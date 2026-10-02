@@ -358,8 +358,8 @@ const BidDialog: React.FC<BidDialogProps> = ({
                                                 <div className="animate-pulse">Loading...</div>
                                             </div>
                                         ) : (
-                                            <div className={`flex items-center gap-1 ${balanceStatus === 'sufficient' ? 'text-green-600 dark:text-green-400' :
-                                                balanceStatus === 'insufficient' ? 'text-red-600 dark:text-red-400' :
+                                            <div className={`flex items-center gap-1 ${balanceStatus === 'sufficient' ? 'text-success ' :
+                                                balanceStatus === 'insufficient' ? 'text-danger ' :
                                                     'text-muted-foreground'
                                                 }`}>
                                                 {balanceStatus === 'sufficient' && <CheckCircle className="h-3 w-3" />}
@@ -380,7 +380,7 @@ const BidDialog: React.FC<BidDialogProps> = ({
 
                                         {/* Warning for insufficient balance */}
                                         {balanceStatus === 'insufficient' && (
-                                            <div className="mt-1 p-2 bg-red-50 dark:bg-red-950/20 rounded text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800">
+                                            <div className="mt-1 p-2 bg-danger-soft rounded text-xs text-danger  border border-danger ">
                                                 <div className="flex items-center gap-1">
                                                     <AlertTriangle className="h-3 w-3" />
                                                     <span className="font-medium">Insufficient Balance</span>
@@ -505,10 +505,10 @@ const BidDialog: React.FC<BidDialogProps> = ({
                         className="button-primary"
                     >
                         {isSigning && (
-                            <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                            <div className="animate-spin -ml-1 mr-2 h-4 w-4 border-2 border-ink border-t-transparent rounded-full"></div>
                         )}
                         {isSubmitting && !isSigning && (
-                            <div className="animate-pulse -ml-1 mr-2 h-4 w-4 bg-white rounded-full"></div>
+                            <div className="animate-pulse -ml-1 mr-2 h-4 w-4 bg-ink rounded-full"></div>
                         )}
                         {!isSigning && !isSubmitting && (
                             <>

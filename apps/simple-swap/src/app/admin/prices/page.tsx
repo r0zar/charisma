@@ -61,7 +61,7 @@ export default function PriceDashboard() {
                                 Price Data Matrix
                             </h1>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                <Zap className="w-3 h-3 text-green-500" />
+                                <Zap className="w-3 h-3 text-success" />
                                 Optimized for performance • Paginated loading
                             </div>
                         </div>

@@ -127,8 +127,8 @@ export default async function TokensPage() {
                 <Header />
                 <main className="flex-1 container max-w-7xl mx-auto px-4 py-8">
                     <div className="text-center py-12">
-                        <h2 className="text-2xl font-semibold text-white/80 mb-4">No Tokens Available</h2>
-                        <p className="text-white/60">Unable to load token data. Please try again later.</p>
+                        <h2 className="text-2xl font-semibold text-ink-body mb-4">No Tokens Available</h2>
+                        <p className="text-ink-muted">Unable to load token data. Please try again later.</p>
                     </div>
                 </main>
             </div>

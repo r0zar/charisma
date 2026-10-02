@@ -181,7 +181,7 @@ export default function BackfillManager() {
             {/* Configuration */}
             <div className="bg-card rounded-lg border border-border p-6">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-accent/20 text-accent-text flex items-center justify-center">
                         <Settings className="w-5 h-5" />
                     </div>
                     <h3 className="text-lg font-semibold text-foreground">Backfill Configuration</h3>
@@ -255,7 +255,7 @@ export default function BackfillManager() {
             <div className="bg-card rounded-lg border border-border p-6">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-blaze/20 text-blaze flex items-center justify-center">
                             <Eye className="w-5 h-5" />
                         </div>
                         <h3 className="text-lg font-semibold text-foreground">Eligible Executions Preview</h3>
@@ -283,15 +283,15 @@ export default function BackfillManager() {
                                 <div className="text-muted-foreground">Total Executions</div>
                             </div>
                             <div className="bg-muted rounded-lg p-3 text-center">
-                                <div className="text-lg font-semibold text-green-600">{preview.eligible}</div>
+                                <div className="text-lg font-semibold text-success">{preview.eligible}</div>
                                 <div className="text-muted-foreground">Eligible for Backfill</div>
                             </div>
                             <div className="bg-muted rounded-lg p-3 text-center">
-                                <div className="text-lg font-semibold text-blue-600">{preview.filters.limit}</div>
+                                <div className="text-lg font-semibold text-accent-text">{preview.filters.limit}</div>
                                 <div className="text-muted-foreground">Batch Limit</div>
                             </div>
                             <div className="bg-muted rounded-lg p-3 text-center">
-                                <div className="text-lg font-semibold text-purple-600">{preview.filters.onlyRecentDays}</div>
+                                <div className="text-lg font-semibold text-blaze">{preview.filters.onlyRecentDays}</div>
                                 <div className="text-muted-foreground">Days Filter</div>
                             </div>
                         </div>
@@ -303,7 +303,7 @@ export default function BackfillManager() {
                                     {preview.preview.map((execution) => (
                                         <div key={execution.executionId} className="flex items-center justify-between p-3 bg-muted rounded-lg text-sm">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                                <div className="w-2 h-2 bg-success rounded-full"></div>
                                                 <span className="font-mono">@{execution.replierHandle}</span>
                                                 <span className="text-muted-foreground">→</span>
                                                 <span className="font-mono">{execution.bnsName}</span>
@@ -332,7 +332,7 @@ export default function BackfillManager() {
             {/* Actions */}
             <div className="bg-card rounded-lg border border-border p-6">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-success/20 text-success flex items-center justify-center">
                         <MessageSquare className="w-5 h-5" />
                     </div>
                     <h3 className="text-lg font-semibold text-foreground">Run Backfill</h3>
@@ -340,7 +340,7 @@ export default function BackfillManager() {
 
                 <div className="warning-card mb-4">
                     <div className="flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400 mt-0.5" />
+                        <AlertTriangle className="w-4 h-4 text-warning mt-0.5" />
                         <div className="text-sm">
                             <strong>Important:</strong> Backfill will queue real Twitter replies to users. 
                             Always run a dry run first to verify the selection. Check the Queue Management tab to monitor processing.
@@ -352,7 +352,7 @@ export default function BackfillManager() {
                     <button
                         onClick={() => runBackfill(true)}
                         disabled={loading || !preview || preview.eligible === 0}
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-accent text-on-accent rounded-lg hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -365,7 +365,7 @@ export default function BackfillManager() {
                     <button
                         onClick={() => runBackfill(false)}
                         disabled={loading || !preview || preview.eligible === 0}
-                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-success text-bg rounded-lg hover:bg-success transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {loading ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -381,7 +381,7 @@ export default function BackfillManager() {
             {backfillResult && (
                 <div className="bg-card rounded-lg border border-border p-6">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-accent/20 text-accent-text flex items-center justify-center">
                             <CheckCircle className="w-5 h-5" />
                         </div>
                         <h3 className="text-lg font-semibold text-foreground">
@@ -396,19 +396,19 @@ export default function BackfillManager() {
 
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             <div className="text-center">
-                                <div className="text-lg font-semibold text-blue-600">{backfillResult.summary.eligible}</div>
+                                <div className="text-lg font-semibold text-accent-text">{backfillResult.summary.eligible}</div>
                                 <div className="text-muted-foreground">Eligible</div>
                             </div>
                             <div className="text-center">
-                                <div className="text-lg font-semibold text-green-600">{backfillResult.summary.sent}</div>
+                                <div className="text-lg font-semibold text-success">{backfillResult.summary.sent}</div>
                                 <div className="text-muted-foreground">{backfillResult.dryRun ? 'Would Send' : 'Queued'}</div>
                             </div>
                             <div className="text-center">
-                                <div className="text-lg font-semibold text-red-600">{backfillResult.summary.failed}</div>
+                                <div className="text-lg font-semibold text-danger">{backfillResult.summary.failed}</div>
                                 <div className="text-muted-foreground">Failed</div>
                             </div>
                             <div className="text-center">
-                                <div className="text-lg font-semibold text-yellow-600">{backfillResult.summary.skipped}</div>
+                                <div className="text-lg font-semibold text-warning">{backfillResult.summary.skipped}</div>
                                 <div className="text-muted-foreground">Skipped</div>
                             </div>
                         </div>
@@ -422,11 +422,11 @@ export default function BackfillManager() {
                                             <div className="flex items-center justify-between mb-2">
                                                 <div className="flex items-center gap-2">
                                                     {result.success ? (
-                                                        <CheckCircle className="w-4 h-4 text-green-500" />
+                                                        <CheckCircle className="w-4 h-4 text-success" />
                                                     ) : result.skipped ? (
-                                                        <Clock className="w-4 h-4 text-yellow-500" />
+                                                        <Clock className="w-4 h-4 text-warning" />
                                                     ) : (
-                                                        <XCircle className="w-4 h-4 text-red-500" />
+                                                        <XCircle className="w-4 h-4 text-danger" />
                                                     )}
                                                     <span className="font-mono text-sm">@{result.replierHandle}</span>
                                                     <span className="text-muted-foreground">→</span>
@@ -436,7 +436,7 @@ export default function BackfillManager() {
                                                     {result.previewMessage && (
                                                         <button
                                                             onClick={() => toggleMessageExpansion(result.executionId)}
-                                                            className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                                                            className="text-xs px-2 py-1 bg-accent-soft text-accent-text  rounded hover:bg-accent  transition-colors"
                                                         >
                                                             {expandedMessages.has(result.executionId) ? 'Hide Tweet' : 'Preview Tweet'}
                                                         </button>
@@ -446,22 +446,22 @@ export default function BackfillManager() {
                                                             href={`https://twitter.com/twitter/status/${result.tweetId}`}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="text-blue-500 hover:text-blue-600 inline-flex items-center gap-1 text-xs"
+                                                            className="text-accent-text hover:text-accent-text inline-flex items-center gap-1 text-xs"
                                                         >
                                                             View Reply
                                                             <ExternalLink className="w-3 h-3" />
                                                         </a>
                                                     ) : result.success && result.tweetId === 'queued' ? (
-                                                        <span className="text-blue-600 text-xs inline-flex items-center gap-1">
+                                                        <span className="text-accent-text text-xs inline-flex items-center gap-1">
                                                             <Clock className="w-3 h-3" />
                                                             Queued for Processing
                                                         </span>
                                                     ) : result.error ? (
-                                                        <span className="text-red-600 text-xs" title={result.error}>
+                                                        <span className="text-danger text-xs" title={result.error}>
                                                             {result.error.substring(0, 30)}...
                                                         </span>
                                                     ) : result.skipReason ? (
-                                                        <span className="text-yellow-600 text-xs" title={result.skipReason}>
+                                                        <span className="text-warning text-xs" title={result.skipReason}>
                                                             {result.skipReason}
                                                         </span>
                                                     ) : (

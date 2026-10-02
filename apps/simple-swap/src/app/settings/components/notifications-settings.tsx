@@ -289,7 +289,7 @@ export default function NotificationsSettings() {
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center py-16">
-                <div className="h-8 w-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
+                <div className="h-8 w-8 border-2 border-accent border-t-transparent rounded-full animate-spin mb-4" />
                 <p className="text-muted-foreground">Loading your notification settings...</p>
             </div>
         );
@@ -305,13 +305,13 @@ export default function NotificationsSettings() {
             </div>
 
             {error && (
-                <Card className="bg-red-500/10 border-red-500/30">
+                <Card className="bg-danger/10 border-danger/30">
                     <CardContent className="p-4">
                         <div className="flex items-start gap-3">
-                            <div className="text-red-400 mt-0.5">⚠️</div>
+                            <div className="text-danger mt-0.5">⚠️</div>
                             <div>
-                                <h4 className="text-red-400 font-semibold">Error</h4>
-                                <p className="text-red-300/80 text-sm">{error}</p>
+                                <h4 className="text-danger font-semibold">Error</h4>
+                                <p className="text-danger/80 text-sm">{error}</p>
                             </div>
                         </div>
                     </CardContent>
@@ -339,8 +339,8 @@ export default function NotificationsSettings() {
                                                     <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{description}</p>
                                                     {isPending && (
                                                         <div className="flex items-center gap-2 mt-2">
-                                                            <div className="h-3 w-3 border-2 border-blue-400/60 border-t-blue-400 rounded-full animate-spin" />
-                                                            <span className="text-xs text-blue-400">Saving changes...</span>
+                                                            <div className="h-3 w-3 border-2 border-accent/60 border-t-accent rounded-full animate-spin" />
+                                                            <span className="text-xs text-accent-text">Saving changes...</span>
                                                         </div>
                                                     )}
                                                 </div>
@@ -359,7 +359,7 @@ export default function NotificationsSettings() {
                                                                 isDisabled
                                                                     ? 'bg-muted cursor-not-allowed'
                                                                     : uiToggleState[key]
-                                                                        ? 'bg-blue-500/80 shadow-lg shadow-blue-500/20'
+                                                                        ? 'bg-accent/80 shadow-lg shadow-blue-500/20'
                                                                         : 'bg-muted-foreground/20 hover:bg-muted-foreground/30'
                                                             }`}
                                                             onClick={() => !isDisabled && handleNotificationToggle(key)}
@@ -367,7 +367,7 @@ export default function NotificationsSettings() {
                                                             <div className="absolute inset-0 bg-gradient-to-r from-background/5 to-transparent" />
                                                         </div>
                                                         <div
-                                                            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-all duration-200 pointer-events-none ${
+                                                            className={`absolute top-0.5 left-0.5 w-5 h-5 bg-ink rounded-full shadow-sm transition-all duration-200 pointer-events-none ${
                                                                 uiToggleState[key] ? 'transform translate-x-6' : ''
                                                             } ${isPending ? 'animate-pulse' : ''}`}
                                                         />
@@ -381,7 +381,7 @@ export default function NotificationsSettings() {
                                                     value={recipientIds[key] || ''}
                                                     onChange={(e) => handleRecipientIdChange(key, e.target.value)}
                                                     onBlur={() => handleRecipientIdSave(key)}
-                                                    className="w-full px-4 py-3 rounded-xl bg-background/50 border border-border text-foreground text-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/20 transition-all duration-200 disabled:opacity-50"
+                                                    className="w-full px-4 py-3 rounded-xl bg-background/50 border border-border text-foreground text-sm placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent/20 transition-all duration-200 disabled:opacity-50"
                                                     disabled={isSaving || !userPrincipal}
                                                 />
                                             </div>
@@ -397,10 +397,10 @@ export default function NotificationsSettings() {
                 <div className="md:col-span-1">
                     <div className="space-y-6">
                         {/* Setup Instructions */}
-                        <Card className="bg-blue-500/5 border-blue-500/20">
+                        <Card className="bg-accent/5 border-accent/20">
                             <CardHeader>
                                 <CardTitle className="text-foreground text-lg flex items-center gap-2">
-                                    <div className="h-1.5 w-1.5 bg-blue-400 rounded-full" />
+                                    <div className="h-1.5 w-1.5 bg-accent rounded-full" />
                                     Setup Guide
                                 </CardTitle>
                             </CardHeader>
@@ -412,7 +412,7 @@ export default function NotificationsSettings() {
                                             <p className="font-medium text-foreground mb-1">Get Your Chat ID</p>
                                             <p className="leading-relaxed">
                                                 Message{' '}
-                                                <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors duration-200 underline underline-offset-2 inline-flex items-center gap-1">
+                                                <a href="https://t.me/userinfobot" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:text-accent-text transition-colors duration-200 underline underline-offset-2 inline-flex items-center gap-1">
                                                     @userinfobot
                                                     <ExternalLink className="w-3 h-3" />
                                                 </a>{' '}
@@ -426,7 +426,7 @@ export default function NotificationsSettings() {
                                             <p className="font-medium text-foreground mb-1">Start Bot Chat</p>
                                             <p className="leading-relaxed">
                                                 Start a conversation with{' '}
-                                                <a href="https://t.me/BuiltOnBitcoin_bot" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors duration-200 underline underline-offset-2 inline-flex items-center gap-1">
+                                                <a href="https://t.me/BuiltOnBitcoin_bot" target="_blank" rel="noopener noreferrer" className="text-accent-text hover:text-accent-text transition-colors duration-200 underline underline-offset-2 inline-flex items-center gap-1">
                                                     @BuiltOnBitcoin_bot
                                                     <ExternalLink className="w-3 h-3" />
                                                 </a>{' '}
@@ -448,10 +448,10 @@ export default function NotificationsSettings() {
                         </Card>
                         
                         {/* Status */}
-                        <Card className="bg-green-500/5 border-green-500/20">
+                        <Card className="bg-success/5 border-success/20">
                             <CardHeader>
                                 <CardTitle className="text-foreground text-lg flex items-center gap-2">
-                                    <div className="h-1.5 w-1.5 bg-green-400 rounded-full" />
+                                    <div className="h-1.5 w-1.5 bg-success rounded-full" />
                                     Status
                                 </CardTitle>
                             </CardHeader>
@@ -460,8 +460,8 @@ export default function NotificationsSettings() {
                                     <div className="flex justify-between items-center">
                                         <span className="text-muted-foreground">Service:</span>
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                            <span className="text-green-400 font-medium">Active</span>
+                                            <div className="w-2 h-2 bg-success rounded-full"></div>
+                                            <span className="text-success font-medium">Active</span>
                                         </div>
                                     </div>
                                     <div className="flex justify-between items-center">

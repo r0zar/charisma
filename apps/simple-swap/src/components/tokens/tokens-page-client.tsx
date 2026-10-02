@@ -231,17 +231,17 @@ export default function TokensPageClient({ tokens, priceHistories = {}, arbitrag
                     {/* Title and Description */}
                     <div className="space-y-6">
                         <div>
-                            <h1 className="text-3xl font-medium text-white/95 tracking-wide mb-3">
+                            <h1 className="text-3xl font-medium text-ink tracking-wide mb-3">
                                 Token Explorer
                             </h1>
-                            <p className="text-white/60 max-w-2xl text-base leading-relaxed">
+                            <p className="text-ink-muted max-w-2xl text-base leading-relaxed">
                                 Discover live cryptocurrency prices with advanced market intelligence and pattern analysis.
                                 {hasEnhancedData && " Powered by three-engine price discovery."}
                             </p>
                         </div>
 
                         {/* Stats Bar */}
-                        <div className="flex items-center gap-6 text-sm text-white/40">
+                        <div className="flex items-center gap-6 text-sm text-ink-muted">
                             {isMounted && isInitialized && isFiltersInitialized ? (
                                 <>
                                     <span>{filteredTokens.length} tokens</span>
@@ -249,7 +249,7 @@ export default function TokensPageClient({ tokens, priceHistories = {}, arbitrag
                                         <span>Baseline: {compareToken.symbol}</span>
                                     )}
                                     {hasArbitrageData && (
-                                        <span className="text-amber-400">
+                                        <span className="text-warning">
                                             {tokenStats.arbitrageCount} arbitrage opportunities
                                         </span>
                                     )}
@@ -288,7 +288,7 @@ export default function TokensPageClient({ tokens, priceHistories = {}, arbitrag
             />
 
             {/* Filters Section */}
-            <div className="pt-8 border-t border-white/[0.05]">
+            <div className="pt-8 border-t border-line-soft">
                 <TokenFilters
                     categoryFilter={categoryFilter}
                     setCategoryFilter={setCategoryFilter}
@@ -318,9 +318,9 @@ function LiveDataIndicator({ enhanced = false }: LiveDataIndicatorProps) {
     return (
         <div className="flex items-center gap-2">
             <div className="relative">
-                <div className="h-1.5 w-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                <div className="absolute inset-0 h-1.5 w-1.5 bg-emerald-400/40 rounded-full animate-ping" />
-                <div className="absolute inset-[-1px] h-2.5 w-2.5 bg-emerald-400/20 rounded-full blur-sm animate-pulse" />
+                <div className="h-1.5 w-1.5 bg-success rounded-full animate-pulse" />
+                <div className="absolute inset-0 h-1.5 w-1.5 bg-success/40 rounded-full animate-ping" />
+                <div className="absolute inset-[-1px] h-2.5 w-2.5 bg-success/20 rounded-full blur-sm animate-pulse" />
             </div>
             <span className="animate-pulse">
                 {enhanced ? "Enhanced live data" : "Live data"}

@@ -29,17 +29,17 @@ interface PremiumComparisonCardProps {
 // Premium comparison card component
 function PremiumComparisonCard({ period, change, isRelative, compareSymbol }: PremiumComparisonCardProps) {
     const getCleanColor = (delta: number | null) => {
-        if (delta === null) return 'text-white/60';
-        if (delta > 0) return 'text-emerald-400';
-        if (delta < 0) return 'text-red-400';
-        return 'text-white/60';
+        if (delta === null) return 'text-ink-muted';
+        if (delta > 0) return 'text-success';
+        if (delta < 0) return 'text-danger';
+        return 'text-ink-muted';
     };
 
     const getBorderGlow = (delta: number | null) => {
-        if (delta === null) return 'border-white/[0.08] hover:border-white/[0.15]';
-        if (delta > 0) return 'border-emerald-500/[0.15] hover:border-emerald-400/[0.3] shadow-emerald-500/[0.05]';
-        if (delta < 0) return 'border-red-500/[0.15] hover:border-red-400/[0.3] shadow-red-500/[0.05]';
-        return 'border-white/[0.08] hover:border-white/[0.15]';
+        if (delta === null) return 'border-line hover:border-line-strong';
+        if (delta > 0) return 'border-success/[0.15] hover:border-success/[0.3] shadow-emerald-500/[0.05]';
+        if (delta < 0) return 'border-danger/[0.15] hover:border-danger/[0.3] shadow-red-500/[0.05]';
+        return 'border-line hover:border-line-strong';
     };
 
     const fmtDelta = (delta: number | null) => {
@@ -49,14 +49,14 @@ function PremiumComparisonCard({ period, change, isRelative, compareSymbol }: Pr
     };
 
     return (
-        <div className={`group relative p-4 sm:p-6 rounded-2xl border bg-black/20 backdrop-blur-sm transition-all duration-300 hover:bg-black/30 hover:shadow-lg ${getBorderGlow(change)}`}>
+        <div className={`group relative p-4 sm:p-6 rounded-2xl border bg-surface backdrop-blur-sm transition-all duration-300 hover:bg-chrome hover:shadow-lg ${getBorderGlow(change)}`}>
             {/* Subtle gradient overlay */}
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
 
             <div className="relative flex flex-col items-center space-y-2 sm:space-y-3">
-                <div className="text-xs text-white/50 uppercase tracking-wider font-medium group-hover:text-white/70 transition-colors duration-300 text-center">
+                <div className="text-xs text-ink-muted uppercase tracking-wider font-medium group-hover:text-ink-body transition-colors duration-300 text-center">
                     {period} {isRelative && compareSymbol && (
-                        <span className="text-white/30 block sm:inline">
+                        <span className="text-ink-faint block sm:inline">
                             <span className="hidden sm:inline">vs </span>
                             <span className="sm:hidden">vs</span> {compareSymbol}
                         </span>
@@ -70,7 +70,7 @@ function PremiumComparisonCard({ period, change, isRelative, compareSymbol }: Pr
             {/* Trend indicator */}
             {change !== null && (
                 <div className="absolute top-3 right-3">
-                    <div className={`w-2 h-2 rounded-full ${change > 0 ? 'bg-emerald-400' : 'bg-red-400'} opacity-60 group-hover:opacity-100 transition-opacity duration-300`} />
+                    <div className={`w-2 h-2 rounded-full ${change > 0 ? 'bg-success' : 'bg-danger'} opacity-60 group-hover:opacity-100 transition-opacity duration-300`} />
                 </div>
             )}
         </div>
@@ -236,10 +236,10 @@ export default function TokenDetailClient({ detail, tokens: initialTokens, prelo
     }
 
     function getColour(delta: number | null) {
-        if (delta === null) return 'text-white/60';
-        if (delta > 0) return 'text-emerald-400';
-        if (delta < 0) return 'text-red-400';
-        return 'text-white/60';
+        if (delta === null) return 'text-ink-muted';
+        if (delta > 0) return 'text-success';
+        if (delta < 0) return 'text-danger';
+        return 'text-ink-muted';
     }
 
     // compareId persistence is now handled by ComparisonTokenContext
@@ -276,7 +276,7 @@ export default function TokenDetailClient({ detail, tokens: initialTokens, prelo
                             </p>
                             <LivePriceStatus contractIds={[detail.contractId]} />
                             {/* Real-time connection indicator */}
-                            <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'} flex-shrink-0`}
+                            <div className={`h-2 w-2 rounded-full ${isConnected ? 'bg-success' : 'bg-danger'} flex-shrink-0`}
                                 title={isConnected ? 'Real-time data connected' : 'Real-time data disconnected'} />
                         </div>
                         {/* User balance display with tooltip */}
@@ -287,17 +287,17 @@ export default function TokenDetailClient({ detail, tokens: initialTokens, prelo
                                 {enhancedDetail.userBalance.toFixed(4)} {enhancedDetail.enhancedMetadata?.symbol}
 
                                 {/* Tooltip */}
-                                <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-black/20 backdrop-blur-xl border border-white/[0.08] rounded-xl shadow-lg text-xs text-white/80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                                    <div className="font-medium mb-2 text-white/95">Balance Breakdown</div>
+                                <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-surface backdrop-blur-xl border border-line rounded-xl shadow-lg text-xs text-ink-body opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                                    <div className="font-medium mb-2 text-ink">Balance Breakdown</div>
                                     <div className="space-y-1">
                                         <div className="flex justify-between">
-                                            <span className="text-white/70">Mainnet:</span>
+                                            <span className="text-ink-body">Mainnet:</span>
                                             <span className="font-mono">{enhancedDetail.userBalance.toFixed(4)}</span>
                                         </div>
-                                        <div className="border-t border-white/[0.1] pt-1 mt-2">
+                                        <div className="border-t border-line pt-1 mt-2">
                                             <div className="flex justify-between font-medium">
-                                                <span className="text-white/90">Total:</span>
-                                                <span className="font-mono text-white/95">{enhancedDetail.userBalance.toFixed(4)}</span>
+                                                <span className="text-ink">Total:</span>
+                                                <span className="font-mono text-ink">{enhancedDetail.userBalance.toFixed(4)}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -321,18 +321,18 @@ export default function TokenDetailClient({ detail, tokens: initialTokens, prelo
 
             {/* Premium comparison stats - mobile responsive grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 mb-6 sm:mb-8">
-                <div className="group relative p-4 sm:p-6 rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm transition-all duration-300 hover:bg-black/30 hover:border-white/[0.15] hover:shadow-lg">
+                <div className="group relative p-4 sm:p-6 rounded-2xl border border-line bg-surface backdrop-blur-sm transition-all duration-300 hover:bg-chrome hover:border-line-strong hover:shadow-lg">
                     {/* Subtle gradient overlay */}
-                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                    <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
 
                     <div className="relative flex flex-col items-center space-y-2 sm:space-y-3">
-                        <div className="text-xs text-white/50 uppercase tracking-wider font-medium group-hover:text-white/70 transition-colors duration-300 text-center">
+                        <div className="text-xs text-ink-muted uppercase tracking-wider font-medium group-hover:text-ink-body transition-colors duration-300 text-center">
                             Price
                         </div>
                         <LivePriceIndicator
                             contractId={detail.contractId}
                             fallbackPrice={detail.price}
-                            className="text-lg sm:text-xl font-semibold font-mono text-white/90 text-center"
+                            className="text-lg sm:text-xl font-semibold font-mono text-ink text-center"
                             showChange={false}
                             showStatus={false}
                         />
@@ -342,8 +342,8 @@ export default function TokenDetailClient({ detail, tokens: initialTokens, prelo
                     {isConnected && (
                         <div className="absolute top-3 right-3">
                             <div className="relative">
-                                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                                <div className="absolute inset-0 w-2 h-2 bg-emerald-400/40 rounded-full animate-ping" />
+                                <div className="w-2 h-2 bg-success rounded-full animate-pulse" />
+                                <div className="absolute inset-0 w-2 h-2 bg-success/40 rounded-full animate-ping" />
                             </div>
                         </div>
                     )}

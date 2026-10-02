@@ -172,45 +172,45 @@ export default function DcaPage() {
     return (
         <div className="w-full max-w-4xl mx-auto px-4 py-6 space-y-6">
             <div className="space-y-1">
-                <h1 className="text-2xl font-semibold text-white/95">DCA</h1>
-                <p className="text-sm text-white/60">Buy a little at a time, on a schedule. Set it once and walk away.</p>
+                <h1 className="text-2xl font-semibold text-ink">DCA</h1>
+                <p className="text-sm text-ink-muted">Buy a little at a time, on a schedule. Set it once and walk away.</p>
             </div>
 
             <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_260px] items-start">
-            <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 space-y-5">
+            <div className="rounded-xl border border-line bg-surface-sunken p-4 space-y-5">
                 {phase === 'done' ? (
                     <div className="space-y-4">
-                        <div className="text-lg font-medium text-white/95">Your DCA is running ✓</div>
-                        <p className="text-sm text-white/60">
+                        <div className="text-lg font-medium text-ink">Your DCA is running ✓</div>
+                        <p className="text-sm text-ink-muted">
                             {buys.toLocaleString('en-US')} buys of {to?.symbol}, {everyLabel}. The first runs now. You can close this page.
                         </p>
                         <div className="flex gap-2">
-                            <Link href="/orders" className="flex-1 rounded-lg border border-white/20 px-3 py-2 text-center text-sm text-white hover:bg-white/[0.06]">View in Orders</Link>
-                            <button type="button" onClick={() => setPhase('setup')} className="flex-1 rounded-lg border border-white/[0.08] px-3 py-2 text-sm text-white/70 hover:border-white/20 hover:text-white">Start another</button>
+                            <Link href="/orders" className="flex-1 rounded-lg border border-line-strong px-3 py-2 text-center text-sm text-ink hover:bg-surface-hover">View in Orders</Link>
+                            <button type="button" onClick={() => setPhase('setup')} className="flex-1 rounded-lg border border-line px-3 py-2 text-sm text-ink-body hover:border-line-strong hover:text-ink">Start another</button>
                         </div>
                     </div>
                 ) : (
                     <>
                         <div className="space-y-2">
-                            <div className="text-xs text-white/60">Spend</div>
+                            <div className="text-xs text-ink-muted">Spend</div>
                             {!address
-                                ? <div className="text-sm text-white/60">Connect a wallet to pick a token.</div>
+                                ? <div className="text-sm text-ink-muted">Connect a wallet to pick a token.</div>
                                 : listError
-                                    ? <p role="alert" className="text-sm text-red-400">Couldn&apos;t load swappable tokens: {listError}</p>
+                                    ? <p role="alert" className="text-sm text-danger">Couldn&apos;t load swappable tokens: {listError}</p>
                                     : swappable
                                         ? <TokenDropdown tokens={payable.filter(t => t.contractId !== to?.contractId)} selected={from} onSelect={t => { setFrom(t); setAmountText(''); }} label="Pick a token you hold" showBalances includeStx={false} />
-                                        : <div className="text-sm text-white/50">Loading…</div>}
+                                        : <div className="text-sm text-ink-muted">Loading…</div>}
                             {from && decimals !== undefined && (
                                 <>
-                                    <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.02] px-3 py-2 focus-within:border-white/30">
+                                    <div className="flex items-center gap-2 rounded-lg border border-line bg-surface-sunken px-3 py-2 focus-within:border-line-strong">
                                         <input
                                             inputMode="decimal"
                                             placeholder="0"
                                             value={amountText}
                                             onChange={e => setAmountText(e.target.value.replace(/[^\d.]/g, ''))}
-                                            className="min-w-0 flex-1 bg-transparent font-mono text-lg text-white outline-none placeholder:text-white/30"
+                                            className="min-w-0 flex-1 bg-transparent font-mono text-lg text-ink outline-none placeholder:text-ink-faint"
                                         />
-                                        <span className="text-sm text-white/60">{from.symbol}</span>
+                                        <span className="text-sm text-ink-muted">{from.symbol}</span>
                                     </div>
                                     <div className="flex gap-1.5">
                                         {SHARES.map(s => (
@@ -219,7 +219,7 @@ export default function DcaPage() {
                                             </Chip>
                                         ))}
                                     </div>
-                                    <div className="text-right text-xs text-white/50">
+                                    <div className="text-right text-xs text-ink-muted">
                                         You hold <span className="font-mono">{fmt(Number(balance) / 10 ** decimals)}</span> {from.symbol}
                                     </div>
                                 </>
@@ -227,41 +227,41 @@ export default function DcaPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <div className="text-xs text-white/60">Into</div>
+                            <div className="text-xs text-ink-muted">Into</div>
                             {swappable && <TokenDropdown tokens={buyable} selected={to} onSelect={setTo} label="Pick a token to buy" includeStx={false} />}
                         </div>
 
                         <div className="space-y-2">
-                            <div className="text-xs text-white/60">How often</div>
+                            <div className="text-xs text-ink-muted">How often</div>
                             <div className="flex gap-1.5">
                                 {EVERY.map(e => <Chip key={e.label} active={every === e.ms} onClick={() => setEvery(e.ms)}>{e.label}</Chip>)}
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <div className="text-xs text-white/60">For how long</div>
+                            <div className="text-xs text-ink-muted">For how long</div>
                             <div className="flex gap-1.5">
                                 {FOR.map(f => <Chip key={f.label} active={span === f.ms} onClick={() => setSpan(f.ms)}>{f.label}</Chip>)}
                             </div>
                         </div>
 
                         {from && to && decimals !== undefined && perBuy > 0n && !problem && (
-                            <div className="rounded-lg bg-white/[0.04] px-3 py-2 text-sm text-white/80">
+                            <div className="rounded-lg bg-surface px-3 py-2 text-sm text-ink-body">
                                 <span className="font-mono">{buys.toLocaleString('en-US')}</span> buys of <span className="font-mono">{fmt(Number(perBuy) / 10 ** decimals)}</span> {from.symbol} → {to.symbol}, {everyLabel}
                             </div>
                         )}
 
-                        {(error || problem) && <p role="alert" className="text-sm text-red-400">{error ?? problem}</p>}
+                        {(error || problem) && <p role="alert" className="text-sm text-danger">{error ?? problem}</p>}
 
                         <button
                             type="button"
                             onClick={start}
                             disabled={!ready || phase === 'signing'}
-                            className="w-full rounded-lg bg-white/90 px-4 py-3 text-sm font-medium text-black hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+                            className="w-full rounded-lg bg-ink/90 px-4 py-3 text-sm font-medium text-bg hover:bg-ink disabled:cursor-not-allowed disabled:opacity-40"
                         >
                             {phase === 'signing' ? progress : `Start DCA (${approvals} ${approvals === 1 ? 'approval' : 'approvals'})`}
                         </button>
-                        <p className="text-xs text-white/50">
+                        <p className="text-xs text-ink-muted">
                             The first buy runs now. If a buy can&apos;t run in its slot, it&apos;s skipped. Tokens go to your wallet.
                         </p>
                     </>

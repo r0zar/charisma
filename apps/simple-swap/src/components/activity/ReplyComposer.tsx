@@ -62,11 +62,11 @@ export const ReplyComposer: React.FC<ReplyComposerProps> = ({
 
   return (
     <div 
-      className={`rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm transition-all duration-300 ${isFocused ? 'border-white/[0.15] bg-black/30' : ''} ${className}`}
+      className={`rounded-2xl border border-line bg-surface backdrop-blur-sm transition-all duration-300 ${isFocused ? 'border-line-strong bg-chrome' : ''} ${className}`}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
       
       <div className="relative p-4 space-y-4">
         {/* Main compose area */}
@@ -80,7 +80,7 @@ export const ReplyComposer: React.FC<ReplyComposerProps> = ({
             onBlur={() => setIsFocused(false)}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            className="w-full bg-transparent text-white/90 placeholder-white/40 resize-none border-none outline-none text-base leading-relaxed min-h-[80px] max-h-[200px]"
+            className="w-full bg-transparent text-ink placeholder-ink-muted resize-none border-none outline-none text-base leading-relaxed min-h-[80px] max-h-[200px]"
             style={{ 
               overflow: 'hidden',
               height: 'auto'
@@ -89,14 +89,14 @@ export const ReplyComposer: React.FC<ReplyComposerProps> = ({
         </div>
 
         {/* Composer toolbar */}
-        <div className="flex items-center justify-between pt-3 border-t border-white/[0.08]">
+        <div className="flex items-center justify-between pt-3 border-t border-line">
           <div className="flex items-center space-x-2">
             {/* Emoji picker button */}
             <button
               onClick={() => toast.info('Emoji picker coming soon!', {
                 description: 'Add emojis and reactions to your replies'
               })}
-              className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white/90 transition-all duration-200"
+              className="p-2 rounded-xl bg-surface border border-line text-ink-muted hover:bg-surface-hover hover:text-ink transition-all duration-200"
               title="Add emoji"
             >
               <Smile className="w-4 h-4" />
@@ -107,7 +107,7 @@ export const ReplyComposer: React.FC<ReplyComposerProps> = ({
               onClick={() => toast.info('User mentions coming soon!', {
                 description: 'Mention other users in your replies'
               })}
-              className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white/90 transition-all duration-200"
+              className="p-2 rounded-xl bg-surface border border-line text-ink-muted hover:bg-surface-hover hover:text-ink transition-all duration-200"
               title="Mention user"
             >
               <AtSign className="w-4 h-4" />
@@ -118,7 +118,7 @@ export const ReplyComposer: React.FC<ReplyComposerProps> = ({
               onClick={() => toast.info('Image uploads coming soon!', {
                 description: 'Share screenshots and charts in replies'
               })}
-              className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white/90 transition-all duration-200"
+              className="p-2 rounded-xl bg-surface border border-line text-ink-muted hover:bg-surface-hover hover:text-ink transition-all duration-200"
               title="Add image"
             >
               <Image className="w-4 h-4" />
@@ -129,7 +129,7 @@ export const ReplyComposer: React.FC<ReplyComposerProps> = ({
               onClick={() => toast.info('More composer options coming soon!', {
                 description: 'GIFs, polls, and advanced formatting'
               })}
-              className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white/90 transition-all duration-200"
+              className="p-2 rounded-xl bg-surface border border-line text-ink-muted hover:bg-surface-hover hover:text-ink transition-all duration-200"
               title="More options"
             >
               <MoreHorizontal className="w-4 h-4" />
@@ -150,7 +150,7 @@ export const ReplyComposer: React.FC<ReplyComposerProps> = ({
                       stroke="currentColor"
                       strokeWidth="2"
                       fill="none"
-                      className="text-white/[0.08]"
+                      className="text-ink-faint"
                     />
                     <circle
                       cx="12"
@@ -163,16 +163,16 @@ export const ReplyComposer: React.FC<ReplyComposerProps> = ({
                       strokeDashoffset={`${2 * Math.PI * 10 * (1 - content.length / maxLength)}`}
                       className={`transition-all duration-200 ${
                         isOverLimit
-                          ? 'text-red-400'
+                          ? 'text-danger'
                           : isNearLimit
-                          ? 'text-yellow-400'
-                          : 'text-blue-400'
+                          ? 'text-warning'
+                          : 'text-accent-text'
                       }`}
                     />
                   </svg>
                   {isNearLimit && (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <span className={`text-xs font-medium ${isOverLimit ? 'text-red-400' : 'text-yellow-400'}`}>
+                      <span className={`text-xs font-medium ${isOverLimit ? 'text-danger' : 'text-warning'}`}>
                         {remainingChars}
                       </span>
                     </div>
@@ -185,7 +185,7 @@ export const ReplyComposer: React.FC<ReplyComposerProps> = ({
             <Button
               onClick={handleSubmit}
               disabled={!content.trim() || isOverLimit}
-              className="bg-blue-500 hover:bg-blue-600 disabled:bg-white/[0.03] disabled:text-white/40 text-white border-0 px-6 py-2 text-sm font-medium transition-all duration-200"
+              className="bg-accent hover:bg-accent disabled:bg-surface disabled:text-ink-muted text-on-accent border-0 px-6 py-2 text-sm font-medium transition-all duration-200"
             >
               <Send className="w-4 h-4 mr-2" />
               Reply
@@ -195,8 +195,8 @@ export const ReplyComposer: React.FC<ReplyComposerProps> = ({
 
         {/* Help text */}
         {isFocused && (
-          <div className="text-xs text-white/40 animate-in fade-in duration-200">
-            <kbd className="px-1.5 py-0.5 bg-white/[0.08] rounded text-xs">⌘</kbd> + <kbd className="px-1.5 py-0.5 bg-white/[0.08] rounded text-xs">Enter</kbd> to send
+          <div className="text-xs text-ink-muted animate-in fade-in duration-200">
+            <kbd className="px-1.5 py-0.5 bg-surface-hover rounded text-xs">⌘</kbd> + <kbd className="px-1.5 py-0.5 bg-surface-hover rounded text-xs">Enter</kbd> to send
           </div>
         )}
       </div>

@@ -104,20 +104,20 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
             return (
                 <div className="flex items-center justify-center py-8">
                     <div className="flex items-center space-x-3">
-                        <div className="w-5 h-5 border border-white/[0.3] border-t-blue-400 rounded-full animate-spin"></div>
-                        <p className="text-white/60 text-sm">Finding best route...</p>
+                        <div className="w-5 h-5 border border-line-strong border-t-accent rounded-full animate-spin"></div>
+                        <p className="text-ink-muted text-sm">Finding best route...</p>
                     </div>
                 </div>
             );
         }
         return (
-            <div className="flex items-center justify-center h-[400px] bg-white/[0.02] border border-white/[0.06] rounded-xl">
+            <div className="flex items-center justify-center h-[400px] bg-surface-sunken border border-line-soft rounded-xl">
                 <div className="flex flex-col items-center space-y-4">
                     <div className="relative">
-                        <div className="w-12 h-12 border-2 border-white/[0.1] border-t-blue-400 rounded-full animate-spin"></div>
-                        <div className="absolute inset-0 w-12 h-12 border-2 border-transparent border-t-purple-400 rounded-full animate-spin-reverse animation-delay-150"></div>
+                        <div className="w-12 h-12 border-2 border-line border-t-accent rounded-full animate-spin"></div>
+                        <div className="absolute inset-0 w-12 h-12 border-2 border-transparent border-t-blaze rounded-full animate-spin-reverse animation-delay-150"></div>
                     </div>
-                    <p className="text-white/70 text-sm">Analyzing optimal route...</p>
+                    <p className="text-ink-body text-sm">Analyzing optimal route...</p>
                 </div>
             </div>
         );
@@ -131,8 +131,8 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                 {showHighImpactWarning && impactValue !== null && (
                     <div className={`flex items-center p-3 rounded-lg text-xs ${
                         impactValue > 0 
-                            ? 'bg-green-500/[0.08] border border-green-500/[0.15] text-green-400' 
-                            : 'bg-yellow-500/[0.08] border border-yellow-500/[0.15] text-yellow-400'
+                            ? 'bg-success/[0.08] border border-success/[0.15] text-success' 
+                            : 'bg-warning/[0.08] border border-warning/[0.15] text-warning'
                     }`}>
                         <svg className="h-4 w-4 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -144,45 +144,45 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                 )}
 
                 {/* Quick Route Summary */}
-                <div className="flex items-center justify-between p-3 bg-white/[0.02] rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-surface-sunken rounded-lg">
                     <div className="flex items-center space-x-3">
                         <div className="flex items-center space-x-1">
                             {quote?.path.slice(0, 3).map((token: TokenCacheData, index: number) => (
                                 <React.Fragment key={token.contractId || index}>
                                     <TokenLogo token={token} size="sm" />
                                     {index < Math.min((quote?.path.length || 0) - 1, 2) && (
-                                        <svg className="h-3 w-3 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <svg className="h-3 w-3 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                         </svg>
                                     )}
                                 </React.Fragment>
                             ))}
-                            {(quote?.path.length || 0) > 3 && <span className="text-xs text-white/60">+{(quote?.path.length || 0) - 3}</span>}
+                            {(quote?.path.length || 0) > 3 && <span className="text-xs text-ink-muted">+{(quote?.path.length || 0) - 3}</span>}
                         </div>
-                        <div className="text-xs text-white/70">
+                        <div className="text-xs text-ink-body">
                             {(quote?.path.length || 0) - 1} {(quote?.path.length || 0) - 1 === 1 ? 'hop' : 'hops'}
                         </div>
                     </div>
                     <div className="flex items-center space-x-2 text-xs">
                         {totalPriceImpact && totalPriceImpact.priceImpact !== null && (
                             <span className={`px-2 py-1 rounded ${
-                                totalPriceImpact.priceImpact > 0 ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'
+                                totalPriceImpact.priceImpact > 0 ? 'bg-success/20 text-success' : 'bg-accent/20 text-accent-text'
                             }`}>
                                 {totalPriceImpact.priceImpact > 0 ? '+' : ''}{totalPriceImpact.priceImpact.toFixed(2)}%
                             </span>
                         )}
                         <div className={`h-2 w-2 rounded-full ${
-                            securityLevel === 'high' ? 'bg-green-400' : 
-                            securityLevel === 'medium' ? 'bg-blue-400' : 'bg-purple-400'
+                            securityLevel === 'high' ? 'bg-success' : 
+                            securityLevel === 'medium' ? 'bg-accent' : 'bg-blaze'
                         }`}></div>
                     </div>
                 </div>
 
                 {/* Quick guarantee info */}
                 {quote && selectedToToken && (
-                    <div className="flex items-center justify-between text-xs p-3 bg-green-500/[0.05] border border-green-500/[0.1] rounded-lg">
-                        <span className="text-white/70">Minimum guaranteed:</span>
-                        <span className="text-green-400 font-medium">
+                    <div className="flex items-center justify-between text-xs p-3 bg-success/[0.05] border border-success/[0.1] rounded-lg">
+                        <span className="text-ink-body">Minimum guaranteed:</span>
+                        <span className="text-success font-medium">
                             {formatTokenAmount(Number(quote.amountOut * 0.99), selectedToToken.decimals || 0)} {selectedToToken.symbol}
                         </span>
                     </div>
@@ -197,8 +197,8 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
             {showHighImpactWarning && impactValue !== null && (
                 <div className={`flex items-center p-4 rounded-xl border animate-[appear_0.3s_ease-out] ${
                     impactValue > 0 
-                        ? 'bg-green-500/[0.08] border border-green-500/[0.15] text-green-400' 
-                        : 'bg-yellow-500/[0.08] border border-yellow-500/[0.15] text-yellow-400'
+                        ? 'bg-success/[0.08] border border-success/[0.15] text-success' 
+                        : 'bg-warning/[0.08] border border-warning/[0.15] text-warning'
                 }`}>
                     {impactValue > 0 ? (
                         <DollarSign className="h-5 w-5 mr-3 flex-shrink-0" />
@@ -219,12 +219,12 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
             {/* Route Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 {/* Route Efficiency */}
-                <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 backdrop-blur-sm">
+                <div className="bg-surface border border-line rounded-xl p-4 backdrop-blur-sm">
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center">
                             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                                securityLevel === 'high' ? 'bg-green-500/20 text-green-400' :
-                                securityLevel === 'medium' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
+                                securityLevel === 'high' ? 'bg-success/20 text-success' :
+                                securityLevel === 'medium' ? 'bg-accent/20 text-accent-text' : 'bg-blaze/20 text-blaze'
                             }`}>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
@@ -232,14 +232,14 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                             </div>
                         </div>
                         <span className={`text-xs px-2 py-1 rounded-full ${
-                            securityLevel === 'high' ? 'bg-green-500/10 text-green-400' :
-                            securityLevel === 'medium' ? 'bg-blue-500/10 text-blue-400' : 'bg-purple-500/10 text-purple-400'
+                            securityLevel === 'high' ? 'bg-success/10 text-success' :
+                            securityLevel === 'medium' ? 'bg-accent/10 text-accent-text' : 'bg-blaze/10 text-blaze'
                         }`}>
                             {securityLevel === 'high' ? 'Optimal' : securityLevel === 'medium' ? 'Good' : 'Complex'}
                         </span>
                     </div>
-                    <div className="text-sm text-white/90 font-medium">Route Efficiency</div>
-                    <div className="text-xs text-white/60 mt-1">
+                    <div className="text-sm text-ink font-medium">Route Efficiency</div>
+                    <div className="text-xs text-ink-muted mt-1">
                         {isSubnetShift
                             ? (shiftDirection === 'to-subnet' ? 'Deposit to subnet' : 'Withdraw from suburb')
                             : (securityLevel === 'high' ? 'Direct route' : securityLevel === 'medium' ? 'Optimized path' : 'Smart routing')
@@ -248,42 +248,42 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                 </div>
 
                 {/* Hops Count */}
-                <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 backdrop-blur-sm">
+                <div className="bg-surface border border-line rounded-xl p-4 backdrop-blur-sm">
                     <div className="flex items-center justify-between mb-2">
-                        <div className="h-8 w-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                        <div className="h-8 w-8 rounded-lg bg-accent/20 text-accent-text flex items-center justify-center">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
                         </div>
-                        <span className="text-lg font-semibold text-white/90">
+                        <span className="text-lg font-semibold text-ink">
                             {(quote?.path.length || 0) - 1}
                         </span>
                     </div>
-                    <div className="text-sm text-white/90 font-medium">Network Hops</div>
-                    <div className="text-xs text-white/60 mt-1">
+                    <div className="text-sm text-ink font-medium">Network Hops</div>
+                    <div className="text-xs text-ink-muted mt-1">
                         {(quote?.path.length || 0) - 1 === 1 ? 'Single hop route' : `Multi-hop via ${(quote?.path.length || 0) - 2} pools`}
                     </div>
                 </div>
 
                 {/* Price Impact */}
                 {totalPriceImpact && totalPriceImpact.priceImpact !== null && (
-                    <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 backdrop-blur-sm">
+                    <div className="bg-surface border border-line rounded-xl p-4 backdrop-blur-sm">
                         <div className="flex items-center justify-between mb-2">
                             <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${
-                                totalPriceImpact.priceImpact > 0 ? 'bg-green-500/20 text-green-400' : 'bg-orange-500/20 text-orange-400'
+                                totalPriceImpact.priceImpact > 0 ? 'bg-success/20 text-success' : 'bg-accent/20 text-accent-text'
                             }`}>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                     <path d="M12 2v20M2 12h20" />
                                 </svg>
                             </div>
                             <span className={`text-lg font-semibold ${
-                                totalPriceImpact.priceImpact > 0 ? 'text-green-400' : 'text-orange-400'
+                                totalPriceImpact.priceImpact > 0 ? 'text-success' : 'text-accent-text'
                             }`}>
                                 {totalPriceImpact.priceImpact > 0 ? '+' : ''}{totalPriceImpact.priceImpact.toFixed(2)}%
                             </span>
                         </div>
-                        <div className="text-sm text-white/90 font-medium">Price Impact</div>
-                        <div className="text-xs text-white/60 mt-1">
+                        <div className="text-sm text-ink font-medium">Price Impact</div>
+                        <div className="text-xs text-ink-muted mt-1">
                             {formatPriceUSD(totalPriceImpact.inputValueUsd)} → {formatPriceUSD(totalPriceImpact.outputValueUsd)}
                         </div>
                     </div>
@@ -293,11 +293,11 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
             {/* Network Flow Visualization Toggle */}
             <button
                 onClick={() => setShowDetails(!showDetails)}
-                className="w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200 backdrop-blur-sm mb-4"
+                className="w-full bg-surface border border-line rounded-xl p-4 hover:bg-surface-hover hover:border-line-strong transition-all duration-200 backdrop-blur-sm mb-4"
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
-                        <div className="h-10 w-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                        <div className="h-10 w-10 rounded-xl bg-accent/20 text-accent-text flex items-center justify-center">
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                                 <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
@@ -305,8 +305,8 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                             </svg>
                         </div>
                         <div className="text-left">
-                            <div className="text-sm font-medium text-white/95">Network Flow Analysis</div>
-                            <div className="text-xs text-white/60">
+                            <div className="text-sm font-medium text-ink">Network Flow Analysis</div>
+                            <div className="text-xs text-ink-muted">
                                 {showDetails ? 'Hide detailed route breakdown' : 'View detailed route breakdown'}
                             </div>
                         </div>
@@ -318,17 +318,17 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                                 <React.Fragment key={token.contractId || index}>
                                     <TokenLogo token={token} size="sm" />
                                     {index < Math.min((quote?.path.length || 0) - 1, 3) && (
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white/40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                                             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                                         </svg>
                                     )}
                                 </React.Fragment>
                             ))}
-                            {(quote?.path.length || 0) > 4 && <span className="text-xs text-white/60">+{(quote?.path.length || 0) - 4}</span>}
+                            {(quote?.path.length || 0) > 4 && <span className="text-xs text-ink-muted">+{(quote?.path.length || 0) - 4}</span>}
                         </div>
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            className={`h-5 w-5 text-white/70 transition-transform duration-300 ${showDetails ? 'rotate-180' : ''}`}
+                            className={`h-5 w-5 text-ink-body transition-transform duration-300 ${showDetails ? 'rotate-180' : ''}`}
                             viewBox="0 0 20 20"
                             fill="currentColor"
                         >
@@ -339,29 +339,29 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
             </button>
 
             {showDetails && (
-                <div className="bg-white/[0.01] border border-white/[0.06] rounded-xl p-6 animate-[slideDown_0.2s_ease-out] space-y-6">
+                <div className="bg-surface-sunken border border-line-soft rounded-xl p-6 animate-[slideDown_0.2s_ease-out] space-y-6">
                     
                     {/* Transaction Guarantee */}
                     {quote && selectedToToken && (
-                        <div className="bg-white/[0.03] border border-green-500/[0.15] rounded-xl p-4">
+                        <div className="bg-surface border border-success/[0.15] rounded-xl p-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
-                                    <div className="h-10 w-10 rounded-xl bg-green-500/20 text-green-400 flex items-center justify-center">
+                                    <div className="h-10 w-10 rounded-xl bg-success/20 text-success flex items-center justify-center">
                                         <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <path d="M9 12l2 2 4-4"></path>
                                             <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9c2.37 0 4.52.92 6.11 2.42"></path>
                                         </svg>
                                     </div>
                                     <div>
-                                        <div className="text-sm font-medium text-white/95">Transaction Guarantee</div>
-                                        <div className="text-xs text-white/70">Minimum amount protected by blockchain postconditions</div>
+                                        <div className="text-sm font-medium text-ink">Transaction Guarantee</div>
+                                        <div className="text-xs text-ink-body">Minimum amount protected by blockchain postconditions</div>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-sm font-medium text-green-400">
+                                    <div className="text-sm font-medium text-success">
                                         {formatTokenAmount(Number(quote.amountOut * 0.99), selectedToToken.decimals || 0)} {selectedToToken.symbol}
                                     </div>
-                                    <div className="text-xs text-white/60">
+                                    <div className="text-xs text-ink-muted">
                                         {isSubnetToSubnet ? 'Min. swapped' : isSubnetShift ? `Min. ${operationType.toLowerCase()}ed` : 'Min. received'}
                                     </div>
                                 </div>
@@ -371,7 +371,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
 
                     {/* Path/Route visualization with price impacts */}
                     {quote && (
-                        <div className="flex flex-col pt-3 border-t border-white/[0.08]">
+                        <div className="flex flex-col pt-3 border-t border-line">
                             <button
                                 onClick={() => setShowRouteDetails(!showRouteDetails)}
                                 className="flex items-center justify-between w-full"
@@ -415,7 +415,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                             {showRouteDetails && (
                                 <div className="flex flex-col space-y-2 mt-3 animate-[slideDown_0.2s_ease-out]">
                                     {/* Starting token with USD value */}
-                                    <div className="bg-white/[0.03] rounded-xl p-3 sm:p-3.5 border border-white/[0.08]">
+                                    <div className="bg-surface rounded-xl p-3 sm:p-3.5 border border-line">
                                         <div className="flex items-center mb-2">
                                             <TokenLogo token={quote.path[0]} size="lg" />
                                             <div className="ml-2 sm:ml-2.5">
@@ -459,12 +459,12 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                                                 </div>
 
                                                 {/* Pool node with price impact */}
-                                                <div className={`bg-white/[0.02] rounded-xl p-3 sm:p-3.5 border ${isSubnetShiftHop ?
-                                                    'border-purple-500/30 border-dashed bg-purple-500/5' :
-                                                    'border-white/[0.06] border-dashed'
+                                                <div className={`bg-surface-sunken rounded-xl p-3 sm:p-3.5 border ${isSubnetShiftHop ?
+                                                    'border-blaze/30 border-dashed bg-blaze/5' :
+                                                    'border-line-soft border-dashed'
                                                     }`}>
                                                     <div className="flex items-center mb-2">
-                                                        <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-md flex items-center justify-center ${isSubnetShiftHop ? 'bg-purple-500/20' : 'bg-primary/20'}`}>
+                                                        <div className={`h-7 w-7 sm:h-8 sm:w-8 rounded-md flex items-center justify-center ${isSubnetShiftHop ? 'bg-blaze/20' : 'bg-primary/20'}`}>
                                                             <PoolImageWithFallback src={hop.vault.image} alt={vaultName} />
                                                         </div>
                                                         <div className="ml-2 sm:ml-2.5 flex items-center w-full">
@@ -472,7 +472,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                                                                 <div className="font-medium text-sm sm:text-base">
                                                                     {vaultName}
                                                                 </div>
-                                                                <div className="text-xs text-white/60">
+                                                                <div className="text-xs text-ink-muted">
                                                                     {hop.vault.fee === 0 ? 'No Fee' : `${formattedFee}% fee`}
                                                                 </div>
                                                             </div>
@@ -482,7 +482,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                                                                     href={`https://invest.charisma.rocks/pools?tokenA=${encodeURIComponent(hop.vault.tokenA.contractId)}&tokenB=${encodeURIComponent(hop.vault.tokenB.contractId)}#add`}
                                                                     target="_blank"
                                                                     rel="noopener noreferrer"
-                                                                    className="text-xs px-2 py-1 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/90 hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-200 backdrop-blur-sm flex items-center gap-1 ml-2 flex-shrink-0"
+                                                                    className="text-xs px-2 py-1 rounded-lg bg-surface border border-line text-ink hover:bg-surface-hover hover:border-line-strong transition-all duration-200 backdrop-blur-sm flex items-center gap-1 ml-2 flex-shrink-0"
                                                                     title="Add liquidity to this pool"
                                                                 >
                                                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" /></svg>
@@ -525,7 +525,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
 
                                                 {/* Only show intermediate tokens (not the final destination) */}
                                                 {idx < quote.hops.length - 1 && (
-                                                    <div className="bg-white/[0.03] rounded-xl p-3 sm:p-3.5 border border-white/[0.08]">
+                                                    <div className="bg-surface rounded-xl p-3 sm:p-3.5 border border-line">
                                                         <div className="flex items-center">
                                                             <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-full bg-background shadow-sm border border-border/50 flex items-center justify-center overflow-hidden">
                                                                 <TokenLogo token={toToken} size="lg" />
@@ -553,8 +553,8 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
 
                                     {/* Final token with USD value */}
                                     <div className={`rounded-xl p-2.5 sm:p-3.5 border ${isSubnetShift ?
-                                        'bg-white/[0.03] border border-purple-500/[0.15]' :
-                                        'bg-white/[0.03] border border-green-500/[0.15]'
+                                        'bg-surface border border-blaze/[0.15]' :
+                                        'bg-surface border border-success/[0.15]'
                                         }`}>
                                         <div className="flex items-center">
                                             <TokenLogo token={quote.path[quote.path.length - 1]} size="lg" />
@@ -567,10 +567,10 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                                                 </div>
                                                 <div className="flex items-center">
                                                     <span className={`text-xs ${isSubnetToSubnet
-                                                        ? 'text-purple-600 dark:text-purple-400'
+                                                        ? 'text-blaze '
                                                         : isSubnetShift
-                                                            ? 'text-purple-600 dark:text-purple-400'
-                                                            : 'text-green-600 dark:text-green-400'
+                                                            ? 'text-blaze '
+                                                            : 'text-success '
                                                         }`}>
                                                         {isSubnetToSubnet
                                                             ? 'Subnet Destination'
@@ -599,7 +599,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
 
                     {/* Total price impact summary */}
                     {quote && totalPriceImpact && totalPriceImpact.priceImpact !== null && (
-                        <div className="flex justify-between items-center pt-3 border-t border-white/[0.08] flex-wrap gap-y-1">
+                        <div className="flex justify-between items-center pt-3 border-t border-line flex-wrap gap-y-1">
                             <span className="text-muted-foreground flex items-center whitespace-nowrap">
                                 <svg className="h-4 w-4 mr-1.5 text-primary/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
@@ -619,8 +619,8 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                                     <span className="text-foreground/90">{formatPriceUSD(totalPriceImpact.outputValueUsd)}</span>
                                 </div>
                                 <span className={`px-2 py-0.5 rounded-sm text-xs font-medium whitespace-nowrap ${totalPriceImpact.priceImpact > 0
-                                    ? 'text-green-600 dark:text-green-400 bg-green-100/30 dark:bg-green-900/20'
-                                    : 'text-orange-600 dark:text-orange-400 bg-orange-100/30 dark:bg-orange-900/20'
+                                    ? 'text-success  bg-success-soft '
+                                    : 'text-accent-text  bg-accent-soft '
                                     }`}>
                                     {totalPriceImpact.priceImpact > 0 ? '+' : ''}
                                     {totalPriceImpact.priceImpact.toFixed(2)}% impact
@@ -631,7 +631,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
 
                     {/* Vault Security Info */}
                     {quote && (
-                        <div className="flex justify-between items-center py-3 border-t border-white/[0.08]">
+                        <div className="flex justify-between items-center py-3 border-t border-line">
                             <span className="text-muted-foreground flex items-center whitespace-nowrap">
                                 <svg className="h-4 w-4 mr-1.5 text-primary/70" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -643,7 +643,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                                         ? 'Subnet security'
                                         : 'Vault security'}
                             </span>
-                            <span className="font-medium flex items-center bg-green-500/10 px-2 py-0.5 text-xs rounded text-green-700 dark:text-green-400 whitespace-nowrap">
+                            <span className="font-medium flex items-center bg-success/10 px-2 py-0.5 text-xs rounded text-success whitespace-nowrap">
                                 <svg className="h-3.5 w-3.5 mr-1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                                     <polyline points="22 4 12 14.01 9 11.01"></polyline>

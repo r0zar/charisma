@@ -144,14 +144,14 @@ export default function TokenInputSection() {
             {/* Premium Header with Analytics */}
             <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0">
+                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-accent/20 text-accent-text flex items-center justify-center flex-shrink-0">
                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path d="M12 2v20M2 12h20" />
                         </svg>
                     </div>
                     <div className="min-w-0">
-                        <h4 className="text-sm font-semibold text-white/95">{label}</h4>
-                        <p className="text-xs text-white/60 hidden sm:block">Select asset and amount</p>
+                        <h4 className="text-sm font-semibold text-ink">{label}</h4>
+                        <p className="text-xs text-ink-muted hidden sm:block">Select asset and amount</p>
                     </div>
                 </div>
 
@@ -159,7 +159,7 @@ export default function TokenInputSection() {
                     <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setShowChart(!showChart); }}
-                        className="h-8 w-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/70 hover:text-white/90 hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-200 flex items-center justify-center backdrop-blur-sm flex-shrink-0"
+                        className="h-8 w-8 rounded-lg bg-surface border border-line text-ink-body hover:text-ink hover:bg-surface-hover hover:border-line-strong transition-all duration-200 flex items-center justify-center backdrop-blur-sm flex-shrink-0"
                         title={showChart ? 'Hide price chart' : 'Show price chart'}
                     >
                         <ChevronDown className={`w-4 h-4 transition-transform ${showChart ? 'rotate-180' : ''}`} />
@@ -169,7 +169,7 @@ export default function TokenInputSection() {
 
             {/* Balance Display - Invisible until hover */}
             {selectedFromToken && (
-                <div className="bg-transparent hover:bg-white/[0.03] rounded-xl p-3 sm:p-4 transition-all duration-200">
+                <div className="bg-transparent hover:bg-surface rounded-xl p-3 sm:p-4 transition-all duration-200">
                     <div className="flex items-center justify-between mb-3 gap-3">
                         <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
                             <div className="relative flex-shrink-0">
@@ -198,7 +198,7 @@ export default function TokenInputSection() {
                                             suppressFlame={!isSubnetSelected}
                                         />
                                         {!isToggleDisabled && (
-                                            <div className="absolute -bottom-1 -right-1 h-5 w-5 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs">
+                                            <div className="absolute -bottom-1 -right-1 h-5 w-5 bg-accent text-on-accent rounded-full flex items-center justify-center text-xs">
                                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                                     <path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                                 </svg>
@@ -211,18 +211,18 @@ export default function TokenInputSection() {
                                 )}
                             </div>
                             <div className="min-w-0">
-                                <div className="text-sm font-medium text-white/95">{selectedFromToken.symbol}</div>
-                                <div className="text-xs text-white/60 truncate">{selectedFromToken.name}</div>
+                                <div className="text-sm font-medium text-ink">{selectedFromToken.symbol}</div>
+                                <div className="text-xs text-ink-muted truncate">{selectedFromToken.name}</div>
                             </div>
                         </div>
 
                         <div className="text-right flex-shrink-0">
                             <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} activeLabel={tooltipData.activeLabel} side="bottom">
                                 <div className="cursor-help">
-                                    <div className="text-sm font-semibold text-white/95">
+                                    <div className="text-sm font-semibold text-ink">
                                         {compactBalance} {selectedFromToken.symbol}
                                     </div>
-                                    <div className="text-xs text-white/60">
+                                    <div className="text-xs text-ink-muted">
                                         {isSubnetSelected ? 'Subnet' : 'Mainnet'}
                                     </div>
                                 </div>
@@ -232,19 +232,19 @@ export default function TokenInputSection() {
                             <div className="flex items-center gap-1 mt-2">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleBalancePercentageClick(0.25); }}
-                                    className="text-xs px-2 py-1 rounded bg-white/[0.05] text-white/70 hover:bg-white/[0.1] hover:text-white/90 transition-all duration-200"
+                                    className="text-xs px-2 py-1 rounded bg-surface text-ink-body hover:bg-surface-selected hover:text-ink transition-all duration-200"
                                 >
                                     25%
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleBalancePercentageClick(0.5); }}
-                                    className="text-xs px-2 py-1 rounded bg-white/[0.05] text-white/70 hover:bg-white/[0.1] hover:text-white/90 transition-all duration-200"
+                                    className="text-xs px-2 py-1 rounded bg-surface text-ink-body hover:bg-surface-selected hover:text-ink transition-all duration-200"
                                 >
                                     50%
                                 </button>
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handleBalancePercentageClick(1); }}
-                                    className="text-xs px-2 py-1 rounded bg-white/[0.05] text-white/70 hover:bg-white/[0.1] hover:text-white/90 transition-all duration-200"
+                                    className="text-xs px-2 py-1 rounded bg-surface text-ink-body hover:bg-surface-selected hover:text-ink transition-all duration-200"
                                 >
                                     MAX
                                 </button>
@@ -253,9 +253,9 @@ export default function TokenInputSection() {
                     </div>
 
                     {/* Network Status Indicator */}
-                    <div className="flex items-center space-x-2 pt-3 border-t border-white/[0.08]">
-                        <div className="h-2 w-2 rounded-full bg-green-400"></div>
-                        <span className="text-xs text-white/70">
+                    <div className="flex items-center space-x-2 pt-3 border-t border-line">
+                        <div className="h-2 w-2 rounded-full bg-success"></div>
+                        <span className="text-xs text-ink-body">
                             Connected to {isSubnetSelected ? 'Subnet' : 'Mainnet'} • {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Price loading...'}
                         </span>
                     </div>
@@ -263,7 +263,7 @@ export default function TokenInputSection() {
             )}
 
             {/* Amount Input - Invisible until hover */}
-            <div className="group bg-transparent hover:bg-white/[0.02] rounded-xl p-3 sm:p-4 transition-all duration-200">
+            <div className="group bg-transparent hover:bg-surface rounded-xl p-3 sm:p-4 transition-all duration-200">
                 <div className="flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
                         <input
@@ -275,10 +275,10 @@ export default function TokenInputSection() {
                                 }
                             }}
                             placeholder="0.00"
-                            className="bg-transparent border-none text-xl sm:text-2xl lg:text-3xl font-semibold focus:outline-none w-full placeholder:text-white/30 text-white/95"
+                            className="bg-transparent border-none text-xl sm:text-2xl lg:text-3xl font-semibold focus:outline-none w-full placeholder:text-ink-faint text-ink"
                             onClick={(e) => e.stopPropagation()}
                         />
-                        <div className="text-sm text-white/60 mt-1">
+                        <div className="text-sm text-ink-muted mt-1">
                             {hasValidPrice(price) && displayAmount ? (() => {
                                 const cleanAmount = typeof displayAmount === 'string' ? displayAmount.replace(/,/g, '') : displayAmount;
                                 const numericAmount = Number(cleanAmount);
@@ -306,18 +306,18 @@ export default function TokenInputSection() {
 
             {/* Premium Chart Display */}
             {showChart && selectedFromToken && (
-                <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 sm:p-4 backdrop-blur-sm">
+                <div className="bg-surface-sunken border border-line-soft rounded-xl p-3 sm:p-4 backdrop-blur-sm">
                     <div className="mb-3 flex items-center justify-between gap-3">
                         <div className="flex items-center space-x-2 min-w-0 flex-1">
-                            <div className="h-6 w-6 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0">
+                            <div className="h-6 w-6 rounded-lg bg-accent/20 text-accent-text flex items-center justify-center flex-shrink-0">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                     <path d="M3 3v18h18" />
                                     <path d="m19 9-5 5-4-4-3 3" />
                                 </svg>
                             </div>
-                            <span className="text-sm font-medium text-white/90">Price Chart</span>
+                            <span className="text-sm font-medium text-ink">Price Chart</span>
                         </div>
-                        <div className="text-xs text-white/60 flex-shrink-0">
+                        <div className="text-xs text-ink-muted flex-shrink-0">
                             {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Loading...'}
                         </div>
                     </div>

@@ -83,13 +83,13 @@ export const getTypeConfig = (type: string) => {
         case SHOP_CATEGORIES.NFT:
             return {
                 icon: ImageIcon,
-                color: 'bg-accent/50 text-accent-foreground border-border',
+                color: 'bg-surface-hover text-accent-foreground border-border',
                 label: 'NFT'
             };
         case 'perp_funding':
             return {
                 icon: LineChart,
-                color: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800',
+                color: 'bg-blaze-soft text-blaze border-blaze   ',
                 label: 'P2P Perps'
             };
         default:

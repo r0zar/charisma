@@ -43,8 +43,8 @@ const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ tx
             <Tooltip>
                 <TooltipTrigger>
                     <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-white/40 rounded-full animate-pulse" />
-                        <span className="text-xs text-white/40">Checking...</span>
+                        <div className="w-2 h-2 bg-line-strong rounded-full animate-pulse" />
+                        <span className="text-xs text-ink-muted">Checking...</span>
                     </div>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -59,8 +59,8 @@ const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ tx
             <Tooltip>
                 <TooltipTrigger>
                     <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-emerald-400 rounded-full" />
-                        <span className="text-xs text-emerald-400">Confirmed</span>
+                        <div className="w-2 h-2 bg-success rounded-full" />
+                        <span className="text-xs text-success">Confirmed</span>
                     </div>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -75,8 +75,8 @@ const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ tx
             <Tooltip>
                 <TooltipTrigger>
                     <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-red-400 rounded-full" />
-                        <span className="text-xs text-red-400">Failed</span>
+                        <div className="w-2 h-2 bg-danger rounded-full" />
+                        <span className="text-xs text-danger">Failed</span>
                     </div>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -91,8 +91,8 @@ const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ tx
             <Tooltip>
                 <TooltipTrigger>
                     <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-                        <span className="text-xs text-amber-400">Broadcasting...</span>
+                        <div className="w-2 h-2 bg-warning rounded-full animate-pulse" />
+                        <span className="text-xs text-warning">Broadcasting...</span>
                     </div>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -109,55 +109,55 @@ const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ tx
 export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string; conditionIcon?: string | null }> = ({ status, txid, failureReason, conditionIcon }) => {
     const statusConfig: Record<LimitOrder["status"], { color: string, bgColor: string, borderColor: string, label: string, indicatorColor: string }> = {
         open: {
-            color: "text-blue-400",
-            bgColor: "bg-blue-500/[0.08]",
-            borderColor: "border-blue-500/[0.15]",
+            color: "text-accent-text",
+            bgColor: "bg-accent/[0.08]",
+            borderColor: "border-accent/[0.15]",
             label: "Open",
-            indicatorColor: "bg-blue-400"
+            indicatorColor: "bg-accent"
         },
         broadcasted: {
-            color: "text-amber-400",
-            bgColor: "bg-amber-500/[0.08]",
-            borderColor: "border-amber-500/[0.15]",
+            color: "text-warning",
+            bgColor: "bg-warning/[0.08]",
+            borderColor: "border-warning/[0.15]",
             label: "Pending",
-            indicatorColor: "bg-amber-400"
+            indicatorColor: "bg-warning"
         },
         confirmed: {
-            color: "text-emerald-400",
-            bgColor: "bg-emerald-500/[0.08]",
-            borderColor: "border-emerald-500/[0.15]",
+            color: "text-success",
+            bgColor: "bg-success/[0.08]",
+            borderColor: "border-success/[0.15]",
             label: "Confirmed",
-            indicatorColor: "bg-emerald-400"
+            indicatorColor: "bg-success"
         },
         failed: {
-            color: "text-red-400",
-            bgColor: "bg-red-500/[0.08]",
-            borderColor: "border-red-500/[0.15]",
+            color: "text-danger",
+            bgColor: "bg-danger/[0.08]",
+            borderColor: "border-danger/[0.15]",
             label: "Failed",
-            indicatorColor: "bg-red-400"
+            indicatorColor: "bg-danger"
         },
         filled: {
-            color: "text-amber-400",
-            bgColor: "bg-amber-500/[0.08]",
-            borderColor: "border-amber-500/[0.15]",
+            color: "text-warning",
+            bgColor: "bg-warning/[0.08]",
+            borderColor: "border-warning/[0.15]",
             label: "Pending",
-            indicatorColor: "bg-amber-400"
+            indicatorColor: "bg-warning"
         },
         cancelled: {
-            color: "text-white/60",
-            bgColor: "bg-white/[0.03]",
-            borderColor: "border-white/[0.08]",
+            color: "text-ink-muted",
+            bgColor: "bg-surface",
+            borderColor: "border-line",
             label: "Cancelled",
-            indicatorColor: "bg-white/40"
+            indicatorColor: "bg-line-strong"
         },
     };
 
     const config = statusConfig[status] || {
-        color: "text-gray-400",
-        bgColor: "bg-gray-500/[0.08]",
-        borderColor: "border-gray-500/[0.15]",
+        color: "text-ink-muted",
+        bgColor: "bg-surface-hover",
+        borderColor: "border-line",
         label: status.charAt(0).toUpperCase() + status.slice(1),
-        indicatorColor: "bg-gray-400"
+        indicatorColor: "bg-surface-hover"
     };
 
     const badgeContent = (
@@ -165,7 +165,7 @@ export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string; conditio
             <div className={`w-1.5 h-1.5 rounded-full ${config.indicatorColor} ${status === 'open' ? 'animate-pulse' : ''}`} />
             <span>{config.label}</span>
             {conditionIcon && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-black/80 border border-white/20 rounded-full flex items-center justify-center text-[10px] leading-none">
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-overlay border border-line-strong rounded-full flex items-center justify-center text-[10px] leading-none">
                     {conditionIcon}
                 </div>
             )}
@@ -181,7 +181,7 @@ export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string; conditio
         if (status === 'failed' && failureReason) {
             return (
                 <div className="text-xs">
-                    <div className="font-medium text-red-400 mb-1">Transaction Failed</div>
+                    <div className="font-medium text-danger mb-1">Transaction Failed</div>
                     <div className="text-muted-foreground">{failureReason}</div>
                 </div>
             );
@@ -189,7 +189,7 @@ export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string; conditio
         if (status === 'broadcasted') {
             return (
                 <div className="text-xs">
-                    <div className="font-medium text-amber-400 mb-1">Transaction Broadcasted</div>
+                    <div className="font-medium text-warning mb-1">Transaction Broadcasted</div>
                     <div className="text-muted-foreground">Waiting for blockchain confirmation</div>
                 </div>
             );
@@ -197,7 +197,7 @@ export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string; conditio
         if (status === 'open') {
             return (
                 <div className="text-xs">
-                    <div className="font-medium text-blue-400 mb-1">Order Active</div>
+                    <div className="font-medium text-accent-text mb-1">Order Active</div>
                     <div className="text-muted-foreground">Waiting for market conditions to be met</div>
                 </div>
             );
@@ -422,12 +422,12 @@ export default function OrdersPanel() {
                     if (change.newStatus === 'filled') {
                         toast.success(`Order Filled: ${fromSymbol} → ${toSymbol}`, {
                             description: (
-                                <span className="text-green-800 font-medium">
+                                <span className="text-success font-medium">
                                     Your limit order has been executed successfully
                                 </span>
                             ),
                             duration: 8000,
-                            className: "border-green-200 bg-green-50 text-green-900",
+                            className: "border-success bg-success-soft text-success",
                         });
                     } else if (change.newStatus === 'cancelled') {
                         toast.info(`Order Cancelled: ${fromSymbol} → ${toSymbol}`, {
@@ -700,12 +700,12 @@ export default function OrdersPanel() {
             toast.success(`Order Executed`, {
                 description: (
                     <div className="space-y-2">
-                        <div className="text-white/90 font-medium">Transaction submitted successfully</div>
+                        <div className="text-ink font-medium">Transaction submitted successfully</div>
                         <a
                             href={`https://explorer.hiro.so/txid/${j.txid}?chain=mainnet`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-emerald-400 hover:text-emerald-300 underline text-sm font-mono inline-flex items-center gap-1"
+                            className="text-success hover:text-success underline text-sm font-mono inline-flex items-center gap-1"
                         >
                             View on Explorer
                             <ExternalLink className="h-3 w-3" />
@@ -713,7 +713,7 @@ export default function OrdersPanel() {
                     </div>
                 ),
                 duration: 8000,
-                className: "bg-emerald-950/20 border-emerald-500/20 text-white backdrop-blur-sm",
+                className: "bg-success-soft border-success/20 text-ink backdrop-blur-sm",
             });
         } catch (err) {
             // Revert optimistic update on error
@@ -804,14 +804,14 @@ export default function OrdersPanel() {
     if (!connected) {
         return (
             <div className="container max-w-6xl mx-auto px-4 py-16">
-                <div className="flex flex-col items-center justify-center py-16 text-white/40">
+                <div className="flex flex-col items-center justify-center py-16 text-ink-muted">
                     <div className="relative mb-6">
-                        <div className="h-16 w-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center">
-                            <ClipboardList className="h-8 w-8 text-white/30" />
+                        <div className="h-16 w-16 rounded-2xl bg-surface border border-line flex items-center justify-center">
+                            <ClipboardList className="h-8 w-8 text-ink-faint" />
                         </div>
-                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
                     </div>
-                    <h3 className="text-lg font-medium text-white/70 mb-2">Connect Your Wallet</h3>
+                    <h3 className="text-lg font-medium text-ink-body mb-2">Connect Your Wallet</h3>
                     <p className="text-sm text-center max-w-md leading-relaxed">
                         Please connect your wallet to view and manage your smart limit orders with real-time monitoring.
                     </p>
@@ -829,13 +829,13 @@ export default function OrdersPanel() {
                         {/* Clean title section */}
                         <div className="space-y-6">
                             <div>
-                                <h1 className="text-3xl font-medium text-white/95 tracking-wide mb-3">Order Management</h1>
-                                <p className="text-white/60 max-w-2xl text-base leading-relaxed">
+                                <h1 className="text-3xl font-medium text-ink tracking-wide mb-3">Order Management</h1>
+                                <p className="text-ink-muted max-w-2xl text-base leading-relaxed">
                                     Monitor and manage your smart limit orders with real-time status updates and seamless execution control.
                                     Track pending, executed, and cancelled orders in a unified dashboard.
                                 </p>
                             </div>
-                            <div className="flex items-center gap-6 text-sm text-white/40">
+                            <div className="flex items-center gap-6 text-sm text-ink-muted">
                                 <span>
                                     {strategyGroups.length} {strategyGroups.length === 1 ? 'strategy' : 'strategies'}
                                     ({pagination.total} {activeFilter === 'all' ? 'total' : activeFilter} orders)
@@ -843,9 +843,9 @@ export default function OrdersPanel() {
                                 <span>Page {pagination.page} of {pagination.totalPages}</span>
                                 <div className="flex items-center gap-2">
                                     <div className="relative">
-                                        <div className="h-1.5 w-1.5 bg-emerald-400 rounded-full animate-pulse" />
-                                        <div className="absolute inset-0 h-1.5 w-1.5 bg-emerald-400/40 rounded-full animate-ping" />
-                                        <div className="absolute inset-[-1px] h-2.5 w-2.5 bg-emerald-400/20 rounded-full blur-sm animate-pulse" />
+                                        <div className="h-1.5 w-1.5 bg-success rounded-full animate-pulse" />
+                                        <div className="absolute inset-0 h-1.5 w-1.5 bg-success/40 rounded-full animate-ping" />
+                                        <div className="absolute inset-[-1px] h-2.5 w-2.5 bg-success/20 rounded-full blur-sm animate-pulse" />
                                     </div>
                                     <span className="animate-pulse">Live monitoring</span>
                                 </div>
@@ -856,14 +856,14 @@ export default function OrdersPanel() {
                         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                             {/* Search input */}
                             <div className="relative flex-1 lg:max-w-sm">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 w-4 h-4" />
+                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-muted w-4 h-4" />
                                 <input
                                     type="text"
                                     placeholder="Search orders, addresses, tokens..."
                                     value={searchQuery}
                                     onChange={(e) => handleSearchChange(e.target.value)}
                                     disabled={loading}
-                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/90 text-sm placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/[0.15] focus:border-white/[0.2] transition-all duration-200 disabled:opacity-50"
+                                    className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface border border-line text-ink text-sm placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-line-strong focus:border-line-strong transition-all duration-200 disabled:opacity-50"
                                 />
                             </div>
 
@@ -875,8 +875,8 @@ export default function OrdersPanel() {
                                         onClick={() => handleFilterChange(value)}
                                         disabled={loading || paginationLoading}
                                         className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 disabled:opacity-50 cursor-pointer ${activeFilter === value
-                                            ? 'bg-white/[0.08] text-white border border-white/[0.2] shadow-lg backdrop-blur-sm'
-                                            : 'text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent'
+                                            ? 'bg-surface-hover text-ink border border-line-strong shadow-lg backdrop-blur-sm'
+                                            : 'text-ink-muted hover:text-ink hover:bg-surface border border-transparent'
                                             }`}
                                     >
                                         {label}
@@ -903,34 +903,34 @@ export default function OrdersPanel() {
                 {loading && (
                     <div className="grid gap-6">
                         {Array.from({ length: 3 }).map((_, i) => (
-                            <div key={i} className="group relative p-6 rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm animate-pulse">
-                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                            <div key={i} className="group relative p-6 rounded-2xl border border-line bg-surface backdrop-blur-sm animate-pulse">
+                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
                                 <div className="relative space-y-4">
                                     {/* Header row */}
                                     <div className="flex items-start justify-between">
                                         <div className="space-y-2">
-                                            <div className="h-4 w-16 bg-white/[0.06] rounded-lg" />
-                                            <div className="h-3 w-20 bg-white/[0.04] rounded-lg" />
+                                            <div className="h-4 w-16 bg-surface-hover rounded-lg" />
+                                            <div className="h-3 w-20 bg-surface rounded-lg" />
                                         </div>
-                                        <div className="h-6 w-20 bg-white/[0.06] rounded-full" />
+                                        <div className="h-6 w-20 bg-surface-hover rounded-full" />
                                     </div>
                                     {/* Swap row */}
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="h-8 w-8 bg-white/[0.06] rounded-full" />
-                                            <div className="h-4 w-12 bg-white/[0.06] rounded-lg" />
-                                            <div className="h-4 w-6 bg-white/[0.04] rounded-lg" />
-                                            <div className="h-8 w-8 bg-white/[0.06] rounded-full" />
-                                            <div className="h-4 w-12 bg-white/[0.06] rounded-lg" />
+                                            <div className="h-8 w-8 bg-surface-hover rounded-full" />
+                                            <div className="h-4 w-12 bg-surface-hover rounded-lg" />
+                                            <div className="h-4 w-6 bg-surface rounded-lg" />
+                                            <div className="h-8 w-8 bg-surface-hover rounded-full" />
+                                            <div className="h-4 w-12 bg-surface-hover rounded-lg" />
                                         </div>
-                                        <div className="h-4 w-24 bg-white/[0.06] rounded-lg" />
+                                        <div className="h-4 w-24 bg-surface-hover rounded-lg" />
                                     </div>
                                     {/* Condition row */}
                                     <div className="flex items-center justify-between">
-                                        <div className="h-4 w-48 bg-white/[0.06] rounded-lg" />
+                                        <div className="h-4 w-48 bg-surface-hover rounded-lg" />
                                         <div className="flex gap-2">
-                                            <div className="h-8 w-8 bg-white/[0.06] rounded-xl" />
-                                            <div className="h-8 w-8 bg-white/[0.06] rounded-xl" />
+                                            <div className="h-8 w-8 bg-surface-hover rounded-xl" />
+                                            <div className="h-8 w-8 bg-surface-hover rounded-xl" />
                                         </div>
                                     </div>
                                 </div>
@@ -939,19 +939,19 @@ export default function OrdersPanel() {
                     </div>
                 )}
 
-                {error && <p className="text-sm text-red-400 mb-4">{error}</p>}
+                {error && <p className="text-sm text-danger mb-4">{error}</p>}
 
                 {/* Content area with loading overlay support */}
                 <div className="relative">
                     {!loading && (strategyGroups.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 text-white/40">
+                        <div className="flex flex-col items-center justify-center py-16 text-ink-muted">
                             <div className="relative mb-6">
-                                <div className="h-16 w-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center">
-                                    <ClipboardList className="h-8 w-8 text-white/30" />
+                                <div className="h-16 w-16 rounded-2xl bg-surface border border-line flex items-center justify-center">
+                                    <ClipboardList className="h-8 w-8 text-ink-faint" />
                                 </div>
-                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
                             </div>
-                            <h3 className="text-lg font-medium text-white/70 mb-2">{displayOrders.length === 0 ? 'No orders yet' : 'No matching orders'}</h3>
+                            <h3 className="text-lg font-medium text-ink-body mb-2">{displayOrders.length === 0 ? 'No orders yet' : 'No matching orders'}</h3>
                             <p className="text-sm text-center max-w-md leading-relaxed">
                                 {displayOrders.length === 0
                                     ? 'Create your first smart limit order from the Swap tab and it will appear here for real-time monitoring and management.'
@@ -990,9 +990,9 @@ export default function OrdersPanel() {
 
                     {/* Loading overlay during filter changes */}
                     {paginationLoading && (
-                        <div className="absolute inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center rounded-2xl z-10">
-                            <div className="flex items-center gap-3 text-sm text-white/70">
-                                <div className="h-5 w-5 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" />
+                        <div className="absolute inset-0 bg-surface backdrop-blur-sm flex items-center justify-center rounded-2xl z-10">
+                            <div className="flex items-center gap-3 text-sm text-ink-body">
+                                <div className="h-5 w-5 border-2 border-line-strong border-t-ink/80 rounded-full animate-spin" />
                                 <span>Updating orders...</span>
                             </div>
                         </div>
@@ -1004,10 +1004,10 @@ export default function OrdersPanel() {
             {/* Premium cancel confirmation dialog */}
             {confirmUuid && (
                 <Dialog open onOpenChange={(open) => { if (!open) setConfirmUuid(null); }}>
-                    <DialogContent className="border-white/[0.08] bg-black/40 backdrop-blur-xl">
+                    <DialogContent className="border-line bg-chrome backdrop-blur-xl">
                         <DialogHeader>
-                            <DialogTitle className="text-white/95">Cancel Order</DialogTitle>
-                            <DialogDescription className="text-white/60">
+                            <DialogTitle className="text-ink">Cancel Order</DialogTitle>
+                            <DialogDescription className="text-ink-muted">
                                 Are you sure you want to cancel this limit order? This action cannot be undone.
                             </DialogDescription>
                         </DialogHeader>
@@ -1015,13 +1015,13 @@ export default function OrdersPanel() {
                             <Button
                                 variant="outline"
                                 onClick={() => setConfirmUuid(null)}
-                                className="border-white/[0.08] bg-white/[0.03] text-white/80 hover:bg-white/[0.08] hover:text-white"
+                                className="border-line bg-surface text-ink-body hover:bg-surface-hover hover:text-ink"
                             >
                                 Cancel
                             </Button>
                             <Button
                                 onClick={() => cancelOrder(confirmUuid)}
-                                className="bg-red-500/[0.15] border border-red-500/[0.3] text-red-400 hover:bg-red-500/[0.25] hover:border-red-400/[0.5]"
+                                className="bg-danger/[0.15] border border-danger/[0.3] text-danger hover:bg-danger/[0.25] hover:border-danger/[0.5]"
                             >
                                 Confirm Cancellation
                             </Button>
@@ -1033,10 +1033,10 @@ export default function OrdersPanel() {
             {/* Bulk cancel confirmation dialog */}
             {confirmBulk && (
                 <Dialog open onOpenChange={(open) => { if (!open) setConfirmBulk(null); }}>
-                    <DialogContent className="border-white/[0.08] bg-black/40 backdrop-blur-xl">
+                    <DialogContent className="border-line bg-chrome backdrop-blur-xl">
                         <DialogHeader>
-                            <DialogTitle className="text-white/95">Cancel Orders</DialogTitle>
-                            <DialogDescription className="text-white/60">
+                            <DialogTitle className="text-ink">Cancel Orders</DialogTitle>
+                            <DialogDescription className="text-ink-muted">
                                 Cancel {confirmBulk.length} open orders? Each one needs a wallet signature, one after another. Filled legs are kept.
                             </DialogDescription>
                         </DialogHeader>
@@ -1044,13 +1044,13 @@ export default function OrdersPanel() {
                             <Button
                                 variant="outline"
                                 onClick={() => setConfirmBulk(null)}
-                                className="border-white/[0.08] bg-white/[0.03] text-white/80 hover:bg-white/[0.08] hover:text-white"
+                                className="border-line bg-surface text-ink-body hover:bg-surface-hover hover:text-ink"
                             >
                                 Cancel
                             </Button>
                             <Button
                                 onClick={() => cancelOrders(confirmBulk).finally(() => setConfirmBulk(null))}
-                                className="bg-red-500/[0.15] border border-red-500/[0.3] text-red-400 hover:bg-red-500/[0.25] hover:border-red-400/[0.5]"
+                                className="bg-danger/[0.15] border border-danger/[0.3] text-danger hover:bg-danger/[0.25] hover:border-danger/[0.5]"
                             >
                                 Confirm Cancellation
                             </Button>

@@ -6,7 +6,7 @@ export function Chip({ active, onClick, children }: { active: boolean; onClick: 
         <button
             type="button"
             onClick={onClick}
-            className={`flex-1 rounded-lg border px-2 py-2 text-sm transition-colors ${active ? 'border-white/40 bg-white/[0.08] text-white' : 'border-white/[0.08] bg-white/[0.02] text-white/60 hover:border-white/20 hover:text-white/90'}`}
+            className={`flex-1 rounded-lg border px-2 py-2 text-sm transition-colors ${active ? 'border-ink/40 bg-surface-hover text-ink' : 'border-line bg-surface-sunken text-ink-muted hover:border-line-strong hover:text-ink'}`}
         >
             {children}
         </button>

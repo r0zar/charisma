@@ -2004,8 +2004,8 @@ const ProModeChart = React.memo(function ProModeChart({
         return (
             <div className="h-full flex items-center justify-center">
                 <div className="text-center">
-                    <TrendingDown className="w-8 h-8 text-red-500 mx-auto mb-2" />
-                    <div className="text-sm text-red-600 mb-2">Failed to load chart</div>
+                    <TrendingDown className="w-8 h-8 text-danger mx-auto mb-2" />
+                    <div className="text-sm text-danger mb-2">Failed to load chart</div>
                     <Button variant="outline" size="sm" onClick={loadChart}>
                         Retry
                     </Button>

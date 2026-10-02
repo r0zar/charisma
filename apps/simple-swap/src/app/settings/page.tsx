@@ -65,15 +65,15 @@ export default function SettingsPage() {
 
   if (!connected) {
     return (
-      <div className="min-h-screen bg-black">
+      <div className="min-h-screen bg-overlay">
         <Header />
         <div className="container max-w-6xl mx-auto p-6">
           <div className="flex flex-col items-center justify-center py-16">
-            <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mb-6">
-              <Shield className="w-8 h-8 text-white/40" />
+            <div className="w-16 h-16 rounded-2xl bg-surface border border-line flex items-center justify-center mb-6">
+              <Shield className="w-8 h-8 text-ink-muted" />
             </div>
-            <h2 className="text-xl font-semibold text-white/95 mb-2">Wallet Connection Required</h2>
-            <p className="text-white/70 text-center max-w-md">
+            <h2 className="text-xl font-semibold text-ink mb-2">Wallet Connection Required</h2>
+            <p className="text-ink-body text-center max-w-md">
               Please connect your wallet to access your settings and manage your account preferences.
             </p>
           </div>
@@ -83,29 +83,29 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-overlay">
       <Header />
 
       <div className="container max-w-7xl mx-auto p-4 sm:p-6">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white/95 mb-2">Settings</h1>
-          <p className="text-white/70 text-sm sm:text-base">
+          <h1 className="text-2xl sm:text-3xl font-bold text-ink mb-2">Settings</h1>
+          <p className="text-ink-body text-sm sm:text-base">
             Manage your account preferences, security settings, and trading configurations.
           </p>
         </div>
 
         {/* Mobile: Responsive grid tabs */}
         <div className="lg:hidden mb-4">
-          <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-1 backdrop-blur-sm">
+          <div className="bg-surface border border-line rounded-2xl p-1 backdrop-blur-sm">
             <nav className="grid grid-cols-2 gap-1">
               {settingsTabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center justify-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === tab.id
-                      ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                      : 'text-white/70 hover:text-white/90 hover:bg-white/[0.05] border border-transparent'
+                      ? 'bg-accent/20 text-accent-text border border-accent/30'
+                      : 'text-ink-body hover:text-ink hover:bg-surface-hover border border-transparent'
                     }`}
                 >
                   {tab.icon}
@@ -119,21 +119,21 @@ export default function SettingsPage() {
         <div className="grid lg:grid-cols-4 gap-4 sm:gap-6">
           {/* Desktop: Vertical sidebar */}
           <div className="hidden lg:block lg:col-span-1">
-            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-2 backdrop-blur-sm sticky top-6">
+            <div className="bg-surface border border-line rounded-2xl p-2 backdrop-blur-sm sticky top-6">
               <nav className="space-y-1">
                 {settingsTabs.map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200 ${activeTab === tab.id
-                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                        : 'text-white/70 hover:text-white/90 hover:bg-white/[0.05] border border-transparent'
+                        ? 'bg-accent/20 text-accent-text border border-accent/30'
+                        : 'text-ink-body hover:text-ink hover:bg-surface-hover border border-transparent'
                       }`}
                   >
                     {tab.icon}
                     <div className="flex-1 min-w-0">
                       <div className="font-medium">{tab.label}</div>
-                      <div className="text-xs text-white/50 mt-0.5 leading-tight">
+                      <div className="text-xs text-ink-muted mt-0.5 leading-tight">
                         {tab.description}
                       </div>
                     </div>
@@ -145,14 +145,14 @@ export default function SettingsPage() {
 
           {/* Main Content */}
           <div className="lg:col-span-3">
-            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl backdrop-blur-sm min-h-[600px]">
+            <div className="bg-surface border border-line rounded-2xl backdrop-blur-sm min-h-[600px]">
               {/* Tab Header */}
-              <div className="border-b border-white/[0.08] p-4 sm:p-6">
+              <div className="border-b border-line p-4 sm:p-6">
                 <div className="flex items-center gap-3">
                   {activeTabData?.icon}
                   <div className="min-w-0 flex-1">
-                    <h2 className="text-lg sm:text-xl font-semibold text-white/95 truncate">{activeTabData?.label}</h2>
-                    <p className="text-white/60 text-xs sm:text-sm mt-1 leading-tight">{activeTabData?.description}</p>
+                    <h2 className="text-lg sm:text-xl font-semibold text-ink truncate">{activeTabData?.label}</h2>
+                    <p className="text-ink-muted text-xs sm:text-sm mt-1 leading-tight">{activeTabData?.description}</p>
                   </div>
                 </div>
               </div>

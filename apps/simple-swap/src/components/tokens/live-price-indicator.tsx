@@ -63,8 +63,8 @@ export default function LivePriceIndicator({
 
     const getChangeColor = (changeValue: number | null) => {
         if (changeValue === null) return 'text-muted-foreground';
-        if (changeValue > 0) return 'text-green-600';
-        if (changeValue < 0) return 'text-red-600';
+        if (changeValue > 0) return 'text-success';
+        if (changeValue < 0) return 'text-danger';
         return 'text-muted-foreground';
     };
 
@@ -72,20 +72,20 @@ export default function LivePriceIndicator({
         if (error) {
             return (
                 <div title={`Error: ${error}`}>
-                    <WifiOff className="h-3 w-3 text-red-500" />
+                    <WifiOff className="h-3 w-3 text-danger" />
                 </div>
             );
         }
         if (!isConnected || isStale) {
             return (
                 <div title="Connection issues">
-                    <WifiOff className="h-3 w-3 text-yellow-500" />
+                    <WifiOff className="h-3 w-3 text-warning" />
                 </div>
             );
         }
         return (
             <div title="Live data">
-                <Wifi className="h-3 w-3 text-green-500" />
+                <Wifi className="h-3 w-3 text-success" />
             </div>
         );
     };
@@ -104,9 +104,9 @@ export default function LivePriceIndicator({
         <div className={cn('flex items-center gap-2', className)}>
             {/* Price Display */}
             <div className={cn(
-                'font-medium transition-colors duration-300',
+ 'font-medium transition-colors duration-300',
                 hasRealtimeData && change !== null && Math.abs(change) > 0.01 ?
-                    change > 0 ? 'text-green-600' : 'text-red-600'
+                    change > 0 ? 'text-success' : 'text-danger'
                     : 'text-foreground'
             )}>
                 {formatPrice(displayPrice)}
@@ -115,7 +115,7 @@ export default function LivePriceIndicator({
             {/* Price Change */}
             {showChange && change !== null && (
                 <div className={cn(
-                    'flex items-center gap-1 text-xs font-medium transition-colors duration-300',
+ 'flex items-center gap-1 text-xs font-medium transition-colors duration-300',
                     getChangeColor(change)
                 )}>
                     {change > 0 ? (
@@ -140,7 +140,7 @@ export default function LivePriceIndicator({
                         disabled={!isConnected && !error}
                     >
                         <RotateCcw className={cn(
-                            'h-3 w-3 text-muted-foreground hover:text-foreground transition-colors',
+ 'h-3 w-3 text-muted-foreground hover:text-foreground transition-colors',
                             !isConnected && !error && 'animate-spin'
                         )} />
                     </button>
@@ -150,8 +150,8 @@ export default function LivePriceIndicator({
             {/* Live indicator dot */}
             {hasRealtimeData && !isStale && (
                 <div className="relative">
-                    <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                    <div className="absolute inset-0 h-2 w-2 bg-green-500 rounded-full animate-ping opacity-75" />
+                    <div className="h-2 w-2 bg-success rounded-full animate-pulse" />
+                    <div className="absolute inset-0 h-2 w-2 bg-success rounded-full animate-ping opacity-75" />
                 </div>
             )}
         </div>
@@ -167,7 +167,7 @@ export function CompactLivePriceIndicator({ contractId, fallbackPrice, className
             contractId={contractId}
             fallbackPrice={fallbackPrice}
             className={className}
-            showChange={false}
+ showChange={false}
             showStatus={false}
         />
     );
@@ -184,12 +184,12 @@ export function LivePriceStatus({ contractIds }: { contractIds: string[] }) {
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
             {isConnected ? (
                 <>
-                    <Wifi className="h-3 w-3 text-green-500" />
+                    <Wifi className="h-3 w-3 text-success" />
                     <span>Live prices</span>
                 </>
             ) : (
                 <>
-                    <WifiOff className="h-3 w-3 text-red-500" />
+                    <WifiOff className="h-3 w-3 text-danger" />
                     <span>Offline</span>
                 </>
             )}

@@ -23,14 +23,14 @@ export const PriceProgressBar: React.FC<PriceProgressBarProps> = ({ progressData
     // Determine colors based on direction and progress
     const isGoingUp = direction === 'up';
     const isNearTarget = progressPercent > 80;
-    const progressColor = isNearTarget ? 'bg-emerald-400' : isGoingUp ? 'bg-blue-400' : 'bg-amber-400';
-    const trackColor = 'bg-white/10';
+    const progressColor = isNearTarget ? 'bg-success' : isGoingUp ? 'bg-accent' : 'bg-warning';
+    const trackColor = 'bg-surface-hover';
 
     return (
         <Tooltip>
             <TooltipTrigger asChild>
                 <div className={cn("w-full", className)}>
-                    <div className="flex items-center justify-between text-xs text-white/60 mb-1">
+                    <div className="flex items-center justify-between text-xs text-ink-muted mb-1">
                         <span>{isGoingUp ? '↗️' : '↘️'}</span>
                         <span>{Math.round(progressPercent)}% to target</span>
                     </div>
@@ -40,9 +40,9 @@ export const PriceProgressBar: React.FC<PriceProgressBarProps> = ({ progressData
                             style={{ width: `${Math.min(100, Math.max(0, progressPercent))}%` }}
                         />
                     </div>
-                    <div className="flex items-center justify-between text-xs text-white/40 mt-1">
+                    <div className="flex items-center justify-between text-xs text-ink-muted mt-1">
                         <span>${creationPrice.toFixed(2)}</span>
-                        <span className="font-medium text-white/80">${currentPrice.toFixed(2)}</span>
+                        <span className="font-medium text-ink-body">${currentPrice.toFixed(2)}</span>
                         <span>${targetPrice.toFixed(2)}</span>
                     </div>
                 </div>
@@ -53,7 +53,7 @@ export const PriceProgressBar: React.FC<PriceProgressBarProps> = ({ progressData
                     <div>Started at: ${creationPrice.toFixed(4)}</div>
                     <div>Currently: ${currentPrice.toFixed(4)}</div>
                     <div>Target: ${targetPrice.toFixed(4)}</div>
-                    <div className="mt-1 text-white/60">
+                    <div className="mt-1 text-ink-muted">
                         {progressPercent >= 100 ? 'Target reached!' : `${Math.round(progressPercent)}% of the way to target`}
                     </div>
                 </div>
@@ -76,10 +76,10 @@ export const StrategyProgressBar: React.FC<StrategyProgressBarProps> = ({ strate
     // Determine colors based on strategy status
     const getProgressColor = () => {
         switch (status) {
-            case 'completed': return 'bg-emerald-400';
-            case 'partially_filled': return 'bg-amber-400';
-            case 'cancelled': return 'bg-red-400';
-            default: return 'bg-blue-400';
+            case 'completed': return 'bg-success';
+            case 'partially_filled': return 'bg-warning';
+            case 'cancelled': return 'bg-danger';
+            default: return 'bg-accent';
         }
     };
 
@@ -97,20 +97,20 @@ export const StrategyProgressBar: React.FC<StrategyProgressBarProps> = ({ strate
         <Tooltip>
             <TooltipTrigger asChild>
                 <div className={cn("w-full", className)}>
-                    <div className="flex items-center justify-between text-xs text-white/60 mb-1">
+                    <div className="flex items-center justify-between text-xs text-ink-muted mb-1">
                         <span className="flex items-center gap-1">
                             <span>{getStatusIcon()}</span>
                             <span className="capitalize">{type} Strategy</span>
                         </span>
                         <span>{completedOrders}/{totalOrders} completed</span>
                     </div>
-                    <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+                    <div className="w-full h-2 rounded-full bg-surface-hover overflow-hidden">
                         <div 
                             className={`h-full rounded-full transition-all duration-500 ${getProgressColor()}`}
                             style={{ width: `${progressPercent}%` }}
                         />
                     </div>
-                    <div className="flex items-center justify-between text-xs text-white/40 mt-1">
+                    <div className="flex items-center justify-between text-xs text-ink-muted mt-1">
                         <span>{status.replace('_', ' ')}</span>
                         {strategyData.estimatedCompletion && (
                             <span>Est. {strategyData.estimatedCompletion}</span>
@@ -123,11 +123,11 @@ export const StrategyProgressBar: React.FC<StrategyProgressBarProps> = ({ strate
                     <div className="font-medium mb-1">{strategyData.description}</div>
                     <div>Progress: {completedOrders} of {totalOrders} orders completed</div>
                     <div>Total Value: {strategyData.totalValue}</div>
-                    <div className="mt-1 text-white/60">
+                    <div className="mt-1 text-ink-muted">
                         Status: {status.replace('_', ' ')}
                     </div>
                     {strategyData.estimatedCompletion && (
-                        <div className="text-white/60">
+                        <div className="text-ink-muted">
                             Estimated completion: {strategyData.estimatedCompletion}
                         </div>
                     )}
@@ -156,8 +156,8 @@ export const ConditionStatusIndicator: React.FC<ConditionStatusIndicatorProps> =
             <div className={cn("flex items-center gap-2 text-sm", className)}>
                 <span className="text-lg">{directionIcon}</span>
                 <div>
-                    <div className="text-white/90 font-medium">{humanReadableText}</div>
-                    <div className="text-xs text-white/60">{contextualInfo}</div>
+                    <div className="text-ink font-medium">{humanReadableText}</div>
+                    <div className="text-xs text-ink-muted">{contextualInfo}</div>
                 </div>
             </div>
         );
@@ -169,8 +169,8 @@ export const ConditionStatusIndicator: React.FC<ConditionStatusIndicatorProps> =
                 <div className={cn("flex items-center gap-2 text-sm cursor-default", className)}>
                     <span className="text-lg">{directionIcon}</span>
                     <div className="flex-1">
-                        <div className="text-white/90 font-medium">{shortText}</div>
-                        <div className="text-xs text-white/60">{contextualInfo}</div>
+                        <div className="text-ink font-medium">{shortText}</div>
+                        <div className="text-xs text-ink-muted">{contextualInfo}</div>
                     </div>
                 </div>
             </TooltipTrigger>
@@ -178,7 +178,7 @@ export const ConditionStatusIndicator: React.FC<ConditionStatusIndicatorProps> =
                 <div className="text-xs">
                     <div className="font-medium mb-1">Trigger Condition</div>
                     <div>{humanReadableText}</div>
-                    <div className="mt-1 text-white/60">{contextualInfo}</div>
+                    <div className="mt-1 text-ink-muted">{contextualInfo}</div>
                 </div>
             </TooltipContent>
         </Tooltip>
@@ -206,18 +206,18 @@ export const CompactOrderCard: React.FC<CompactOrderCardProps> = ({
     
     const getStatusColor = () => {
         switch (status) {
-            case 'completed': return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
-            case 'partially_filled': return 'text-amber-400 bg-amber-500/10 border-amber-500/20';
-            case 'cancelled': return 'text-red-400 bg-red-500/10 border-red-500/20';
-            default: return 'text-blue-400 bg-blue-500/10 border-blue-500/20';
+            case 'completed': return 'text-success bg-success/10 border-success/20';
+            case 'partially_filled': return 'text-warning bg-warning/10 border-warning/20';
+            case 'cancelled': return 'text-danger bg-danger/10 border-danger/20';
+            default: return 'text-accent-text bg-accent/10 border-accent/20';
         }
     };
 
     return (
         <div 
             className={cn(
-                "border rounded-xl p-4 cursor-pointer transition-all duration-200 hover:border-white/20",
-                "bg-black/20 border-white/10",
+ "border rounded-xl p-4 cursor-pointer transition-all duration-200 hover:border-line-strong",
+                "bg-surface border-line",
                 getStatusColor(),
                 className
             )}
@@ -227,15 +227,15 @@ export const CompactOrderCard: React.FC<CompactOrderCardProps> = ({
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <div className="text-sm font-medium text-white/90">{description}</div>
-                        <div className="text-xs text-white/60">
+                        <div className="text-sm font-medium text-ink">{description}</div>
+                        <div className="text-xs text-ink-muted">
                             {formatShortDate(firstOrder.createdAt)}
                             {type !== 'single' && ` • ${orders.length} orders`}
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
                         {type !== 'single' && (
-                            <div className="text-xs text-white/60">
+                            <div className="text-xs text-ink-muted">
                                 {Math.round(progressPercent)}%
                             </div>
                         )}
@@ -252,9 +252,9 @@ export const CompactOrderCard: React.FC<CompactOrderCardProps> = ({
 
                 {/* Expanded details */}
                 {isExpanded && (
-                    <div className="pt-2 border-t border-white/10 space-y-2">
+                    <div className="pt-2 border-t border-line space-y-2">
                         {orders.map((order, index) => (
-                            <div key={order.uuid} className="text-xs text-white/70">
+                            <div key={order.uuid} className="text-xs text-ink-body">
                                 #{index + 1}: {order.status} • {order.uuid.substring(0, 8)}
                             </div>
                         ))}

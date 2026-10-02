@@ -568,7 +568,7 @@ export default function EnhancedTokenChart({
             />
 
             {/* Chart Info Bar */}
-            <div className="flex items-center justify-between text-xs text-white/50">
+            <div className="flex items-center justify-between text-xs text-ink-muted">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                         <div
@@ -593,7 +593,7 @@ export default function EnhancedTokenChart({
                     )}
                 </div>
                 {error && (
-                    <div className="text-red-400 text-xs">
+                    <div className="text-danger text-xs">
                         {error}
                     </div>
                 )}
@@ -602,13 +602,13 @@ export default function EnhancedTokenChart({
             {/* Chart Container */}
             <div 
                 ref={containerRef} 
-                className="w-full relative rounded-2xl overflow-hidden border border-white/[0.05] bg-black/20 backdrop-blur-sm"
+                className="w-full relative rounded-2xl overflow-hidden border border-line-soft bg-surface backdrop-blur-sm"
                 style={{ minHeight: '450px' }}
             >
                 {loading && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10 backdrop-blur-sm">
-                        <div className="flex items-center gap-3 text-sm text-white/70">
-                            <div className="h-5 w-5 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" />
+                    <div className="absolute inset-0 bg-overlay flex items-center justify-center z-10 backdrop-blur-sm">
+                        <div className="flex items-center gap-3 text-sm text-ink-body">
+                            <div className="h-5 w-5 border-2 border-line-strong border-t-ink/80 rounded-full animate-spin" />
                             <span>Loading enhanced chart...</span>
                         </div>
                     </div>
@@ -617,14 +617,14 @@ export default function EnhancedTokenChart({
                 {/* Empty data state */}
                 {!loading && !error && dataPointCount === 0 && (
                     <div className="absolute inset-0 flex items-center justify-center z-10">
-                        <div className="text-center p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05] backdrop-blur-sm max-w-md">
-                            <div className="text-white/60 text-sm font-medium mb-2">No Chart Data</div>
-                            <div className="text-white/40 text-xs mb-4">
+                        <div className="text-center p-6 rounded-2xl bg-surface-sunken border border-line-soft backdrop-blur-sm max-w-md">
+                            <div className="text-ink-muted text-sm font-medium mb-2">No Chart Data</div>
+                            <div className="text-ink-muted text-xs mb-4">
                                 Price data is not available for the selected timeframe
                             </div>
                             <button
                                 onClick={() => loadChartData()}
-                                className="px-4 py-2 text-xs bg-white/[0.05] hover:bg-white/[0.1] text-white/70 rounded-xl transition-colors duration-200"
+                                className="px-4 py-2 text-xs bg-surface hover:bg-surface-selected text-ink-body rounded-xl transition-colors duration-200"
                             >
                                 Retry
                             </button>
@@ -634,12 +634,12 @@ export default function EnhancedTokenChart({
 
                 {error && !loading && (
                     <div className="absolute inset-0 flex items-center justify-center z-10">
-                        <div className="text-center p-6 rounded-2xl bg-red-500/10 border border-red-500/20 backdrop-blur-sm max-w-md">
-                            <div className="text-red-400 text-sm font-medium mb-2">Chart Error</div>
-                            <div className="text-red-300/80 text-xs mb-4">{error}</div>
+                        <div className="text-center p-6 rounded-2xl bg-danger/10 border border-danger/20 backdrop-blur-sm max-w-md">
+                            <div className="text-danger text-sm font-medium mb-2">Chart Error</div>
+                            <div className="text-danger/80 text-xs mb-4">{error}</div>
                             <button
                                 onClick={() => loadChartData()}
-                                className="px-4 py-2 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl transition-colors duration-200"
+                                className="px-4 py-2 text-xs bg-danger/20 hover:bg-danger/30 text-danger rounded-xl transition-colors duration-200"
                             >
                                 Retry
                             </button>

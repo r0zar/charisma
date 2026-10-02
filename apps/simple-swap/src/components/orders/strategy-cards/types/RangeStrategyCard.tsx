@@ -73,8 +73,8 @@ export const RangeStrategyCard: React.FC<RangeStrategyCardProps> = (props) => {
     if (!range) {
         return (
             <BaseStrategyCard {...props} onClick={() => onToggleExpansion(id)}>
-                <div className="text-sm text-white/80">Range swap · {orders.length} orders</div>
-                <div className="text-xs text-orange-400">This run has no band settings saved, so the chart and profit can&apos;t be shown.</div>
+                <div className="text-sm text-ink-body">Range swap · {orders.length} orders</div>
+                <div className="text-xs text-accent-text">This run has no band settings saved, so the chart and profit can&apos;t be shown.</div>
             </BaseStrategyCard>
         );
     }
@@ -87,8 +87,8 @@ export const RangeStrategyCard: React.FC<RangeStrategyCardProps> = (props) => {
     if (decA === undefined || decB === undefined) {
         return (
             <BaseStrategyCard {...props} onClick={() => onToggleExpansion(id)}>
-                <div className="text-sm text-white/80">Range swap · {symA} ⇄ {symB} · {orders.length} orders</div>
-                <div className="text-xs text-orange-400">Token decimals are missing for {decA === undefined ? symA : symB}, so amounts and profit can&apos;t be shown.</div>
+                <div className="text-sm text-ink-body">Range swap · {symA} ⇄ {symB} · {orders.length} orders</div>
+                <div className="text-xs text-accent-text">Token decimals are missing for {decA === undefined ? symA : symB}, so amounts and profit can&apos;t be shown.</div>
             </BaseStrategyCard>
         );
     }
@@ -123,62 +123,62 @@ export const RangeStrategyCard: React.FC<RangeStrategyCardProps> = (props) => {
         <BaseStrategyCard {...props} onClick={() => onToggleExpansion(id)}>
             <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
-                    <div className="text-sm font-medium text-white/90">↕ {symA} ⇄ {symB}</div>
-                    <div className="text-xs text-white/60">Range swap · {cadence} · window {currentWindow} of {range.windows} · started {new Date(range.createdAt).toLocaleDateString()}</div>
+                    <div className="text-sm font-medium text-ink">↕ {symA} ⇄ {symB}</div>
+                    <div className="text-xs text-ink-muted">Range swap · {cadence} · window {currentWindow} of {range.windows} · started {new Date(range.createdAt).toLocaleDateString()}</div>
                 </div>
                 <div className="flex items-center gap-2">
-                    {runway && low && <span className="text-xs px-2 py-1 rounded-lg bg-amber-500/15 text-amber-300">{runway.sells < 3 ? `${symA} low · ${runway.sells} sells left` : `${symB} low · ${runway.buys} buys left`}</span>}
+                    {runway && low && <span className="text-xs px-2 py-1 rounded-lg bg-warning/15 text-warning">{runway.sells < 3 ? `${symA} low · ${runway.sells} sells left` : `${symB} low · ${runway.buys} buys left`}</span>}
                     <PremiumStatusBadge status={m.status === 'live' ? 'open' : m.status === 'completed' ? 'confirmed' : 'cancelled'} conditionIcon={null} />
                 </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                <div><div className="text-white/50 uppercase tracking-wider">Realized {seriesError ? '(prices unavailable)' : unpricedLabel(m.unpricedLegs, m.unpricedPairs)}</div><div className={`font-mono text-base ${m.realizedUsd >= 0 ? 'text-green-400' : 'text-orange-400'}`}>{realized}</div></div>
-                <div><div className="text-white/50 uppercase tracking-wider">Cycles done</div><div className="font-mono text-base">{m.cyclesDone} of {m.windowsElapsed} so far</div></div>
-                <div><div className="text-white/50 uppercase tracking-wider">Hit rate</div><div className="font-mono text-base">{m.legsHit} of {m.legsEnded} legs</div></div>
-                <div><div className="text-white/50 uppercase tracking-wider">Sells hit</div><div className="font-mono text-base">{m.sellsHit}{m.unmatchedSells ? ` · ${m.unmatchedSells} unmatched` : ''}</div></div>
-                <div><div className="text-white/50 uppercase tracking-wider">Buys hit</div><div className="font-mono text-base">{m.buysHit}{m.unmatchedBuys ? ` · ${m.unmatchedBuys} unmatched` : ''}</div></div>
-                <div><div className="text-white/50 uppercase tracking-wider">Open position</div><div className="font-mono text-base">{m.openPositionB > 0 ? `+${m.openPositionB.toFixed(2)} ${symB}` : m.openPositionA > 0 ? `+${m.openPositionA.toFixed(2)} ${symA}` : 'flat'}</div></div>
+                <div><div className="text-ink-muted uppercase tracking-wider">Realized {seriesError ? '(prices unavailable)' : unpricedLabel(m.unpricedLegs, m.unpricedPairs)}</div><div className={`font-mono text-base ${m.realizedUsd >= 0 ? 'text-success' : 'text-accent-text'}`}>{realized}</div></div>
+                <div><div className="text-ink-muted uppercase tracking-wider">Cycles done</div><div className="font-mono text-base">{m.cyclesDone} of {m.windowsElapsed} so far</div></div>
+                <div><div className="text-ink-muted uppercase tracking-wider">Hit rate</div><div className="font-mono text-base">{m.legsHit} of {m.legsEnded} legs</div></div>
+                <div><div className="text-ink-muted uppercase tracking-wider">Sells hit</div><div className="font-mono text-base">{m.sellsHit}{m.unmatchedSells ? ` · ${m.unmatchedSells} unmatched` : ''}</div></div>
+                <div><div className="text-ink-muted uppercase tracking-wider">Buys hit</div><div className="font-mono text-base">{m.buysHit}{m.unmatchedBuys ? ` · ${m.unmatchedBuys} unmatched` : ''}</div></div>
+                <div><div className="text-ink-muted uppercase tracking-wider">Open position</div><div className="font-mono text-base">{m.openPositionB > 0 ? `+${m.openPositionB.toFixed(2)} ${symB}` : m.openPositionA > 0 ? `+${m.openPositionA.toFixed(2)} ${symA}` : 'flat'}</div></div>
             </div>
 
             {runway && (
                 <div className="space-y-1 text-xs">
-                    <div className="flex justify-between text-white/60"><span>Runway</span><span>refills as the other side fills</span></div>
-                    <div className="flex justify-between"><span className="text-orange-400">{symA} covers {runway.sells} more sells</span>{runway.sells < 3 && <span className="text-amber-300">low</span>}</div>
-                    <div className="h-1.5 rounded bg-white/[0.08]" aria-hidden="true"><div className="h-full rounded bg-orange-400" style={{ width: `${Math.min(100, runway.sells * 10)}%` }} /></div>
-                    <div className="flex justify-between"><span className="text-green-400">{symB} covers {runway.buys} more buys</span>{runway.buys < 3 && <span className="text-amber-300">low</span>}</div>
-                    <div className="h-1.5 rounded bg-white/[0.08]" aria-hidden="true"><div className="h-full rounded bg-green-400" style={{ width: `${Math.min(100, runway.buys * 10)}%` }} /></div>
+                    <div className="flex justify-between text-ink-muted"><span>Runway</span><span>refills as the other side fills</span></div>
+                    <div className="flex justify-between"><span className="text-accent-text">{symA} covers {runway.sells} more sells</span>{runway.sells < 3 && <span className="text-warning">low</span>}</div>
+                    <div className="h-1.5 rounded bg-surface-hover" aria-hidden="true"><div className="h-full rounded bg-accent" style={{ width: `${Math.min(100, runway.sells * 10)}%` }} /></div>
+                    <div className="flex justify-between"><span className="text-success">{symB} covers {runway.buys} more buys</span>{runway.buys < 3 && <span className="text-warning">low</span>}</div>
+                    <div className="h-1.5 rounded bg-surface-hover" aria-hidden="true"><div className="h-full rounded bg-success" style={{ width: `${Math.min(100, runway.buys * 10)}%` }} /></div>
                 </div>
             )}
 
             <div className="flex items-center justify-center pt-2">
-                <button type="button" aria-expanded={isExpanded} onClick={(e) => { e.stopPropagation(); onToggleExpansion(id); }} className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-white/60 text-xs">
+                <button type="button" aria-expanded={isExpanded} onClick={(e) => { e.stopPropagation(); onToggleExpansion(id); }} className="flex items-center gap-2 px-3 py-1 rounded-lg bg-surface hover:bg-surface-hover text-ink-muted text-xs">
                     <span>{isExpanded ? 'Hide windows' : `Show ${range.windows} windows`}</span>
                     <ChevronDown className={cn('h-3 w-3 transition-transform', isExpanded && 'rotate-180')} />
                 </button>
             </div>
 
             {isExpanded && (
-                <div className="border-t border-white/[0.08] pt-3 space-y-1 text-xs" onClick={(e) => e.stopPropagation()}>
+                <div className="border-t border-line pt-3 space-y-1 text-xs" onClick={(e) => e.stopPropagation()}>
                     {windowsList.map(({ w, sell, buy }) => (
-                        <div key={w} className="grid grid-cols-[44px_1fr_1fr] gap-2 py-1.5 border-b border-dashed border-white/[0.06]">
-                            <span className="font-mono text-white/50">#{w}</span>
+                        <div key={w} className="grid grid-cols-[44px_1fr_1fr] gap-2 py-1.5 border-b border-dashed border-line-soft">
+                            <span className="font-mono text-ink-muted">#{w}</span>
                             {[sell, buy].map((o, k) => o ? (
-                                <span key={o.uuid} className={cn(m.outcomes[o.uuid] === 'hit' ? (k === 0 ? 'text-orange-400' : 'text-green-400') : 'text-white/50')}>
+                                <span key={o.uuid} className={cn(m.outcomes[o.uuid] === 'hit' ? (k === 0 ? 'text-accent-text' : 'text-success') : 'text-ink-muted')}>
                                     {k === 0 ? 'sell ≥' : 'buy ≤'} {Number(o.targetPrice).toLocaleString(undefined, { maximumSignificantDigits: 6 })} · {OUTCOME_LABEL[m.outcomes[o.uuid]]}
                                     {m.outcomes[o.uuid] === 'hit' && o.metadata?.quote?.amountOut !== undefined && o.outputTokenMeta.decimals !== undefined && ` · ${formatTokenAmount(o.metadata.quote.amountOut, o.outputTokenMeta.decimals)} ${o.outputTokenMeta.symbol}`}
                                     {openUuids.includes(o.uuid) && (
-                                        <button type="button" aria-label={`Cancel ${k === 0 ? 'sell' : 'buy'} for window ${w}`} onClick={() => onCancelOrder(o.uuid)} className="ml-2 text-red-400/80 hover:text-red-300">cancel</button>
+                                        <button type="button" aria-label={`Cancel ${k === 0 ? 'sell' : 'buy'} for window ${w}`} onClick={() => onCancelOrder(o.uuid)} className="ml-2 text-danger/80 hover:text-danger">cancel</button>
                                     )}
                                 </span>
-                            ) : <span key={k} className="text-white/30">—</span>)}
+                            ) : <span key={k} className="text-ink-faint">—</span>)}
                         </div>
                     ))}
                     {openUuids.length > 0 && onCancelOrders && (
                         <button
                             type="button"
                             onClick={() => onCancelOrders(openUuids)}
-                            className="mt-2 px-3 py-1.5 rounded-lg border border-red-500/40 text-red-300 hover:bg-red-500/10"
+                            className="mt-2 px-3 py-1.5 rounded-lg border border-danger/40 text-danger hover:bg-danger/10"
                         >
                             Cancel remaining · {openUuids.length} open
                         </button>

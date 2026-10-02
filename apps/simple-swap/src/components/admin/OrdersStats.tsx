@@ -95,10 +95,10 @@ export function OrdersStats({ stats: adminStats }: OrdersStatsProps) {
                         <div className="p-5">
                             <div className="flex items-center">
                                 <div className="flex-shrink-0">
-                                    <div className={`w-8 h-8 rounded-md flex items-center justify-center ${index % 4 === 0 ? 'bg-blue-500/20 text-blue-500' :
-                                        index % 4 === 1 ? 'bg-green-500/20 text-green-500' :
-                                            index % 4 === 2 ? 'bg-purple-500/20 text-purple-500' :
-                                                'bg-orange-500/20 text-orange-500'
+                                    <div className={`w-8 h-8 rounded-md flex items-center justify-center ${index % 4 === 0 ? 'bg-accent/20 text-accent-text' :
+                                        index % 4 === 1 ? 'bg-success/20 text-success' :
+                                            index % 4 === 2 ? 'bg-blaze/20 text-blaze' :
+                                                'bg-accent/20 text-accent-text'
                                         }`}>
                                         <Icon className="w-5 h-5" />
                                     </div>
@@ -112,8 +112,8 @@ export function OrdersStats({ stats: adminStats }: OrdersStatsProps) {
                                             <div className="text-2xl font-semibold text-foreground">
                                                 {stat.value}
                                             </div>
-                                            <div className={`ml-2 flex items-baseline text-sm font-semibold ${stat.changeType === 'positive' ? 'text-green-600' :
-                                                stat.changeType === 'negative' ? 'text-red-600' :
+                                            <div className={`ml-2 flex items-baseline text-sm font-semibold ${stat.changeType === 'positive' ? 'text-success' :
+                                                stat.changeType === 'negative' ? 'text-danger' :
                                                     'text-muted-foreground'
                                                 }`}>
                                                 {stat.change}

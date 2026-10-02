@@ -390,7 +390,7 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                         const balanceInfo = bidBalances[bid.bidId];
 
                         return (
-                            <div key={bid.bidId} className={`p-4 rounded-lg border border-border bg-card ${timeInfo.isVeryRecent ? 'ring-1 ring-green-500/20 bg-green-50/30 dark:bg-green-950/10' : ''
+                            <div key={bid.bidId} className={`p-4 rounded-lg border border-border bg-card ${timeInfo.isVeryRecent ? 'ring-1 ring-success/20 bg-success-soft ' : ''
                                 }`}>
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-start gap-3 flex-1">
@@ -414,16 +414,16 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                                                 <User className="h-3 w-3" />
                                                 <span
                                                     className={getBidderDisplayClass(bid.bidderAddress)}
-                                                    title={bnsNames[bid.bidderAddress] ? `${bnsNames[bid.bidderAddress]} (${bid.bidderAddress})` : bid.bidderAddress}
+ title={bnsNames[bid.bidderAddress] ? `${bnsNames[bid.bidderAddress]} (${bid.bidderAddress})` : bid.bidderAddress}
                                                 >
                                                     {getBidderDisplayName(bid.bidderAddress)}
                                                 </span>
                                                 <Clock className="h-3 w-3 ml-2" />
                                                 <span
                                                     className={`cursor-help ${timeInfo.isVeryRecent
-                                                        ? 'text-green-600 dark:text-green-400 font-medium animate-pulse'
+                                                        ? 'text-success  font-medium animate-pulse'
                                                         : timeInfo.isRecent
-                                                            ? 'text-blue-600 dark:text-blue-400'
+                                                            ? 'text-accent-text '
                                                             : 'text-muted-foreground'
                                                         }`}
                                                     title={timeInfo.absolute}
@@ -457,7 +457,7 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                                                             <div className="animate-pulse">Checking balance...</div>
                                                         </div>
                                                     ) : balanceInfo ? (
-                                                        <div className={`flex items-center gap-1 ${balanceInfo.sufficient ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                                        <div className={`flex items-center gap-1 ${balanceInfo.sufficient ? 'text-success ' : 'text-warning '}`}>
                                                             {balanceInfo.sufficient ? (
                                                                 <>
                                                                     <CheckCircle className="h-3 w-3" />
@@ -516,7 +516,7 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
 
                                 {currentStatus === 'accepted' && (
                                     <div className="mt-3 pt-3 border-t border-border/30 text-xs text-muted-foreground">
-                                        <p className="text-green-600 dark:text-green-400 font-medium">Bid accepted</p>
+                                        <p className="text-success font-medium">Bid accepted</p>
                                         <p>Trade has been executed successfully.</p>
                                         {bid.acceptanceDetails?.txId && (
                                             <div className="mt-2">
@@ -524,7 +524,7 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                                                     href={getExplorerUrl(bid.acceptanceDetails.txId)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                                    className="inline-flex items-center gap-1 text-accent-text hover:underline"
                                                 >
                                                     <ExternalLink className="h-3 w-3" />
                                                     View transaction
@@ -536,14 +536,14 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
 
                                 {currentStatus === 'cancelled' && (
                                     <div className="mt-3 pt-3 border-t border-border/30 text-xs text-muted-foreground">
-                                        <p className="text-amber-600 dark:text-amber-400 font-medium">Bid cancelled</p>
+                                        <p className="text-warning font-medium">Bid cancelled</p>
                                         <p>This bid has been cancelled by the bidder.</p>
                                     </div>
                                 )}
 
                                 {currentStatus === 'rejected' && (
                                     <div className="mt-3 pt-3 border-t border-border/30 text-xs text-muted-foreground">
-                                        <p className="text-red-600 dark:text-red-400 font-medium">Bid rejected</p>
+                                        <p className="text-danger font-medium">Bid rejected</p>
                                         <p>Another bid was accepted for this offer.</p>
                                     </div>
                                 )}

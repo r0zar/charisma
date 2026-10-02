@@ -51,19 +51,19 @@ export const DCAStrategyCard: React.FC<DCAStrategyCardProps> = (props) => {
             {/* Header Row */}
             <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                    <div className="text-sm font-medium text-white/90" title={statusTime.tooltip}>
+                    <div className="text-sm font-medium text-ink" title={statusTime.tooltip}>
                         {statusTime.text}
                     </div>
-                    <div className="text-xs text-white/60">
+                    <div className="text-xs text-ink-muted">
                         {description}
                     </div>
-                    <div className="text-xs text-white/40 font-mono">
+                    <div className="text-xs text-ink-muted font-mono">
                         {id}
                     </div>
                 </div>
                 
                 <div className="flex items-center gap-2">
-                    <span className="text-xs text-white/60 px-2 py-1 rounded-lg bg-white/[0.05]">
+                    <span className="text-xs text-ink-muted px-2 py-1 rounded-lg bg-surface">
                         {orders.length} orders
                     </span>
                     <PremiumStatusBadge 
@@ -81,22 +81,22 @@ export const DCAStrategyCard: React.FC<DCAStrategyCardProps> = (props) => {
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                         <TokenLogo token={{ ...firstOrder.inputTokenMeta, image: firstOrder.inputTokenMeta.image ?? undefined }} size="sm" />
-                        <span className="text-sm font-medium text-white/80">{firstOrder.inputTokenMeta.symbol}</span>
+                        <span className="text-sm font-medium text-ink-body">{firstOrder.inputTokenMeta.symbol}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-white/40">
+                    <div className="flex items-center gap-2 text-ink-muted">
                         <span className="text-lg">→</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <TokenLogo token={{ ...firstOrder.outputTokenMeta, image: firstOrder.outputTokenMeta.image ?? undefined }} size="sm" />
-                        <span className="text-sm font-medium text-white/80">{firstOrder.outputTokenMeta.symbol}</span>
+                        <span className="text-sm font-medium text-ink-body">{firstOrder.outputTokenMeta.symbol}</span>
                     </div>
                 </div>
                 
                 <div className="text-right">
-                    <div className="text-sm font-mono text-white/90">
+                    <div className="text-sm font-mono text-ink">
                         {totalValue}
                     </div>
-                    <div className="text-xs text-white/40">{firstOrder.inputTokenMeta.symbol}</div>
+                    <div className="text-xs text-ink-muted">{firstOrder.inputTokenMeta.symbol}</div>
                 </div>
             </div>
 
@@ -104,11 +104,11 @@ export const DCAStrategyCard: React.FC<DCAStrategyCardProps> = (props) => {
             <div className="flex items-center justify-center pt-2">
                 <button
                     onClick={handleCardClick}
-                    className="flex items-center gap-2 px-3 py-1 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] text-white/60 hover:text-white/80 transition-all duration-200 text-xs hover:transform hover:scale-105"
+                    className="flex items-center gap-2 px-3 py-1 rounded-lg bg-surface hover:bg-surface-hover text-ink-muted hover:text-ink-body transition-all duration-200 text-xs hover:transform hover:scale-105"
                 >
                     <span>{isExpanded ? 'Hide Details' : 'Show Details'}</span>
                     <div className={cn(
-                        "transition-transform duration-300 ease-in-out",
+ "transition-transform duration-300 ease-in-out",
                         isExpanded ? "rotate-180" : "rotate-0"
                     )}>
                         <ChevronDown className="h-3 w-3" />
@@ -118,21 +118,21 @@ export const DCAStrategyCard: React.FC<DCAStrategyCardProps> = (props) => {
 
             {/* Expanded Individual Orders (when expanded) */}
             <div className={cn(
-                "overflow-hidden transition-all duration-500 ease-in-out border-t border-white/[0.08]",
+ "overflow-hidden transition-all duration-500 ease-in-out border-t border-line",
                 isExpanded 
                     ? "max-h-[2000px] opacity-100 mt-4 pt-4" 
                     : "max-h-0 opacity-0 mt-0 pt-0"
             )}>
                 <div className={cn(
-                    "space-y-2 transition-all duration-300 ease-in-out",
+ "space-y-2 transition-all duration-300 ease-in-out",
                     isExpanded ? "transform translate-y-0" : "transform -translate-y-4"
                 )}>
-                    <div className="text-xs font-medium text-white/70 mb-3">Individual Orders ({orders.length})</div>
+                    <div className="text-xs font-medium text-ink-body mb-3">Individual Orders ({orders.length})</div>
                     {orders.map((order, index) => {
                         const isOrderExpanded = expandedRow === order.uuid;
                         
                         return (
-                            <div key={order.uuid} className="relative rounded-2xl border border-white/[0.05] bg-white/[0.01] hover:bg-white/[0.02] transition-all duration-200 hover:shadow-lg hover:shadow-white/[0.02]">
+                            <div key={order.uuid} className="relative rounded-2xl border border-line-soft bg-surface-sunken hover:bg-surface transition-all duration-200 hover:shadow-lg hover:shadow-white/[0.02]">
                                 {/* Order Header */}
                                 <div 
                                     className="p-4 cursor-pointer"
@@ -143,8 +143,8 @@ export const DCAStrategyCard: React.FC<DCAStrategyCardProps> = (props) => {
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="text-xs text-white/60">#{index + 1}</div>
-                                            <div className="text-sm text-white/80">
+                                            <div className="text-xs text-ink-muted">#{index + 1}</div>
+                                            <div className="text-sm text-ink-body">
                                                 {formatTokenAmount(order.amountIn, order.inputTokenMeta.decimals!)} {order.inputTokenMeta.symbol}
                                             </div>
                                         </div>
@@ -160,13 +160,13 @@ export const DCAStrategyCard: React.FC<DCAStrategyCardProps> = (props) => {
 
                                 {/* Expanded Order Details */}
                                 <div className={cn(
-                                    "overflow-hidden transition-all duration-400 ease-in-out",
+ "overflow-hidden transition-all duration-400 ease-in-out",
                                     isOrderExpanded 
                                         ? "max-h-[1500px] opacity-100" 
                                         : "max-h-0 opacity-0"
                                 )}>
                                     <div className={cn(
-                                        "px-4 pb-4 space-y-4 transition-all duration-300 ease-in-out",
+ "px-4 pb-4 space-y-4 transition-all duration-300 ease-in-out",
                                         isOrderExpanded ? "transform translate-y-0 pt-0" : "transform -translate-y-4 pt-0"
                                     )}>
                                         <OrderDetails order={order} copiedId={copiedId} onCopyToClipboard={onCopyToClipboard} />
@@ -174,14 +174,14 @@ export const DCAStrategyCard: React.FC<DCAStrategyCardProps> = (props) => {
 
                                         {/* Action Buttons (for open orders) */}
                                         {order.status === 'open' && (
-                                            <div className="border-t border-white/[0.05] pt-3">
+                                            <div className="border-t border-line-soft pt-3">
                                                 <div className="flex gap-2 justify-end">
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             onExecuteNow(order.uuid);
                                                         }}
-                                                        className="p-2 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/[0.15] text-emerald-400 hover:bg-emerald-500/[0.15] hover:border-emerald-400/[0.3] transition-all duration-200 backdrop-blur-sm cursor-pointer flex items-center gap-2"
+                                                        className="p-2 rounded-xl bg-success/[0.08] border border-success/[0.15] text-success hover:bg-success/[0.15] hover:border-success/[0.3] transition-all duration-200 backdrop-blur-sm cursor-pointer flex items-center gap-2"
                                                     >
                                                         <Zap className="h-3 w-3" />
                                                         <span className="text-xs">Execute Now</span>
@@ -191,7 +191,7 @@ export const DCAStrategyCard: React.FC<DCAStrategyCardProps> = (props) => {
                                                             e.stopPropagation();
                                                             onCancelOrder(order.uuid);
                                                         }}
-                                                        className="p-2 rounded-xl bg-red-500/[0.08] border border-red-500/[0.15] text-red-400 hover:bg-red-500/[0.15] hover:border-red-400/[0.3] transition-all duration-200 backdrop-blur-sm cursor-pointer flex items-center gap-2"
+                                                        className="p-2 rounded-xl bg-danger/[0.08] border border-danger/[0.15] text-danger hover:bg-danger/[0.15] hover:border-danger/[0.3] transition-all duration-200 backdrop-blur-sm cursor-pointer flex items-center gap-2"
                                                     >
                                                         <Trash2 className="h-3 w-3" />
                                                         <span className="text-xs">Cancel</span>

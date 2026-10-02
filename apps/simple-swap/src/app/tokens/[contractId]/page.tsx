@@ -627,8 +627,8 @@ function fmtDelta(delta: number | null) {
 
 function getDeltaColour(delta: number | null) {
     if (delta === null) return "text-muted-foreground";
-    if (delta > 0) return "text-green-600";
-    if (delta < 0) return "text-red-600";
+    if (delta > 0) return "text-success";
+    if (delta < 0) return "text-danger";
     return "";
 }
 

@@ -144,9 +144,9 @@ export default function EnhancedOfferDetails({ offer, subnetTokens, offerTokenMe
                         {" · "}
                         <span
                             className={`cursor-help ${timeInfo.isVeryRecent
-                                ? 'text-green-600 dark:text-green-400 font-medium'
+                                ? 'text-success  font-medium'
                                 : timeInfo.isRecent
-                                    ? 'text-blue-600 dark:text-blue-400'
+                                    ? 'text-accent-text '
                                     : 'text-muted-foreground'
                                 }`}
                             title={timeInfo.absolute}
@@ -195,7 +195,7 @@ export default function EnhancedOfferDetails({ offer, subnetTokens, offerTokenMe
                     </div>
 
                     {offer.status === "filled" && (
-                        <div className="rounded-lg p-3 bg-green-500/10 border border-green-500/20 text-green-700 dark:text-green-400">
+                        <div className="rounded-lg p-3 bg-success/10 border border-success/20 text-success ">
                             <p className="text-sm font-medium">This offer has been filled</p>
                             <p className="text-xs mt-1">
                                 A bid was accepted and the trade has been executed.
@@ -204,7 +204,7 @@ export default function EnhancedOfferDetails({ offer, subnetTokens, offerTokenMe
                     )}
 
                     {offer.status === "cancelled" && (
-                        <div className="rounded-lg p-3 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400">
+                        <div className="rounded-lg p-3 bg-warning/10 border border-warning/20 text-warning ">
                             <p className="text-sm font-medium">This offer has been cancelled</p>
                             <p className="text-xs mt-1">
                                 The creator has cancelled this offer and it is no longer available.
@@ -213,7 +213,7 @@ export default function EnhancedOfferDetails({ offer, subnetTokens, offerTokenMe
                     )}
 
                     {offer.status === "open" && (
-                        <div className="rounded-lg p-3 bg-blue-500/10 border border-blue-500/20 text-blue-700 dark:text-blue-400">
+                        <div className="rounded-lg p-3 bg-accent/10 border border-accent/20 text-accent-text ">
                             <div className="flex items-center gap-2">
                                 <Clock className="h-4 w-4" />
                                 <p className="text-sm font-medium">This offer is active</p>

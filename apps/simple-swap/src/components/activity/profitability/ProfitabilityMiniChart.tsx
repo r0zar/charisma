@@ -127,10 +127,10 @@ export const ProfitabilityMiniChart: React.FC<ProfitabilityMiniChartProps> = ({
   if (data.length === 0) {
     return (
       <div 
-        className={`flex items-center justify-center bg-white/[0.02] rounded ${className}`}
+        className={`flex items-center justify-center bg-surface-sunken rounded ${className}`}
         style={{ height }}
       >
-        <span className="text-xs text-white/40">No data</span>
+        <span className="text-xs text-ink-muted">No data</span>
       </div>
     );
   }

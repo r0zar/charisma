@@ -211,11 +211,10 @@ export default function TokenDropdown({
         open && mounted
             ? createPortal(
                 <div 
-                    className="fixed inset-0 z-[9999] flex flex-col bg-black/80 backdrop-blur-xl"
+                    className="fixed inset-0 z-[9999] flex flex-col bg-bg/90 backdrop-blur-xl"
                     onClick={close}
                 >
                     {/* Multi-layer Background Effects */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/[0.02] via-transparent to-purple-500/[0.03]" />
                     
                     {/* Modal Content */}
                     <div 
@@ -228,18 +227,18 @@ export default function TokenDropdown({
                                 <div className="flex items-center space-x-3 sm:space-x-4">
                                     <button
                                         onClick={close}
-                                        className="h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.15] text-white/70 hover:text-white/90 hover:bg-white/[0.12] transition-all duration-200 flex items-center justify-center backdrop-blur-sm"
+                                        className="h-10 w-10 rounded-xl bg-surface-hover border border-line-strong text-ink-body hover:text-ink hover:bg-surface-selected transition-all duration-200 flex items-center justify-center backdrop-blur-sm"
                                     >
                                         <ArrowLeft className="w-5 h-5" />
                                     </button>
                                     <div>
-                                        <h2 className="text-lg sm:text-xl font-semibold text-white/95">Select Token</h2>
-                                        <p className="text-xs sm:text-sm text-white/60 mt-1">Choose from {tokens.length} available tokens</p>
+                                        <h2 className="text-lg sm:text-xl font-semibold text-ink">Select Token</h2>
+                                        <p className="text-xs sm:text-sm text-ink-muted mt-1">Choose from {tokens.length} available tokens</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={close}
-                                    className="h-10 w-10 rounded-xl bg-white/[0.08] border border-white/[0.15] text-white/70 hover:text-white/90 hover:bg-white/[0.12] transition-all duration-200 flex items-center justify-center backdrop-blur-sm lg:hidden"
+                                    className="h-10 w-10 rounded-xl bg-surface-hover border border-line-strong text-ink-body hover:text-ink hover:bg-surface-selected transition-all duration-200 flex items-center justify-center backdrop-blur-sm lg:hidden"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
@@ -247,18 +246,18 @@ export default function TokenDropdown({
                             
                             {/* Premium Search */}
                             <div className="relative">
-                                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-ink-muted" />
                                 <input
                                     ref={searchInputRef}
                                     placeholder="Search by name, symbol, or address..."
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
-                                    className="w-full pl-12 pr-4 py-4 bg-white/[0.08] border border-white/[0.15] rounded-2xl text-white/95 placeholder:text-white/50 focus:outline-none focus:bg-white/[0.12] focus:border-white/[0.25] transition-all duration-200 text-base backdrop-blur-sm"
+                                    className="w-full pl-12 pr-4 py-4 bg-surface-hover border border-line-strong rounded-2xl text-ink placeholder:text-ink-muted focus:outline-none focus:bg-surface-selected focus:border-line-strong transition-all duration-200 text-base backdrop-blur-sm"
                                 />
                                 {search && (
                                     <button
                                         onClick={() => setSearch("")}
-                                        className="absolute right-4 top-1/2 transform -translate-y-1/2 h-6 w-6 rounded-full bg-white/[0.1] text-white/60 hover:text-white/80 hover:bg-white/[0.15] transition-all duration-200 flex items-center justify-center"
+                                        className="absolute right-4 top-1/2 transform -translate-y-1/2 h-6 w-6 rounded-full bg-surface-hover text-ink-muted hover:text-ink-body hover:bg-surface-selected transition-all duration-200 flex items-center justify-center"
                                     >
                                         <X className="w-3 h-3" />
                                     </button>
@@ -270,11 +269,11 @@ export default function TokenDropdown({
                         <div className="flex-1 overflow-y-auto px-4 sm:px-6 pb-4 sm:pb-6">
                             {filtered.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-64">
-                                    <div className="h-16 w-16 rounded-2xl bg-white/[0.05] border border-white/[0.1] flex items-center justify-center mb-4">
-                                        <Search className="w-6 h-6 text-white/40" />
+                                    <div className="h-16 w-16 rounded-2xl bg-surface border border-line flex items-center justify-center mb-4">
+                                        <Search className="w-6 h-6 text-ink-muted" />
                                     </div>
-                                    <div className="text-white/60 text-lg font-medium">No tokens found</div>
-                                    <div className="text-white/40 text-sm mt-2">Try adjusting your search terms</div>
+                                    <div className="text-ink-muted text-lg font-medium">No tokens found</div>
+                                    <div className="text-ink-muted text-sm mt-2">Try adjusting your search terms</div>
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 gap-2 sm:gap-3">
@@ -284,14 +283,10 @@ export default function TokenDropdown({
                                             onClick={() => handleSelect(token)}
                                             className={`group relative cursor-pointer rounded-xl sm:rounded-2xl p-3 sm:p-4 transition-all duration-200 border backdrop-blur-sm ${
                                                 selected?.contractId === token.contractId
-                                                    ? "bg-white/[0.12] border-white/[0.2] shadow-lg"
-                                                    : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.08] hover:border-white/[0.15] hover:shadow-lg"
+                                                    ? "bg-surface-selected border-accent-line shadow-lg"
+                                                    : "bg-surface border-line hover:bg-surface-hover hover:border-line-strong hover:shadow-lg"
                                             }`}
                                         >
-                                            {/* Selection Glow Effect */}
-                                            {selected?.contractId === token.contractId && (
-                                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/[0.1] to-purple-500/[0.1] pointer-events-none" />
-                                            )}
                                             
                                             <div className="relative flex items-center justify-between gap-2">
                                                 <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
@@ -299,8 +294,8 @@ export default function TokenDropdown({
                                                     <div className="relative flex-shrink-0">
                                                         <TokenLogo token={token} size="lg" suppressFlame={suppressFlame} />
                                                         {token.type === 'SUBNET' && (
-                                                            <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-purple-500 rounded-full border-2 border-white/20 flex items-center justify-center">
-                                                                <div className="h-1.5 w-1.5 bg-white rounded-full" />
+                                                            <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-blaze rounded-full border-2 border-line-strong flex items-center justify-center">
+                                                                <div className="h-1.5 w-1.5 bg-ink rounded-full" />
                                                             </div>
                                                         )}
                                                     </div>
@@ -308,15 +303,15 @@ export default function TokenDropdown({
                                                     {/* Token Info */}
                                                     <div className="flex-1 min-w-0">
                                                         <div className="flex items-center space-x-3 mb-1">
-                                                            <h3 className="font-semibold text-white/95 text-sm sm:text-base">{token.symbol}</h3>
+                                                            <h3 className="font-semibold text-ink text-sm sm:text-base">{token.symbol}</h3>
                                                             {token.type === 'SUBNET' && (
-                                                                <div className="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-md font-medium border border-purple-500/30">
+                                                                <div className="px-2 py-1 bg-blaze/20 text-blaze text-xs rounded-md font-medium border border-blaze/30">
                                                                     SUBNET
                                                                 </div>
                                                             )}
                                                         </div>
-                                                        <p className="text-xs sm:text-sm text-white/60 truncate">{token.name}</p>
-                                                        <p className="text-xs text-white/40 truncate font-mono mt-1 hidden sm:block">{token.contractId}</p>
+                                                        <p className="text-xs sm:text-sm text-ink-muted truncate">{token.name}</p>
+                                                        <p className="text-xs text-ink-muted truncate font-mono mt-1 hidden sm:block">{token.contractId}</p>
                                                     </div>
                                                 </div>
                                                 
@@ -338,7 +333,7 @@ export default function TokenDropdown({
                                                                     <>
                                                                         {/* USD Value */}
                                                                         {usdValue > 0 && (
-                                                                            <div className="text-sm sm:text-base font-bold text-green-400 mb-1">
+                                                                            <div className="text-sm sm:text-base font-bold text-success mb-1">
                                                                                 ${usdValue >= 1000000
                                                                                     ? `${(usdValue / 1000000).toFixed(2)}M`
                                                                                     : usdValue >= 1000
@@ -349,10 +344,10 @@ export default function TokenDropdown({
                                                                         )}
 
                                                                         {/* Subnet Balance (primary in subnet mode) */}
-                                                                        <div className="text-sm sm:text-base font-semibold text-white/90">
+                                                                        <div className="text-sm sm:text-base font-semibold text-ink">
                                                                             {subnetBalance || '0'}
                                                                         </div>
-                                                                        <div className="text-xs text-white/40">
+                                                                        <div className="text-xs text-ink-muted">
                                                                             on subnet
                                                                         </div>
                                                                     </>
@@ -363,7 +358,7 @@ export default function TokenDropdown({
                                                                 <>
                                                                     {/* USD Value */}
                                                                     {usdValue > 0 && (
-                                                                        <div className="text-sm sm:text-base font-bold text-green-400 mb-1">
+                                                                        <div className="text-sm sm:text-base font-bold text-success mb-1">
                                                                             ${usdValue >= 1000000
                                                                                 ? `${(usdValue / 1000000).toFixed(2)}M`
                                                                                 : usdValue >= 1000
@@ -374,11 +369,11 @@ export default function TokenDropdown({
                                                                     )}
 
                                                                     {/* Token Balance */}
-                                                                    <div className="text-sm sm:text-base font-semibold text-white/90">
+                                                                    <div className="text-sm sm:text-base font-semibold text-ink">
                                                                         {mainnet || '0'}
                                                                     </div>
                                                                     {hasSubnet && (
-                                                                        <div className="text-xs sm:text-sm text-purple-400 font-medium">
+                                                                        <div className="text-xs sm:text-sm text-blaze font-medium">
                                                                             +{subnet}
                                                                         </div>
                                                                     )}
@@ -402,7 +397,7 @@ export default function TokenDropdown({
     return (
         <div className="relative w-full">
             {label && (
-                <label className="mb-2 block text-xs font-medium text-white/70">
+                <label className="mb-2 block text-xs font-medium text-ink-body">
                     {label}
                 </label>
             )}
@@ -411,34 +406,34 @@ export default function TokenDropdown({
             <button
                 type="button"
                 onClick={() => { setOpen(true); if (onForceOpenChange) onForceOpenChange(false); }}
-                className="group relative w-full flex items-center justify-between p-3 bg-transparent hover:bg-white/[0.03] border-none cursor-pointer transition-all duration-200 rounded-xl"
+                className="group relative w-full flex items-center justify-between p-3 bg-transparent hover:bg-surface border-none cursor-pointer transition-all duration-200 rounded-xl"
             >
                 {selected ? (
                     <div className="flex items-center space-x-3 flex-1">
                         <div className="relative">
                             <TokenLogo token={selected} size="sm" suppressFlame={suppressFlame} />
                             {selected.type === 'SUBNET' && (
-                                <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 bg-purple-500 rounded-full border border-white/20" />
+                                <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 bg-blaze rounded-full border border-line-strong" />
                             )}
                         </div>
                         <div className="text-left">
-                            <div className="font-semibold text-white/95 text-sm">{selected.symbol}</div>
-                            <div className="text-xs text-white/60">{selected.name}</div>
+                            <div className="font-semibold text-ink text-sm">{selected.symbol}</div>
+                            <div className="text-xs text-ink-muted">{selected.name}</div>
                         </div>
                     </div>
                 ) : (
                     <div className="flex items-center space-x-3 flex-1">
-                        <div className="h-8 w-8 rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center">
-                            <span className="text-white/50 text-xs">?</span>
+                        <div className="h-8 w-8 rounded-full bg-surface border border-line flex items-center justify-center">
+                            <span className="text-ink-muted text-xs">?</span>
                         </div>
                         <div className="text-left">
-                            <div className="text-white/60 text-sm">Select token</div>
-                            <div className="text-white/40 text-xs">Choose from list</div>
+                            <div className="text-ink-muted text-sm">Select token</div>
+                            <div className="text-ink-muted text-xs">Choose from list</div>
                         </div>
                     </div>
                 )}
                 
-                <ChevronDown className="w-4 h-4 text-white/60 group-hover:text-white/80 transition-all duration-200" />
+                <ChevronDown className="w-4 h-4 text-ink-muted group-hover:text-ink-body transition-all duration-200" />
             </button>
 
             {modal}

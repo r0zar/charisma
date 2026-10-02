@@ -312,9 +312,9 @@ export default function PortfolioSettings() {
   if (!connected || !address) {
     return (
       <div className="text-center py-8">
-        <Wallet className="w-16 h-16 mx-auto mb-4 text-white/40" />
-        <h3 className="text-xl font-medium text-white/90 mb-2">Wallet Not Connected</h3>
-        <p className="text-white/60">
+        <Wallet className="w-16 h-16 mx-auto mb-4 text-ink-muted" />
+        <h3 className="text-xl font-medium text-ink mb-2">Wallet Not Connected</h3>
+        <p className="text-ink-muted">
           Please connect your wallet to view your portfolio and token balances.
         </p>
       </div>
@@ -324,15 +324,15 @@ export default function PortfolioSettings() {
   return (
     <div className="space-y-6">
       {/* Portfolio Overview */}
-      <Card className="bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-blue-500/20 backdrop-blur-sm">
+      <Card className="bg-gradient-to-br from-accent/10 to-accent/10 border-accent/20 backdrop-blur-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white/95 flex items-center">
+              <CardTitle className="text-ink flex items-center">
                 <Wallet className="w-5 h-5 mr-2" />
                 Portfolio Overview
               </CardTitle>
-              <CardDescription className="text-white/70">
+              <CardDescription className="text-ink-body">
                 Real-time portfolio analytics with live price updates
               </CardDescription>
             </div>
@@ -340,9 +340,9 @@ export default function PortfolioSettings() {
             {/* Wallet Selector */}
             {(watchedAddresses.length > 0) && (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-white/60">View:</span>
+                <span className="text-sm text-ink-muted">View:</span>
                 <Select value={selectedWallet} onValueChange={setSelectedWallet}>
-                  <SelectTrigger className="w-48 bg-white/[0.05] border-white/[0.10] text-white/90">
+                  <SelectTrigger className="w-48 bg-surface border-line text-ink">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-background border-border">
@@ -365,14 +365,14 @@ export default function PortfolioSettings() {
         </CardHeader>
         <CardContent>
           {balancesLoading && (
-            <div className="mb-4 p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+            <div className="mb-4 p-4 bg-accent/10 border border-accent/20 rounded-xl">
               <div className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                <div className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
                 </div>
                 <div>
-                  <h4 className="text-blue-200 font-medium mb-1">Loading Portfolio Data</h4>
-                  <p className="text-blue-200/70 text-sm">
+                  <h4 className="text-accent-text font-medium mb-1">Loading Portfolio Data</h4>
+                  <p className="text-accent-text/70 text-sm">
                     Fetching token balances and price data from blockchain...
                   </p>
                 </div>
@@ -381,48 +381,48 @@ export default function PortfolioSettings() {
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            <div className="bg-white/[0.03] rounded-xl p-3 sm:p-4 border border-white/[0.08]">
+            <div className="bg-surface rounded-xl p-3 sm:p-4 border border-line">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-white/60 text-xs sm:text-sm">Total Value</p>
-                  <p className="text-xl sm:text-2xl font-bold text-white/95 truncate">
+                  <p className="text-ink-muted text-xs sm:text-sm">Total Value</p>
+                  <p className="text-xl sm:text-2xl font-bold text-ink truncate">
                     {formatCurrency(currentWalletData.totalValue)}
                   </p>
                 </div>
-                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-400 flex-shrink-0" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-success flex-shrink-0" />
               </div>
             </div>
 
-            <div className="bg-white/[0.03] rounded-xl p-3 sm:p-4 border border-white/[0.08]">
+            <div className="bg-surface rounded-xl p-3 sm:p-4 border border-line">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-white/60 text-xs sm:text-sm">Total Tokens</p>
-                  <p className="text-xl sm:text-2xl font-bold text-white/95">
+                  <p className="text-ink-muted text-xs sm:text-sm">Total Tokens</p>
+                  <p className="text-xl sm:text-2xl font-bold text-ink">
                     {currentWalletData.tokens.length}
                   </p>
                 </div>
-                <Hash className="w-6 h-6 sm:w-8 sm:h-8 text-blue-400 flex-shrink-0" />
+                <Hash className="w-6 h-6 sm:w-8 sm:h-8 text-accent-text flex-shrink-0" />
               </div>
             </div>
 
-            <div className="bg-white/[0.03] rounded-xl p-3 sm:p-4 border border-white/[0.08] sm:col-span-2 lg:col-span-1">
+            <div className="bg-surface rounded-xl p-3 sm:p-4 border border-line sm:col-span-2 lg:col-span-1">
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="text-white/60 text-xs sm:text-sm">Data Status</p>
+                  <p className="text-ink-muted text-xs sm:text-sm">Data Status</p>
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${!balancesLoading && !pricesLoading && !metadataLoading ? 'bg-green-400' : 'bg-yellow-400'}`} />
-                    <p className="text-white/95 font-medium text-sm sm:text-base">
+                    <div className={`w-2 h-2 rounded-full ${!balancesLoading && !pricesLoading && !metadataLoading ? 'bg-success' : 'bg-warning'}`} />
+                    <p className="text-ink font-medium text-sm sm:text-base">
                       {!balancesLoading && !pricesLoading && !metadataLoading ? 'Updated' : 'Loading'}
                     </p>
                   </div>
                 </div>
-                <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400 flex-shrink-0" />
+                <Activity className="w-6 h-6 sm:w-8 sm:h-8 text-blaze flex-shrink-0" />
               </div>
             </div>
           </div>
 
           <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-            <div className="text-xs sm:text-sm text-white/60">
+            <div className="text-xs sm:text-sm text-ink-muted">
               Last updated: {formatDate(Math.max(pricesLastUpdate, balancesLastUpdate, metadataLastUpdate))}
             </div>
             <div className="flex flex-wrap gap-2">
@@ -435,7 +435,7 @@ export default function PortfolioSettings() {
                 onClick={() => window.location.reload()}
                 variant="outline"
                 size="sm"
-                className="border-white/20 text-white/70 hover:text-white/90"
+                className="border-line-strong text-ink-body hover:text-ink"
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Refresh</span>
@@ -444,7 +444,7 @@ export default function PortfolioSettings() {
                 onClick={() => setShowDebugModal(true)}
                 variant="outline"
                 size="sm"
-                className="border-white/20 text-white/70 hover:text-white/90"
+                className="border-line-strong text-ink-body hover:text-ink"
               >
                 <Info className="w-4 h-4 mr-2" />
                 <span className="hidden sm:inline">Debug Info</span>
@@ -456,23 +456,23 @@ export default function PortfolioSettings() {
 
       {/* Watched Addresses */}
       {watchedAddresses.length > 0 && (
-        <Card className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm">
+        <Card className="bg-surface border border-line backdrop-blur-sm">
           <CardHeader>
-            <CardTitle className="text-white/95 flex items-center">
+            <CardTitle className="text-ink flex items-center">
               <Eye className="w-5 h-5 mr-2" />
               Watched Addresses ({watchedAddresses.length})
             </CardTitle>
-            <CardDescription className="text-white/70">
+            <CardDescription className="text-ink-body">
               Additional wallet addresses you're monitoring
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
               {watchedAddresses.map((addr, index) => (
-                <div key={addr} className="flex items-center justify-between p-3 bg-white/[0.02] rounded-lg border border-white/[0.05]">
-                  <code className="text-sm font-mono text-white/90">{addr}</code>
+                <div key={addr} className="flex items-center justify-between p-3 bg-surface-sunken rounded-lg border border-line-soft">
+                  <code className="text-sm font-mono text-ink">{addr}</code>
                   <div className="flex gap-2">
-                    <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400 bg-blue-500/10">
+                    <Badge variant="outline" className="text-xs border-accent/30 text-accent-text bg-accent/10">
                       Watching
                     </Badge>
                   </div>
@@ -484,17 +484,17 @@ export default function PortfolioSettings() {
       )}
 
       {/* Search and Filters */}
-      <Card className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm">
+      <Card className="bg-surface border border-line backdrop-blur-sm">
         <CardContent className="p-4 mt-6">
           <div className="space-y-4">
             {/* Search Input */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/40" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-ink-muted" />
               <Input
                 placeholder="Search tokens by name, symbol, or contract..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-white/[0.05] border-white/[0.10] text-white/90 placeholder:text-white/40"
+                className="pl-10 bg-surface border-line text-ink placeholder:text-ink-muted"
               />
             </div>
 
@@ -508,34 +508,34 @@ export default function PortfolioSettings() {
                       type="checkbox"
                       checked={hideZeroBalances}
                       onChange={(e) => setHideZeroBalances(e.target.checked)}
-                      className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                      className="w-4 h-4 rounded border-line-strong bg-surface-hover text-accent-text focus:ring-accent focus:ring-offset-0"
                     />
-                    <span className="text-xs sm:text-sm text-white/70">Hide zero balances</span>
+                    <span className="text-xs sm:text-sm text-ink-body">Hide zero balances</span>
                   </label>
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={hideDustAmounts}
                       onChange={(e) => setHideDustAmounts(e.target.checked)}
-                      className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                      className="w-4 h-4 rounded border-line-strong bg-surface-hover text-accent-text focus:ring-accent focus:ring-offset-0"
                     />
-                    <span className="text-xs sm:text-sm text-white/70">Hide dust (&lt;$0.01)</span>
+                    <span className="text-xs sm:text-sm text-ink-body">Hide dust (&lt;$0.01)</span>
                   </label>
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={privacyMode}
                       onChange={(e) => togglePrivacyMode()}
-                      className="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+                      className="w-4 h-4 rounded border-line-strong bg-surface-hover text-accent-text focus:ring-accent focus:ring-offset-0"
                     />
-                    <span className="text-xs sm:text-sm text-white/70">Privacy mode</span>
+                    <span className="text-xs sm:text-sm text-ink-body">Privacy mode</span>
                   </label>
                 </div>
               </div>
               
               {/* Sort Controls */}
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                <span className="text-xs text-white/60 font-medium">Sort by:</span>
+                <span className="text-xs text-ink-muted font-medium">Sort by:</span>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
@@ -548,7 +548,7 @@ export default function PortfolioSettings() {
                         setSortOrder('desc');
                       }
                     }}
-                    className={`border-white/20 text-white/70 hover:text-white/90 transition-all duration-200 ${sortBy === 'value' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' : ''
+                    className={`border-line-strong text-ink-body hover:text-ink transition-all duration-200 ${sortBy === 'value' ? 'bg-accent/20 border-accent/30 text-accent-text' : ''
                       }`}
                   >
                     Value
@@ -569,7 +569,7 @@ export default function PortfolioSettings() {
                         setSortOrder('desc');
                       }
                     }}
-                    className={`border-white/20 text-white/70 hover:text-white/90 transition-all duration-200 ${sortBy === 'balance' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' : ''
+                    className={`border-line-strong text-ink-body hover:text-ink transition-all duration-200 ${sortBy === 'balance' ? 'bg-accent/20 border-accent/30 text-accent-text' : ''
                       }`}
                   >
                     Balance
@@ -590,7 +590,7 @@ export default function PortfolioSettings() {
                         setSortOrder('asc');
                       }
                     }}
-                    className={`border-white/20 text-white/70 hover:text-white/90 transition-all duration-200 ${sortBy === 'name' ? 'bg-blue-500/20 border-blue-500/30 text-blue-400' : ''
+                    className={`border-line-strong text-ink-body hover:text-ink transition-all duration-200 ${sortBy === 'name' ? 'bg-accent/20 border-accent/30 text-accent-text' : ''
                       }`}
                   >
                     Name
@@ -607,20 +607,20 @@ export default function PortfolioSettings() {
       </Card>
 
       {/* Token Balances */}
-      <Card className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm">
+      <Card className="bg-surface border border-line backdrop-blur-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-white/95 flex items-center">
+              <CardTitle className="text-ink flex items-center">
                 <Hash className="w-5 h-5 mr-2" />
                 Token Balances
                 {selectedWallet !== 'all' && (
-                  <span className="ml-2 text-sm font-normal text-white/60">
+                  <span className="ml-2 text-sm font-normal text-ink-muted">
                     ({selectedWallet.slice(0, 8)}...{selectedWallet.slice(-4)})
                   </span>
                 )}
               </CardTitle>
-              <CardDescription className="text-white/70">
+              <CardDescription className="text-ink-body">
                 {selectedWallet === 'all' 
                   ? 'Combined token holdings from all wallets with real-time prices'
                   : 'Token holdings with real-time prices and values'
@@ -628,7 +628,7 @@ export default function PortfolioSettings() {
               </CardDescription>
             </div>
             {filteredTokens.length > 0 && (
-              <Badge variant="outline" className="border-white/20 text-white/70">
+              <Badge variant="outline" className="border-line-strong text-ink-body">
                 {filteredTokens.length} token{filteredTokens.length !== 1 ? 's' : ''}
                 {(hideZeroBalances || hideDustAmounts || searchTerm) && 
                   ` (${currentWalletData.tokens.length} total)`
@@ -640,13 +640,13 @@ export default function PortfolioSettings() {
         <CardContent>
           {filteredTokens.length === 0 ? (
             <div className="text-center py-12">
-              <div className="w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center mx-auto mb-6">
-                <Wallet className="w-10 h-10 text-white/40" />
+              <div className="w-20 h-20 rounded-2xl bg-surface border border-line flex items-center justify-center mx-auto mb-6">
+                <Wallet className="w-10 h-10 text-ink-muted" />
               </div>
-              <h3 className="text-lg font-medium text-white/90 mb-2">
+              <h3 className="text-lg font-medium text-ink mb-2">
                 {searchTerm ? 'No matching tokens' : 'No token balances'}
               </h3>
-              <p className="text-white/60 max-w-md mx-auto">
+              <p className="text-ink-muted max-w-md mx-auto">
                 {searchTerm ? 'Try adjusting your search terms or clearing the search filter.' : 'Once you have token balances, they will appear here with real-time pricing.'}
               </p>
             </div>
@@ -656,7 +656,7 @@ export default function PortfolioSettings() {
                 {filteredTokens.map((token, index) => (
                   <div
                     key={token.contractId}
-                    className="group p-4 bg-white/[0.02] rounded-xl border border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.10] transition-all duration-200 cursor-pointer"
+                    className="group p-4 bg-surface-sunken rounded-xl border border-line-soft hover:bg-surface-hover hover:border-line transition-all duration-200 cursor-pointer"
                     onClick={() => setSelectedToken(token)}
                   >
                     <div className="flex items-start justify-between gap-3">
@@ -667,21 +667,21 @@ export default function PortfolioSettings() {
                           className="transition-all duration-200 flex-shrink-0"
                         />
                         <div className="min-w-0 flex-1">
-                          <h3 className="font-semibold text-white/95 group-hover:text-white transition-colors duration-200 truncate">
+                          <h3 className="font-semibold text-ink group-hover:text-ink transition-colors duration-200 truncate">
                             {token.name}
                           </h3>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm text-white/60 group-hover:text-white/70 transition-colors duration-200">
+                            <p className="text-sm text-ink-muted group-hover:text-ink-body transition-colors duration-200">
                               {token.symbol}
                             </p>
                             <div className="flex items-center gap-1">
                               {token.hasMainnet && (
-                                <Badge variant="outline" className="text-xs border-blue-500/30 text-blue-400 bg-blue-500/10 px-1.5 py-0.5">
+                                <Badge variant="outline" className="text-xs border-accent/30 text-accent-text bg-accent/10 px-1.5 py-0.5">
                                   Main
                                 </Badge>
                               )}
                               {token.hasSubnet && (
-                                <Badge variant="outline" className="text-xs border-purple-500/30 text-purple-400 bg-purple-500/10 px-1.5 py-0.5">
+                                <Badge variant="outline" className="text-xs border-blaze/30 text-blaze bg-blaze/10 px-1.5 py-0.5">
                                   <Zap className="w-2.5 h-2.5 mr-0.5" />
                                   Sub
                                 </Badge>
@@ -692,19 +692,19 @@ export default function PortfolioSettings() {
                       </div>
 
                       <div className="text-right flex-shrink-0">
-                        <p className="font-semibold text-white/95 group-hover:text-white transition-colors duration-200 text-sm sm:text-base">
+                        <p className="font-semibold text-ink group-hover:text-ink transition-colors duration-200 text-sm sm:text-base">
                           {formatCurrency(token.totalUsdValue)}
                         </p>
-                        <div className="text-xs sm:text-sm text-white/60 group-hover:text-white/70 transition-colors duration-200 space-y-0.5 mt-1">
+                        <div className="text-xs sm:text-sm text-ink-muted group-hover:text-ink-body transition-colors duration-200 space-y-0.5 mt-1">
                           {token.hasMainnet && (
                             <div className="flex items-center justify-end gap-1">
-                              <span className="text-blue-400">Main:</span>
+                              <span className="text-accent-text">Main:</span>
                               <span className="truncate max-w-20 sm:max-w-none">{formatCompactBalance(token.formattedBalance, token.symbol || 'TKN')}</span>
                             </div>
                           )}
                           {token.hasSubnet && (
                             <div className="flex items-center justify-end gap-1">
-                              <span className="text-purple-400">Sub:</span>
+                              <span className="text-blaze">Sub:</span>
                               <span className="truncate max-w-20 sm:max-w-none">{formatCompactBalance(token.formattedSubnetBalance || 0, token.symbol || 'TKN')}</span>
                             </div>
                           )}
@@ -775,10 +775,10 @@ export default function PortfolioSettings() {
                   <p className="text-sm text-muted-foreground mb-2">Balance Breakdown</p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {selectedToken.hasMainnet && (
-                      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                      <div className="bg-accent/10 border border-accent/20 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-1">
-                          <div className="w-2 h-2 bg-blue-400 rounded-full" />
-                          <p className="text-sm font-medium text-blue-400">Mainnet Balance</p>
+                          <div className="w-2 h-2 bg-accent rounded-full" />
+                          <p className="text-sm font-medium text-accent-text">Mainnet Balance</p>
                         </div>
                         <p className="font-mono text-foreground text-lg">
                           {formatCompactBalance(selectedToken.formattedBalance, selectedToken.symbol || 'TKN')}
@@ -789,10 +789,10 @@ export default function PortfolioSettings() {
                       </div>
                     )}
                     {selectedToken.hasSubnet && (
-                      <div className="bg-purple-500/10 border border-purple-500/20 rounded-lg p-3">
+                      <div className="bg-blaze/10 border border-blaze/20 rounded-lg p-3">
                         <div className="flex items-center gap-2 mb-1">
-                          <Zap className="w-3 h-3 text-purple-400" />
-                          <p className="text-sm font-medium text-purple-400">Subnet Balance</p>
+                          <Zap className="w-3 h-3 text-blaze" />
+                          <p className="text-sm font-medium text-blaze">Subnet Balance</p>
                         </div>
                         <p className="font-mono text-foreground text-lg">
                           {formatCompactBalance(selectedToken.formattedSubnetBalance || 0, selectedToken.symbol || 'TKN')}
@@ -810,13 +810,13 @@ export default function PortfolioSettings() {
                   <div className="flex items-center gap-3 mt-1">
                     {selectedToken.hasMainnet && (
                       <div className="flex items-center gap-1">
-                        <div className="w-2 h-2 bg-blue-400 rounded-full" />
+                        <div className="w-2 h-2 bg-accent rounded-full" />
                         <span className="text-sm text-foreground">Mainnet</span>
                       </div>
                     )}
                     {selectedToken.hasSubnet && (
                       <div className="flex items-center gap-1">
-                        <Zap className="w-3 h-3 text-purple-400" />
+                        <Zap className="w-3 h-3 text-blaze" />
                         <span className="text-sm text-foreground">Subnet</span>
                       </div>
                     )}

@@ -214,9 +214,9 @@ export default function ApiKeysSettings() {
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      active: 'bg-green-500/20 text-green-400 border-green-500/30',
-      suspended: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-      revoked: 'bg-red-500/20 text-red-400 border-red-500/30'
+      active: 'bg-success/20 text-success border-success/30',
+      suspended: 'bg-warning/20 text-warning border-warning/30',
+      revoked: 'bg-danger/20 text-danger border-danger/30'
     };
     return variants[status as keyof typeof variants] || variants.active;
   };
@@ -226,13 +226,13 @@ export default function ApiKeysSettings() {
       {/* Header Actions */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-white/70 text-sm">
+          <p className="text-ink-body text-sm">
             Create and manage API keys for automated trading and order execution.
           </p>
         </div>
         <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button className="bg-accent hover:bg-accent text-on-accent">
               <Plus className="w-4 h-4 mr-2" />
               Create API Key
             </Button>
@@ -308,7 +308,7 @@ export default function ApiKeysSettings() {
                 <Button
                   onClick={createApiKey}
                   disabled={creating || !formData.name.trim() || formData.permissions.length === 0}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-accent hover:bg-accent"
                 >
                   {creating ? 'Creating...' : 'Create Key'}
                 </Button>
@@ -320,40 +320,40 @@ export default function ApiKeysSettings() {
 
       {/* New API Key Display */}
       {newApiKey && (
-        <Card className="bg-green-500/10 border-green-500/30">
+        <Card className="bg-success/10 border-success/30">
           <CardHeader>
-            <CardTitle className="text-green-400 flex items-center">
+            <CardTitle className="text-success flex items-center">
               <CheckCircle className="w-5 h-5 mr-2" />
               API Key Created Successfully
             </CardTitle>
-            <CardDescription className="text-green-300/80">
+            <CardDescription className="text-success/80">
               Copy your API key now - it will not be shown again for security reasons.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center gap-2 p-3 bg-black/30 rounded-xl border border-green-500/20">
-              <code className="flex-1 text-green-400 text-sm font-mono break-all">
+            <div className="flex items-center gap-2 p-3 bg-chrome rounded-xl border border-success/20">
+              <code className="flex-1 text-success text-sm font-mono break-all">
                 {showNewKey ? newApiKey : '•'.repeat(48)}
               </code>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => setShowNewKey(!showNewKey)}
-                className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+                className="border-success/30 text-success hover:bg-success/10"
               >
                 {showNewKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </Button>
               <Button
                 size="sm"
                 onClick={() => copyToClipboard(newApiKey)}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-success hover:bg-success"
               >
                 <Copy className="w-4 h-4" />
               </Button>
             </div>
             <Button
               onClick={() => setNewApiKey(null)}
-              className="mt-3 w-full bg-green-600 hover:bg-green-700"
+              className="mt-3 w-full bg-success hover:bg-success"
             >
               I've copied the key safely
             </Button>
@@ -375,7 +375,7 @@ export default function ApiKeysSettings() {
         <CardContent>
           {loading ? (
             <div className="text-center py-8">
-              <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+              <div className="animate-spin w-8 h-8 border-2 border-accent border-t-transparent rounded-full mx-auto mb-4"></div>
               <p className="text-muted-foreground">Loading API keys...</p>
             </div>
           ) : apiKeys.length === 0 ? (
@@ -406,7 +406,7 @@ export default function ApiKeysSettings() {
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold text-foreground">{key.name}</h3>
                         <Badge className={getStatusBadge(key.status)}>
-                          {key.status}
+ {key.status}
                         </Badge>
                       </div>
 
@@ -486,7 +486,7 @@ export default function ApiKeysSettings() {
                         variant="outline"
                         onClick={() => deleteApiKey(key.id, key.name)}
                         disabled={key.status !== 'active'}
-                        className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                        className="border-danger/30 text-danger hover:bg-danger/10"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -500,13 +500,13 @@ export default function ApiKeysSettings() {
       </Card>
 
       {/* Security Notice */}
-      <Card className="bg-yellow-500/10 border-yellow-500/30 pt-6">
+      <Card className="bg-warning/10 border-warning/30 pt-6">
         <CardContent className="p-4">
           <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-yellow-400 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-warning mt-0.5" />
             <div>
-              <h4 className="text-yellow-400 font-semibold">Security Best Practices</h4>
-              <ul className="text-yellow-300/80 text-sm mt-1 space-y-1">
+              <h4 className="text-warning font-semibold">Security Best Practices</h4>
+              <ul className="text-warning/80 text-sm mt-1 space-y-1">
                 <li>• Store API keys securely and never commit them to version control</li>
                 <li>• Use environment variables for production deployments</li>
                 <li>• Rotate keys regularly (monthly recommended)</li>

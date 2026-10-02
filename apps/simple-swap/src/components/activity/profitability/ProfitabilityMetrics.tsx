@@ -20,9 +20,9 @@ export const ProfitabilityMetricsComponent: React.FC<ProfitabilityMetricsProps> 
   const isSignificant = Math.abs(currentPnL.percentage) >= 1; // More than 1%
   
   const getColorClass = (value: number) => {
-    if (value > 0) return 'text-emerald-400';
-    if (value < 0) return 'text-red-400';
-    return 'text-gray-400';
+    if (value > 0) return 'text-success';
+    if (value < 0) return 'text-danger';
+    return 'text-ink-muted';
   };
   
   const getIcon = (value: number) => {
@@ -58,7 +58,7 @@ export const ProfitabilityMetricsComponent: React.FC<ProfitabilityMetricsProps> 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <CurrentIcon className={`w-4 h-4 ${getColorClass(currentPnL.percentage)}`} />
-          <span className="text-white/60 text-sm">Current P&L:</span>
+          <span className="text-ink-muted text-sm">Current P&L:</span>
         </div>
         <div className="text-right">
           <div className={`text-sm font-medium ${getColorClass(currentPnL.percentage)}`}>
@@ -77,14 +77,14 @@ export const ProfitabilityMetricsComponent: React.FC<ProfitabilityMetricsProps> 
       {/* Current P&L */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className={`p-2 rounded-lg ${isProfit ? 'bg-emerald-500/10' : 'bg-red-500/10'}`}>
+          <div className={`p-2 rounded-lg ${isProfit ? 'bg-success/10' : 'bg-danger/10'}`}>
             {React.createElement(getIcon(currentPnL.percentage), {
               className: `w-5 h-5 ${getColorClass(currentPnL.percentage)}`
             })}
           </div>
           <div>
-            <div className="text-white/90 font-medium">Current P&L</div>
-            <div className="text-white/60 text-sm">
+            <div className="text-ink font-medium">Current P&L</div>
+            <div className="text-ink-muted text-sm">
               Held for {formatTimeHeld(metrics.timeHeld)}
             </div>
           </div>
@@ -101,19 +101,19 @@ export const ProfitabilityMetricsComponent: React.FC<ProfitabilityMetricsProps> 
 
       {/* Performance Range */}
       <div className="space-y-3">
-        <div className="text-white/60 text-sm font-medium">Performance Range</div>
+        <div className="text-ink-muted text-sm font-medium">Performance Range</div>
         
         {/* Best Performance */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
-            <span className="text-white/80 text-sm">Best</span>
+            <TrendingUp className="w-4 h-4 text-success" />
+            <span className="text-ink-body text-sm">Best</span>
           </div>
           <div className="text-right">
-            <div className="text-emerald-400 font-medium">
+            <div className="text-success font-medium">
               {formatPercentage(bestPerformance.percentage)}
             </div>
-            <div className="text-emerald-400 text-xs">
+            <div className="text-success text-xs">
               {formatUsd(bestPerformance.usdValue)}
             </div>
           </div>
@@ -122,22 +122,22 @@ export const ProfitabilityMetricsComponent: React.FC<ProfitabilityMetricsProps> 
         {/* Worst Performance */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <TrendingDown className="w-4 h-4 text-red-400" />
-            <span className="text-white/80 text-sm">Worst</span>
+            <TrendingDown className="w-4 h-4 text-danger" />
+            <span className="text-ink-body text-sm">Worst</span>
           </div>
           <div className="text-right">
-            <div className="text-red-400 font-medium">
+            <div className="text-danger font-medium">
               {formatPercentage(worstPerformance.percentage)}
             </div>
-            <div className="text-red-400 text-xs">
+            <div className="text-danger text-xs">
               {formatUsd(worstPerformance.usdValue)}
             </div>
           </div>
         </div>
 
         {/* Average Return */}
-        <div className="flex items-center justify-between pt-2 border-t border-white/[0.08]">
-          <span className="text-white/80 text-sm">Average Return</span>
+        <div className="flex items-center justify-between pt-2 border-t border-line">
+          <span className="text-ink-body text-sm">Average Return</span>
           <div className={`font-medium ${getColorClass(metrics.averageReturn)}`}>
             {formatPercentage(metrics.averageReturn)}
           </div>

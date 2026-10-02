@@ -210,9 +210,9 @@ export default function ValidationTester() {
 
     const getResultIcon = (result: ValidationResult['results'][0]) => {
         if (result.passed) {
-            return <CheckCircle className="w-4 h-4 text-green-500" />;
+            return <CheckCircle className="w-4 h-4 text-success" />;
         } else {
-            return <XCircle className="w-4 h-4 text-red-500" />;
+            return <XCircle className="w-4 h-4 text-danger" />;
         }
     };
 
@@ -222,7 +222,7 @@ export default function ValidationTester() {
             <div className="bg-card rounded-lg border border-border p-6">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-accent/20 text-accent-text flex items-center justify-center">
                             <TestTube className="w-5 h-5" />
                         </div>
                         <h3 className="text-lg font-semibold text-foreground">Validation Test Suite</h3>
@@ -279,8 +279,8 @@ export default function ValidationTester() {
                     <div className="flex items-center justify-between mb-4">
                         <h4 className="text-lg font-semibold">{result.testName}</h4>
                         <div className="flex items-center gap-4 text-sm">
-                            <span className="text-green-600">{result.summary.passed} passed</span>
-                            <span className="text-red-600">{result.summary.failed} failed</span>
+                            <span className="text-success">{result.summary.passed} passed</span>
+                            <span className="text-danger">{result.summary.failed} failed</span>
                             <span className="font-semibold">{result.summary.successRate}</span>
                         </div>
                     </div>
@@ -291,8 +291,8 @@ export default function ValidationTester() {
                                 key={index}
                                 className={`flex items-center justify-between p-3 rounded-lg border ${
                                     testResult.passed 
-                                        ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950' 
-                                        : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950'
+                                        ? 'border-success bg-success-soft  ' 
+                                        : 'border-danger bg-danger-soft  '
                                 }`}
                             >
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -309,7 +309,7 @@ export default function ValidationTester() {
                                 
                                 <div className="text-right">
                                     {testResult.error && (
-                                        <div className="text-xs text-red-600 max-w-48 truncate" title={testResult.error}>
+                                        <div className="text-xs text-danger max-w-48 truncate" title={testResult.error}>
                                             {testResult.error}
                                         </div>
                                     )}

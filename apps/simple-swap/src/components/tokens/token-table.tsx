@@ -76,11 +76,11 @@ function SourceBadge({ source }: { source?: string }) {
     if (!source) return null;
 
     const config = {
-        oracle: { color: 'text-blue-400', bg: 'bg-blue-400/10', label: 'Oracle' },
-        market: { color: 'text-emerald-400', bg: 'bg-emerald-400/10', label: 'Market' },
-        virtual: { color: 'text-purple-400', bg: 'bg-purple-400/10', label: 'Virtual' },
-        hybrid: { color: 'text-amber-400', bg: 'bg-amber-400/10', label: 'Hybrid' }
-    }[source] || { color: 'text-white/40', bg: 'bg-white/5', label: source };
+        oracle: { color: 'text-accent-text', bg: 'bg-accent/10', label: 'Oracle' },
+        market: { color: 'text-success', bg: 'bg-success/10', label: 'Market' },
+        virtual: { color: 'text-blaze', bg: 'bg-blaze/10', label: 'Virtual' },
+        hybrid: { color: 'text-warning', bg: 'bg-warning/10', label: 'Hybrid' }
+    }[source] || { color: 'text-ink-muted', bg: 'bg-surface', label: source };
 
     return (
         <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${config.bg} ${config.color}`}>
@@ -137,7 +137,7 @@ const BalanceCell = React.memo(function BalanceCell({
     if (isLoading) {
         return (
             <div className="text-right">
-                <div className="animate-pulse bg-white/5 h-4 w-16 rounded"></div>
+                <div className="animate-pulse bg-surface h-4 w-16 rounded"></div>
             </div>
         );
     }
@@ -146,7 +146,7 @@ const BalanceCell = React.memo(function BalanceCell({
     if (error) {
         return (
             <div className="text-right">
-                <span className="text-white/20">-</span>
+                <span className="text-ink-faint">-</span>
             </div>
         );
     }
@@ -155,18 +155,18 @@ const BalanceCell = React.memo(function BalanceCell({
     if (rawBalance === 0) {
         return (
             <div className="text-right">
-                <span className="text-white/40">0</span>
+                <span className="text-ink-muted">0</span>
             </div>
         );
     }
 
     return (
         <div className="text-right">
-            <div className="font-mono text-white/90">
+            <div className="font-mono text-ink">
                 {formatCompactNumber(rawBalance / Math.pow(10, token.decimals || 6))}
             </div>
             {usdValue && usdValue > 0.01 && (
-                <div className="text-xs text-white/50 font-mono mt-0.5">
+                <div className="text-xs text-ink-muted font-mono mt-0.5">
                     ${formatCompactNumber(usdValue)}
                 </div>
             )}
@@ -200,12 +200,12 @@ const EnhancedTokenPriceCell = React.memo(function EnhancedTokenPriceCell({
     }, [currentPrice, lastPrice]);
 
     const getPriceChangeColor = () => {
-        if (!isUpdating) return 'text-white/90';
+        if (!isUpdating) return 'text-ink';
 
         if (currentPrice !== null && lastPrice !== null) {
-            return currentPrice > lastPrice ? 'text-emerald-300' : currentPrice < lastPrice ? 'text-red-300' : 'text-white/90';
+            return currentPrice > lastPrice ? 'text-success' : currentPrice < lastPrice ? 'text-danger' : 'text-ink';
         }
-        return 'text-white/90';
+        return 'text-ink';
     };
 
     return (
@@ -216,7 +216,7 @@ const EnhancedTokenPriceCell = React.memo(function EnhancedTokenPriceCell({
             </div>
             <div className="flex items-center justify-end gap-1 mt-1">
                 {hasRealTimePrice && (
-                    <span className={`text-[10px] font-medium transition-all duration-1000 ${isUpdating ? 'text-emerald-300' : 'text-emerald-400/60'
+                    <span className={`text-[10px] font-medium transition-all duration-1000 ${isUpdating ? 'text-success' : 'text-success/60'
                         }`}>
                         LIVE
                     </span>
@@ -359,16 +359,16 @@ export default function TokenTable({
             {/* Clean search and controls */}
             <div className="mb-8 flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
                     <input
                         ref={searchInputRef}
                         type="text"
                         placeholder="Search tokens..."
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        className="w-full h-12 pl-12 pr-12 rounded-xl border border-white/[0.1] bg-white/[0.02] text-white/90 placeholder:text-white/40 focus:outline-none focus:border-white/[0.3] transition-colors duration-200"
+                        className="w-full h-12 pl-12 pr-12 rounded-xl border border-line bg-surface-sunken text-ink placeholder:text-ink-muted focus:outline-none focus:border-line-strong transition-colors duration-200"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-xs text-white/30 border border-white/[0.1] rounded px-2 py-1 bg-white/[0.03] select-none">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-xs text-ink-faint border border-line rounded px-2 py-1 bg-surface select-none">
                         /
                     </span>
                 </div>
@@ -377,8 +377,8 @@ export default function TokenTable({
                     <button
                         onClick={() => setShowBalances(!showBalances)}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all duration-200 ${showBalances
-                                ? 'bg-white/[0.08] text-white border-white/[0.2]'
-                                : 'text-white/60 border-white/[0.1] hover:text-white/90 hover:bg-white/[0.03]'
+                                ? 'bg-surface-hover text-ink border-line-strong'
+                                : 'text-ink-muted border-line hover:text-ink hover:bg-surface'
                             }`}
                     >
                         <Wallet className="h-4 w-4" />
@@ -387,7 +387,7 @@ export default function TokenTable({
                 ) : (
                     <button
                         onClick={() => {}}
-                        className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/[0.1] text-white/40 cursor-not-allowed"
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl border border-line text-ink-muted cursor-not-allowed"
                         disabled
                         title="Connect wallet to view balances"
                     >
@@ -398,23 +398,23 @@ export default function TokenTable({
             </div>
 
             {/* Enhanced table */}
-            <div className="overflow-x-auto rounded-2xl border border-white/[0.05]">
+            <div className="overflow-x-auto rounded-2xl border border-line-soft">
                 <table className="min-w-full text-sm">
                     <thead className="sticky top-0 z-20">
-                        <tr className="border-b border-white/[0.05]">
+                        <tr className="border-b border-line-soft">
                             {headerCell("Token", "name", "sticky left-0 z-10 w-[14rem]")}
                             {headerCell("Market Cap", "market_cap", "text-right")}
                             {headerCell("Price", "price", "text-right min-w-[120px]")}
                             {showBalances && address && (
                                 <th className="p-4 text-center backdrop-blur-sm">
-                                    <div className="inline-flex items-center gap-2 text-white/60">
+                                    <div className="inline-flex items-center gap-2 text-ink-muted">
                                         <Wallet className="h-3.5 w-3.5" />
                                         <span>Balance</span>
                                     </div>
                                 </th>
                             )}
                             <th className="p-4 text-center backdrop-blur-sm min-w-[80px]">
-                                <div className="inline-flex items-center gap-1 text-white/60">
+                                <div className="inline-flex items-center gap-1 text-ink-muted">
                                     <TrendingUp className="h-3.5 w-3.5" />
                                     <span>24h</span>
                                 </div>
@@ -441,7 +441,7 @@ export default function TokenTable({
 
                         {filtered.length === 0 && (
                             <tr>
-                                <td colSpan={showBalances && address ? 10 : 9} className="p-8 text-center text-white/40">
+                                <td colSpan={showBalances && address ? 10 : 9} className="p-8 text-center text-ink-muted">
                                     No tokens found matching your search.
                                 </td>
                             </tr>
@@ -459,9 +459,9 @@ export default function TokenTable({
                 onClick={() => toggleSort(key)}
                 className={`p-4 cursor-pointer select-none backdrop-blur-sm ${extraClass}`}
             >
-                <div className="inline-flex items-center gap-2 text-white/60 hover:text-white/90 transition-colors duration-200">
+                <div className="inline-flex items-center gap-2 text-ink-muted hover:text-ink transition-colors duration-200">
                     <span className="text-sm font-medium">{label}</span>
-                    <ArrowUpDown className={`h-3.5 w-3.5 ${active ? "text-white/90" : "text-white/30"}`} />
+                    <ArrowUpDown className={`h-3.5 w-3.5 ${active ? "text-ink" : "text-ink-faint"}`} />
                 </div>
             </th>
         );
@@ -495,24 +495,24 @@ const TokenRow = React.memo(function TokenRow({
 
     return (
         <tr
-            className={`cursor-pointer transition-all duration-200 border-b border-white/[0.03] hover:bg-white/[0.02] ${isArbitrageOpp ? 'bg-amber-500/5' : ''
+            className={`cursor-pointer transition-all duration-200 border-b border-line-soft hover:bg-surface ${isArbitrageOpp ? 'bg-warning/5' : ''
                 }`}
         >
             {/* Token */}
             <td className="p-4 sticky left-0 backdrop-blur-sm z-10 w-[14rem]">
                 <Link href={`/tokens/${encodeURIComponent(token.contractId)}`} className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-xl bg-white/[0.05] flex items-center justify-center overflow-hidden">
+                    <div className="h-8 w-8 rounded-xl bg-surface flex items-center justify-center overflow-hidden">
                         <TokenImage token={token} />
                     </div>
                     <div className="min-w-0 flex-1">
-                        <div className="font-medium leading-tight truncate max-w-[10rem] text-white/90">{token.name}</div>
-                        <div className="text-xs text-white/50 font-mono">{token.symbol}</div>
+                        <div className="font-medium leading-tight truncate max-w-[10rem] text-ink">{token.name}</div>
+                        <div className="text-xs text-ink-muted font-mono">{token.symbol}</div>
                     </div>
                 </Link>
             </td>
 
             {/* Market Cap */}
-            <td className="p-4 text-right font-mono text-white/80">{fmtMarketCap(token.marketCap)}</td>
+            <td className="p-4 text-right font-mono text-ink-body">{fmtMarketCap(token.marketCap)}</td>
 
             {/* Price */}
             <td className="p-4">
@@ -531,24 +531,24 @@ const TokenRow = React.memo(function TokenRow({
                 {sparklineData && sparklineData.length > 0 ? (
                     <Sparkline data={sparklineData} />
                 ) : (
-                    <span className="text-white/20">-</span>
+                    <span className="text-ink-faint">-</span>
                 )}
             </td>
 
             {/* Change columns */}
             <td className="p-4 text-right font-mono">
                 <span className={getCleanDeltaColour(token.change1h)}>
-                    {fmtDelta(token.change1h)}
+ {fmtDelta(token.change1h)}
                 </span>
             </td>
             <td className="p-4 text-right font-mono">
                 <span className={getCleanDeltaColour(token.change24h)}>
-                    {fmtDelta(token.change24h)}
+ {fmtDelta(token.change24h)}
                 </span>
             </td>
             <td className="p-4 text-right font-mono">
                 <span className={getCleanDeltaColour(token.change7d)}>
-                    {fmtDelta(token.change7d)}
+ {fmtDelta(token.change7d)}
                 </span>
             </td>
 
@@ -558,19 +558,19 @@ const TokenRow = React.memo(function TokenRow({
                     {'source' in token && token.source ? (
                         <SourceBadge source={token.source} />
                     ) : (
-                        <span className="text-white/20">-</span>
+                        <span className="text-ink-faint">-</span>
                     )}
                 </td>
             )}
             {hasEnhancedData && (
                 <td className="p-4 text-right font-mono">
                     {'arbitrageOpportunity' in token && token.arbitrageOpportunity ? (
-                        <span className={`${token.arbitrageOpportunity.profitable ? 'text-amber-400' : 'text-white/40'
+                        <span className={`${token.arbitrageOpportunity.profitable ? 'text-warning' : 'text-ink-muted'
                             }`}>
                             {token.arbitrageOpportunity.deviation.toFixed(1)}%
                         </span>
                     ) : (
-                        <span className="text-white/20">-</span>
+                        <span className="text-ink-faint">-</span>
                     )}
                 </td>
             )}
@@ -620,8 +620,8 @@ function fmtDelta(delta: number | null) {
 }
 
 function getCleanDeltaColour(delta: number | null) {
-    if (delta === null) return "text-white/40";
-    if (delta > 0) return "text-emerald-400";
-    if (delta < 0) return "text-red-400";
-    return "text-white/60";
+    if (delta === null) return "text-ink-muted";
+    if (delta > 0) return "text-success";
+    if (delta < 0) return "text-danger";
+    return "text-ink-muted";
 }

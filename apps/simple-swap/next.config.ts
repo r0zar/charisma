@@ -1,6 +1,7 @@
 import { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  transpilePackages: ['@repo/brand'],
   async headers() {
     return [{
       source: "/:path*",

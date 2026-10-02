@@ -150,15 +150,15 @@ export default function OrderManagement() {
                 </div>
                 <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-blue-500/20 rounded-md flex items-center justify-center">
-                            <Database className="w-5 h-5 text-blue-500" />
+                        <div className="w-8 h-8 bg-accent/20 rounded-md flex items-center justify-center">
+                            <Database className="w-5 h-5 text-accent-text" />
                         </div>
                         <div>
                             <h1 className="text-3xl font-bold text-foreground">
                                 Order Management
                             </h1>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                                <Zap className="w-3 h-3 text-green-500" />
+                                <Zap className="w-3 h-3 text-success" />
                                 Real-time monitoring • Use refresh button to update data
                             </div>
                         </div>
@@ -268,29 +268,29 @@ export default function OrderManagement() {
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Transaction Monitoring:</span>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                    <span className="font-mono text-green-500">Active</span>
+                                    <div className="w-2 h-2 bg-success rounded-full"></div>
+                                    <span className="font-mono text-success">Active</span>
                                 </div>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Order Processing:</span>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                    <span className="font-mono text-green-500">Operational</span>
+                                    <div className="w-2 h-2 bg-success rounded-full"></div>
+                                    <span className="font-mono text-success">Operational</span>
                                 </div>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">API Health:</span>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                    <span className="font-mono text-green-500">Healthy</span>
+                                    <div className="w-2 h-2 bg-success rounded-full"></div>
+                                    <span className="font-mono text-success">Healthy</span>
                                 </div>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-muted-foreground">Database:</span>
                                 <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                    <span className="font-mono text-green-500">Connected</span>
+                                    <div className="w-2 h-2 bg-success rounded-full"></div>
+                                    <span className="font-mono text-success">Connected</span>
                                 </div>
                             </div>
                         </div>

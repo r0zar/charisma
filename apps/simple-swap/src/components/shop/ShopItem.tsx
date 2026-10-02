@@ -76,7 +76,7 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
             case SHOP_CATEGORIES.NFT:
                 return {
                     icon: ImageIcon,
-                    color: 'bg-accent/50 text-accent-foreground border-border',
+                    color: 'bg-surface-hover text-accent-foreground border-border',
                     label: 'NFT'
                 };
             default:
@@ -234,7 +234,7 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
                         )}
 
                         {/* Hover Overlay */}
-                        <div className="absolute top-0 left-0 right-0 bottom-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
+                        <div className="absolute top-0 left-0 right-0 bottom-0 bg-chrome opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-10">
                             <button className="cursor-pointer button-primary text-sm py-2 px-4">
                                 <CreditCard className="h-4 w-4 mr-2" />
                                 {item.type === SHOP_CATEGORIES.OFFER ? 'View Offer' : 'Purchase'}
@@ -426,7 +426,7 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
                                     <p className="text-sm text-muted-foreground mb-2">{item.description}</p>
                                     <div className="flex items-center gap-2">
                                         <Badge variant="outline" className={typeConfig.color}>
-                                            <TypeIcon className="h-3 w-3 mr-1" />
+ <TypeIcon className="h-3 w-3 mr-1" />
                                             {typeConfig.label}
                                         </Badge>
                                     </div>

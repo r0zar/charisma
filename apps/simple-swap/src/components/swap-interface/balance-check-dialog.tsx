@@ -131,7 +131,7 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
             <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <AlertTriangle className="h-5 w-5 text-amber-500" />
+                        <AlertTriangle className="h-5 w-5 text-warning" />
                         Insufficient Balance for Order
                     </DialogTitle>
                     <DialogDescription>
@@ -168,16 +168,16 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                             <div className="pt-2 border-t">
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-muted-foreground">Required for order:</span>
-                                    <span className="font-medium text-red-600">{formatBalance(requiredAmount, selectedFromToken)}</span>
+                                    <span className="font-medium text-danger">{formatBalance(requiredAmount, selectedFromToken)}</span>
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-muted-foreground">Shortfall:</span>
-                                    <span className="font-medium text-red-600">{formatBalance(remainingShortfall, selectedFromToken)}</span>
+                                    <span className="font-medium text-danger">{formatBalance(remainingShortfall, selectedFromToken)}</span>
                                 </div>
                                 {canDeposit && maxDepositAmount > 0 && (
                                     <div className="flex justify-between items-center text-sm">
                                         <span className="text-muted-foreground">Can deposit:</span>
-                                        <span className="font-medium text-blue-600">{formatBalance(maxDepositAmount, mainnetToken)}</span>
+                                        <span className="font-medium text-accent-text">{formatBalance(maxDepositAmount, mainnetToken)}</span>
                                     </div>
                                 )}
                             </div>
@@ -189,7 +189,7 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                         <Card>
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                    <Wallet className="h-4 w-4 text-blue-500" />
+                                    <Wallet className="h-4 w-4 text-accent-text" />
                                     {maxDepositAmount >= rawShortfall ? 'Recommended: Deposit to Subnet' : 'Partial Deposit Available'}
                                 </CardTitle>
                             </CardHeader>
@@ -204,7 +204,7 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                                             You can deposit {formatBalance(maxDepositAmount, mainnetToken)} {mainnetToken.symbol.replace(/^x-/, '')} from mainnet, but you'll still need {formatBalance(remainingShortfall, selectedFromToken)} more to complete your order.
                                         </p>
                                     )}
-                                    <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                                    <div className="flex items-center justify-between p-3 bg-accent-soft rounded-lg">
                                         <div className="flex items-center gap-2">
                                             <TokenLogo token={mainnetToken} />
                                             <div>
@@ -241,7 +241,7 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                                         )}
                                     </Button>
                                     {maxDepositAmount < rawShortfall && (
-                                        <p className="text-xs text-amber-600 text-center">
+                                        <p className="text-xs text-warning text-center">
                                             After deposit, you'll still need {formatBalance(remainingShortfall, selectedFromToken)} more {selectedFromToken.symbol}
                                         </p>
                                     )}
@@ -255,7 +255,7 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                         <Card>
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                    <TrendingUp className="h-4 w-4 text-green-500" />
+                                    <TrendingUp className="h-4 w-4 text-success" />
                                     Alternative: Swap Other Tokens
                                 </CardTitle>
                             </CardHeader>
@@ -321,7 +321,7 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                         <Card>
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-sm font-medium flex items-center gap-2">
-                                    <TrendingUp className="h-4 w-4 text-green-500" />
+                                    <TrendingUp className="h-4 w-4 text-success" />
                                     Finding Swap Options...
                                 </CardTitle>
                             </CardHeader>
@@ -331,7 +331,7 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                                         Checking your other tokens for swap opportunities...
                                     </p>
                                     <div className="flex items-center justify-center py-4">
-                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
                                     </div>
                                 </div>
                             </CardContent>
@@ -343,7 +343,7 @@ export default function BalanceCheckDialog({ open, onOpenChange }: BalanceCheckD
                         <Card>
                             <CardContent className="pt-6">
                                 <div className="text-center space-y-2">
-                                    <AlertTriangle className="h-8 w-8 text-amber-500 mx-auto" />
+                                    <AlertTriangle className="h-8 w-8 text-warning mx-auto" />
                                     <h3 className="font-medium">No Available Options</h3>
                                     <p className="text-sm text-muted-foreground">
                                         You don't have enough {selectedFromToken.symbol} or other tokens that can be swapped.

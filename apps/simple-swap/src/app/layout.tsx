@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next"
 import { Toaster } from '@/components/ui/sonner';
 import { ClientProviders } from '@/contexts/client-providers';
 import { listTokens, type TokenCacheData } from '@/lib/contract-registry-adapter';
+import { THEME_SCRIPT } from '@repo/brand/react';
 
 // Revalidate token metadata every 5 minutes (300 seconds)
 export const revalidate = 300;
@@ -56,7 +57,9 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en" className="dark">
+    // no data-theme: follow the device until the visitor picks System, Light or Dark in the header
+    <html lang="en" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} /></head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <ClientProviders initialTokens={initialTokens}>
           {children}

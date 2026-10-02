@@ -43,34 +43,34 @@ export const ReplyItem: React.FC<ReplyItemProps> = ({
 
   return (
     <div 
-      className={`group relative py-4 transition-all duration-200 hover:bg-white/[0.02] ${className}`}
+      className={`group relative py-4 transition-all duration-200 hover:bg-surface ${className}`}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
       style={{ animation: 'replyFadeIn 0.4s ease-out' }}
     >
       {/* Left border indicator */}
-      <div className="absolute left-0 top-0 bottom-0 w-px bg-white/[0.08]" />
+      <div className="absolute left-0 top-0 bottom-0 w-px bg-surface-hover" />
       
       <div className="pl-4 space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             {/* Author avatar placeholder */}
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/[0.15] flex items-center justify-center">
-              <span className="text-xs font-medium text-white/80">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/20 to-accent/20 border border-line-strong flex items-center justify-center">
+              <span className="text-xs font-medium text-ink-body">
                 {formatAuthor(reply.author).charAt(0).toUpperCase()}
               </span>
             </div>
             
             <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-white/90">
+              <span className="text-sm font-medium text-ink">
                 {formatAuthor(reply.author)}
               </span>
-              <span className="text-white/40">•</span>
+              <span className="text-ink-muted">•</span>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger>
-                    <span className="text-sm text-white/60 hover:text-white/80 transition-colors cursor-help">
+                    <span className="text-sm text-ink-muted hover:text-ink-body transition-colors cursor-help">
                       {getRelativeTime(reply.timestamp)}
                     </span>
                   </TooltipTrigger>
@@ -81,8 +81,8 @@ export const ReplyItem: React.FC<ReplyItemProps> = ({
               </TooltipProvider>
               {reply.metadata?.isEdited && (
                 <>
-                  <span className="text-white/40">•</span>
-                  <span className="text-xs text-white/40">edited</span>
+                  <span className="text-ink-muted">•</span>
+                  <span className="text-xs text-ink-muted">edited</span>
                 </>
               )}
             </div>
@@ -98,7 +98,7 @@ export const ReplyItem: React.FC<ReplyItemProps> = ({
                   });
                   onReply?.(reply.id);
                 }}
-                className="p-1.5 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-blue-500/[0.08] hover:border-blue-500/[0.15] hover:text-blue-400 transition-all duration-200"
+                className="p-1.5 rounded-lg bg-surface border border-line text-ink-muted hover:bg-accent/[0.08] hover:border-accent/[0.15] hover:text-accent-text transition-all duration-200"
                 title="Reply"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
@@ -111,7 +111,7 @@ export const ReplyItem: React.FC<ReplyItemProps> = ({
                   });
                   onEdit?.(reply.id, reply.content);
                 }}
-                className="p-1.5 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-yellow-500/[0.08] hover:border-yellow-500/[0.15] hover:text-yellow-400 transition-all duration-200"
+                className="p-1.5 rounded-lg bg-surface border border-line text-ink-muted hover:bg-warning/[0.08] hover:border-warning/[0.15] hover:text-warning transition-all duration-200"
                 title="Edit"
               >
                 <Edit className="w-3.5 h-3.5" />
@@ -124,7 +124,7 @@ export const ReplyItem: React.FC<ReplyItemProps> = ({
                   });
                   onDelete?.(reply.id);
                 }}
-                className="p-1.5 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-red-500/[0.08] hover:border-red-500/[0.15] hover:text-red-400 transition-all duration-200"
+                className="p-1.5 rounded-lg bg-surface border border-line text-ink-muted hover:bg-danger/[0.08] hover:border-danger/[0.15] hover:text-danger transition-all duration-200"
                 title="Delete"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -136,7 +136,7 @@ export const ReplyItem: React.FC<ReplyItemProps> = ({
                     description: 'Report, bookmark, and other actions'
                   });
                 }}
-                className="p-1.5 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white/90 transition-all duration-200"
+                className="p-1.5 rounded-lg bg-surface border border-line text-ink-muted hover:bg-surface-hover hover:text-ink transition-all duration-200"
                 title="More options"
               >
                 <MoreHorizontal className="w-3.5 h-3.5" />
@@ -147,7 +147,7 @@ export const ReplyItem: React.FC<ReplyItemProps> = ({
 
         {/* Reply content */}
         <div className="pl-11">
-          <div className="text-white/90 text-sm leading-relaxed whitespace-pre-wrap">
+          <div className="text-ink text-sm leading-relaxed whitespace-pre-wrap">
             {reply.content}
           </div>
         </div>
@@ -158,8 +158,8 @@ export const ReplyItem: React.FC<ReplyItemProps> = ({
             onClick={handleLike}
             className={`flex items-center space-x-1 text-xs transition-all duration-200 ${
               isLiked 
-                ? 'text-red-400 hover:text-red-300' 
-                : 'text-white/40 hover:text-red-400'
+                ? 'text-danger hover:text-danger' 
+                : 'text-ink-muted hover:text-danger'
             }`}
           >
             <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
@@ -173,7 +173,7 @@ export const ReplyItem: React.FC<ReplyItemProps> = ({
               });
               onReply?.(reply.id);
             }}
-            className="flex items-center space-x-1 text-xs text-white/40 hover:text-blue-400 transition-all duration-200"
+            className="flex items-center space-x-1 text-xs text-ink-muted hover:text-accent-text transition-all duration-200"
           >
             <MessageCircle className="w-4 h-4" />
             <span>Reply</span>

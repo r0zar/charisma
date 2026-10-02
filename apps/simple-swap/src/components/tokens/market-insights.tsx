@@ -39,38 +39,38 @@ function InsightsSkeleton() {
         <div className="space-y-8">
             {/* Header skeleton */}
             <div>
-                <div className="h-6 bg-white/[0.06] rounded-lg w-48 mb-2 animate-pulse" />
-                <div className="h-4 bg-white/[0.04] rounded-lg w-80 animate-pulse" />
+                <div className="h-6 bg-surface-hover rounded-lg w-48 mb-2 animate-pulse" />
+                <div className="h-4 bg-surface rounded-lg w-80 animate-pulse" />
             </div>
 
             {/* Insights skeleton */}
             <div className="space-y-6">
                 {[...Array(3)].map((_, i) => (
-                    <div key={i} className="py-6 border-b border-white/[0.03]">
+                    <div key={i} className="py-6 border-b border-line-soft">
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-start gap-3">
-                                <div className="w-6 h-6 bg-white/[0.06] rounded animate-pulse" />
+                                <div className="w-6 h-6 bg-surface-hover rounded animate-pulse" />
                                 <div className="space-y-2">
-                                    <div className={`h-5 bg-white/[0.06] rounded-lg animate-pulse ${i === 0 ? 'w-40' : i === 1 ? 'w-32' : 'w-36'}`} />
-                                    <div className={`h-4 bg-white/[0.04] rounded-lg animate-pulse ${i === 0 ? 'w-80' : i === 1 ? 'w-72' : 'w-76'}`} />
+                                    <div className={`h-5 bg-surface-hover rounded-lg animate-pulse ${i === 0 ? 'w-40' : i === 1 ? 'w-32' : 'w-36'}`} />
+                                    <div className={`h-4 bg-surface rounded-lg animate-pulse ${i === 0 ? 'w-80' : i === 1 ? 'w-72' : 'w-76'}`} />
                                 </div>
                             </div>
                             <div className="text-right space-y-1">
-                                <div className="h-4 bg-white/[0.06] rounded w-12 animate-pulse" />
-                                <div className="h-3 bg-white/[0.04] rounded w-16 animate-pulse" />
+                                <div className="h-4 bg-surface-hover rounded w-12 animate-pulse" />
+                                <div className="h-3 bg-surface rounded w-16 animate-pulse" />
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             {[...Array(3)].map((_, j) => (
                                 <div key={j} className="p-3 rounded-xl">
                                     <div className="flex items-center gap-3 mb-2">
-                                        <div className="w-8 h-8 bg-white/[0.06] rounded-lg animate-pulse" />
+                                        <div className="w-8 h-8 bg-surface-hover rounded-lg animate-pulse" />
                                         <div className="flex-1 space-y-1">
-                                            <div className="h-4 bg-white/[0.06] rounded w-12 animate-pulse" />
+                                            <div className="h-4 bg-surface-hover rounded w-12 animate-pulse" />
                                         </div>
-                                        <div className="h-4 bg-white/[0.06] rounded w-16 animate-pulse" />
+                                        <div className="h-4 bg-surface-hover rounded w-16 animate-pulse" />
                                     </div>
-                                    <div className="h-3 bg-white/[0.04] rounded w-full animate-pulse" />
+                                    <div className="h-3 bg-surface rounded w-full animate-pulse" />
                                 </div>
                             ))}
                         </div>
@@ -150,10 +150,10 @@ export default function MarketInsights({ tokenSummaries, arbitrageOpportunities 
         <div className="space-y-8">
             {/* Seamless header */}
             <div>
-                <h2 className="text-lg font-medium text-white/90 mb-2">
+                <h2 className="text-lg font-medium text-ink mb-2">
                     Market Intelligence
                 </h2>
-                <p className="text-sm text-white/50">
+                <p className="text-sm text-ink-muted">
                     Advanced pattern analysis and market correlation insights
                     {arbitrageOpportunities.length > 0 && ' including live arbitrage opportunities'}
                 </p>
@@ -171,9 +171,9 @@ export default function MarketInsights({ tokenSummaries, arbitrageOpportunities 
 
 function ImmersiveInsightRow({ insight, index }: { insight: MarketInsight; index: number }) {
     const getConfidenceColor = (confidence: number) => {
-        if (confidence > 0.8) return 'text-emerald-400';
-        if (confidence > 0.6) return 'text-yellow-400';
-        return 'text-orange-400';
+        if (confidence > 0.8) return 'text-success';
+        if (confidence > 0.6) return 'text-warning';
+        return 'text-accent-text';
     };
 
     const getInsightIcon = (type: MarketInsight['type']) => {
@@ -192,8 +192,8 @@ function ImmersiveInsightRow({ insight, index }: { insight: MarketInsight; index
 
     return (
         <div className={cn(
-            "py-6 border-b border-white/[0.03] last:border-b-0",
-            isArbitrageInsight && "bg-gradient-to-r from-amber-500/5 via-transparent to-amber-500/5 -mx-4 px-4 rounded-xl"
+ "py-6 border-b border-line-soft last:border-b-0",
+            isArbitrageInsight && "bg-gradient-to-r from-warning/5 via-transparent to-warning/5 -mx-4 px-4 rounded-xl"
         )}>
             {/* Clean header */}
             <div className="flex items-start justify-between mb-4">
@@ -201,19 +201,19 @@ function ImmersiveInsightRow({ insight, index }: { insight: MarketInsight; index
                     <span className="text-lg">{getInsightIcon(insight.type)}</span>
                     <div>
                         <h3 className={cn(
-                            "font-medium mb-1",
-                            isArbitrageInsight ? "text-amber-400" : "text-white/90"
+ "font-medium mb-1",
+                            isArbitrageInsight ? "text-warning" : "text-ink"
                         )}>
                             {insight.title}
                         </h3>
-                        <p className="text-sm text-white/60 leading-relaxed">{insight.description}</p>
+                        <p className="text-sm text-ink-muted leading-relaxed">{insight.description}</p>
                     </div>
                 </div>
                 <div className="text-right">
                     <div className={`text-sm font-medium ${getConfidenceColor(insight.confidence)}`}>
                         {(insight.confidence * 100).toFixed(0)}%
                     </div>
-                    <div className="text-xs text-white/40">confidence</div>
+                    <div className="text-xs text-ink-muted">confidence</div>
                 </div>
             </div>
 
@@ -231,7 +231,7 @@ function ImmersiveInsightRow({ insight, index }: { insight: MarketInsight; index
             {/* View more indicator */}
             {insight.tokens.length > 3 && (
                 <div className="mt-4 text-center">
-                    <div className="text-xs text-white/40">
+                    <div className="text-xs text-ink-muted">
                         +{insight.tokens.length - 3} more tokens match this pattern
                     </div>
                 </div>
@@ -250,46 +250,46 @@ function TokenInsightCard({ tokenWithScore, isArbitrage }: { tokenWithScore: Tok
         <Link
             href={`/tokens/${encodeURIComponent(token.contractId)}`}
             className={cn(
-                "group block p-3 rounded-xl transition-all duration-200",
+ "group block p-3 rounded-xl transition-all duration-200",
                 isArbitrage
-                    ? "hover:bg-amber-500/10 border border-amber-500/20"
-                    : "hover:bg-white/[0.03]"
+                    ? "hover:bg-warning/10 border border-warning/20"
+                    : "hover:bg-surface"
             )}
         >
             <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-white/[0.05] flex items-center justify-center overflow-hidden">
+                <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center overflow-hidden">
                     {token.image ? (
                         <img src={token.image} alt={token.symbol} className="w-full h-full object-cover" />
                     ) : (
-                        <span className="text-xs font-bold text-white/60">{token.symbol.charAt(0)}</span>
+                        <span className="text-xs font-bold text-ink-muted">{token.symbol.charAt(0)}</span>
                     )}
                 </div>
                 <div className="flex-1 min-w-0">
                     <div className={cn(
-                        "font-medium text-sm transition-colors duration-200",
+ "font-medium text-sm transition-colors duration-200",
                         isArbitrage
-                            ? "text-amber-400 group-hover:text-amber-300"
-                            : "text-white/90 group-hover:text-white"
+                            ? "text-warning group-hover:text-warning"
+                            : "text-ink group-hover:text-ink"
                     )}>
                         {token.symbol}
                     </div>
                 </div>
                 <div className={cn(
-                    "text-sm font-medium",
-                    isPositive ? "text-emerald-400" :
-                        isNegative ? "text-red-400" :
-                            "text-white/60"
+ "text-sm font-medium",
+                    isPositive ? "text-success" :
+                        isNegative ? "text-danger" :
+                            "text-ink-muted"
                 )}>
                     {change > 0 ? "+" : ""}{change.toFixed(1)}%
                 </div>
             </div>
-            <div className="text-xs text-white/40 leading-relaxed" title={reason}>
+            <div className="text-xs text-ink-muted leading-relaxed" title={reason}>
                 {reason.length > 40 ? `${reason.slice(0, 40)}...` : reason}
             </div>
             {isArbitrage && (
                 <div className="mt-2 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3 text-amber-400" />
-                    <span className="text-xs text-amber-400">Trade opportunity</span>
+                    <AlertTriangle className="h-3 w-3 text-warning" />
+                    <span className="text-xs text-warning">Trade opportunity</span>
                 </div>
             )}
         </Link>

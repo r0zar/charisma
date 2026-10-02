@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Coins, ExternalLink, Github, MessageSquare, Twitter } from 'lucide-react';
+import { ExternalLink, Github, MessageSquare, Twitter } from 'lucide-react';
 import { advancedLinks } from './nav-links';
 import { TipJar } from './tip-jar';
 
@@ -37,23 +37,21 @@ const COLUMNS: { title: string; links: { href: string; label: string; external?:
     },
 ];
 
-const linkClass = 'text-white/60 hover:text-white/90 transition-colors duration-200 text-sm inline-flex items-center gap-1';
+const linkClass = 'text-on-chrome-muted hover:text-on-chrome transition-colors duration-200 text-sm inline-flex items-center gap-1';
 
 /** Site footer: only links that go somewhere real */
 export function Footer({ className = 'mt-16' }: { className?: string }) {
     return (
-        <footer className={`relative border-t border-white/[0.06] ${className}`}>
-            <div className="absolute inset-0 bg-gradient-to-t from-white/[0.01] to-transparent pointer-events-none" />
+        <footer className={`relative border-t border-line bg-chrome text-on-chrome-muted ${className}`}>
             <div className="container relative z-10 py-16">
                 <div className="grid gap-12 md:grid-cols-3 lg:grid-cols-5">
                     <div>
                         <Link href="/" className="flex items-center gap-3 group mb-4">
-                            <div className="h-8 w-8 rounded-xl bg-white/[0.08] border border-white/[0.12] flex items-center justify-center backdrop-blur-sm group-hover:bg-white/[0.12] transition-all duration-200">
-                                <Coins className="h-4 w-4 text-white/90" />
-                            </div>
-                            <span className="text-white/95 font-semibold tracking-tight">Charisma Swap</span>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src="/charisma.png" alt="" className="h-7 w-7 rounded-full" />
+                            <span className="text-on-chrome text-[17px] font-bold tracking-tight">Charisma <span className="text-chrome-accent">Swap</span></span>
                         </Link>
-                        <p className="text-white/60 text-sm leading-relaxed mb-6 max-w-xs">
+                        <p className="text-on-chrome-muted text-sm leading-relaxed mb-6 max-w-xs">
                             An open-source exchange on Stacks. It belongs to no one and is open to everyone.
                         </p>
                         <div className="flex items-center gap-3">
@@ -65,7 +63,7 @@ export function Footer({ className = 'mt-16' }: { className?: string }) {
                                     rel="noopener noreferrer"
                                     aria-label={label}
                                     title={label}
-                                    className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.06] text-white/60 hover:text-white/90 hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-200 backdrop-blur-sm"
+                                    className="p-2 rounded-xl border border-on-chrome-muted/30 text-on-chrome-muted hover:text-on-chrome hover:border-on-chrome transition-all duration-200 backdrop-blur-sm"
                                 >
                                     <Icon className="h-4 w-4" />
                                 </a>
@@ -78,18 +76,18 @@ export function Footer({ className = 'mt-16' }: { className?: string }) {
 
                     {COLUMNS.map(column => (
                         <div key={column.title}>
-                            <h3 className="text-white/90 font-semibold mb-4">{column.title}</h3>
+                            <h3 className="mb-4 font-mono text-[11px] font-medium uppercase tracking-[0.12em] text-on-chrome">{column.title}</h3>
                             <ul className="space-y-3">
                                 {column.links.map(link => (
                                     <li key={link.href}>
                                         {link.external ? (
                                             <a href={link.href} target="_blank" rel="noopener noreferrer" className={linkClass}>
-                                                {link.label}
+ {link.label}
                                                 <ExternalLink className="h-3 w-3" />
                                             </a>
                                         ) : (
                                             <Link href={link.href} className={linkClass}>{link.label}</Link>
-                                        )}
+ )}
                                     </li>
                                 ))}
                             </ul>
@@ -97,7 +95,7 @@ export function Footer({ className = 'mt-16' }: { className?: string }) {
                     ))}
                 </div>
 
-                <div className="mt-12 pt-8 border-t border-white/[0.06] text-sm text-white/50">
+                <div className="mt-12 pt-8 border-t border-on-chrome-muted/20 text-sm text-on-chrome-muted">
                     © {new Date().getFullYear()} Charisma
                 </div>
             </div>

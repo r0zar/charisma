@@ -108,15 +108,15 @@ export default function OrderButton() {
             toast.loading('Creating Order', {
                 description: (
                     <div className="space-y-1">
-                        <div className="text-white/90 font-medium">Processing your swap request</div>
-                        <div className="text-white/70 text-sm font-mono">
+                        <div className="text-ink font-medium">Processing your swap request</div>
+                        <div className="text-ink-body text-sm font-mono">
                             {displayAmount} {selectedFromToken.symbol} → {selectedToToken.symbol}
                         </div>
                     </div>
                 ),
                 duration: Infinity,
                 id: 'order-creation',
-                className: "bg-white/[0.02] border-white/[0.08] text-white backdrop-blur-sm"
+                className: "bg-surface-sunken border-line text-ink backdrop-blur-sm"
             });
 
             await createOrder({
@@ -160,7 +160,7 @@ export default function OrderButton() {
             <div className="flex w-full shadow-lg">
                 <Button
                     onClick={handleClick}
-                    className={`relative flex-1 rounded-r-none bg-gradient-to-r from-purple-600 to-purple-700 text-white py-3 font-semibold overflow-hidden transition-transform focus:outline-none rounded-l-xl ${isDisabled
+                    className={`relative flex-1 rounded-r-none bg-blaze text-bg py-3 font-semibold overflow-hidden transition-transform focus:outline-none rounded-l-xl ${isDisabled
                         ? 'opacity-70 cursor-pointer hover:opacity-80'
                         : 'hover:brightness-110 active:scale-95'
                         }`}
@@ -183,7 +183,7 @@ export default function OrderButton() {
 
                 {/* DCA trigger button */}
                 <Button
-                    className={`relative w-12 h-auto rounded-l-none bg-gradient-to-r from-purple-700 to-purple-800 text-white overflow-hidden transition-transform focus:outline-none rounded-r-xl border-l border-white/20 ${isDcaDisabled
+                    className={`relative w-12 h-auto rounded-l-none bg-blaze/80 text-bg overflow-hidden transition-transform focus:outline-none rounded-r-xl border-l border-line-strong ${isDcaDisabled
                         ? 'opacity-70 cursor-pointer hover:opacity-80'
                         : 'hover:brightness-110 active:scale-95'
                         }`}

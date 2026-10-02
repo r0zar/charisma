@@ -84,7 +84,7 @@ function bandPoints(start: number, band: ChartBand, from: number): LineData[] {
 
 function ChartSkeleton({ className }: { className: string }) {
     return (
-        <div className={`w-full ${className} bg-white/[0.02] border border-white/[0.06] backdrop-blur-sm rounded-lg flex items-center justify-center`}>
+        <div className={`w-full ${className} bg-surface-sunken border border-line-soft backdrop-blur-sm rounded-lg flex items-center justify-center`}>
             <div className="flex items-center space-x-2 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin" />
                 <span className="text-sm">Loading chart data...</span>
@@ -95,15 +95,15 @@ function ChartSkeleton({ className }: { className: string }) {
 
 function ChartError({ error, onRetry, className }: { error: string; onRetry: () => void; className: string }) {
     return (
-        <div className={`w-full ${className} bg-white/[0.03] border border-red-500/[0.15] rounded-lg flex flex-col items-center justify-center space-y-3`}>
-            <div className="flex items-center space-x-2 text-red-600 dark:text-red-400">
+        <div className={`w-full ${className} bg-surface border border-danger/[0.15] rounded-lg flex flex-col items-center justify-center space-y-3`}>
+            <div className="flex items-center space-x-2 text-danger ">
                 <AlertCircle className="h-5 w-5" />
                 <span className="text-sm font-medium">Failed to load chart</span>
             </div>
-            <p className="text-xs text-red-600/80 dark:text-red-400/80 text-center max-w-xs">{error}</p>
+            <p className="text-xs text-danger/80 text-center max-w-xs">{error}</p>
             <button
                 onClick={onRetry}
-                className="flex items-center space-x-1 text-xs text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors"
+                className="flex items-center space-x-1 text-xs text-danger hover:text-danger  transition-colors"
             >
                 <RefreshCw className="h-3 w-3" />
                 <span>Retry</span>
@@ -114,7 +114,7 @@ function ChartError({ error, onRetry, className }: { error: string; onRetry: () 
 
 function EmptyChart({ token, className }: { token: TokenCacheData; className: string }) {
     return (
-        <div className={`w-full ${className} bg-white/[0.03] border border-white/[0.08] rounded-lg flex flex-col items-center justify-center space-y-2`}>
+        <div className={`w-full ${className} bg-surface border border-line rounded-lg flex flex-col items-center justify-center space-y-2`}>
             <div className="text-muted-foreground text-sm">No price data available</div>
             <div className="text-xs text-muted-foreground/70">No historical data found for {token.symbol}</div>
         </div>
@@ -540,8 +540,8 @@ export default function ConditionTokenChart({
                         key={value}
                         onClick={() => setTimeframe(value)}
                         className={`px-2 py-0.5 text-xs rounded transition-colors ${timeframe === value
-                            ? 'bg-white/[0.1] text-white/95'
-                            : 'text-white/50 hover:text-white/80'
+                            ? 'bg-surface-hover text-ink'
+                            : 'text-ink-muted hover:text-ink-body'
                             }`}
                     >
                         {label}
@@ -550,11 +550,11 @@ export default function ConditionTokenChart({
             </div>
             {loading ? (
                 <ChartSkeleton className={className} />
-            ) : error ? (
+ ) : error ? (
                 <ChartError error={error} onRetry={() => setReloadKey((k) => k + 1)} className={className} />
-            ) : !data || data.length === 0 ? (
+ ) : !data || data.length === 0 ? (
                 <EmptyChart token={token} className={className} />
-            ) : (
+ ) : (
                 <div className={`relative w-full ${className}`}>
                     <div ref={containerRef} className="absolute inset-0" style={{ touchAction: band ? 'none' : undefined }} />
                     {band && <svg ref={overlayRef} className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true" />}

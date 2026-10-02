@@ -45,8 +45,8 @@ function TokenFlameOverlay({ size }: { size: 'sm' | 'md' | 'lg' }) {
         lg: "p-1",
     };
     return (
-        <div className={`absolute -top-1 -right-1 bg-red-600 rounded-full ${flameContainerClasses[size]} shadow-sm`}>
-            <Flame className={`text-white ${flameSizeClasses[size]}`} />
+        <div className={`absolute -top-1 -right-1 bg-danger rounded-full ${flameContainerClasses[size]} shadow-sm`}>
+            <Flame className={`text-ink ${flameSizeClasses[size]}`} />
         </div>
     );
 }
@@ -59,7 +59,7 @@ export default function TokenLogo({ token, size = "md", className = "", suppress
 
     // Safety check for undefined token
     if (!token) {
-        return <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-700" />;
+        return <div className="w-8 h-8 rounded-full bg-surface-hover " />;
     }
 
     const isSubnetToken = token.type === 'SUBNET';

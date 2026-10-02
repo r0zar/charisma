@@ -132,17 +132,17 @@ export default function FlowTester() {
     };
 
     const getStepIcon = (step: any) => {
-        if (!step.success) return <XCircle className="w-5 h-5 text-red-500" />;
+        if (!step.success) return <XCircle className="w-5 h-5 text-danger" />;
         
         switch (step.step) {
             case 1:
-                return <Twitter className="w-5 h-5 text-blue-500" />;
+                return <Twitter className="w-5 h-5 text-accent-text" />;
             case 2:
-                return <Hash className="w-5 h-5 text-purple-500" />;
+                return <Hash className="w-5 h-5 text-blaze" />;
             case 3:
-                return <ShoppingCart className="w-5 h-5 text-green-500" />;
+                return <ShoppingCart className="w-5 h-5 text-success" />;
             default:
-                return <CheckCircle className="w-5 h-5 text-green-500" />;
+                return <CheckCircle className="w-5 h-5 text-success" />;
         }
     };
 
@@ -156,7 +156,7 @@ export default function FlowTester() {
             {/* Flow Test Configuration */}
             <div className="bg-card rounded-lg border border-border p-6">
                 <div className="flex items-center gap-3 mb-4">
-                    <div className="w-8 h-8 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center">
+                    <div className="w-8 h-8 rounded-lg bg-success/20 text-success flex items-center justify-center">
                         <Activity className="w-5 h-5" />
                     </div>
                     <h3 className="text-lg font-semibold text-foreground">End-to-End Flow Simulation</h3>
@@ -253,11 +253,11 @@ export default function FlowTester() {
                             </div>
                             <div>
                                 <span className="text-muted-foreground">Resolved:</span>
-                                <span className="ml-2 font-semibold text-green-600">{testResult.summary.successfulResolutions}</span>
+                                <span className="ml-2 font-semibold text-success">{testResult.summary.successfulResolutions}</span>
                             </div>
                             <div>
                                 <span className="text-muted-foreground">Would Execute:</span>
-                                <span className="ml-2 font-semibold text-blue-600">{testResult.summary.wouldExecute}</span>
+                                <span className="ml-2 font-semibold text-accent-text">{testResult.summary.wouldExecute}</span>
                             </div>
                         </div>
                         
@@ -287,9 +287,9 @@ export default function FlowTester() {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {step.success ? (
-                                            <CheckCircle className="w-4 h-4 text-green-500" />
+                                            <CheckCircle className="w-4 h-4 text-success" />
                                         ) : (
-                                            <XCircle className="w-4 h-4 text-red-500" />
+                                            <XCircle className="w-4 h-4 text-danger" />
                                         )}
                                         <span className="text-sm">
                                             {step.success ? 'Success' : 'Failed'}
@@ -302,7 +302,7 @@ export default function FlowTester() {
                                     <div className="text-sm space-y-1">
                                         <div>Replies found: <span className="font-semibold">{step.data.repliesFound}</span></div>
                                         {step.data.error && (
-                                            <div className="text-red-600">Error: {step.data.error}</div>
+                                            <div className="text-danger">Error: {step.data.error}</div>
                                         )}
                                     </div>
                                 )}
@@ -311,7 +311,7 @@ export default function FlowTester() {
                                     <div className="text-sm space-y-2">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>BNS names found: <span className="font-semibold">{step.data.bnsNamesFound}</span></div>
-                                            <div>Successfully resolved: <span className="font-semibold text-green-600">{step.data.successfulResolutions}</span></div>
+                                            <div>Successfully resolved: <span className="font-semibold text-success">{step.data.successfulResolutions}</span></div>
                                         </div>
                                         
                                         {step.data.results && step.data.results.length > 0 && (
@@ -322,9 +322,9 @@ export default function FlowTester() {
                                                         <div key={idx} className="flex items-center justify-between text-xs bg-background p-2 rounded border">
                                                             <div className="flex items-center gap-2">
                                                                 {result.resolutionSuccess ? (
-                                                                    <CheckCircle className="w-3 h-3 text-green-500" />
+                                                                    <CheckCircle className="w-3 h-3 text-success" />
                                                                 ) : (
-                                                                    <XCircle className="w-3 h-3 text-red-500" />
+                                                                    <XCircle className="w-3 h-3 text-danger" />
                                                                 )}
                                                                 <span>@{result.authorHandle}</span>
                                                                 <ArrowRight className="w-3 h-3 text-muted-foreground" />
@@ -332,11 +332,11 @@ export default function FlowTester() {
                                                             </div>
                                                             <div>
                                                                 {result.resolutionSuccess ? (
-                                                                    <span className="font-mono text-green-600">
+                                                                    <span className="font-mono text-success">
                                                                         {result.address?.slice(0, 8)}...{result.address?.slice(-6)}
                                                                     </span>
                                                                 ) : (
-                                                                    <span className="text-red-600">{result.resolutionError}</span>
+                                                                    <span className="text-danger">{result.resolutionError}</span>
                                                                 )}
                                                             </div>
                                                         </div>
@@ -372,8 +372,8 @@ export default function FlowTester() {
 
                     {/* Errors */}
                     {testResult.summary.errors.length > 0 && (
-                        <div className="mt-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                            <div className="text-sm text-red-800 dark:text-red-200">
+                        <div className="mt-4 bg-danger-soft border border-danger  rounded-lg p-3">
+                            <div className="text-sm text-danger ">
                                 <div className="font-medium mb-1">Errors encountered:</div>
                                 {testResult.summary.errors.map((error, index) => (
                                     <div key={index} className="text-xs">{error}</div>

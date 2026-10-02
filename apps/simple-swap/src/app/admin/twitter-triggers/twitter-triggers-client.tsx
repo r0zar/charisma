@@ -964,46 +964,46 @@ export default function TwitterTriggersClient() {
     const getStatusDisplay = (status: string) => {
         switch (status) {
             case 'order_broadcasted':
-                return { text: 'Broadcasted', color: 'text-yellow-600' };
+                return { text: 'Broadcasted', color: 'text-warning' };
             case 'order_confirmed':
-                return { text: 'Confirmed', color: 'text-green-600' };
+                return { text: 'Confirmed', color: 'text-success' };
             case 'failed':
-                return { text: 'Failed', color: 'text-red-600' };
+                return { text: 'Failed', color: 'text-danger' };
             case 'overflow':
-                return { text: 'Overflow', color: 'text-orange-600' };
+                return { text: 'Overflow', color: 'text-accent-text' };
             case 'pending':
-                return { text: 'Pending', color: 'text-gray-600' };
+                return { text: 'Pending', color: 'text-ink-muted' };
             case 'bns_resolved':
-                return { text: 'BNS Resolved', color: 'text-blue-600' };
+                return { text: 'BNS Resolved', color: 'text-accent-text' };
             default:
-                return { text: status, color: 'text-gray-600' };
+                return { text: status, color: 'text-ink-muted' };
         }
     };
 
     const getStatusIcon = (status: string) => {
         switch (status) {
             case 'order_broadcasted':
-                return <Clock className="w-4 h-4 text-yellow-500" />;
+                return <Clock className="w-4 h-4 text-warning" />;
             case 'order_confirmed':
-                return <CheckCircle className="w-4 h-4 text-green-500" />;
+                return <CheckCircle className="w-4 h-4 text-success" />;
             case 'failed':
             case 'test_failed':
-                return <XCircle className="w-4 h-4 text-red-500" />;
+                return <XCircle className="w-4 h-4 text-danger" />;
             case 'overflow':
-                return <AlertTriangle className="w-4 h-4 text-purple-500" />;
+                return <AlertTriangle className="w-4 h-4 text-blaze" />;
             case 'pending':
             case 'bns_resolved':
-                return <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />;
+                return <Loader2 className="w-4 h-4 text-accent-text animate-spin" />;
             case 'test_run':
             case 'test_would_execute':
-                return <Play className="w-4 h-4 text-green-500" />;
+                return <Play className="w-4 h-4 text-success" />;
             case 'test_limited':
             case 'test_no_orders':
-                return <AlertTriangle className="w-4 h-4 text-orange-500" />;
+                return <AlertTriangle className="w-4 h-4 text-accent-text" />;
             case 'test_overflow':
-                return <AlertTriangle className="w-4 h-4 text-purple-500" />;
+                return <AlertTriangle className="w-4 h-4 text-blaze" />;
             default:
-                return <div className="w-4 h-4 rounded-full bg-gray-300" />;
+                return <div className="w-4 h-4 rounded-full bg-surface-hover" />;
         }
     };
 
@@ -1050,7 +1050,7 @@ export default function TwitterTriggersClient() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${systemStatus?.cronRunning ? 'bg-green-500 animate-pulse' : 'bg-red-500'
+                        <div className={`w-3 h-3 rounded-full ${systemStatus?.cronRunning ? 'bg-success animate-pulse' : 'bg-danger'
                             }`} />
                         <div>
                             <div className="text-sm font-medium text-foreground">
@@ -1063,7 +1063,7 @@ export default function TwitterTriggersClient() {
                     </div>
 
                     <div className="flex items-center space-x-3">
-                        <Clock className="w-5 h-5 text-blue-500" />
+                        <Clock className="w-5 h-5 text-accent-text" />
                         <div>
                             <div className="text-sm font-medium text-foreground">
                                 Last Check
@@ -1075,7 +1075,7 @@ export default function TwitterTriggersClient() {
                     </div>
 
                     <div className="flex items-center space-x-3">
-                        <Clock className="w-5 h-5 text-purple-500" />
+                        <Clock className="w-5 h-5 text-blaze" />
                         <div>
                             <div className="text-sm font-medium text-foreground">
                                 Next Check
@@ -1087,7 +1087,7 @@ export default function TwitterTriggersClient() {
                     </div>
 
                     <div className="flex items-center space-x-3">
-                        <Loader2 className={`w-5 h-5 text-orange-500 ${systemStatus?.processingCount && systemStatus.processingCount > 0 ? 'animate-spin' : ''
+                        <Loader2 className={`w-5 h-5 text-accent-text ${systemStatus?.processingCount && systemStatus.processingCount > 0 ? 'animate-spin' : ''
                             }`} />
                         <div>
                             <div className="text-sm font-medium text-foreground">
@@ -1106,7 +1106,7 @@ export default function TwitterTriggersClient() {
                 <div className="bg-card rounded-lg border border-border p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-semibold text-foreground">Active Triggers</h3>
-                        <div className="w-8 h-8 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-success/20 text-success flex items-center justify-center">
                             <Zap className="w-4 h-4" />
                         </div>
                     </div>
@@ -1119,7 +1119,7 @@ export default function TwitterTriggersClient() {
                 <div className="bg-card rounded-lg border border-border p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-semibold text-foreground">Total Executions</h3>
-                        <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-accent/20 text-accent-text flex items-center justify-center">
                             <Users className="w-4 h-4" />
                         </div>
                     </div>
@@ -1132,7 +1132,7 @@ export default function TwitterTriggersClient() {
                 <div className="bg-card rounded-lg border border-border p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-semibold text-foreground">BNS Recipients</h3>
-                        <div className="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-blaze/20 text-blaze flex items-center justify-center">
                             <Settings className="w-4 h-4" />
                         </div>
                     </div>
@@ -1144,22 +1144,22 @@ export default function TwitterTriggersClient() {
             </div>
 
             {/* Testing Dashboard Link */}
-            <div className="bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 rounded-lg p-4 mb-6">
+            <div className="bg-blaze-soft border border-blaze  rounded-lg p-4 mb-6">
                 <div className="flex items-center justify-between">
                     <div className="flex items-start gap-3">
-                        <TestTube className="w-5 h-5 text-purple-600 dark:text-purple-400 mt-1" />
+                        <TestTube className="w-5 h-5 text-blaze mt-1" />
                         <div>
-                            <h3 className="font-semibold text-purple-900 dark:text-purple-100 mb-1">
+                            <h3 className="font-semibold text-blaze mb-1">
                                 Advanced Testing Dashboard
                             </h3>
-                            <p className="text-sm text-purple-800 dark:text-purple-200">
+                            <p className="text-sm text-blaze ">
                                 Access comprehensive testing tools for Twitter scraping, BNS resolution, flow simulation, and data inspection.
                             </p>
                         </div>
                     </div>
                     <Link
                         href="/admin/twitter-triggers/testing"
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blaze text-bg rounded-lg hover:bg-blaze transition-colors text-sm font-medium"
                     >
                         <TestTube className="w-4 h-4" />
                         Open Testing Dashboard
@@ -1180,7 +1180,7 @@ export default function TwitterTriggersClient() {
                                 type="button"
                                 onClick={() => setSigningMode('wallet')}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${signingMode === 'wallet'
-                                    ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                    ? 'bg-accent-soft border-accent text-accent-text'
                                     : 'bg-background border-border text-muted-foreground hover:bg-muted'
                                     }`}
                             >
@@ -1191,7 +1191,7 @@ export default function TwitterTriggersClient() {
                                 type="button"
                                 onClick={() => setSigningMode('bulk')}
                                 className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${signingMode === 'bulk'
-                                    ? 'bg-orange-50 border-orange-200 text-orange-700'
+                                    ? 'bg-accent-soft border-accent text-accent-text'
                                     : 'bg-background border-border text-muted-foreground hover:bg-muted'
                                     }`}
                             >
@@ -1311,14 +1311,14 @@ export default function TwitterTriggersClient() {
                                     placeholder="Enter private key..."
                                     value={privateKey}
                                     onChange={handlePrivateKeyChange}
-                                    className={`w-full px-3 py-2 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary ${privateKeyError ? 'border-red-500' : 'border-border'
+                                    className={`w-full px-3 py-2 border rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary ${privateKeyError ? 'border-danger' : 'border-border'
                                         }`}
                                 />
                                 {privateKeyError && (
-                                    <p className="text-sm text-red-500 mt-1">{privateKeyError}</p>
+                                    <p className="text-sm text-danger mt-1">{privateKeyError}</p>
                                 )}
                                 {signerAddress && (
-                                    <div className="flex items-center gap-2 text-sm text-green-600 mt-1">
+                                    <div className="flex items-center gap-2 text-sm text-success mt-1">
                                         <CheckCircle className="w-4 h-4" />
                                         Address: {signerAddress}
                                     </div>
@@ -1406,7 +1406,7 @@ export default function TwitterTriggersClient() {
                                                     href={trigger.tweetUrl}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="text-blue-500 hover:text-blue-600 flex items-center"
+                                                    className="text-accent-text hover:text-accent-text flex items-center"
                                                 >
                                                     Tweet {trigger.tweetId.slice(-6)}
                                                     <ExternalLink className="w-3 h-3 ml-1" />
@@ -1429,7 +1429,7 @@ export default function TwitterTriggersClient() {
                                                         </div>
                                                     )}
                                                     {!trigger.orderIds && (
-                                                        <div className="text-xs text-red-600">
+                                                        <div className="text-xs text-danger">
                                                             No pre-signed orders
                                                         </div>
                                                     )}
@@ -1438,13 +1438,13 @@ export default function TwitterTriggersClient() {
                                             <td className="py-3 px-4">
                                                 <div className="space-y-1">
                                                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${trigger.isActive
-                                                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                        : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+                                                        ? 'bg-success-soft text-success  '
+                                                        : 'bg-surface-hover text-ink-muted  '
                                                         }`}>
                                                         {trigger.isActive ? 'Active' : 'Inactive'}
                                                     </span>
                                                     {trigger.error && (
-                                                        <div className="flex items-center space-x-1 text-xs text-red-600">
+                                                        <div className="flex items-center space-x-1 text-xs text-danger">
                                                             <AlertTriangle className="w-3 h-3" />
                                                             <span>Error</span>
                                                         </div>
@@ -1457,12 +1457,12 @@ export default function TwitterTriggersClient() {
                                                         {trigger.lastChecked ? formatRelativeTime(trigger.lastChecked) : 'Never'}
                                                     </div>
                                                     {trigger.nextCheck && (
-                                                        <div className="text-xs text-blue-600">
+                                                        <div className="text-xs text-accent-text">
                                                             Next: {formatRelativeTime(trigger.nextCheck)}
                                                         </div>
                                                     )}
                                                     {trigger.error && (
-                                                        <div className="text-xs text-red-600 truncate max-w-32" title={trigger.error}>
+                                                        <div className="text-xs text-danger truncate max-w-32" title={trigger.error}>
                                                             {trigger.error}
                                                         </div>
                                                     )}
@@ -1474,7 +1474,7 @@ export default function TwitterTriggersClient() {
                                                     {hasOverflowExecutions(trigger.id) && (
                                                         <button
                                                             onClick={() => openAdditionalOrdersDialog(trigger.id)}
-                                                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950 transition-colors"
+                                                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-blaze hover:text-blaze hover:bg-blaze-soft transition-colors"
                                                             title={`Add orders for ${getOverflowCount(trigger.id)} overflow execution${getOverflowCount(trigger.id) > 1 ? 's' : ''}`}
                                                         >
                                                             <Zap className="w-4 h-4" />
@@ -1484,7 +1484,7 @@ export default function TwitterTriggersClient() {
                                                     <button
                                                         onClick={() => testTrigger(trigger.id)}
                                                         disabled={testingTriggers.has(trigger.id)}
-                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-success hover:text-success hover:bg-success-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                         title="Run trigger now (REAL EXECUTION - will create actual orders)"
                                                     >
                                                         {testingTriggers.has(trigger.id) ? (
@@ -1496,7 +1496,7 @@ export default function TwitterTriggersClient() {
                                                     <button
                                                         onClick={() => deleteTrigger(trigger.id)}
                                                         disabled={deletingTriggers.has(trigger.id)}
-                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-danger hover:text-danger hover:bg-danger-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                         title="Delete trigger"
                                                     >
                                                         {deletingTriggers.has(trigger.id) ? (
@@ -1588,7 +1588,7 @@ export default function TwitterTriggersClient() {
                                                         href={getTransactionExplorerLink(execution.txid)!}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="text-blue-500 hover:text-blue-600 flex items-center font-mono"
+                                                        className="text-accent-text hover:text-accent-text flex items-center font-mono"
                                                     >
                                                         {execution.txid.slice(0, 8)}...{execution.txid.slice(-6)}
                                                         <ExternalLink className="w-3 h-3 ml-1" />
@@ -1611,43 +1611,43 @@ export default function TwitterTriggersClient() {
                                                                                     getStatusDisplay(execution.status).text}
                                                     </span>
                                                     {execution.status.startsWith('test_') && (
-                                                        <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-xs rounded-full">
+                                                        <span className="ml-2 px-2 py-1 bg-accent-soft text-accent-text text-xs rounded-full">
                                                             TEST
                                                         </span>
                                                     )}
                                                 </div>
                                                 {execution.error && (
-                                                    <div className="mt-1 text-xs text-red-500" title={execution.error}>
+                                                    <div className="mt-1 text-xs text-danger" title={execution.error}>
                                                         {execution.error.length > 50 ? `${execution.error.substring(0, 50)}...` : execution.error}
                                                     </div>
                                                 )}
                                             </td>
                                             <td className="py-3 px-4 text-sm">
                                                 {execution.twitterReplyStatus === 'sent' && (
-                                                    <div className="flex items-center text-green-600">
+                                                    <div className="flex items-center text-success">
                                                         <CheckCircle className="w-3 h-3 mr-1" />
                                                         <span className="text-xs">Replied</span>
                                                     </div>
                                                 )}
                                                 {execution.twitterReplyStatus === 'failed' && (
-                                                    <div className="flex items-center text-red-600" title={execution.twitterReplyError || 'Reply failed'}>
+                                                    <div className="flex items-center text-danger" title={execution.twitterReplyError || 'Reply failed'}>
                                                         <XCircle className="w-3 h-3 mr-1" />
                                                         <span className="text-xs">Failed</span>
                                                     </div>
                                                 )}
                                                 {execution.twitterReplyStatus === 'disabled' && (
-                                                    <div className="flex items-center text-gray-500">
+                                                    <div className="flex items-center text-ink-muted">
                                                         <span className="text-xs">Disabled</span>
                                                     </div>
                                                 )}
                                                 {!execution.twitterReplyStatus && (execution.status === 'order_broadcasted' || execution.status === 'order_confirmed') && (
-                                                    <div className="flex items-center text-yellow-600">
+                                                    <div className="flex items-center text-warning">
                                                         <Clock className="w-3 h-3 mr-1" />
                                                         <span className="text-xs">Pending</span>
                                                     </div>
                                                 )}
                                                 {!execution.twitterReplyStatus && (execution.status !== 'order_broadcasted' && execution.status !== 'order_confirmed') && (
-                                                    <span className="text-xs text-gray-400">-</span>
+                                                    <span className="text-xs text-ink-muted">-</span>
                                                 )}
                                             </td>
                                             <td className="py-3 px-4 text-sm text-muted-foreground">
@@ -1664,7 +1664,7 @@ export default function TwitterTriggersClient() {
 
             {/* Additional Orders Dialog */}
             {showAdditionalOrdersDialog && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-overlay backdrop-blur-xl z-50 flex items-center justify-center p-4">
                     <div className="bg-card rounded-lg border border-border p-6 w-full max-w-md">
                         <div className="space-y-6">
                             <div>
@@ -1732,7 +1732,7 @@ export default function TwitterTriggersClient() {
 
             {/* Order Signing Dialog */}
             {showSigningDialog && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-overlay backdrop-blur-xl z-50 flex items-center justify-center p-4">
                     <div className="bg-card rounded-lg border border-border p-6 w-full max-w-md">
                         <div className="space-y-6">
                             <div>
@@ -1834,10 +1834,10 @@ export default function TwitterTriggersClient() {
                                                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                                                 )}
                                                 {order.status === 'success' && (
-                                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                                    <CheckCircle className="h-4 w-4 text-success" />
                                                 )}
                                                 {order.status === 'error' && (
-                                                    <XCircle className="h-4 w-4 text-red-500" />
+                                                    <XCircle className="h-4 w-4 text-danger" />
                                                 )}
                                             </div>
                                         </div>
@@ -1847,8 +1847,8 @@ export default function TwitterTriggersClient() {
 
                             {/* Errors */}
                             {signingErrors.length > 0 && (
-                                <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                                    <div className="text-sm text-red-800 dark:text-red-200">
+                                <div className="bg-danger-soft border border-danger  rounded-lg p-3">
+                                    <div className="text-sm text-danger ">
                                         <div className="font-medium mb-1">Signing Errors:</div>
                                         {signingErrors.map((error, index) => (
                                             <div key={index} className="text-xs">{error}</div>

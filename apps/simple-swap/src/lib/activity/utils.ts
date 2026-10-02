@@ -27,31 +27,31 @@ export function getActivityTypeInfo(type: ActivityType): ActivityTypeInfo {
   const typeMap: Record<ActivityType, ActivityTypeInfo> = {
     instant_swap: {
       label: 'Instant Swap',
-      color: 'text-blue-400',
+      color: 'text-accent-text',
       icon: 'arrows-updown',
       description: 'Immediate token exchange'
     },
     order_filled: {
       label: 'Order Filled',
-      color: 'text-green-400',
+      color: 'text-success',
       icon: 'check-circle',
       description: 'Limit order successfully executed'
     },
     order_cancelled: {
       label: 'Order Cancelled',
-      color: 'text-red-400',
+      color: 'text-danger',
       icon: 'x-circle',
       description: 'Order was cancelled'
     },
     dca_update: {
       label: 'DCA Update',
-      color: 'text-purple-400',
+      color: 'text-blaze',
       icon: 'trending-up',
       description: 'Dollar cost averaging execution'
     },
     twitter_trigger: {
       label: 'Twitter Trigger',
-      color: 'text-cyan-400',
+      color: 'text-blaze',
       icon: 'twitter',
       description: 'Order triggered by Twitter activity'
     }
@@ -59,7 +59,7 @@ export function getActivityTypeInfo(type: ActivityType): ActivityTypeInfo {
 
   return typeMap[type] || {
     label: 'Unknown',
-    color: 'text-gray-400',
+    color: 'text-ink-muted',
     icon: 'question-mark',
     description: 'Unknown activity type'
   };
@@ -69,36 +69,36 @@ export function getStatusInfo(status: ActivityStatus): ActivityStatusInfo {
   const statusMap: Record<ActivityStatus, ActivityStatusInfo> = {
     completed: {
       label: 'Completed',
-      color: 'text-green-400',
-      bgColor: 'bg-green-500/10',
+      color: 'text-success',
+      bgColor: 'bg-success/10',
       icon: 'CheckCircle',
       description: 'Successfully completed'
     },
     pending: {
       label: 'Pending',
-      color: 'text-yellow-400',
-      bgColor: 'bg-yellow-500/10',
+      color: 'text-warning',
+      bgColor: 'bg-warning/10',
       icon: 'Clock',
       description: 'Awaiting confirmation'
     },
     failed: {
       label: 'Failed',
-      color: 'text-red-400',
-      bgColor: 'bg-red-500/10',
+      color: 'text-danger',
+      bgColor: 'bg-danger/10',
       icon: 'AlertCircle',
       description: 'Transaction failed'
     },
     cancelled: {
       label: 'Cancelled',
-      color: 'text-gray-400',
-      bgColor: 'bg-gray-500/10',
+      color: 'text-ink-muted',
+      bgColor: 'bg-surface-hover',
       icon: 'XCircle',
       description: 'Transaction was cancelled'
     },
     processing: {
       label: 'Processing',
-      color: 'text-blue-400',
-      bgColor: 'bg-blue-500/10',
+      color: 'text-accent-text',
+      bgColor: 'bg-accent/10',
       icon: 'Loader',
       description: 'Currently processing'
     }
@@ -106,8 +106,8 @@ export function getStatusInfo(status: ActivityStatus): ActivityStatusInfo {
 
   return statusMap[status] || {
     label: 'Unknown',
-    color: 'text-gray-400',
-    bgColor: 'bg-gray-500/10',
+    color: 'text-ink-muted',
+    bgColor: 'bg-surface-hover',
     icon: 'HelpCircle',
     description: 'Unknown status'
   };
@@ -198,7 +198,7 @@ export function getActivityActions(activity: ActivityItem): ActivityActionConfig
     label: 'View on Explorer',
     action: 'view_explorer',
     icon: 'external-link',
-    color: 'text-blue-400',
+    color: 'text-accent-text',
     disabled: !activity.txid
   });
   
@@ -208,7 +208,7 @@ export function getActivityActions(activity: ActivityItem): ActivityActionConfig
       label: 'Cancel',
       action: 'cancel',
       icon: 'x-circle',
-      color: 'text-red-400'
+      color: 'text-danger'
     });
   }
   
@@ -217,7 +217,7 @@ export function getActivityActions(activity: ActivityItem): ActivityActionConfig
       label: 'Retry',
       action: 'retry',
       icon: 'refresh',
-      color: 'text-green-400'
+      color: 'text-success'
     });
   }
   
@@ -225,13 +225,13 @@ export function getActivityActions(activity: ActivityItem): ActivityActionConfig
 }
 
 export function getPriceImpactColor(impact?: number): string {
-  if (!impact) return 'text-gray-400';
+  if (!impact) return 'text-ink-muted';
   
   const absImpact = Math.abs(impact);
-  if (absImpact < 0.1) return 'text-green-400';
-  if (absImpact < 0.5) return 'text-yellow-400';
-  if (absImpact < 1) return 'text-orange-400';
-  return 'text-red-400';
+  if (absImpact < 0.1) return 'text-success';
+  if (absImpact < 0.5) return 'text-warning';
+  if (absImpact < 1) return 'text-accent-text';
+  return 'text-danger';
 }
 
 export function getActivityDescription(activity: ActivityItem): string {

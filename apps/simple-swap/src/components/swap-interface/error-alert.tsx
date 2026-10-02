@@ -11,9 +11,9 @@ export default function ErrorAlert() {
     }
 
     return (
-        <div className="mb-5 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-700 dark:text-red-400 animate-[appear_0.3s_ease-out]">
+        <div className="mb-5 p-4 bg-danger/10 border border-danger/30 rounded-xl text-danger animate-[appear_0.3s_ease-out]">
             <div className="flex items-start space-x-3">
-                <div className="h-6 w-6 flex-shrink-0 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mt-0.5">
+                <div className="h-6 w-6 flex-shrink-0 rounded-full bg-danger-soft flex items-center justify-center mt-0.5">
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>

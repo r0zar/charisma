@@ -57,10 +57,10 @@ export default function ValidationAlert() {
     const requirements = getValidationRequirements();
 
     return (
-        <div className="mb-5 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-700 dark:text-amber-400 animate-[appear_0.3s_ease-out]">
+        <div className="mb-5 p-4 bg-warning/10 border border-warning/30 rounded-xl text-warning animate-[appear_0.3s_ease-out]">
             <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3 flex-1">
-                    <div className="h-6 w-6 flex-shrink-0 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mt-0.5">
+                    <div className="h-6 w-6 flex-shrink-0 rounded-full bg-warning-soft flex items-center justify-center mt-0.5">
                         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -84,7 +84,7 @@ export default function ValidationAlert() {
                 </div>
                 <button
                     onClick={clearValidationAlert}
-                    className="ml-2 p-1 rounded-lg hover:bg-amber-500/20 transition-colors flex-shrink-0"
+                    className="ml-2 p-1 rounded-lg hover:bg-warning/20 transition-colors flex-shrink-0"
                     title="Dismiss alert"
                 >
                     <X className="h-4 w-4" />

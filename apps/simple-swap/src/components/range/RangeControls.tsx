@@ -35,7 +35,7 @@ interface SegOption<T> { v: T; label: string; disabled?: boolean; title?: string
 
 function Seg<T extends number>({ options, value, onPick, labelId }: { options: SegOption<T>[]; value: T; onPick: (v: T) => void; labelId: string }) {
     return (
-        <div role="group" aria-labelledby={labelId} className="grid grid-flow-col gap-1 bg-white/[0.03] border border-white/[0.08] rounded-lg p-0.5">
+        <div role="group" aria-labelledby={labelId} className="grid grid-flow-col gap-1 bg-surface border border-line rounded-lg p-0.5">
             {options.map((o) => (
                 <button
                     key={o.v}
@@ -44,7 +44,7 @@ function Seg<T extends number>({ options, value, onPick, labelId }: { options: S
                     disabled={o.disabled}
                     title={o.disabled ? o.title : undefined}
                     onClick={() => onPick(o.v)}
-                    className={`px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${value === o.v ? 'bg-white/[0.1] text-white/95' : 'text-white/60 hover:text-white/80'} ${o.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+                    className={`px-2 py-1.5 text-xs font-medium rounded-md transition-colors ${value === o.v ? 'bg-surface-hover text-ink' : 'text-ink-muted hover:text-ink-body'} ${o.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                 >
                     {o.label}
                 </button>
@@ -54,7 +54,7 @@ function Seg<T extends number>({ options, value, onPick, labelId }: { options: S
 }
 
 const NO_SPINNER = '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
-const STEP_BTN = 'w-6 h-6 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-white/60 hover:text-white/90 transition-all duration-200 flex items-center justify-center text-xs font-medium';
+const STEP_BTN = 'w-6 h-6 rounded-md bg-surface hover:bg-surface-selected text-ink-muted hover:text-ink transition-all duration-200 flex items-center justify-center text-xs font-medium';
 
 interface BandInputProps {
     id: string;
@@ -73,8 +73,8 @@ function BandInput({ id, label, name, sign, className, value, min, max, onValue 
     const clamp = (v: number) => Math.min(max, Math.max(min, v));
     const bump = (d: number) => onValue(clamp(Math.round((value + d) * 10) / 10));
     return (
-        <div className={`flex items-center gap-2 rounded-lg border bg-white/[0.03] px-3 py-2 text-sm ${className}`}>
-            <label htmlFor={id}>{label}</label><span className="text-white/50">{sign}</span>
+        <div className={`flex items-center gap-2 rounded-lg border bg-surface px-3 py-2 text-sm ${className}`}>
+            <label htmlFor={id}>{label}</label><span className="text-ink-muted">{sign}</span>
             <input
                 id={id}
                 type="number"
@@ -87,9 +87,9 @@ function BandInput({ id, label, name, sign, className, value, min, max, onValue 
             />
             <div className="flex items-center gap-1 flex-shrink-0">
                 <button type="button" aria-label={`Decrease ${name} percent`} onClick={() => bump(-0.5)} className={STEP_BTN}>−</button>
-                <button type="button" aria-label={`Increase ${name} percent`} onClick={() => bump(0.5)} className={STEP_BTN}>+</button>
-            </div>
-            <span className="text-white/50">%</span>
+ <button type="button" aria-label={`Increase ${name} percent`} onClick={() => bump(0.5)} className={STEP_BTN}>+</button>
+ </div>
+            <span className="text-ink-muted">%</span>
         </div>
     );
 }
@@ -116,7 +116,7 @@ export default function RangeControls({ tokenA, tokenB, onTokenA, onTokenB, onSw
     return (
         <div className="space-y-4">
             <div className="space-y-2">
-                <div id="range-pair-label" className="text-xs text-white/60">Pair</div>
+                <div id="range-pair-label" className="text-xs text-ink-muted">Pair</div>
                 <div role="group" aria-labelledby="range-pair-label" className="flex items-center gap-2">
                     <SubnetPairSelector label="Sell" selected={tokenA} onSelect={onTokenA} exclude={tokenB?.contractId} />
                     <button
@@ -124,7 +124,7 @@ export default function RangeControls({ tokenA, tokenB, onTokenA, onTokenB, onSw
                         aria-label="Swap sell and buy tokens"
                         onClick={onSwap}
                         disabled={!tokenA || !tokenB}
-                        className="rounded-md px-1.5 py-1 text-white/50 hover:text-white/90 hover:bg-white/[0.05] transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white/50"
+                        className="rounded-md px-1.5 py-1 text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-ink-muted"
                     >
                         ⇄
                     </button>
@@ -133,38 +133,38 @@ export default function RangeControls({ tokenA, tokenB, onTokenA, onTokenB, onSw
             </div>
 
             <div className="space-y-2">
-                <div className="flex justify-between text-xs text-white/60">
+                <div className="flex justify-between text-xs text-ink-muted">
                     <span>Band around current price</span>
                     <span className="font-mono">{sellPrice.toPrecision(4)} / {buyPrice.toPrecision(4)}</span>
                 </div>
-                <BandInput id="range-sell-pct" label="Sell above" name="sell" sign="+" className="border-orange-500/50 [&>label]:text-orange-400" value={form.sellPct} min={0.5} max={200} onValue={(v) => onChange({ sellPct: v })} />
-                <BandInput id="range-buy-pct" label="Buy below" name="buy" sign="−" className="border-green-500/50 [&>label]:text-green-400" value={form.buyPct} min={0.5} max={99} onValue={(v) => onChange({ buyPct: v })} />
+                <BandInput id="range-sell-pct" label="Sell above" name="sell" sign="+" className="border-accent/50 [&>label]:text-accent-text" value={form.sellPct} min={0.5} max={200} onValue={(v) => onChange({ sellPct: v })} />
+                <BandInput id="range-buy-pct" label="Buy below" name="buy" sign="−" className="border-success/50 [&>label]:text-success" value={form.buyPct} min={0.5} max={99} onValue={(v) => onChange({ buyPct: v })} />
             </div>
 
             <div className="space-y-2">
-                <div className="flex justify-between text-xs text-white/60">
+                <div className="flex justify-between text-xs text-ink-muted">
                     <label htmlFor="range-usd">Per swap</label>
                     <span className="font-mono">≈ {amountA} {tokenA?.symbol ?? ''} · {amountB} {tokenB?.symbol ?? ''}</span>
                 </div>
-                <div className="flex items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 py-2">
-                    <span className="text-white/50">$</span>
+                <div className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2">
+                    <span className="text-ink-muted">$</span>
                     <input id="range-usd" type="number" min={1} step={5} value={form.perSwapUsd} onChange={set('perSwapUsd')} className={`w-full bg-transparent text-lg outline-none ${NO_SPINNER}`} />
-                    <span className="text-xs text-white/50">USD</span>
+                    <span className="text-xs text-ink-muted">USD</span>
                 </div>
             </div>
 
             <div className="space-y-2">
-                <div id="range-interval-label" className="text-xs text-white/60">Trigger every</div>
+                <div id="range-interval-label" className="text-xs text-ink-muted">Trigger every</div>
                 <Seg labelId="range-interval-label" options={intervalOptions} value={form.intervalHours} onPick={(h) => onChange({ intervalHours: h })} />
             </div>
 
             <div className="space-y-2">
-                <div id="range-run-label" className="text-xs text-white/60">Run for</div>
+                <div id="range-run-label" className="text-xs text-ink-muted">Run for</div>
                 <Seg labelId="range-run-label" options={runOptions} value={form.runDays} onPick={(d) => onChange({ runDays: d })} />
             </div>
 
             <div className="space-y-2">
-                <div className="flex justify-between text-xs text-white/60">
+                <div className="flex justify-between text-xs text-ink-muted">
                     <label htmlFor="range-tilt">Tilt</label>
                     <span className="font-mono">{form.tilt >= 0 ? '+' : '−'}{Math.abs(Math.round(form.tilt * 100))}% by the end</span>
                 </div>

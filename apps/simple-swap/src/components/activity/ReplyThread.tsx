@@ -51,13 +51,13 @@ export const ReplyThread: React.FC<ReplyThreadProps> = ({
       <div className="space-y-4" onClick={(e) => e.stopPropagation()}>
         {/* No replies message with composer trigger */}
         <div className="flex items-center justify-between">
-          <span className="text-sm text-white/60">No replies yet</span>
+          <span className="text-sm text-ink-muted">No replies yet</span>
           <button
             onClick={(e) => {
               e.stopPropagation();
               setShowComposer(true);
             }}
-            className="text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200"
+            className="text-sm text-accent-text hover:text-accent-text transition-colors duration-200"
           >
             Be the first to reply
           </button>
@@ -83,7 +83,7 @@ export const ReplyThread: React.FC<ReplyThreadProps> = ({
                 e.stopPropagation();
                 setShowComposer(false);
               }}
-              className="text-sm text-white/60 hover:text-white/90 transition-colors duration-200"
+              className="text-sm text-ink-muted hover:text-ink transition-colors duration-200"
             >
               Cancel
             </button>
@@ -106,7 +106,7 @@ export const ReplyThread: React.FC<ReplyThreadProps> = ({
               e.stopPropagation();
               setIsExpanded(!isExpanded);
             }}
-            className="flex items-center space-x-2 text-sm text-white/60 hover:text-white/90 transition-all duration-200"
+            className="flex items-center space-x-2 text-sm text-ink-muted hover:text-ink transition-all duration-200"
           >
             <MessageCircle className="w-4 h-4" />
             <span>
@@ -126,7 +126,7 @@ export const ReplyThread: React.FC<ReplyThreadProps> = ({
                 setShowComposer(true);
                 setIsExpanded(true);
               }}
-              className="text-sm text-blue-400 hover:text-blue-300 transition-colors duration-200"
+              className="text-sm text-accent-text hover:text-accent-text transition-colors duration-200"
             >
               Add reply
             </button>
@@ -138,7 +138,7 @@ export const ReplyThread: React.FC<ReplyThreadProps> = ({
       {isExpanded && (
         <div className="space-y-0 animate-in slide-in-from-top-2 duration-300" style={{ animation: 'replySlideIn 0.3s ease-out' }}>
           {/* Thread container with left border */}
-          <div className="relative border-l-2 border-white/[0.08] ml-4">
+          <div className="relative border-l-2 border-line ml-4">
             {/* Reply items */}
             {sortedReplies.map((reply, index) => (
               <ReplyItem
@@ -148,7 +148,7 @@ export const ReplyThread: React.FC<ReplyThreadProps> = ({
                 onEdit={onEditReply}
                 onDelete={onDeleteReply}
                 onLike={onLikeReply}
-                className={index === sortedReplies.length - 1 ? 'border-b border-white/[0.08]' : ''}
+                className={index === sortedReplies.length - 1 ? 'border-b border-line' : ''}
               />
             ))}
           </div>
@@ -160,7 +160,7 @@ export const ReplyThread: React.FC<ReplyThreadProps> = ({
         <div className="ml-4 animate-in slide-in-from-bottom-2 duration-300">
           <div className="relative">
             {/* Connection line to thread */}
-            <div className="absolute -left-4 top-4 w-4 h-px bg-white/[0.08]" />
+            <div className="absolute -left-4 top-4 w-4 h-px bg-surface-hover" />
             
             <ReplyComposer
               activityId={activityId}
@@ -180,7 +180,7 @@ export const ReplyThread: React.FC<ReplyThreadProps> = ({
                   setShowComposer(false);
                   setReplyingTo(null);
                 }}
-                className="text-sm text-white/60 hover:text-white/90 transition-colors duration-200"
+                className="text-sm text-ink-muted hover:text-ink transition-colors duration-200"
               >
                 Cancel
               </button>
@@ -197,7 +197,7 @@ export const ReplyThread: React.FC<ReplyThreadProps> = ({
               e.stopPropagation();
               setShowComposer(true);
             }}
-            className="w-full p-3 rounded-xl border-2 border-dashed border-white/[0.08] text-white/40 hover:border-white/[0.15] hover:text-white/60 hover:bg-white/[0.02] transition-all duration-200 text-sm"
+            className="w-full p-3 rounded-xl border-2 border-dashed border-line text-ink-muted hover:border-line-strong hover:text-ink-muted hover:bg-surface transition-all duration-200 text-sm"
           >
             Add a reply...
           </button>

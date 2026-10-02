@@ -144,8 +144,8 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
   if (loading && !portfolioData) {
     return (
       <div className={`flex items-center space-x-3 ${className}`}>
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
-        <span className="text-sm text-white/60">Loading portfolio...</span>
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-line-strong border-t-ink/60" />
+        <span className="text-sm text-ink-muted">Loading portfolio...</span>
       </div>
     );
   }
@@ -168,24 +168,24 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
 
   // Dashboard Style (Clean grid with ranking badges)
   const renderDashboardStyle = () => (
-    <div className="relative rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm hover:bg-black/30 hover:border-white/[0.15] transition-all duration-300 p-6">
-      <div className="bg-gradient-to-br from-white/[0.02] to-transparent absolute inset-0 rounded-2xl pointer-events-none" />
+    <div className="relative rounded-2xl border border-line bg-surface backdrop-blur-sm hover:bg-chrome hover:border-line-strong transition-all duration-300 p-6">
+      <div className="bg-gradient-to-br from-surface-sunken to-transparent absolute inset-0 rounded-2xl pointer-events-none" />
 
       {/* Portfolio Header */}
       <div className="relative flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <div className="p-2 rounded-xl bg-blue-500/[0.08] border border-blue-500/[0.15]">
-            <DollarSign className="w-5 h-5 text-blue-400" />
+          <div className="p-2 rounded-xl bg-accent/[0.08] border border-accent/[0.15]">
+            <DollarSign className="w-5 h-5 text-accent-text" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white/95">Portfolio Overview</h2>
-            <p className="text-white/60 text-sm">Real-time blockchain holdings</p>
+            <h2 className="text-xl font-bold text-ink">Portfolio Overview</h2>
+            <p className="text-ink-muted text-sm">Real-time blockchain holdings</p>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-3xl font-bold text-white/95">${portfolio.currentValue.toLocaleString()}</div>
+          <div className="text-3xl font-bold text-ink">${portfolio.currentValue.toLocaleString()}</div>
           {portfolio.change24h.usdValue !== 0 && (
-            <div className={`text-lg font-medium ${is24hProfit ? 'text-emerald-400' : 'text-red-400'}`}>
+            <div className={`text-lg font-medium ${is24hProfit ? 'text-success' : 'text-danger'}`}>
               {is24hProfit ? '+' : '-'}{portfolioChange24hPercentage}% 24h
             </div>
           )}
@@ -195,7 +195,7 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
       {/* Top Holdings with Ranking Badges */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {portfolio.topHoldings.slice(0, 3).map((holding, index) => (
-          <div key={holding.contractId} className="bg-white/[0.02] border border-white/[0.08] rounded-xl p-3 hover:bg-white/[0.05] hover:border-white/[0.15] transition-all duration-200">
+          <div key={holding.contractId} className="bg-surface-sunken border border-line rounded-xl p-3 hover:bg-surface-hover hover:border-line-strong transition-all duration-200">
             <div className="flex items-center space-x-3 mb-2">
               <TokenLogo
                 token={{
@@ -209,33 +209,33 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
                 size="md"
               />
               <div>
-                <div className="text-white/95 text-sm font-bold">{holding.name || holding.symbol}</div>
-                <div className="text-white/60 text-xs">{holding.symbol}</div>
+                <div className="text-ink text-sm font-bold">{holding.name || holding.symbol}</div>
+                <div className="text-ink-muted text-xs">{holding.symbol}</div>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-white/95 font-bold">${holding.value.toLocaleString()}</div>
-              <div className="text-white/60 text-xs">{holding.percentageOfPortfolio.toFixed(1)}%</div>
+              <div className="text-ink font-bold">${holding.value.toLocaleString()}</div>
+              <div className="text-ink-muted text-xs">{holding.percentageOfPortfolio.toFixed(1)}%</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Trading Performance Row */}
-      <div className="grid grid-cols-3 gap-6 pt-4 border-t border-white/[0.08]">
+      <div className="grid grid-cols-3 gap-6 pt-4 border-t border-line">
         <div className="text-center">
-          <div className={`text-xl font-bold ${isTradingProfit ? 'text-emerald-400' : 'text-red-400'}`}>
+          <div className={`text-xl font-bold ${isTradingProfit ? 'text-success' : 'text-danger'}`}>
             {isTradingProfit ? '+' : '-'}{tradingPnlPercentage}%
           </div>
-          <div className="text-white/60 text-sm">Trading P&L</div>
+          <div className="text-ink-muted text-sm">Trading P&L</div>
         </div>
         <div className="text-center">
-          <div className="text-white/95 text-xl font-bold">${trading.tradingVolume.toLocaleString()}</div>
-          <div className="text-white/60 text-sm">Volume ({trading.metrics.totalPositions} trades)</div>
+          <div className="text-ink text-xl font-bold">${trading.tradingVolume.toLocaleString()}</div>
+          <div className="text-ink-muted text-sm">Volume ({trading.metrics.totalPositions} trades)</div>
         </div>
         <div className="text-center">
-          <div className="text-purple-400 text-xl font-bold">{trading.metrics.winRate.toFixed(1)}%</div>
-          <div className="text-white/60 text-sm">Win Rate</div>
+          <div className="text-blaze text-xl font-bold">{trading.metrics.winRate.toFixed(1)}%</div>
+          <div className="text-ink-muted text-sm">Win Rate</div>
         </div>
       </div>
     </div>
@@ -243,22 +243,22 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
 
   // Command Center Style (Futuristic with hexagonal badges)
   const renderCommandStyle = () => (
-    <div className="relative rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm hover:bg-black/30 hover:border-white/[0.15] transition-all duration-300 p-6 overflow-hidden">
-      <div className="bg-gradient-to-r from-blue-500/[0.05] to-purple-500/[0.05] absolute inset-0 rounded-2xl pointer-events-none" />
+    <div className="relative rounded-2xl border border-line bg-surface backdrop-blur-sm hover:bg-chrome hover:border-line-strong transition-all duration-300 p-6 overflow-hidden">
+      <div className="bg-gradient-to-r from-accent/[0.05] to-accent/[0.05] absolute inset-0 rounded-2xl pointer-events-none" />
 
       {/* Background Effects */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-500/[0.1] to-transparent rounded-full blur-2xl"></div>
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-accent/[0.1] to-transparent rounded-full blur-2xl"></div>
 
       {/* Main Stats Grid */}
       <div className="relative z-10">
         {/* Portfolio Value - Center Focus */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center space-x-4 bg-white/[0.05] border border-white/[0.15] rounded-xl px-6 py-3">
-            <div className="text-4xl font-black bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+          <div className="inline-flex items-center space-x-4 bg-surface border border-line-strong rounded-xl px-6 py-3">
+            <div className="text-4xl font-black bg-gradient-to-r from-accent to-accent bg-clip-text text-transparent">
               ${portfolio.currentValue.toLocaleString()}
             </div>
             {portfolio.change24h.usdValue !== 0 && (
-              <div className={`text-lg font-medium ${is24hProfit ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className={`text-lg font-medium ${is24hProfit ? 'text-success' : 'text-danger'}`}>
                 {is24hProfit ? '+' : '-'}{portfolioChange24hPercentage}%
               </div>
             )}
@@ -282,12 +282,12 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
                   size="lg"
                 />
                 <div>
-                  <div className="text-white/95 font-bold text-base">{holding.name || holding.symbol}</div>
-                  <div className="text-white/60 text-sm">{holding.symbol}</div>
+                  <div className="text-ink font-bold text-base">{holding.name || holding.symbol}</div>
+                  <div className="text-ink-muted text-sm">{holding.symbol}</div>
                 </div>
                 <div>
-                  <div className="text-white/80 font-medium">${holding.value.toLocaleString()}</div>
-                  <div className="text-white/60 text-sm">{holding.percentageOfPortfolio.toFixed(1)}%</div>
+                  <div className="text-ink-body font-medium">${holding.value.toLocaleString()}</div>
+                  <div className="text-ink-muted text-sm">{holding.percentageOfPortfolio.toFixed(1)}%</div>
                 </div>
               </div>
             </div>
@@ -295,23 +295,23 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
         </div>
 
         {/* Trading Performance Bar */}
-        <div className="flex justify-center items-center bg-white/[0.02] border border-white/[0.08] rounded-xl p-4">
+        <div className="flex justify-center items-center bg-surface-sunken border border-line rounded-xl p-4">
           <div className="flex items-center space-x-6">
             <div className="text-center">
-              <div className={`text-xl font-bold ${isTradingProfit ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className={`text-xl font-bold ${isTradingProfit ? 'text-success' : 'text-danger'}`}>
                 {isTradingProfit ? '+' : '-'}{tradingPnlPercentage}%
               </div>
-              <div className="text-white/60 text-sm">Trading P&L</div>
+              <div className="text-ink-muted text-sm">Trading P&L</div>
             </div>
-            <div className="w-px h-8 bg-white/[0.15]"></div>
+            <div className="w-px h-8 bg-surface-selected"></div>
             <div className="text-center">
-              <div className="text-white/95 text-xl font-bold">${trading.tradingVolume.toLocaleString()}</div>
-              <div className="text-white/60 text-sm">{trading.metrics.totalPositions} Trades</div>
+              <div className="text-ink text-xl font-bold">${trading.tradingVolume.toLocaleString()}</div>
+              <div className="text-ink-muted text-sm">{trading.metrics.totalPositions} Trades</div>
             </div>
-            <div className="w-px h-8 bg-white/[0.15]"></div>
+            <div className="w-px h-8 bg-surface-selected"></div>
             <div className="text-center">
-              <div className="text-purple-400 text-xl font-bold">{trading.metrics.winRate.toFixed(1)}%</div>
-              <div className="text-white/60 text-sm">Win Rate</div>
+              <div className="text-blaze text-xl font-bold">{trading.metrics.winRate.toFixed(1)}%</div>
+              <div className="text-ink-muted text-sm">Win Rate</div>
             </div>
           </div>
         </div>
@@ -321,28 +321,28 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
 
   // Terminal Style (Gaming/cyberpunk with medals)
   const renderTerminalStyle = () => (
-    <div className="relative rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm hover:bg-black/30 hover:border-white/[0.15] transition-all duration-300 p-6 font-mono overflow-hidden">
-      <div className="bg-gradient-to-r from-emerald-500/[0.03] to-cyan-500/[0.03] absolute inset-0 rounded-2xl pointer-events-none" />
+    <div className="relative rounded-2xl border border-line bg-surface backdrop-blur-sm hover:bg-chrome hover:border-line-strong transition-all duration-300 p-6 font-mono overflow-hidden">
+      <div className="bg-gradient-to-r from-success/[0.03] to-blaze/[0.03] absolute inset-0 rounded-2xl pointer-events-none" />
 
       {/* Animated Background Lines */}
       <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent animate-pulse"></div>
-        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-emerald-400/50 to-transparent animate-pulse delay-1000"></div>
+        <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-success/50 to-transparent animate-pulse"></div>
+        <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-success/50 to-transparent animate-pulse delay-1000"></div>
       </div>
 
       {/* Header with Portfolio Value */}
       <div className="relative z-10 mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-emerald-400 text-sm uppercase tracking-wider">// PORTFOLIO_OVERVIEW</div>
-            <div className="text-white/95 text-3xl font-bold tracking-tight">${portfolio.currentValue.toLocaleString()}</div>
+            <div className="text-success text-sm uppercase tracking-wider">// PORTFOLIO_OVERVIEW</div>
+            <div className="text-ink text-3xl font-bold tracking-tight">${portfolio.currentValue.toLocaleString()}</div>
             {portfolio.change24h.usdValue !== 0 && (
-              <div className={`text-base font-medium ${is24hProfit ? 'text-emerald-400' : 'text-red-400'}`}>
+              <div className={`text-base font-medium ${is24hProfit ? 'text-success' : 'text-danger'}`}>
                 {is24hProfit ? '+' : '-'}{portfolioChange24hPercentage}% [24H_CHANGE]
               </div>
             )}
           </div>
-          <div className="text-emerald-400/60 text-sm">
+          <div className="text-success/60 text-sm">
             REAL_TIME_DATA<br />
             {currentTime.toLocaleTimeString()}
           </div>
@@ -353,7 +353,7 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
       <div className="grid grid-cols-3 gap-4 mb-6">
         {portfolio.topHoldings.slice(0, 3).map((holding, index) => (
           <div key={holding.contractId} className="relative">
-            <div className="bg-white/[0.02] border border-white/[0.08] rounded-lg p-3 hover:bg-white/[0.05] hover:border-emerald-500/[0.3] transition-all duration-200">
+            <div className="bg-surface-sunken border border-line rounded-lg p-3 hover:bg-surface-hover hover:border-success/[0.3] transition-all duration-200">
               <div className="flex items-center space-x-3 mb-2">
                 <TokenLogo
                   token={{
@@ -367,34 +367,34 @@ export const PortfolioPnLWidget: React.FC<PortfolioPnLWidgetProps> = ({ classNam
                   size="md"
                 />
                 <div>
-                  <div className="text-emerald-400 text-sm font-bold">{holding.name || holding.symbol}</div>
-                  <div className="text-emerald-400/60 text-xs">{holding.symbol}</div>
+                  <div className="text-success text-sm font-bold">{holding.name || holding.symbol}</div>
+                  <div className="text-success/60 text-xs">{holding.symbol}</div>
                 </div>
               </div>
-              <div className="text-white/95 font-bold">${holding.value.toLocaleString()}</div>
-              <div className="text-emerald-400/80 text-sm">{holding.percentageOfPortfolio.toFixed(1)}% ALLOCATION</div>
+              <div className="text-ink font-bold">${holding.value.toLocaleString()}</div>
+              <div className="text-success/80 text-sm">{holding.percentageOfPortfolio.toFixed(1)}% ALLOCATION</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Trading Performance Terminal Style */}
-      <div className="border-t border-white/[0.08] pt-4">
-        <div className="text-emerald-400 text-sm mb-3">// TRADING_PERFORMANCE</div>
+      <div className="border-t border-line pt-4">
+        <div className="text-success text-sm mb-3">// TRADING_PERFORMANCE</div>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <div className={`text-lg font-bold ${isTradingProfit ? 'text-emerald-400' : 'text-red-400'}`}>
+            <div className={`text-lg font-bold ${isTradingProfit ? 'text-success' : 'text-danger'}`}>
               {isTradingProfit ? '+' : '-'}{tradingPnlPercentage}%
             </div>
-            <div className="text-emerald-400/60 text-sm">P&L_RATIO</div>
+            <div className="text-success/60 text-sm">P&L_RATIO</div>
           </div>
           <div>
-            <div className="text-white/95 text-lg font-bold">${trading.tradingVolume.toLocaleString()}</div>
-            <div className="text-emerald-400/60 text-sm">TOTAL_VOLUME</div>
+            <div className="text-ink text-lg font-bold">${trading.tradingVolume.toLocaleString()}</div>
+            <div className="text-success/60 text-sm">TOTAL_VOLUME</div>
           </div>
           <div>
-            <div className="text-purple-400 text-lg font-bold">{trading.metrics.winRate.toFixed(1)}%</div>
-            <div className="text-emerald-400/60 text-sm">WIN_RATE [{trading.metrics.profitablePositions}/{trading.metrics.totalPositions}]</div>
+            <div className="text-blaze text-lg font-bold">{trading.metrics.winRate.toFixed(1)}%</div>
+            <div className="text-success/60 text-sm">WIN_RATE [{trading.metrics.profitablePositions}/{trading.metrics.totalPositions}]</div>
           </div>
         </div>
       </div>

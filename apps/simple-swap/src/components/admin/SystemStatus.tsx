@@ -146,28 +146,28 @@ export async function SystemStatus() {
                         <div className="flex items-center gap-1">
                             {cronStatusResult.status === 'active' ? (
                                 <>
-                                    <CheckCircle className="w-3 h-3 text-green-500" />
-                                    <span className="font-mono text-green-500">Running</span>
+                                    <CheckCircle className="w-3 h-3 text-success" />
+                                    <span className="font-mono text-success">Running</span>
                                 </>
                             ) : cronStatusResult.status === 'error' ? (
                                 <>
-                                    <AlertCircle className="w-3 h-3 text-red-500" />
-                                    <span className="font-mono text-red-500">Error</span>
+                                    <AlertCircle className="w-3 h-3 text-danger" />
+                                    <span className="font-mono text-danger">Error</span>
                                 </>
                             ) : cronStatusResult.status === 'stale' ? (
                                 <>
-                                    <AlertCircle className="w-3 h-3 text-yellow-500" />
-                                    <span className="font-mono text-yellow-500">Stale</span>
+                                    <AlertCircle className="w-3 h-3 text-warning" />
+                                    <span className="font-mono text-warning">Stale</span>
                                 </>
                             ) : cronStatusResult.status === 'inactive' ? (
                                 <>
-                                    <AlertCircle className="w-3 h-3 text-orange-500" />
-                                    <span className="font-mono text-orange-500">Inactive</span>
+                                    <AlertCircle className="w-3 h-3 text-accent-text" />
+                                    <span className="font-mono text-accent-text">Inactive</span>
                                 </>
                             ) : (
                                 <>
-                                    <AlertCircle className="w-3 h-3 text-gray-500" />
-                                    <span className="font-mono text-gray-500">Unknown</span>
+                                    <AlertCircle className="w-3 h-3 text-ink-muted" />
+                                    <span className="font-mono text-ink-muted">Unknown</span>
                                 </>
                             )}
                         </div>

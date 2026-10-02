@@ -132,17 +132,17 @@ export default function SwapButton() {
     return (
         <Button
             onClick={handleClick}
-            className={`w-full py-3.5 rounded-xl font-medium text-white shadow-lg transition-all transform relative overflow-hidden ${isDisabled
-                ? 'bg-primary/60 cursor-pointer opacity-70 hover:opacity-80'
+            className={`w-full py-3.5 rounded-xl font-semibold transition-all transform relative overflow-hidden ${isDisabled
+                ? 'bg-accent/60 text-on-accent cursor-pointer opacity-70 hover:opacity-80'
                 : isSubnetShift
-                    ? 'bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-600 hover:to-purple-600 active:scale-[0.99]'
-                    : 'bg-gradient-to-r from-primary to-primary/90 hover:from-primary hover:to-primary/80 active:scale-[0.99]'
+                    ? 'bg-blaze text-bg hover:bg-blaze/90 active:scale-[0.99]'
+                    : 'bg-accent text-on-accent shadow-[var(--shadow-cta)] hover:bg-accent-hover active:scale-[0.99]'
                 }`}
         >
             {buttonContent}
             {showShimmer && (
                 <div className="absolute top-0 right-0 bottom-0 left-0 opacity-10">
-                    <div className="absolute inset-0 bg-white h-full w-1/3 blur-xl transform -skew-x-12 translate-x-full animate-[shimmer_2s_infinite]"></div>
+                    <div className="absolute inset-0 bg-ink h-full w-1/3 blur-xl transform -skew-x-12 translate-x-full animate-[shimmer_2s_infinite]"></div>
                 </div>
             )}
         </Button>

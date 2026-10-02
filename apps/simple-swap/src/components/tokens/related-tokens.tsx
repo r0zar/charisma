@@ -50,16 +50,16 @@ export default function RelatedTokens({ currentToken, allTokens }: RelatedTokens
             {/* Seamless header - no obvious boundaries */}
             <div className="flex items-end justify-between">
                 <div>
-                    <h2 className="text-lg font-medium text-white/90 mb-2">
+                    <h2 className="text-lg font-medium text-ink mb-2">
                         Related Assets
                     </h2>
-                    <p className="text-sm text-white/50">
+                    <p className="text-sm text-ink-muted">
                         Similar opportunities based on performance patterns
                     </p>
                 </div>
                 <Link
                     href="/tokens"
-                    className="group flex items-center gap-2 text-sm text-white/60 hover:text-white/90 transition-colors duration-200"
+                    className="group flex items-center gap-2 text-sm text-ink-muted hover:text-ink transition-colors duration-200"
                 >
                     View All
                     <ArrowUpRight className="h-4 w-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-200" />
@@ -94,20 +94,20 @@ function ImmersiveTokenRow({ tokenWithReason, index }: ImmersiveTokenRowProps) {
     return (
         <Link
             href={`/tokens/${encodeURIComponent(token.contractId)}`}
-            className="group block py-4 border-b border-white/[0.03] hover:border-white/[0.08] transition-all duration-200"
+            className="group block py-4 border-b border-line-soft hover:border-line transition-all duration-200"
         >
             <div className="flex items-center justify-between">
                 {/* Token info - left side */}
                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-white/[0.03] flex items-center justify-center overflow-hidden">
+                    <div className="w-10 h-10 rounded-xl bg-surface flex items-center justify-center overflow-hidden">
                         <TokenImage token={token} size={40} />
                     </div>
                     <div>
-                        <h3 className="font-medium text-white/90 text-sm group-hover:text-white transition-colors duration-200">
+                        <h3 className="font-medium text-ink text-sm group-hover:text-ink transition-colors duration-200">
                             {token.name}
                         </h3>
                         <div className="flex items-center gap-2">
-                            <p className="text-xs text-white/50">{token.symbol}</p>
+                            <p className="text-xs text-ink-muted">{token.symbol}</p>
                             <RelationshipBadge relationship={relationship} />
                         </div>
                     </div>
@@ -116,27 +116,27 @@ function ImmersiveTokenRow({ tokenWithReason, index }: ImmersiveTokenRowProps) {
                 {/* Metrics - right side */}
                 <div className="flex items-center gap-8 text-right">
                     <div>
-                        <div className="text-sm font-mono text-white/80">
+                        <div className="text-sm font-mono text-ink-body">
                             {fmtPrice(token.price)}
                         </div>
-                        <div className="text-xs text-white/40">Price</div>
+                        <div className="text-xs text-ink-muted">Price</div>
                     </div>
                     
                     <div>
                         <div className={cn(
-                            "text-sm font-medium",
-                            isPositive ? "text-emerald-400" :
-                            isNegative ? "text-red-400" : 
-                            "text-white/60"
+ "text-sm font-medium",
+                            isPositive ? "text-success" :
+                            isNegative ? "text-danger" : 
+                            "text-ink-muted"
                         )}>
                             {change > 0 ? "+" : ""}{change.toFixed(2)}%
                         </div>
-                        <div className="text-xs text-white/40">24h</div>
+                        <div className="text-xs text-ink-muted">24h</div>
                     </div>
 
                     {/* Subtle interaction hint */}
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <ArrowUpRight className="h-4 w-4 text-white/40" />
+                        <ArrowUpRight className="h-4 w-4 text-ink-muted" />
                     </div>
                 </div>
             </div>
@@ -295,13 +295,13 @@ function formatMarketCapRatio(mc1: number, mc2: number): string {
 function RelationshipBadge({ relationship }: { relationship: RelationshipReason }) {
     const getBadgeColor = (type: RelationshipReason['type']) => {
         switch (type) {
-            case 'similar_price': return 'bg-blue-500/20 text-blue-300';
-            case 'similar_performance': return 'bg-emerald-500/20 text-emerald-300';
-            case 'momentum_correlation': return 'bg-purple-500/20 text-purple-300';
-            case 'market_cap_peer': return 'bg-orange-500/20 text-orange-300';
-            case 'volatility_match': return 'bg-yellow-500/20 text-yellow-300';
-            case 'trending': return 'bg-red-500/20 text-red-300';
-            default: return 'bg-gray-500/20 text-gray-300';
+            case 'similar_price': return 'bg-accent/20 text-accent-text';
+            case 'similar_performance': return 'bg-success/20 text-success';
+            case 'momentum_correlation': return 'bg-blaze/20 text-blaze';
+            case 'market_cap_peer': return 'bg-accent/20 text-accent-text';
+            case 'volatility_match': return 'bg-warning/20 text-warning';
+            case 'trending': return 'bg-danger/20 text-danger';
+            default: return 'bg-surface-hover text-ink-body';
         }
     };
 

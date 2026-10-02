@@ -74,20 +74,20 @@ export default function PremiumPagination({
     return (
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             {/* Results info */}
-            <div className="flex items-center gap-4 text-sm text-white/60">
+            <div className="flex items-center gap-4 text-sm text-ink-muted">
                 <span>
                     Showing {Math.min((page - 1) * limit + 1, total)} to {Math.min(page * limit, total)} of {total} orders
                 </span>
                 
                 {/* Page size selector */}
                 <div className="flex items-center gap-2">
-                    <span className="text-white/40">Show:</span>
+                    <span className="text-ink-muted">Show:</span>
                     <div className="relative">
                         <select
                             value={limit}
                             onChange={(e) => onLimitChange(parseInt(e.target.value, 10))}
                             disabled={isLoading}
-                            className="appearance-none px-3 py-2 pr-8 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/90 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-white/[0.15] focus:border-white/[0.2] hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm"
+                            className="appearance-none px-3 py-2 pr-8 rounded-xl bg-surface border border-line text-ink text-sm font-medium focus:outline-none focus:ring-2 focus:ring-line-strong focus:border-line-strong hover:bg-surface-hover hover:border-line-strong transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed backdrop-blur-sm"
                             style={{
                                 backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-opacity='0.4' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e")`,
                                 backgroundPosition: 'right 0.5rem center',
@@ -95,10 +95,10 @@ export default function PremiumPagination({
                                 backgroundSize: '1rem'
                             }}
                         >
-                            <option value={5} className="bg-gray-900 text-white">5</option>
-                            <option value={10} className="bg-gray-900 text-white">10</option>
-                            <option value={20} className="bg-gray-900 text-white">20</option>
-                            <option value={50} className="bg-gray-900 text-white">50</option>
+                            <option value={5} className="bg-surface-raised text-ink">5</option>
+                            <option value={10} className="bg-surface-raised text-ink">10</option>
+                            <option value={20} className="bg-surface-raised text-ink">20</option>
+                            <option value={50} className="bg-surface-raised text-ink">50</option>
                         </select>
                     </div>
                 </div>
@@ -110,7 +110,7 @@ export default function PremiumPagination({
                 <button
                     onClick={() => onPageChange(page - 1)}
                     disabled={!hasPrevPage || isLoading}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/80 hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/[0.03] disabled:hover:border-white/[0.08] disabled:hover:text-white/80"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface border border-line text-ink-body hover:bg-surface-hover hover:border-line-strong hover:text-ink transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-surface disabled:hover:border-line disabled:hover:text-ink-body"
                 >
                     <ChevronLeft className="h-4 w-4" />
                     <span className="hidden sm:inline">Previous</span>
@@ -121,7 +121,7 @@ export default function PremiumPagination({
                     {pageNumbers.map((pageNum, index) => {
                         if (pageNum === 'ellipsis') {
                             return (
-                                <div key={`ellipsis-${index}`} className="px-3 py-2 text-white/40">
+                                <div key={`ellipsis-${index}`} className="px-3 py-2 text-ink-muted">
                                     <MoreHorizontal className="h-4 w-4" />
                                 </div>
                             );
@@ -136,8 +136,8 @@ export default function PremiumPagination({
                                 disabled={isLoading}
                                 className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 disabled:opacity-50 ${
                                     isCurrentPage
-                                        ? 'bg-white/[0.12] border border-white/[0.25] text-white shadow-lg'
-                                        : 'bg-white/[0.03] border border-white/[0.08] text-white/70 hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-white'
+                                        ? 'bg-surface-selected border border-line-strong text-ink shadow-lg'
+                                        : 'bg-surface border border-line text-ink-body hover:bg-surface-hover hover:border-line-strong hover:text-ink'
                                 }`}
                             >
                                 {pageNum}
@@ -150,7 +150,7 @@ export default function PremiumPagination({
                 <button
                     onClick={() => onPageChange(page + 1)}
                     disabled={!hasNextPage || isLoading}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/80 hover:bg-white/[0.08] hover:border-white/[0.15] hover:text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white/[0.03] disabled:hover:border-white/[0.08] disabled:hover:text-white/80"
+                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-surface border border-line text-ink-body hover:bg-surface-hover hover:border-line-strong hover:text-ink transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-surface disabled:hover:border-line disabled:hover:text-ink-body"
                 >
                     <span className="hidden sm:inline">Next</span>
                     <ChevronRight className="h-4 w-4" />
@@ -159,9 +159,9 @@ export default function PremiumPagination({
 
             {/* Loading indicator */}
             {isLoading && (
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center backdrop-blur-sm rounded-2xl">
-                    <div className="flex items-center gap-3 text-sm text-white/70">
-                        <div className="h-4 w-4 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" />
+                <div className="absolute inset-0 bg-surface flex items-center justify-center backdrop-blur-sm rounded-2xl">
+                    <div className="flex items-center gap-3 text-sm text-ink-body">
+                        <div className="h-4 w-4 border-2 border-line-strong border-t-ink/80 rounded-full animate-spin" />
                         <span>Loading orders...</span>
                     </div>
                 </div>

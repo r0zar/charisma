@@ -365,8 +365,8 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                             key={key}
                             onClick={() => handleTimeRangeChange(key)}
                             className={`px-3 py-1.5 text-sm font-medium rounded-xl transition-all duration-200 ${activeTimeRange === key
-                                ? 'bg-white/[0.08] text-white border border-white/[0.2]'
-                                : 'text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent'
+                                ? 'bg-surface-hover text-ink border border-line-strong'
+                                : 'text-ink-muted hover:text-ink hover:bg-surface border border-transparent'
                                 }`}
                         >
                             {range.label}
@@ -380,13 +380,13 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     {comparisonMode === 'ratio' && compareId ? (
-                        <div className="flex items-center gap-3 text-xs text-white/50">
+                        <div className="flex items-center gap-3 text-xs text-ink-muted">
                             <div className="flex items-center gap-1.5">
                                 <div
                                     className="w-2.5 h-2.5 rounded-full"
                                     style={{ backgroundColor: primaryColor }}
                                 />
-                                <span className="text-white/30">/</span>
+                                <span className="text-ink-faint">/</span>
                                 <div
                                     className="w-2.5 h-2.5 rounded-full"
                                     style={{ backgroundColor: compareColor }}
@@ -395,7 +395,7 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                             <span>Ratio • {primaryDataCount} points</span>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-3 text-xs text-white/50">
+                        <div className="flex items-center gap-3 text-xs text-ink-muted">
                             <div
                                 className="w-2.5 h-2.5 rounded-full"
                                 style={{ backgroundColor: primaryColor }}
@@ -405,18 +405,18 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
                     )}
                 </div>
                 {error && (
-                    <div className="text-red-400 text-xs">
+                    <div className="text-danger text-xs">
                         {error}
                     </div>
                 )}
             </div>
 
             {/* Clean chart container */}
-            <div ref={containerRef} className="w-full relative rounded-2xl overflow-hidden border border-white/[0.05] bg-black/20">
+            <div ref={containerRef} className="w-full relative rounded-2xl overflow-hidden border border-line-soft bg-surface">
                 {loading && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10 backdrop-blur-sm">
-                        <div className="flex items-center gap-3 text-sm text-white/70">
-                            <div className="h-4 w-4 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" />
+                    <div className="absolute inset-0 bg-overlay flex items-center justify-center z-10 backdrop-blur-sm">
+                        <div className="flex items-center gap-3 text-sm text-ink-body">
+                            <div className="h-4 w-4 border-2 border-line-strong border-t-ink/80 rounded-full animate-spin" />
                             <span>Loading chart data...</span>
                         </div>
                     </div>
@@ -424,12 +424,12 @@ export default function TokenChart({ primary, compareId, primaryColor, compareCo
 
                 {error && !loading && (
                     <div className="absolute inset-0 flex items-center justify-center z-10">
-                        <div className="text-center p-6 rounded-2xl bg-red-500/10 border border-red-500/20 backdrop-blur-sm">
-                            <div className="text-red-400 text-sm font-medium mb-2">Chart Error</div>
-                            <div className="text-red-300/80 text-xs mb-4">{error}</div>
+                        <div className="text-center p-6 rounded-2xl bg-danger/10 border border-danger/20 backdrop-blur-sm">
+                            <div className="text-danger text-sm font-medium mb-2">Chart Error</div>
+                            <div className="text-danger/80 text-xs mb-4">{error}</div>
                             <button
                                 onClick={() => window.location.reload()}
-                                className="px-4 py-2 text-xs bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-xl transition-colors duration-200"
+                                className="px-4 py-2 text-xs bg-danger/20 hover:bg-danger/30 text-danger rounded-xl transition-colors duration-200"
                             >
                                 Reload
                             </button>

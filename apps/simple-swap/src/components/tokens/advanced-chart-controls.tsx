@@ -97,7 +97,7 @@ export default function AdvancedChartControls({
     <div className="space-y-4">
       {/* Timeframe Selection */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="text-xs text-white/50 uppercase tracking-wider font-medium mr-2">
+        <div className="text-xs text-ink-muted uppercase tracking-wider font-medium mr-2">
           Timeframe
         </div>
         <div className="flex flex-wrap gap-1">
@@ -108,8 +108,8 @@ export default function AdvancedChartControls({
               disabled={isLoading}
               className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                 activeTimeframe === timeframe.key
-                  ? 'bg-white/[0.12] text-white border border-white/[0.2] shadow-sm'
-                  : 'text-white/60 hover:text-white/90 hover:bg-white/[0.04] border border-transparent'
+                  ? 'bg-surface-selected text-ink border border-line-strong shadow-sm'
+                  : 'text-ink-muted hover:text-ink hover:bg-surface-hover border border-transparent'
               } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               {timeframe.label}
@@ -122,7 +122,7 @@ export default function AdvancedChartControls({
       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
         {/* Chart Type Selection */}
         <div className="flex items-center gap-2">
-          <div className="text-xs text-white/50 uppercase tracking-wider font-medium">
+          <div className="text-xs text-ink-muted uppercase tracking-wider font-medium">
             Chart
           </div>
           <div className="flex gap-1">
@@ -136,8 +136,8 @@ export default function AdvancedChartControls({
                   title={chartType.description}
                   className={`flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-all duration-200 ${
                     activeChartType === chartType.key
-                      ? 'bg-white/[0.12] text-white border border-white/[0.2]'
-                      : 'text-white/60 hover:text-white/90 hover:bg-white/[0.04] border border-transparent'
+                      ? 'bg-surface-selected text-ink border border-line-strong'
+                      : 'text-ink-muted hover:text-ink hover:bg-surface-hover border border-transparent'
                   } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <IconComponent className="w-4 h-4" />
@@ -150,7 +150,7 @@ export default function AdvancedChartControls({
 
         {/* Technical Indicators */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="text-xs text-white/50 uppercase tracking-wider font-medium">
+          <div className="text-xs text-ink-muted uppercase tracking-wider font-medium">
             Indicators
           </div>
           <div className="flex flex-wrap gap-1">
@@ -161,8 +161,8 @@ export default function AdvancedChartControls({
                 disabled={isLoading}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg transition-all duration-200 ${
                   indicator.enabled
-                    ? 'bg-white/[0.12] text-white border border-white/[0.2]'
-                    : 'text-white/60 hover:text-white/90 hover:bg-white/[0.04] border border-transparent'
+                    ? 'bg-surface-selected text-ink border border-line-strong'
+                    : 'text-ink-muted hover:text-ink hover:bg-surface-hover border border-transparent'
                 } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <div
@@ -178,8 +178,8 @@ export default function AdvancedChartControls({
 
       {/* Chart Status Indicator */}
       {isLoading && (
-        <div className="flex items-center gap-2 text-xs text-white/50">
-          <div className="w-3 h-3 border border-white/30 border-t-white/70 rounded-full animate-spin" />
+        <div className="flex items-center gap-2 text-xs text-ink-muted">
+          <div className="w-3 h-3 border border-line-strong border-t-ink/70 rounded-full animate-spin" />
           <span>Updating chart...</span>
         </div>
       )}

@@ -71,11 +71,11 @@ function GlobalLoadingSpinner() {
     const randomMessage = funnyMessages[Math.floor(Math.random() * funnyMessages.length)];
 
     return (
-        <div className="fixed inset-0 bg-gray-950/90 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div className="fixed inset-0 bg-surface-raised backdrop-blur-sm z-50 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
-                <div className="h-6 w-6 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" />
+                <div className="h-6 w-6 border-2 border-line-strong border-t-ink/80 rounded-full animate-spin" />
                 <div className="text-center">
-                    <div className="text-white/90 font-light">{randomMessage}</div>
+                    <div className="text-ink font-light">{randomMessage}</div>
                 </div>
             </div>
         </div>

@@ -100,20 +100,20 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = React.memo(({
 
   if (activities.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-white/40">
+      <div className="flex flex-col items-center justify-center py-16 text-ink-muted">
         <div className="relative mb-6">
-          <div className="h-16 w-16 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-center">
-            <BarChart3 className="w-8 h-8 text-white/30" />
+          <div className="h-16 w-16 rounded-2xl bg-surface border border-line flex items-center justify-center">
+            <BarChart3 className="w-8 h-8 text-ink-faint" />
           </div>
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
         </div>
-        <h3 className="text-lg font-medium text-white/70 mb-2">No activity yet</h3>
+        <h3 className="text-lg font-medium text-ink-body mb-2">No activity yet</h3>
         <p className="text-sm text-center max-w-md leading-relaxed mb-6">
           Your swaps and orders will appear here for real-time monitoring and management.
         </p>
         <button
           onClick={handleRefresh}
-          className="px-4 py-2 text-sm font-medium bg-white/[0.08] text-white border border-white/[0.2] rounded-xl hover:bg-white/[0.12] transition-all duration-200"
+          className="px-4 py-2 text-sm font-medium bg-surface-hover text-ink border border-line-strong rounded-xl hover:bg-surface-selected transition-all duration-200"
         >
           Start Trading
         </button>
@@ -125,13 +125,13 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = React.memo(({
     <div className="space-y-6">
       {/* Timeline Header */}
       <div className="flex justify-between items-center">
-        <div className="text-white/60 text-sm">
+        <div className="text-ink-muted text-sm">
           {activities.length} activities
         </div>
         <button
           onClick={handleRefresh}
           disabled={loading}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white/60 hover:text-white/90 hover:bg-white/[0.03] rounded-xl transition-all duration-200 disabled:opacity-50"
+          className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-ink-muted hover:text-ink hover:bg-surface rounded-xl transition-all duration-200 disabled:opacity-50"
         >
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -166,8 +166,8 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = React.memo(({
       {hasMore && (
         <div ref={loadMoreRef} className="flex justify-center py-8">
           {isLoadingMore ? (
-            <div className="flex items-center gap-3 text-sm text-white/70">
-              <div className="h-5 w-5 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" />
+            <div className="flex items-center gap-3 text-sm text-ink-body">
+              <div className="h-5 w-5 border-2 border-line-strong border-t-ink/80 rounded-full animate-spin" />
               <span>Loading more activity...</span>
             </div>
           ) : (
@@ -176,7 +176,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = React.memo(({
                 setIsLoadingMore(true);
                 onLoadMore?.();
               }}
-              className="px-6 py-2.5 text-sm font-medium bg-white/[0.03] border border-white/[0.08] text-white/70 hover:bg-white/[0.08] hover:text-white/90 rounded-xl transition-all duration-200"
+              className="px-6 py-2.5 text-sm font-medium bg-surface border border-line text-ink-body hover:bg-surface-hover hover:text-ink rounded-xl transition-all duration-200"
             >
               Load More
             </button>
@@ -186,7 +186,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = React.memo(({
 
       {/* End Message */}
       {!hasMore && activities.length > 0 && (
-        <div className="text-center py-8 text-white/50 text-sm">
+        <div className="text-center py-8 text-ink-muted text-sm">
           That's all the activity! 🎉
         </div>
       )}
@@ -201,8 +201,8 @@ export const ActivityFeedSkeleton: React.FC = () => {
       {[...Array(3)].map((_, groupIndex) => (
         <div key={groupIndex} className="space-y-4">
           {/* Group Header Skeleton */}
-          <div className="border-b border-white/[0.08] pb-2">
-            <div className="h-6 w-24 bg-white/[0.06] rounded-lg animate-pulse" />
+          <div className="border-b border-line pb-2">
+            <div className="h-6 w-24 bg-surface-hover rounded-lg animate-pulse" />
           </div>
 
           {/* Activity Card Skeletons */}
@@ -210,39 +210,39 @@ export const ActivityFeedSkeleton: React.FC = () => {
             {[...Array(2)].map((_, cardIndex) => (
               <div
                 key={cardIndex}
-                className="group relative p-6 rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm animate-pulse"
+                className="group relative p-6 rounded-2xl border border-line bg-surface backdrop-blur-sm animate-pulse"
               >
                 {/* Subtle gradient overlay */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
 
                 <div className="relative space-y-4">
                   {/* Header row */}
                   <div className="flex items-start justify-between">
                     <div className="space-y-2">
-                      <div className="h-4 w-16 bg-white/[0.06] rounded-lg" />
-                      <div className="h-3 w-20 bg-white/[0.04] rounded-lg" />
+                      <div className="h-4 w-16 bg-surface-hover rounded-lg" />
+                      <div className="h-3 w-20 bg-surface rounded-lg" />
                     </div>
-                    <div className="h-6 w-20 bg-white/[0.06] rounded-full" />
+                    <div className="h-6 w-20 bg-surface-hover rounded-full" />
                   </div>
 
                   {/* Swap row */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 bg-white/[0.06] rounded-full" />
-                      <div className="h-4 w-12 bg-white/[0.06] rounded-lg" />
-                      <div className="h-4 w-6 bg-white/[0.04] rounded-lg" />
-                      <div className="h-8 w-8 bg-white/[0.06] rounded-full" />
-                      <div className="h-4 w-12 bg-white/[0.06] rounded-lg" />
+                      <div className="h-8 w-8 bg-surface-hover rounded-full" />
+                      <div className="h-4 w-12 bg-surface-hover rounded-lg" />
+                      <div className="h-4 w-6 bg-surface rounded-lg" />
+                      <div className="h-8 w-8 bg-surface-hover rounded-full" />
+                      <div className="h-4 w-12 bg-surface-hover rounded-lg" />
                     </div>
-                    <div className="h-4 w-24 bg-white/[0.06] rounded-lg" />
+                    <div className="h-4 w-24 bg-surface-hover rounded-lg" />
                   </div>
 
                   {/* Condition row */}
                   <div className="flex items-center justify-between">
-                    <div className="h-4 w-48 bg-white/[0.06] rounded-lg" />
+                    <div className="h-4 w-48 bg-surface-hover rounded-lg" />
                     <div className="flex gap-2">
-                      <div className="h-8 w-8 bg-white/[0.06] rounded-xl" />
-                      <div className="h-8 w-8 bg-white/[0.06] rounded-xl" />
+                      <div className="h-8 w-8 bg-surface-hover rounded-xl" />
+                      <div className="h-8 w-8 bg-surface-hover rounded-xl" />
                     </div>
                   </div>
                 </div>

@@ -94,27 +94,27 @@ export default function CreateBotModal({ open, onOpenChange, onBotCreated }: Cre
 
         <div className="mt-6 space-y-6">
           <div className="text-center">
-            <div className="w-16 h-16 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center mx-auto mb-4">
-              <Bot className="w-8 h-8 text-blue-400" />
+            <div className="w-16 h-16 rounded-2xl bg-accent/20 border border-accent/30 flex items-center justify-center mx-auto mb-4">
+              <Bot className="w-8 h-8 text-accent-text" />
             </div>
-            <h3 className="text-lg font-semibold text-white/95 mb-2">Choose Your Strategy</h3>
-            <p className="text-sm text-white/60">
+            <h3 className="text-lg font-semibold text-ink mb-2">Choose Your Strategy</h3>
+            <p className="text-sm text-ink-muted">
               Select an automation strategy for your DeFi bot
             </p>
           </div>
 
           <div>
-            <Label className="text-white/80">Strategy</Label>
+            <Label className="text-ink-body">Strategy</Label>
             <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
-              <SelectTrigger className="bg-white/[0.05] border-white/[0.1] text-white">
+              <SelectTrigger className="bg-surface border-line text-ink">
                 <SelectValue placeholder="Select a strategy" />
               </SelectTrigger>
-              <SelectContent className="bg-gray-900 border-white/[0.1]">
+              <SelectContent className="bg-surface-raised border-line">
                 {strategies.map((strategy) => (
-                  <SelectItem key={strategy.id} value={strategy.id} className="text-white">
+                  <SelectItem key={strategy.id} value={strategy.id} className="text-ink">
                     <div>
                       <div className="font-medium">{strategy.name}</div>
-                      <div className="text-xs text-white/60">{strategy.description}</div>
+                      <div className="text-xs text-ink-muted">{strategy.description}</div>
                     </div>
                   </SelectItem>
                 ))}
@@ -123,13 +123,13 @@ export default function CreateBotModal({ open, onOpenChange, onBotCreated }: Cre
           </div>
 
           <div className="flex justify-end gap-3">
-            <Button variant="ghost" onClick={handleClose} className="text-white/70">
+            <Button variant="ghost" onClick={handleClose} className="text-ink-body">
               Cancel
             </Button>
             <Button
               onClick={createBot}
               disabled={!selectedStrategy || isLoading}
-              className="bg-blue-500 hover:bg-blue-600 text-white"
+              className="bg-accent hover:bg-accent text-on-accent"
             >
               {isLoading ? 'Creating Bot...' : 'Create Bot'}
             </Button>

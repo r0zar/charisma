@@ -133,41 +133,41 @@ export default function MarketHighlights({ tokenSummaries, priceHistories = {}, 
             {/* Clean market metrics - no card boundaries */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                 <div className="space-y-1">
-                    <div className="text-2xl font-semibold text-white/90 font-mono">
+                    <div className="text-2xl font-semibold text-ink font-mono">
                         {highlights.metrics.totalTokens}
                     </div>
-                    <div className="text-xs text-white/40 uppercase tracking-wider">Total Tokens</div>
+                    <div className="text-xs text-ink-muted uppercase tracking-wider">Total Tokens</div>
                 </div>
 
                 <div className="space-y-1">
-                    <div className="text-2xl font-semibold text-emerald-400 font-mono">
+                    <div className="text-2xl font-semibold text-success font-mono">
                         {highlights.metrics.gainers}
                     </div>
-                    <div className="text-xs text-white/40 uppercase tracking-wider">Gainers</div>
+                    <div className="text-xs text-ink-muted uppercase tracking-wider">Gainers</div>
                 </div>
 
                 <div className="space-y-1">
-                    <div className="text-2xl font-semibold text-red-400 font-mono">
+                    <div className="text-2xl font-semibold text-danger font-mono">
                         {highlights.metrics.losers}
                     </div>
-                    <div className="text-xs text-white/40 uppercase tracking-wider">Losers</div>
+                    <div className="text-xs text-ink-muted uppercase tracking-wider">Losers</div>
                 </div>
 
                 <div className="space-y-1">
                     <div className={cn(
-                        "text-2xl font-semibold font-mono",
-                        highlights.metrics.avgChange > 0 ? "text-emerald-400" :
-                            highlights.metrics.avgChange < 0 ? "text-red-400" : "text-white/60"
+ "text-2xl font-semibold font-mono",
+                        highlights.metrics.avgChange > 0 ? "text-success" :
+                            highlights.metrics.avgChange < 0 ? "text-danger" : "text-ink-muted"
                     )}>
                         {highlights.metrics.avgChange > 0 ? "+" : ""}{highlights.metrics.avgChange.toFixed(2)}%
                     </div>
-                    <div className="text-xs text-white/40 uppercase tracking-wider flex items-center gap-1">
+                    <div className="text-xs text-ink-muted uppercase tracking-wider flex items-center gap-1">
                         Market Avg
                         <div className="group relative">
-                            <Info className="h-3 w-3 text-white/30 hover:text-white/60 cursor-help" />
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-3 bg-black/80 border border-white/[0.1] rounded-lg shadow-lg text-xs text-white/80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
-                                <div className="font-medium mb-1 text-white/90">Market Cap Weighted</div>
-                                <div className="text-white/60">
+                            <Info className="h-3 w-3 text-ink-faint hover:text-ink-muted cursor-help" />
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-64 p-3 bg-overlay border border-line rounded-lg shadow-lg text-xs text-ink-body opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-10">
+                                <div className="font-medium mb-1 text-ink">Market Cap Weighted</div>
+                                <div className="text-ink-muted">
                                     Larger tokens have proportionally more influence, providing accurate market representation.
                                 </div>
                             </div>
@@ -182,9 +182,9 @@ export default function MarketHighlights({ tokenSummaries, priceHistories = {}, 
                     {/* Top Gainers */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-emerald-400" />
-                            <h3 className="font-medium text-white/90">Top Gainers</h3>
-                            <span className="text-xs text-white/40">(24h)</span>
+                            <TrendingUp className="h-4 w-4 text-success" />
+                            <h3 className="font-medium text-ink">Top Gainers</h3>
+                            <span className="text-xs text-ink-muted">(24h)</span>
                         </div>
                         <div className="space-y-3">
                             {highlights.topGainers.map((token, index) => (
@@ -203,9 +203,9 @@ export default function MarketHighlights({ tokenSummaries, priceHistories = {}, 
                     {/* Top Losers */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2">
-                            <TrendingDown className="h-4 w-4 text-red-400" />
-                            <h3 className="font-medium text-white/90">Top Losers</h3>
-                            <span className="text-xs text-white/40">(24h)</span>
+                            <TrendingDown className="h-4 w-4 text-danger" />
+                            <h3 className="font-medium text-ink">Top Losers</h3>
+                            <span className="text-xs text-ink-muted">(24h)</span>
                         </div>
                         <div className="space-y-3">
                             {highlights.topLosers.map((token, index) => (
@@ -224,9 +224,9 @@ export default function MarketHighlights({ tokenSummaries, priceHistories = {}, 
                     {/* Most Active */}
                     <div className="space-y-4">
                         <div className="flex items-center gap-2">
-                            <Activity className="h-4 w-4 text-orange-400" />
-                            <h3 className="font-medium text-white/90">Most Active</h3>
-                            <span className="text-xs text-white/40">(24h)</span>
+                            <Activity className="h-4 w-4 text-accent-text" />
+                            <h3 className="font-medium text-ink">Most Active</h3>
+                            <span className="text-xs text-ink-muted">(24h)</span>
                         </div>
                         <div className="space-y-3">
                             {highlights.mostActive.map((token, index) => (
@@ -264,7 +264,7 @@ function CleanTokenHighlight({ token, rank, type, getPrice, sparklineData }: Tok
 
     return (
         <div
-            className="group flex items-center justify-between py-2 px-3 rounded-xl hover:bg-white/[0.03] cursor-pointer transition-all duration-200"
+            className="group flex items-center justify-between py-2 px-3 rounded-xl hover:bg-surface cursor-pointer transition-all duration-200"
             onClick={() => {
                 if (token.contractId && typeof token.contractId === 'string' && token.contractId.trim()) {
                     try {
@@ -278,15 +278,15 @@ function CleanTokenHighlight({ token, rank, type, getPrice, sparklineData }: Tok
             }}
         >
             <div className="flex items-center gap-3">
-                <span className="text-xs font-medium text-white/30 w-4">#{rank}</span>
-                <div className="h-8 w-8 rounded-lg bg-white/[0.05] flex items-center justify-center overflow-hidden">
+                <span className="text-xs font-medium text-ink-faint w-4">#{rank}</span>
+                <div className="h-8 w-8 rounded-lg bg-surface flex items-center justify-center overflow-hidden">
                     <TokenImage token={token} size={32} />
                 </div>
                 <div className="min-w-0">
-                    <div className="font-medium text-sm text-white/90 group-hover:text-white transition-colors duration-200 truncate max-w-[12rem]">
+                    <div className="font-medium text-sm text-ink group-hover:text-ink transition-colors duration-200 truncate max-w-[12rem]">
                         {token.symbol}
                     </div>
-                    <div className="text-xs text-white/40 font-mono">
+                    <div className="text-xs text-ink-muted font-mono">
                         {fmtPrice(getPrice(token.contractId) ?? token.price)}
                     </div>
                 </div>
@@ -296,10 +296,10 @@ function CleanTokenHighlight({ token, rank, type, getPrice, sparklineData }: Tok
                     <MiniSparkline data={priceData} />
                 )}
                 <div className={cn(
-                    "text-sm font-medium",
+ "text-sm font-medium",
                     type === "active" ? (
-                        isPositive ? "text-emerald-400" : isNegative ? "text-red-400" : "text-white/60"
-                    ) : type === "gainer" ? "text-emerald-400" : "text-red-400"
+                        isPositive ? "text-success" : isNegative ? "text-danger" : "text-ink-muted"
+                    ) : type === "gainer" ? "text-success" : "text-danger"
                 )}>
                     {change > 0 ? "+" : ""}{change.toFixed(2)}%
                 </div>

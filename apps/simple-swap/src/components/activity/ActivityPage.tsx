@@ -595,22 +595,22 @@ export const ActivityPage: React.FC = () => {
           {/* Clean title section */}
           <div className="space-y-6">
             <div>
-              <h1 className="text-3xl font-medium text-white/95 tracking-wide mb-3">Activity</h1>
-              <p className="text-white/60 max-w-2xl text-base leading-relaxed">
+              <h1 className="text-3xl font-medium text-ink tracking-wide mb-3">Activity</h1>
+              <p className="text-ink-muted max-w-2xl text-base leading-relaxed">
                 Follow the pulse of the entire Charisma ecosystem with real-time activity from all users.
                 Monitor swaps, orders, and DCA strategies across the network in one unified global feed.
               </p>
             </div>
-            <div className="flex items-center gap-6 text-sm text-white/40">
+            <div className="flex items-center gap-6 text-sm text-ink-muted">
               <span className={isPending ? 'opacity-70 transition-opacity' : ''}>
                 {total > 0 ? `${filteredActivities.length} of ${total} activities` : `${filteredActivities.length} activities`}
-                {isPending && <span className="ml-2 text-xs text-white/40">(updating...)</span>}
+                {isPending && <span className="ml-2 text-xs text-ink-muted">(updating...)</span>}
               </span>
               <div className="flex items-center gap-2">
                 <div className="relative">
-                  <div className={`h-1.5 w-1.5 rounded-full animate-pulse ${pendingActivities.size > 0 ? 'bg-yellow-400' : 'bg-emerald-400'}`} />
-                  <div className={`absolute inset-0 h-1.5 w-1.5 rounded-full animate-ping ${pendingActivities.size > 0 ? 'bg-yellow-400/40' : 'bg-emerald-400/40'}`} />
-                  <div className={`absolute inset-[-1px] h-2.5 w-2.5 rounded-full blur-sm animate-pulse ${pendingActivities.size > 0 ? 'bg-yellow-400/20' : 'bg-emerald-400/20'}`} />
+                  <div className={`h-1.5 w-1.5 rounded-full animate-pulse ${pendingActivities.size > 0 ? 'bg-warning' : 'bg-success'}`} />
+                  <div className={`absolute inset-0 h-1.5 w-1.5 rounded-full animate-ping ${pendingActivities.size > 0 ? 'bg-warning/40' : 'bg-success/40'}`} />
+                  <div className={`absolute inset-[-1px] h-2.5 w-2.5 rounded-full blur-sm animate-pulse ${pendingActivities.size > 0 ? 'bg-warning/20' : 'bg-success/20'}`} />
                 </div>
                 <span className="animate-pulse">
                   {pendingActivities.size > 0 ? `Monitoring ${pendingActivities.size} pending` : 'Live monitoring'}
@@ -627,7 +627,7 @@ export const ActivityPage: React.FC = () => {
               onClick={() => toast.info('Export feature coming soon!', {
                 description: 'Export activity data to CSV, JSON, or PDF'
               })}
-              className="border-white/[0.08] bg-white/[0.03] text-white/80 hover:bg-white/[0.08] hover:text-white transition-all duration-200"
+              className="border-line bg-surface text-ink-body hover:bg-surface-hover hover:text-ink transition-all duration-200"
             >
               <Download className="w-4 h-4 mr-2" />
               Export
@@ -638,7 +638,7 @@ export const ActivityPage: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setSettingsOpen(!settingsOpen)}
-                className="border-white/[0.08] bg-white/[0.03] text-white/80 hover:bg-white/[0.08] hover:text-white transition-all duration-200"
+                className="border-line bg-surface text-ink-body hover:bg-surface-hover hover:text-ink transition-all duration-200"
               >
                 <Settings className="w-4 h-4 mr-2" />
                 <ChevronDown className={`w-3 h-3 transition-transform ${settingsOpen ? 'rotate-180' : ''}`} />
@@ -646,17 +646,17 @@ export const ActivityPage: React.FC = () => {
 
               {/* Settings Dropdown */}
               {settingsOpen && (
-                <div className="absolute right-0 top-full mt-2 w-64 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-xl p-4 z-50 shadow-2xl">
+                <div className="absolute right-0 top-full mt-2 w-64 bg-surface-raised backdrop-blur-xl border border-line rounded-xl p-4 z-50 shadow-2xl">
                   {/* Portfolio UI Style Section */}
                   <div className="mb-4">
-                    <h3 className="text-sm font-medium text-white/80 mb-3">Portfolio Style</h3>
+                    <h3 className="text-sm font-medium text-ink-body mb-3">Portfolio Style</h3>
                     <div className="space-y-2">
                       <button
                         onClick={() => handleUIStyleChange('dashboard')}
                         className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
                           portfolioUIStyle === 'dashboard' 
-                            ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400' 
-                            : 'bg-white/5 hover:bg-white/10 text-white/80 hover:text-white'
+                            ? 'bg-accent/20 border border-accent/30 text-accent-text' 
+                            : 'bg-surface hover:bg-surface-selected text-ink-body hover:text-ink'
                         }`}
                       >
                         <BarChart3 className="w-4 h-4" />
@@ -670,8 +670,8 @@ export const ActivityPage: React.FC = () => {
                         onClick={() => handleUIStyleChange('command')}
                         className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
                           portfolioUIStyle === 'command' 
-                            ? 'bg-purple-500/20 border border-purple-500/30 text-purple-400' 
-                            : 'bg-white/5 hover:bg-white/10 text-white/80 hover:text-white'
+                            ? 'bg-blaze/20 border border-blaze/30 text-blaze' 
+                            : 'bg-surface hover:bg-surface-selected text-ink-body hover:text-ink'
                         }`}
                       >
                         <Zap className="w-4 h-4" />
@@ -685,8 +685,8 @@ export const ActivityPage: React.FC = () => {
                         onClick={() => handleUIStyleChange('terminal')}
                         className={`w-full flex items-center space-x-3 p-3 rounded-lg transition-colors ${
                           portfolioUIStyle === 'terminal' 
-                            ? 'bg-cyan-500/20 border border-cyan-500/30 text-cyan-400' 
-                            : 'bg-white/5 hover:bg-white/10 text-white/80 hover:text-white'
+                            ? 'bg-blaze/20 border border-blaze/30 text-blaze' 
+                            : 'bg-surface hover:bg-surface-selected text-ink-body hover:text-ink'
                         }`}
                       >
                         <Terminal className="w-4 h-4" />
@@ -699,7 +699,7 @@ export const ActivityPage: React.FC = () => {
                   </div>
 
                   {/* Other Settings */}
-                  <div className="border-t border-white/10 pt-4">
+                  <div className="border-t border-line pt-4">
                     <button
                       onClick={() => {
                         setSettingsOpen(false);
@@ -707,7 +707,7 @@ export const ActivityPage: React.FC = () => {
                           description: 'Customize filters, notifications, and display preferences'
                         });
                       }}
-                      className="w-full flex items-center space-x-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-colors"
+                      className="w-full flex items-center space-x-3 p-3 rounded-lg bg-surface hover:bg-surface-selected text-ink-body hover:text-ink transition-colors"
                     >
                       <Settings className="w-4 h-4" />
                       <div className="text-left">
@@ -733,19 +733,19 @@ export const ActivityPage: React.FC = () => {
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           {/* Search input */}
           <div className="relative flex-1 lg:max-w-sm">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/40 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-muted w-4 h-4" />
             <input
               type="text"
               placeholder="Search by token, transaction, or notes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               disabled={loading}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/90 text-sm placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-white/[0.15] focus:border-white/[0.2] transition-all duration-200 disabled:opacity-50"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-surface border border-line text-ink text-sm placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-line-strong focus:border-line-strong transition-all duration-200 disabled:opacity-50"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-lg hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-all duration-200"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-lg hover:bg-surface-hover text-ink-muted hover:text-ink-body transition-all duration-200"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -758,15 +758,15 @@ export const ActivityPage: React.FC = () => {
               onClick={() => setShowFilters(!showFilters)}
               disabled={loading}
               className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 disabled:opacity-50 flex items-center gap-2 ${showFilters
-                ? 'bg-white/[0.08] text-white border border-white/[0.2] shadow-lg backdrop-blur-sm'
-                : 'text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent'
+                ? 'bg-surface-hover text-ink border border-line-strong shadow-lg backdrop-blur-sm'
+                : 'text-ink-muted hover:text-ink hover:bg-surface border border-transparent'
                 }`}
             >
               <Filter className="w-4 h-4" />
               Filters
               <ChevronDown className={`w-4 h-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
               {activeFilterCount > 0 && (
-                <div className="absolute -top-2 -right-2 h-5 w-5 bg-blue-500 rounded-full flex items-center justify-center text-xs font-medium text-white">
+                <div className="absolute -top-2 -right-2 h-5 w-5 bg-accent rounded-full flex items-center justify-center text-xs font-medium text-on-accent">
                   {activeFilterCount}
                 </div>
               )}
@@ -776,22 +776,22 @@ export const ActivityPage: React.FC = () => {
 
         {/* Premium Filter Panel */}
         {showFilters && (
-          <div className="rounded-2xl border border-white/[0.08] bg-black/20 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="rounded-2xl border border-line bg-surface backdrop-blur-sm animate-in fade-in duration-300">
             {/* Subtle gradient overlay */}
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
 
             <div className="relative p-6 space-y-6">
               {/* Activity Types */}
               <div>
-                <h3 className="text-sm font-medium text-white/90 mb-3 tracking-wider uppercase">Activity Types</h3>
+                <h3 className="text-sm font-medium text-ink mb-3 tracking-wider uppercase">Activity Types</h3>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(ACTIVITY_TYPE_LABELS).map(([type, label]) => (
                     <button
                       key={type}
                       onClick={() => toggleTypeFilter(type as ActivityType)}
                       className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${filters.types?.includes(type as ActivityType)
-                        ? 'bg-white/[0.08] text-white border border-white/[0.2] shadow-lg backdrop-blur-sm'
-                        : 'text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent'
+                        ? 'bg-surface-hover text-ink border border-line-strong shadow-lg backdrop-blur-sm'
+                        : 'text-ink-muted hover:text-ink hover:bg-surface border border-transparent'
                         }`}
                     >
                       {label}
@@ -802,15 +802,15 @@ export const ActivityPage: React.FC = () => {
 
               {/* Status */}
               <div>
-                <h3 className="text-sm font-medium text-white/90 mb-3 tracking-wider uppercase">Status</h3>
+                <h3 className="text-sm font-medium text-ink mb-3 tracking-wider uppercase">Status</h3>
                 <div className="flex flex-wrap gap-2">
                   {Object.entries(STATUS_LABELS).map(([status, label]) => (
                     <button
                       key={status}
                       onClick={() => toggleStatusFilter(status as ActivityStatus)}
                       className={`px-4 py-2 text-sm font-medium rounded-xl transition-all duration-200 ${filters.statuses?.includes(status as ActivityStatus)
-                        ? 'bg-white/[0.08] text-white border border-white/[0.2] shadow-lg backdrop-blur-sm'
-                        : 'text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent'
+                        ? 'bg-surface-hover text-ink border border-line-strong shadow-lg backdrop-blur-sm'
+                        : 'text-ink-muted hover:text-ink hover:bg-surface border border-transparent'
                         }`}
                     >
                       {label}
@@ -820,21 +820,21 @@ export const ActivityPage: React.FC = () => {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-between pt-4 border-t border-white/[0.08]">
-                <div className="text-sm text-white/60">
+              <div className="flex items-center justify-between pt-4 border-t border-line">
+                <div className="text-sm text-ink-muted">
                   {total > 0 ? `${filteredActivities.length} of ${total} activities shown` : `${filteredActivities.length} activities shown`}
                 </div>
 
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={clearFilters}
-                    className="px-4 py-2 text-sm font-medium text-white/60 hover:text-white/90 hover:bg-white/[0.03] rounded-xl transition-all duration-200"
+                    className="px-4 py-2 text-sm font-medium text-ink-muted hover:text-ink hover:bg-surface rounded-xl transition-all duration-200"
                   >
                     Clear All
                   </button>
                   <button
                     onClick={() => setShowFilters(false)}
-                    className="px-4 py-2 text-sm font-medium bg-white/[0.08] text-white border border-white/[0.2] rounded-xl hover:bg-white/[0.12] transition-all duration-200"
+                    className="px-4 py-2 text-sm font-medium bg-surface-hover text-ink border border-line-strong rounded-xl hover:bg-surface-selected transition-all duration-200"
                   >
                     Apply Filters
                   </button>
@@ -847,14 +847,14 @@ export const ActivityPage: React.FC = () => {
         {/* Active Filters Display */}
         {activeFilterCount > 0 && !showFilters && (
           <div className="flex items-center space-x-2 flex-wrap">
-            <span className="text-sm text-white/60">Active filters:</span>
+            <span className="text-sm text-ink-muted">Active filters:</span>
 
             {filters.types?.map(type => (
-              <div key={type} className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-white/[0.08] border border-white/[0.15] text-white/90">
+              <div key={type} className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-surface-hover border border-line-strong text-ink">
                 {ACTIVITY_TYPE_LABELS[type]}
                 <button
                   onClick={() => toggleTypeFilter(type)}
-                  className="ml-1 hover:text-red-400 transition-colors duration-200"
+                  className="ml-1 hover:text-danger transition-colors duration-200"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -862,11 +862,11 @@ export const ActivityPage: React.FC = () => {
             ))}
 
             {filters.statuses?.map(status => (
-              <div key={status} className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-white/[0.08] border border-white/[0.15] text-white/90">
+              <div key={status} className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-surface-hover border border-line-strong text-ink">
                 {STATUS_LABELS[status]}
                 <button
                   onClick={() => toggleStatusFilter(status)}
-                  className="ml-1 hover:text-red-400 transition-colors duration-200"
+                  className="ml-1 hover:text-danger transition-colors duration-200"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -874,11 +874,11 @@ export const ActivityPage: React.FC = () => {
             ))}
 
             {searchQuery && (
-              <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-white/[0.08] border border-white/[0.15] text-white/90">
+              <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs bg-surface-hover border border-line-strong text-ink">
                 Search: "{searchQuery}"
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="ml-1 hover:text-red-400 transition-colors duration-200"
+                  className="ml-1 hover:text-danger transition-colors duration-200"
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -887,7 +887,7 @@ export const ActivityPage: React.FC = () => {
 
             <button
               onClick={clearFilters}
-              className="px-3 py-1 text-xs font-medium text-white/60 hover:text-white/90 hover:bg-white/[0.03] rounded-xl transition-all duration-200"
+              className="px-3 py-1 text-xs font-medium text-ink-muted hover:text-ink hover:bg-surface rounded-xl transition-all duration-200"
             >
               Clear all
             </button>
@@ -897,7 +897,7 @@ export const ActivityPage: React.FC = () => {
 
       {/* Error Display */}
       {error && (
-        <div className="mb-8 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
+        <div className="mb-8 p-4 rounded-xl bg-danger/10 border border-danger/20 text-danger">
           <p className="text-sm">Error loading activities: {error}</p>
           <button
             onClick={handleRefresh}

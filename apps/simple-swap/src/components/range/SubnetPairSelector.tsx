@@ -39,18 +39,18 @@ export default function SubnetPairSelector({ label, selected, onSelect, exclude 
     const { address } = useWallet();
 
     if (!address) {
-        return <div className="text-sm text-white/60">Connect a wallet to pick tokens.</div>;
+        return <div className="text-sm text-ink-muted">Connect a wallet to pick tokens.</div>;
     }
     if (funded.length === 0) {
         return (
-            <div className="text-sm text-white/60">
+            <div className="text-sm text-ink-muted">
                 Range Swaps need tokens on the subnet. Move some over from the swap page.
             </div>
         );
     }
     if (tokens.length === 0) {
         return (
-            <div className="text-sm text-white/60">
+            <div className="text-sm text-ink-muted">
                 Range Swaps need two subnet-funded tokens. Move another over from the swap page.
             </div>
         );

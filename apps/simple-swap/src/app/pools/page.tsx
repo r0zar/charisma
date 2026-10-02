@@ -113,11 +113,11 @@ export default async function PoolsPage() {
                                 <div key={pool.id} className="grid grid-cols-12 p-4 items-center">
                                     <div className="col-span-3 flex items-center gap-3">
                                         <div className="flex -space-x-2">
-                                            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center z-10 border-2 border-background">
-                                                <span className="text-xs font-bold text-blue-600">{pool.token1.charAt(0)}</span>
+                                            <div className="h-8 w-8 rounded-full bg-accent-soft flex items-center justify-center z-10 border-2 border-background">
+                                                <span className="text-xs font-bold text-accent-text">{pool.token1.charAt(0)}</span>
                                             </div>
-                                            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center border-2 border-background">
-                                                <span className="text-xs font-bold text-green-600">{pool.token2.charAt(0)}</span>
+                                            <div className="h-8 w-8 rounded-full bg-success-soft flex items-center justify-center border-2 border-background">
+                                                <span className="text-xs font-bold text-success">{pool.token2.charAt(0)}</span>
                                             </div>
                                         </div>
                                         <div>
@@ -134,7 +134,7 @@ export default async function PoolsPage() {
                                         <div className="text-xs text-muted-foreground">Fees: {pool.fees24h}</div>
                                     </div>
                                     <div className="col-span-2 text-right">
-                                        <div className="font-medium text-green-600">{pool.apr}</div>
+                                        <div className="font-medium text-success">{pool.apr}</div>
                                     </div>
                                     <div className="col-span-2 text-right">
                                         <div className="flex justify-end gap-2">

@@ -225,7 +225,7 @@ export default function DataInspector() {
                                     href={selectedItem.tweetUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                    className="text-sm text-accent-text hover:text-accent-text flex items-center gap-1"
                                 >
                                     View Tweet
                                     <ExternalLink className="w-3 h-3" />

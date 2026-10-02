@@ -251,9 +251,9 @@ export default function ChartDataDiagnostics() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2">
                                     {diagnostic.status === 'healthy' ? (
-                                        <CheckCircle className="h-5 w-5 text-green-500" />
+                                        <CheckCircle className="h-5 w-5 text-success" />
                                     ) : (
-                                        <AlertCircle className="h-5 w-5 text-red-500" />
+                                        <AlertCircle className="h-5 w-5 text-danger" />
                                     )}
                                     Health Check Results
                                 </CardTitle>
@@ -495,8 +495,8 @@ export default function ChartDataDiagnostics() {
 
                                                     {/* Show extrapolation information */}
                                                     {((chartTestData as any).ratioTest.baseToken?.wasExtrapolated || (chartTestData as any).ratioTest.conditionToken?.wasExtrapolated) && (
-                                                        <div className="bg-green-50 dark:bg-green-950/20 p-2 rounded-md">
-                                                            <div className="text-green-800 dark:text-green-200 text-sm">
+                                                        <div className="bg-success-soft p-2 rounded-md">
+                                                            <div className="text-success text-sm">
                                                                 <div className="font-medium mb-1">🛡️ Resilience Applied</div>
                                                                 <div>
                                                                     Sparse data was automatically extrapolated to create a meaningful ratio chart.
@@ -593,7 +593,7 @@ export default function ChartDataDiagnostics() {
                                                             <div>• Base token: {(chartTestData as any).ratioTest.baseToken?.dataPoints || 0} data points</div>
                                                             <div>• Resulting ratio points: {(chartTestData as any).ratioTest.ratio?.dataPoints || 0}</div>
                                                             {(chartTestData as any).ratioTest.baseToken?.dataPoints === 1 && (
-                                                                <div className="text-amber-600 font-medium">
+                                                                <div className="text-warning font-medium">
                                                                     ⚠️ Base token has only 1 data point - this creates a flat ratio line!
                                                                 </div>
                                                             )}
@@ -635,10 +635,10 @@ export default function ChartDataDiagnostics() {
                                                     />
                                                 </div>
                                                 
-                                                <div className="mt-4 bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
+                                                <div className="mt-4 bg-accent-soft p-3 rounded-lg">
                                                     <div className="text-sm">
-                                                        <div className="font-medium text-blue-800 dark:text-blue-200 mb-1">Analysis:</div>
-                                                        <div className="text-blue-700 dark:text-blue-300">
+                                                        <div className="font-medium text-accent-text mb-1">Analysis:</div>
+                                                        <div className="text-accent-text ">
                                                             {(chartTestData as any).ratioTest.baseToken?.dataPoints === 1 
                                                                 ? "The base token has only 1 data point, so the ratio will appear as a flat line divided by a constant. This suggests the base token price data is not being updated properly."
                                                                 : `The ratio chart shows ${(chartTestData as any).ratioTest.ratio.dataPoints} calculated points from dividing condition token prices by base token prices.`

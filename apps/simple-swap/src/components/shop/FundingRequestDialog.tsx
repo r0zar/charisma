@@ -128,8 +128,8 @@ const FundingRequestDialog: React.FC<FundingRequestDialogProps> = ({
 
     // Position direction styling
     const directionColor = fundingRequest.direction === 'long'
-        ? 'text-green-600 dark:text-green-400'
-        : 'text-red-600 dark:text-red-400';
+        ? 'text-success '
+        : 'text-danger ';
     const DirectionIcon = fundingRequest.direction === 'long' ? TrendingUp : TrendingDown;
 
     return (
@@ -137,7 +137,7 @@ const FundingRequestDialog: React.FC<FundingRequestDialogProps> = ({
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <LineChart className="h-5 w-5 text-purple-600" />
+                        <LineChart className="h-5 w-5 text-blaze" />
                         P2P Perpetual Funding Request
                     </DialogTitle>
                     <DialogDescription>
@@ -168,7 +168,7 @@ const FundingRequestDialog: React.FC<FundingRequestDialogProps> = ({
                                         <DirectionIcon className={`h-5 w-5 ${directionColor}`} />
                                         {fundingRequest.direction.toUpperCase()} {baseTokenInfo.symbol}
                                         <Badge variant="outline" className={directionColor}>
-                                            {fundingRequest.leverage}x
+ {fundingRequest.leverage}x
                                         </Badge>
                                     </CardTitle>
                                 </CardHeader>
@@ -184,13 +184,13 @@ const FundingRequestDialog: React.FC<FundingRequestDialogProps> = ({
                                         </div>
                                         <div>
                                             <Label className="text-muted-foreground">Liquidation Price</Label>
-                                            <p className="font-medium text-red-600 dark:text-red-400">
+                                            <p className="font-medium text-danger ">
                                                 {fundingRequest.liquidationPrice}
                                             </p>
                                         </div>
                                         <div>
                                             <Label className="text-muted-foreground">Funding Fee</Label>
-                                            <p className="font-medium text-green-600 dark:text-green-400">
+                                            <p className="font-medium text-success ">
                                                 {fundingRequest.fundingFeeRate}
                                             </p>
                                         </div>
@@ -218,7 +218,7 @@ const FundingRequestDialog: React.FC<FundingRequestDialogProps> = ({
                                         </div>
                                         <div className="flex justify-between">
                                             <Label className="text-muted-foreground">Guaranteed Fee Rate</Label>
-                                            <span className="font-medium text-green-600 dark:text-green-400">
+                                            <span className="font-medium text-success ">
                                                 {fundingRequest.fundingFeeRate}
                                             </span>
                                         </div>
@@ -230,7 +230,7 @@ const FundingRequestDialog: React.FC<FundingRequestDialogProps> = ({
                                         </div>
                                         <div className="flex justify-between">
                                             <Label className="text-muted-foreground">Expires</Label>
-                                            <span className={`font-medium ${isExpired ? 'text-red-600 dark:text-red-400' : ''}`}>
+                                            <span className={`font-medium ${isExpired ? 'text-danger ' : ''}`}>
                                                 {timeUntilExpiry}
                                             </span>
                                         </div>
@@ -240,13 +240,13 @@ const FundingRequestDialog: React.FC<FundingRequestDialogProps> = ({
                         </div>
 
                         {/* Risk Warning */}
-                        <Card className="border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50">
+                        <Card className="border-warning bg-warning-soft ">
                             <CardContent className="pt-6">
                                 <div className="flex items-start gap-3">
-                                    <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
+                                    <AlertCircle className="h-5 w-5 text-warning mt-0.5" />
                                     <div>
-                                        <h4 className="font-medium text-amber-800 dark:text-amber-200">Funding Risk</h4>
-                                        <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                                        <h4 className="font-medium text-warning ">Funding Risk</h4>
+                                        <p className="text-sm text-warning mt-1">
                                             If you fund this position and it goes against the trader, you could lose your collateral.
                                             However, you'll earn the guaranteed funding fee and keep any profits if the position is liquidated.
                                         </p>
@@ -380,12 +380,12 @@ const FundingRequestDialog: React.FC<FundingRequestDialogProps> = ({
                                         />
                                     </div>
 
-                                    <div className="bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                                    <div className="bg-accent-soft border border-accent  rounded-lg p-4">
                                         <div className="flex items-start gap-3">
-                                            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                                            <Info className="h-5 w-5 text-accent-text mt-0.5" />
                                             <div>
-                                                <h4 className="font-medium text-blue-800 dark:text-blue-200">How P2P Funding Works</h4>
-                                                <ul className="text-sm text-blue-700 dark:text-blue-300 mt-1 space-y-1 list-disc list-inside">
+                                                <h4 className="font-medium text-accent-text ">How P2P Funding Works</h4>
+                                                <ul className="text-sm text-accent-text mt-1 space-y-1 list-disc list-inside">
                                                     <li>You provide collateral to back the trader's position</li>
                                                     <li>If position wins: You lose collateral but keep funding fees</li>
                                                     <li>If position loses/liquidates: You get trader's margin + your collateral + fees</li>

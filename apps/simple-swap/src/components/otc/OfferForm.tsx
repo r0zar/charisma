@@ -365,7 +365,7 @@ export default function EnhancedOfferForm({ subnetTokens }: Props) {
                                                             updateRow(asset.id, "amount", value);
                                                         }
                                                     }}
-                                                    className={`flex-1 ${overBalance ? 'border-amber-300 focus:border-amber-500' : ''}`}
+                                                    className={`flex-1 ${overBalance ? 'border-warning focus:border-warning' : ''}`}
                                                 />
                                                 {selectedTokenInfo && (
                                                     <div className="bg-muted/30 px-2 py-1.5 rounded border border-border/50 text-sm text-muted-foreground min-w-16 text-center">
@@ -381,7 +381,7 @@ export default function EnhancedOfferForm({ subnetTokens }: Props) {
                                             )}
                                             {/* Over Balance Warning */}
                                             {overBalance && (
-                                                <div className="mt-1 text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                                                <div className="mt-1 text-xs text-warning flex items-center gap-1">
                                                     <AlertCircle className="h-3 w-3" />
                                                     Offering more than your current balance
                                                 </div>
@@ -500,11 +500,11 @@ export default function EnhancedOfferForm({ subnetTokens }: Props) {
 
                 {/* Balance Information */}
                 {offerAssets.some(asset => isOverBalance(asset)) && (
-                    <Alert variant="default" className="mt-4 flex items-start gap-2 border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30">
-                        <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    <Alert variant="default" className="mt-4 flex items-start gap-2 border-warning bg-warning-soft ">
+                        <AlertCircle className="h-4 w-4 text-warning " />
                         <div>
-                            <AlertTitle className="text-amber-800 dark:text-amber-200">Balance Notice</AlertTitle>
-                            <AlertDescription className="text-xs mt-1 text-amber-700 dark:text-amber-300">
+                            <AlertTitle className="text-warning ">Balance Notice</AlertTitle>
+                            <AlertDescription className="text-xs mt-1 text-warning ">
                                 You're offering more than your current balance for some tokens. This is allowed - just ensure
                                 you have the required tokens before accepting any bids. The trade will only execute when you
                                 accept a bid and have sufficient balance.
@@ -519,7 +519,7 @@ export default function EnhancedOfferForm({ subnetTokens }: Props) {
                     className="w-full"
                 >
                     {isLoading && (
-                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-ink" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>

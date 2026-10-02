@@ -63,7 +63,7 @@ export function TokenActions({ contractId }: { contractId: string }) {
                     onClick={handleCopy}
                     className="p-1 text-muted-foreground hover:text-foreground transition-colors rounded hover:bg-muted/50"
                 >
-                    <Copy className={`w-3 h-3 ${copied ? 'text-green-500' : ''}`} />
+                    <Copy className={`w-3 h-3 ${copied ? 'text-success' : ''}`} />
                 </button>
             </InfoTooltip>
             <InfoTooltip content="View contract on Hiro Explorer" side="top">
@@ -167,23 +167,23 @@ export function PriceMatrix() {
 
     if (data.error) {
         return (
-            <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-6">
+            <div className="bg-danger-soft border border-danger/30 rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-2">
-                    <AlertCircle className="w-5 h-5 text-red-400" />
-                    <h3 className="text-red-400 font-medium">Error Loading Price Data</h3>
+                    <AlertCircle className="w-5 h-5 text-danger" />
+                    <h3 className="text-danger font-medium">Error Loading Price Data</h3>
                 </div>
-                <p className="text-red-300 text-sm mb-4">{data.error}</p>
-                <div className="bg-red-900/30 rounded-lg p-4 text-xs text-red-300/80">
+                <p className="text-danger text-sm mb-4">{data.error}</p>
+                <div className="bg-danger-soft rounded-lg p-4 text-xs text-danger/80">
                     <p className="font-medium mb-2">🔧 Troubleshooting Guide:</p>
                     <ul className="list-disc list-inside space-y-1">
-                        <li><strong>No data collected:</strong> Run the price cron job at <code className="bg-red-900/50 px-1 rounded">/api/cron/price</code></li>
-                        <li><strong>Vercel KV issues:</strong> Check your <code className="bg-red-900/50 px-1 rounded">KV_*</code> environment variables</li>
+                        <li><strong>No data collected:</strong> Run the price cron job at <code className="bg-danger-soft px-1 rounded">/api/cron/price</code></li>
+                        <li><strong>Vercel KV issues:</strong> Check your <code className="bg-danger-soft px-1 rounded">KV_*</code> environment variables</li>
                         <li><strong>API errors:</strong> Check the server console for detailed logs</li>
                         <li><strong>Empty tokens list:</strong> Price tracking starts after the first cron run</li>
                     </ul>
-                    <div className="mt-3 p-2 bg-red-900/40 rounded border border-red-600/30">
+                    <div className="mt-3 p-2 bg-danger-soft rounded border border-danger/30">
                         <p className="font-medium">🚀 Quick Start:</p>
-                        <p>Make a GET request to <code className="bg-red-900/50 px-1 rounded">/api/cron/price</code> with your CRON_SECRET to populate initial data.</p>
+                        <p>Make a GET request to <code className="bg-danger-soft px-1 rounded">/api/cron/price</code> with your CRON_SECRET to populate initial data.</p>
                     </div>
                 </div>
             </div>

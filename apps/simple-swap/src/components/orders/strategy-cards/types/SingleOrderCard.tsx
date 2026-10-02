@@ -51,10 +51,10 @@ export const SingleOrderCard: React.FC<SingleOrderCardProps> = (props) => {
             {/* Header Row */}
             <div className="flex items-start justify-between">
                 <div className="space-y-1">
-                    <div className="text-sm font-medium text-white/90" title={statusTime.tooltip}>
+                    <div className="text-sm font-medium text-ink" title={statusTime.tooltip}>
                         {statusTime.text}
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-white/40">
+                    <div className="flex items-center gap-2 text-xs text-ink-muted">
                         <span className="font-mono" title={firstOrder.uuid}>
                             #{firstOrder.uuid.substring(0, 8)}
                         </span>
@@ -63,11 +63,11 @@ export const SingleOrderCard: React.FC<SingleOrderCardProps> = (props) => {
                                 e.stopPropagation();
                                 onCopyToClipboard(firstOrder.uuid, firstOrder.uuid);
                             }}
-                            className="p-1 rounded-lg hover:bg-white/[0.05] text-white/40 hover:text-white/80 transition-all duration-200 cursor-pointer"
+                            className="p-1 rounded-lg hover:bg-surface-hover text-ink-muted hover:text-ink-body transition-all duration-200 cursor-pointer"
                             title="Copy order ID"
                         >
                             {copiedId === firstOrder.uuid ? (
-                                <Check className="h-3 w-3 text-emerald-400" />
+                                <Check className="h-3 w-3 text-success" />
                             ) : (
                                 <Copy className="h-3 w-3" />
                             )}
@@ -78,7 +78,7 @@ export const SingleOrderCard: React.FC<SingleOrderCardProps> = (props) => {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 onClick={(e) => e.stopPropagation()}
-                                className="p-1 rounded-lg hover:bg-white/[0.05] text-white/40 hover:text-blue-400 transition-all duration-200"
+                                className="p-1 rounded-lg hover:bg-surface-hover text-ink-muted hover:text-accent-text transition-all duration-200"
                                 title="View transaction on Hiro Explorer"
                             >
                                 <ExternalLink className="h-3 w-3" />
@@ -102,22 +102,22 @@ export const SingleOrderCard: React.FC<SingleOrderCardProps> = (props) => {
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2">
                         <TokenLogo token={{ ...firstOrder.inputTokenMeta, image: firstOrder.inputTokenMeta.image ?? undefined }} size="sm" />
-                        <span className="text-sm font-medium text-white/80">{firstOrder.inputTokenMeta.symbol}</span>
+                        <span className="text-sm font-medium text-ink-body">{firstOrder.inputTokenMeta.symbol}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-white/40">
+                    <div className="flex items-center gap-2 text-ink-muted">
                         <span className="text-lg">→</span>
                     </div>
                     <div className="flex items-center gap-2">
                         <TokenLogo token={{ ...firstOrder.outputTokenMeta, image: firstOrder.outputTokenMeta.image ?? undefined }} size="sm" />
-                        <span className="text-sm font-medium text-white/80">{firstOrder.outputTokenMeta.symbol}</span>
+                        <span className="text-sm font-medium text-ink-body">{firstOrder.outputTokenMeta.symbol}</span>
                     </div>
                 </div>
                 
                 <div className="text-right">
-                    <div className="text-sm font-mono text-white/90">
+                    <div className="text-sm font-mono text-ink">
                         {formatTokenAmount(firstOrder.amountIn, firstOrder.inputTokenMeta.decimals!)}
                     </div>
-                    <div className="text-xs text-white/40">{firstOrder.inputTokenMeta.symbol}</div>
+                    <div className="text-xs text-ink-muted">{firstOrder.inputTokenMeta.symbol}</div>
                 </div>
             </div>
 
@@ -158,7 +158,7 @@ export const SingleOrderCard: React.FC<SingleOrderCardProps> = (props) => {
                                         e.stopPropagation();
                                         onExecuteNow(firstOrder.uuid);
                                     }}
-                                    className="p-2 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/[0.15] text-emerald-400 hover:bg-emerald-500/[0.15] hover:border-emerald-400/[0.3] transition-all duration-200 backdrop-blur-sm cursor-pointer"
+                                    className="p-2 rounded-xl bg-success/[0.08] border border-success/[0.15] text-success hover:bg-success/[0.15] hover:border-success/[0.3] transition-all duration-200 backdrop-blur-sm cursor-pointer"
                                 >
                                     <Zap className="h-4 w-4" />
                                 </button>
@@ -175,7 +175,7 @@ export const SingleOrderCard: React.FC<SingleOrderCardProps> = (props) => {
                                         e.stopPropagation();
                                         onCancelOrder(firstOrder.uuid);
                                     }}
-                                    className="p-2 rounded-xl bg-red-500/[0.08] border border-red-500/[0.15] text-red-400 hover:bg-red-500/[0.15] hover:border-red-400/[0.3] transition-all duration-200 backdrop-blur-sm cursor-pointer"
+                                    className="p-2 rounded-xl bg-danger/[0.08] border border-danger/[0.15] text-danger hover:bg-danger/[0.15] hover:border-danger/[0.3] transition-all duration-200 backdrop-blur-sm cursor-pointer"
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </button>
@@ -190,10 +190,10 @@ export const SingleOrderCard: React.FC<SingleOrderCardProps> = (props) => {
 
             {/* Expanded Order Details */}
             <div className={cn(
-                "overflow-hidden transition-all duration-400 ease-in-out",
+ "overflow-hidden transition-all duration-400 ease-in-out",
                 isDetailExpanded ? "max-h-[1500px] opacity-100" : "max-h-0 opacity-0"
             )}>
-                <div className="pt-4 space-y-4 border-t border-white/[0.05]">
+                <div className="pt-4 space-y-4 border-t border-line-soft">
                     <OrderDetails order={firstOrder} copiedId={copiedId} onCopyToClipboard={onCopyToClipboard} />
                 </div>
             </div>

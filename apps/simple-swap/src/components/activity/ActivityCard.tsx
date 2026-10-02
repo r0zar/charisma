@@ -188,22 +188,22 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
 
   return (
     <div
-      className={`group relative rounded-2xl border transition-all duration-300 cursor-pointer border-white/[0.08] bg-black/20 hover:bg-black/30 hover:border-white/[0.15] backdrop-blur-sm ${className}`}
+      className={`group relative rounded-2xl border transition-all duration-300 cursor-pointer border-line bg-surface hover:bg-chrome hover:border-line-strong backdrop-blur-sm ${className}`}
       onClick={handleCardClick}
       aria-label={`${getActivityDescription(activity)}. Click to ${showReplies ? 'hide' : 'show'} replies.`}
       role="article"
       title={`Click to ${showReplies ? 'hide' : 'show'} replies`}
     >
       {/* Subtle gradient overlay */}
-      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/[0.02] to-transparent pointer-events-none" />
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-surface-sunken to-transparent pointer-events-none" />
 
       <div className="relative p-3 sm:p-6 space-y-4">
         {/* Header Row */}
         <div className="flex items-start justify-between">
           <div className="flex items-start space-x-3">
             {/* User Avatar */}
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 border border-white/[0.15] flex items-center justify-center flex-shrink-0">
-              <span className="text-sm font-medium text-white/80">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-accent/20 to-accent/20 border border-line-strong flex items-center justify-center flex-shrink-0">
+              <span className="text-sm font-medium text-ink-body">
                 {getUserAvatarLetter(activity.owner, activity.displayName)}
               </span>
             </div>
@@ -211,21 +211,21 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
             {/* User Info and Activity Type */}
             <div className="space-y-1 min-w-0 flex-1">
               <div className="flex items-center space-x-2 flex-wrap">
-                <span className="text-sm font-medium text-white/90 truncate">
+                <span className="text-sm font-medium text-ink truncate">
                   {formatUserName(activity.owner, activity.displayName)}
                 </span>
-                <span className="text-white/40">•</span>
+                <span className="text-ink-muted">•</span>
                 <div className={`flex items-center space-x-1 ${typeInfo.color}`}>
                   <typeInfo.icon className="w-4 h-4" />
                   <span className="text-sm font-medium">{typeInfo.label}</span>
                 </div>
                 {activity.strategy === 'dca' && activity.strategyPosition && activity.strategyTotal && (
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-blaze/10 text-blaze border border-blaze/20">
                     {activity.strategyPosition}/{activity.strategyTotal}
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-2 text-sm text-white/60 font-medium">
+              <div className="flex items-center gap-2 text-sm text-ink-muted font-medium">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
@@ -238,8 +238,8 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 </TooltipProvider>
                 {activity.txid && (
                   <>
-                    <span className="text-white/40">•</span>
-                    <span className="font-mono text-xs text-white/40" title={activity.txid}>
+                    <span className="text-ink-muted">•</span>
+                    <span className="font-mono text-xs text-ink-muted" title={activity.txid}>
                       #{activity.txid.substring(0, 8)}
                     </span>
                   </>
@@ -250,7 +250,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
 
           {/* Premium Status Badge */}
           <div className="flex items-center gap-3">
-            <div className={`relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border backdrop-blur-sm transition-all duration-200 ${statusInfo.color} ${statusInfo.bgColor} border-white/[0.15]`}>
+            <div className={`relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border backdrop-blur-sm transition-all duration-200 ${statusInfo.color} ${statusInfo.bgColor} border-line-strong`}>
               <StatusIcon className={`w-3 h-3 ${activity.status === 'pending' || activity.status === 'processing' ? 'animate-pulse' : ''}`} />
               <span>{statusInfo.label}</span>
             </div>
@@ -260,7 +260,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 e.stopPropagation();
                 setIsExpanded(!isExpanded);
               }}
-              className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white/90 transition-all duration-200"
+              className="p-2 rounded-xl bg-surface border border-line text-ink-muted hover:bg-surface-hover hover:text-ink transition-all duration-200"
               title={isExpanded ? "Collapse details" : "Expand details"}
             >
               {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -282,14 +282,14 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 }}
                 size="sm"
               />
-              <span className="text-sm font-medium text-white/80">
+              <span className="text-sm font-medium text-ink-body">
                 {activity.fromToken.name || activity.fromToken.symbol}
               </span>
               {activity.fromToken.verified && (
-                <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">✓</span>
+                <span className="text-xs bg-accent/20 text-accent-text px-1.5 py-0.5 rounded">✓</span>
               )}
             </div>
-            <div className="flex items-center gap-2 text-white/40">
+            <div className="flex items-center gap-2 text-ink-muted">
               <span className="text-lg">→</span>
             </div>
             <div className="flex items-center gap-2">
@@ -303,26 +303,26 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 }}
                 size="sm"
               />
-              <span className="text-sm font-medium text-white/80">
+              <span className="text-sm font-medium text-ink-body">
                 {activity.toToken.name || activity.toToken.symbol}
               </span>
               {activity.toToken.verified && (
-                <span className="text-xs bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded">✓</span>
+                <span className="text-xs bg-accent/20 text-accent-text px-1.5 py-0.5 rounded">✓</span>
               )}
             </div>
           </div>
 
           <div className="text-right space-y-0.5">
-            <div className="text-sm font-mono text-white/90">
+            <div className="text-sm font-mono text-ink">
               {formatTokenAmount(activity.fromToken.amount, activity.fromToken.decimals)} {activity.fromToken.symbol}
             </div>
             {activity.fromToken.name && activity.fromToken.name !== activity.fromToken.symbol && (
-              <div className="text-xs text-white/50">
+              <div className="text-xs text-ink-muted">
                 {activity.fromToken.name}
               </div>
             )}
             {activity.fromToken.usdValue && (
-              <div className="text-xs text-white/60 font-medium">
+              <div className="text-xs text-ink-muted font-medium">
                 {formatUsdValue(activity.fromToken.usdValue)}
               </div>
             )}
@@ -345,26 +345,26 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
               {/* Mobile: Stack vertically, Desktop: Side by side */}
               <div className="flex flex-col md:flex-row md:gap-2 space-y-2 md:space-y-0">
                 {/* Traded Section */}
-                <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-white/[0.02] border border-white/[0.05] md:flex-1">
+                <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-surface-sunken border border-line-soft md:flex-1">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-white/60">Traded:</span>
+                    <span className="text-ink-muted">Traded:</span>
                     {activity.fromToken.usdValue && activity.toToken.usdValue ? (
                       <>
-                        <span className="text-white/80 font-medium">
+                        <span className="text-ink-body font-medium">
                           {formatUsdValue(activity.fromToken.usdValue)}
                         </span>
-                        <span className="text-white/40">→</span>
-                        <span className="text-white/80 font-medium">
+                        <span className="text-ink-muted">→</span>
+                        <span className="text-ink-body font-medium">
                           {formatUsdValue(activity.toToken.usdValue)}
                         </span>
                       </>
                     ) : (
                       <>
-                        <span className="text-white/80 font-medium">
+                        <span className="text-ink-body font-medium">
                           {formatTokenAmount(activity.fromToken.amount, activity.fromToken.decimals)} {activity.fromToken.symbol}
                         </span>
-                        <span className="text-white/40">→</span>
-                        <span className="text-white/80 font-medium">
+                        <span className="text-ink-muted">→</span>
+                        <span className="text-ink-body font-medium">
                           {displayAmount && parseFloat(displayAmount.toString()) > 0 
                             ? `${formatTokenAmount(displayAmount, activity.toToken.decimals)} ${activity.toToken.symbol}`
                             : 'Processing...'
@@ -374,13 +374,13 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                     )}
                   </div>
                   {displayAmount && parseFloat(displayAmount.toString()) > 0 && (
-                    <div className="text-sm text-white/70">
-                      <span className="text-xs text-white/50">Received: </span>
-                      <span className={hasActualData ? "text-emerald-400 font-medium" : ""}>
+                    <div className="text-sm text-ink-body">
+                      <span className="text-xs text-ink-muted">Received: </span>
+                      <span className={hasActualData ? "text-success font-medium" : ""}>
                         {formatTokenAmount(displayAmount, activity.toToken.decimals)} {activity.toToken.symbol}
                       </span>
                       {hasActualData && (
-                        <span className="text-xs text-emerald-500/60 ml-1">✓</span>
+                        <span className="text-xs text-success/60 ml-1">✓</span>
                       )}
                     </div>
                   )}
@@ -390,35 +390,35 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 {(activity.status === 'completed' && activity.type === 'instant_swap') && (
                   <div className="md:flex-1">
                     {isLoadingProfitability ? (
-                      <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gradient-to-r from-blue-500/[0.05] to-purple-500/[0.05] border border-blue-500/[0.15] animate-pulse">
+                      <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gradient-to-r from-accent/[0.05] to-accent/[0.05] border border-accent/[0.15] animate-pulse">
                         <div className="flex items-center gap-2">
-                          <div className="p-1 rounded bg-blue-500/10">
-                            <Loader className="w-3 h-3 text-blue-400 animate-spin" />
+                          <div className="p-1 rounded bg-accent/10">
+                            <Loader className="w-3 h-3 text-accent-text animate-spin" />
                           </div>
-                          <span className="text-white/80 text-sm font-medium">Loading P&L...</span>
+                          <span className="text-ink-body text-sm font-medium">Loading P&L...</span>
                         </div>
                         <div className="text-right">
-                          <div className="w-12 h-4 bg-white/10 rounded animate-pulse mb-1"></div>
-                          <div className="w-8 h-3 bg-white/10 rounded animate-pulse"></div>
+                          <div className="w-12 h-4 bg-surface-hover rounded animate-pulse mb-1"></div>
+                          <div className="w-8 h-3 bg-surface-hover rounded animate-pulse"></div>
                         </div>
                       </div>
                     ) : profitabilityData ? (
-                      <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gradient-to-r from-blue-500/[0.05] to-purple-500/[0.05] border border-blue-500/[0.15]">
+                      <div className="flex items-center justify-between py-2 px-3 rounded-lg bg-gradient-to-r from-accent/[0.05] to-accent/[0.05] border border-accent/[0.15]">
                         <div className="flex items-center gap-2">
-                          <div className="p-1 rounded bg-blue-500/10">
+                          <div className="p-1 rounded bg-accent/10">
                             {profitabilityData.metrics.currentPnL.percentage >= 0 ? (
-                              <TrendingUp className="w-3 h-3 text-emerald-400" />
+                              <TrendingUp className="w-3 h-3 text-success" />
                             ) : (
-                              <TrendingDown className="w-3 h-3 text-red-400" />
+                              <TrendingDown className="w-3 h-3 text-danger" />
                             )}
                           </div>
-                          <span className="text-white/80 text-sm font-medium">Current P&L:</span>
+                          <span className="text-ink-body text-sm font-medium">Current P&L:</span>
                         </div>
                         <div className="text-right">
-                          <div className={`text-sm font-bold ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          <div className={`text-sm font-bold ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-success' : 'text-danger'}`}>
                             {profitabilityData.metrics.currentPnL.percentage >= 0 ? '+' : ''}{profitabilityData.metrics.currentPnL.percentage.toFixed(1)}%
                           </div>
-                          <div className={`text-xs ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          <div className={`text-xs ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-success' : 'text-danger'}`}>
                             {profitabilityData.metrics.currentPnL.usdValue >= 0 ? '+$' : '-$'}{Math.abs(profitabilityData.metrics.currentPnL.usdValue).toFixed(2)}
                           </div>
                         </div>
@@ -441,7 +441,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                   e.stopPropagation();
                   handleAction('execute');
                 }}
-                className="p-2 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/[0.15] text-emerald-400 hover:bg-emerald-500/[0.15] hover:border-emerald-400/[0.3] transition-all duration-200 backdrop-blur-sm"
+                className="p-2 rounded-xl bg-success/[0.08] border border-success/[0.15] text-success hover:bg-success/[0.15] hover:border-success/[0.3] transition-all duration-200 backdrop-blur-sm"
               >
                 <CheckCircle className="h-4 w-4" />
               </button>
@@ -451,7 +451,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                   e.stopPropagation();
                   handleAction('cancel');
                 }}
-                className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-red-500/[0.08] hover:border-red-500/[0.15] hover:text-red-400 transition-all duration-200 backdrop-blur-sm"
+                className="p-2 rounded-xl bg-surface border border-line text-ink-muted hover:bg-danger/[0.08] hover:border-danger/[0.15] hover:text-danger transition-all duration-200 backdrop-blur-sm"
               >
                 <AlertCircle className="h-4 w-4" />
               </button>
@@ -461,43 +461,43 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
 
         {/* Expanded Details */}
         {isExpanded && (
-          <div className="pt-4 border-t border-white/[0.08] animate-[slideDown_0.2s_ease-out]">
+          <div className="pt-4 border-t border-line animate-[slideDown_0.2s_ease-out]">
             <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 text-sm">
               {/* Activity Details Column */}
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-xs uppercase text-white/40 font-medium mb-3 tracking-wider">Activity Details</h4>
+                  <h4 className="text-xs uppercase text-ink-muted font-medium mb-3 tracking-wider">Activity Details</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-white/60">Type:</span>
-                      <span className="text-white/90">{typeInfo.label}</span>
+                      <span className="text-ink-muted">Type:</span>
+                      <span className="text-ink">{typeInfo.label}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-white/60">Status:</span>
+                      <span className="text-ink-muted">Status:</span>
                       <span className={statusInfo.color}>{statusInfo.label}</span>
-                    </div>
+ </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-white/60">Timestamp:</span>
-                      <span className="text-white/90 text-xs">{getFullTimestamp(activity.timestamp)}</span>
+                      <span className="text-ink-muted">Timestamp:</span>
+                      <span className="text-ink text-xs">{getFullTimestamp(activity.timestamp)}</span>
                     </div>
                     {activity.orderType && (
                       <div className="flex justify-between items-center">
-                        <span className="text-white/60">Order Type:</span>
-                        <span className="text-white/90 capitalize">{activity.orderType.replace('_', ' ')}</span>
+                        <span className="text-ink-muted">Order Type:</span>
+                        <span className="text-ink capitalize">{activity.orderType.replace('_', ' ')}</span>
                       </div>
                     )}
                     {activity.strategy && (
                       <div className="flex justify-between items-center">
-                        <span className="text-white/60">Strategy:</span>
-                        <span className="text-white/90 capitalize">{activity.strategy}</span>
+                        <span className="text-ink-muted">Strategy:</span>
+                        <span className="text-ink capitalize">{activity.strategy}</span>
                       </div>
                     )}
 
                     {/* Market Execution Information */}
                     {activity.type === 'instant_swap' && (
                       <div className="flex justify-between items-center">
-                        <span className="text-white/60">Execution Type:</span>
-                        <span className="text-white/90">Market execution</span>
+                        <span className="text-ink-muted">Execution Type:</span>
+                        <span className="text-ink">Market execution</span>
                       </div>
                     )}
                     {(() => {
@@ -507,12 +507,12 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                       if (slippage && typeof slippage.slippagePercent === 'number' && !isNaN(slippage.slippagePercent) && isFinite(slippage.slippagePercent)) {
                         return (
                           <div className="flex justify-between items-center">
-                            <span className="text-white/60">Actual Slippage:</span>
+                            <span className="text-ink-muted">Actual Slippage:</span>
                             <div className="text-right">
-                              <div className="text-orange-200 text-sm font-medium">
+                              <div className="text-accent-text text-sm font-medium">
                                 {slippage.slippagePercent > 0 ? '+' : ''}{slippage.slippagePercent.toFixed(2)}%
                               </div>
-                              <div className="text-orange-400/60 text-xs">
+                              <div className="text-accent-text/60 text-xs">
                                 {formatTokenAmount(Math.abs(slippage.difference || 0).toString(), activity.toToken.decimals || 6)} {activity.toToken.symbol} difference
                               </div>
                             </div>
@@ -521,7 +521,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                       } else if (activity.priceImpact !== undefined) {
                         return (
                           <div className="flex justify-between items-center">
-                            <span className="text-white/60">Est. Price Impact:</span>
+                            <span className="text-ink-muted">Est. Price Impact:</span>
                             <span className={`${getPriceImpactColor(activity.priceImpact)}`}>
                               {activity.priceImpact > 0 ? '+' : ''}{activity.priceImpact.toFixed(2)}%
                             </span>
@@ -532,16 +532,16 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                     })()}
                     {activity.targetPrice && (
                       <div className="flex justify-between items-center">
-                        <span className="text-white/60">Trigger Condition:</span>
-                        <span className="text-white/90 font-mono text-xs">
+                        <span className="text-ink-muted">Trigger Condition:</span>
+                        <span className="text-ink font-mono text-xs">
                           1 {activity.fromToken.symbol} ≥ ${Number(activity.targetPrice).toLocaleString()}
                         </span>
                       </div>
                     )}
                     {activity.waitTime && (
                       <div className="flex justify-between items-center">
-                        <span className="text-white/60">Wait Time:</span>
-                        <span className="text-white/90">{activity.waitTime}</span>
+                        <span className="text-ink-muted">Wait Time:</span>
+                        <span className="text-ink">{activity.waitTime}</span>
                       </div>
                     )}
                   </div>
@@ -549,9 +549,9 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
 
                 {/* Notes */}
                 {activity.metadata?.notes && (
-                  <div className="bg-white/[0.02] rounded-lg p-3 border border-white/[0.08]">
-                    <div className="text-white/60 text-xs mb-1 uppercase tracking-wider">Note</div>
-                    <div className="text-white/90 text-sm">
+                  <div className="bg-surface-sunken rounded-lg p-3 border border-line">
+                    <div className="text-ink-muted text-xs mb-1 uppercase tracking-wider">Note</div>
+                    <div className="text-ink text-sm">
                       {activity.metadata.notes}
                     </div>
                   </div>
@@ -561,13 +561,13 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
               {/* Transaction Details Column */}
               <div className="space-y-4">
                 <div>
-                  <h4 className="text-xs uppercase text-white/40 font-medium mb-3 tracking-wider">Transaction Details</h4>
+                  <h4 className="text-xs uppercase text-ink-muted font-medium mb-3 tracking-wider">Transaction Details</h4>
                   <div className="space-y-2">
                     {activity.txid && (
                       <div className="flex justify-between items-center">
-                        <span className="text-white/60">TxID:</span>
+                        <span className="text-ink-muted">TxID:</span>
                         <div className="flex items-center gap-2">
-                          <span className="text-white/90 font-mono text-xs truncate max-w-[300px]" title={activity.txid}>
+                          <span className="text-ink font-mono text-xs truncate max-w-[300px]" title={activity.txid}>
                             {activity.txid.slice(0, 8)}...{activity.txid.slice(-8)}
                           </span>
                           <button
@@ -575,7 +575,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                               e.stopPropagation();
                               openExplorer();
                             }}
-                            className="p-1 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-blue-500/[0.08] hover:border-blue-500/[0.15] hover:text-blue-400 transition-all duration-200"
+                            className="p-1 rounded-lg bg-surface border border-line text-ink-muted hover:bg-accent/[0.08] hover:border-accent/[0.15] hover:text-accent-text transition-all duration-200"
                           >
                             <ExternalLink className="h-3 w-3" />
                           </button>
@@ -584,7 +584,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                               e.stopPropagation();
                               copyTxId();
                             }}
-                            className="p-1 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white/90 transition-all duration-200"
+                            className="p-1 rounded-lg bg-surface border border-line text-ink-muted hover:bg-surface-hover hover:text-ink transition-all duration-200"
                           >
                             <Copy className="h-3 w-3" />
                           </button>
@@ -594,8 +594,8 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
 
                     {activity.route && activity.route.length > 2 && (
                       <div className="flex justify-between items-start">
-                        <span className="text-white/60">Route:</span>
-                        <span className="text-white/90 text-xs text-right max-w-[300px] font-medium">
+                        <span className="text-ink-muted">Route:</span>
+                        <span className="text-ink text-xs text-right max-w-[300px] font-medium">
                           {formatRouteWithTokens(activity.route, metadata)}
                         </span>
                       </div>
@@ -603,16 +603,16 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
 
                     {activity.executionPrice && (
                       <div className="flex justify-between items-center">
-                        <span className="text-white/60">Execution Price:</span>
-                        <span className="text-white/90">${activity.executionPrice.toLocaleString()}</span>
+                        <span className="text-ink-muted">Execution Price:</span>
+                        <span className="text-ink">${activity.executionPrice.toLocaleString()}</span>
                       </div>
                     )}
 
                     {/* Enhanced Transaction Analysis */}
                     {activity.metadata?.transactionAnalysis && (
-                      <div className="bg-gradient-to-br from-emerald-500/[0.05] to-blue-500/[0.05] rounded-lg p-3 border border-emerald-500/[0.15] mt-3">
-                        <div className="text-emerald-300 text-xs mb-3 uppercase tracking-wider flex items-center gap-2">
-                          <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                      <div className="bg-gradient-to-br from-success/[0.05] to-accent/[0.05] rounded-lg p-3 border border-success/[0.15] mt-3">
+                        <div className="text-success text-xs mb-3 uppercase tracking-wider flex items-center gap-2">
+                          <span className="w-2 h-2 bg-success rounded-full animate-pulse"></span>
                           Transaction Analysis
                         </div>
                         <div className="space-y-3">
@@ -620,20 +620,20 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                           {activity.metadata.transactionAnalysis.analysis.slippage && (
                             <div className="space-y-2">
                               <div className="flex justify-between items-center">
-                                <span className="text-white/60 text-sm">Quoted Amount:</span>
-                                <span className="text-white/80 font-mono text-sm">
+                                <span className="text-ink-muted text-sm">Quoted Amount:</span>
+                                <span className="text-ink-body font-mono text-sm">
                                   {formatTokenAmount(activity.metadata.transactionAnalysis.analysis.slippage.quotedAmount, activity.toToken.decimals || 6)} {activity.toToken.symbol}
                                 </span>
                               </div>
                               <div className="flex justify-between items-center">
-                                <span className="text-white/60 text-sm">Actual Received:</span>
-                                <span className="text-emerald-300 font-mono text-sm font-medium">
+                                <span className="text-ink-muted text-sm">Actual Received:</span>
+                                <span className="text-success font-mono text-sm font-medium">
                                   {formatTokenAmount(activity.metadata.transactionAnalysis.analysis.slippage.actualAmount, activity.toToken.decimals || 6)} {activity.toToken.symbol}
                                 </span>
                               </div>
                               <div className="flex justify-between items-center">
-                                <span className="text-white/60 text-sm">Difference:</span>
-                                <span className={`font-mono text-sm ${(activity.metadata.transactionAnalysis.analysis.slippage.difference || 0) > 0 ? 'text-red-300' : 'text-green-300'}`}>
+                                <span className="text-ink-muted text-sm">Difference:</span>
+                                <span className={`font-mono text-sm ${(activity.metadata.transactionAnalysis.analysis.slippage.difference || 0) > 0 ? 'text-danger' : 'text-success'}`}>
                                   {(activity.metadata.transactionAnalysis.analysis.slippage.difference || 0) > 0 ? '-' : '+'}{formatTokenAmount(Math.abs(activity.metadata.transactionAnalysis.analysis.slippage.difference || 0).toString(), activity.toToken.decimals || 6)} {activity.toToken.symbol}
                                 </span>
                               </div>
@@ -641,20 +641,20 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                           )}
                           
                           {/* Token Flow Summary */}
-                          <div className="pt-2 border-t border-white/[0.08]">
-                            <div className="text-white/60 text-xs mb-2">Token Flow:</div>
+                          <div className="pt-2 border-t border-line">
+                            <div className="text-ink-muted text-xs mb-2">Token Flow:</div>
                             <div className="space-y-1">
                               <div className="flex justify-between items-center text-xs">
-                                <span className="text-red-300">Input Transfers:</span>
-                                <span className="text-white/70">{activity.metadata.transactionAnalysis.analysis.inputTokens.length}</span>
+                                <span className="text-danger">Input Transfers:</span>
+                                <span className="text-ink-body">{activity.metadata.transactionAnalysis.analysis.inputTokens.length}</span>
                               </div>
                               <div className="flex justify-between items-center text-xs">
-                                <span className="text-green-300">Output Transfers:</span>
-                                <span className="text-white/70">{activity.metadata.transactionAnalysis.analysis.outputTokens.length}</span>
+                                <span className="text-success">Output Transfers:</span>
+                                <span className="text-ink-body">{activity.metadata.transactionAnalysis.analysis.outputTokens.length}</span>
                               </div>
                               <div className="flex justify-between items-center text-xs">
-                                <span className="text-blue-300">Total Events:</span>
-                                <span className="text-white/70">{activity.metadata.transactionAnalysis.totalEvents}</span>
+                                <span className="text-accent-text">Total Events:</span>
+                                <span className="text-ink-body">{activity.metadata.transactionAnalysis.totalEvents}</span>
                               </div>
                             </div>
                           </div>
@@ -664,17 +664,17 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
 
                     {/* Price Snapshot Information */}
                     {(activity.fromToken.priceSnapshot || activity.toToken.priceSnapshot) && (
-                      <div className="bg-white/[0.02] rounded-lg p-3 border border-white/[0.08] mt-3">
-                        <div className="text-white/60 text-xs mb-2 uppercase tracking-wider">Price Snapshot</div>
+                      <div className="bg-surface-sunken rounded-lg p-3 border border-line mt-3">
+                        <div className="text-ink-muted text-xs mb-2 uppercase tracking-wider">Price Snapshot</div>
                         <div className="space-y-2">
                           {activity.fromToken.priceSnapshot && (
                             <div className="flex justify-between items-center">
-                              <span className="text-white/60 text-sm">{activity.fromToken.symbol} Price:</span>
+                              <span className="text-ink-muted text-sm">{activity.fromToken.symbol} Price:</span>
                               <div className="text-right">
-                                <div className="text-white/90 text-sm font-mono">
+                                <div className="text-ink text-sm font-mono">
                                   ${activity.fromToken.priceSnapshot.price.toLocaleString()}
                                 </div>
-                                <div className="text-white/50 text-xs">
+                                <div className="text-ink-muted text-xs">
                                   {new Date(activity.fromToken.priceSnapshot.timestamp).toLocaleString()} • {activity.fromToken.priceSnapshot.source}
                                 </div>
                               </div>
@@ -682,12 +682,12 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                           )}
                           {activity.toToken.priceSnapshot && (
                             <div className="flex justify-between items-center">
-                              <span className="text-white/60 text-sm">{activity.toToken.symbol} Price:</span>
+                              <span className="text-ink-muted text-sm">{activity.toToken.symbol} Price:</span>
                               <div className="text-right">
-                                <div className="text-white/90 text-sm font-mono">
+                                <div className="text-ink text-sm font-mono">
                                   ${activity.toToken.priceSnapshot.price.toLocaleString()}
                                 </div>
-                                <div className="text-white/50 text-xs">
+                                <div className="text-ink-muted text-xs">
                                   {new Date(activity.toToken.priceSnapshot.timestamp).toLocaleString()} • {activity.toToken.priceSnapshot.source}
                                 </div>
                               </div>
@@ -701,12 +701,12 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
 
                 {/* Errors */}
                 {activity.metadata?.errorMessage && (
-                  <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                    <div className="flex items-center space-x-2 text-red-400 mb-2">
+                  <div className="bg-danger/10 border border-danger/20 rounded-lg p-3">
+                    <div className="flex items-center space-x-2 text-danger mb-2">
                       <AlertCircle className="w-4 h-4" />
                       <span className="text-sm font-medium">Error Details</span>
                     </div>
-                    <div className="text-red-300 text-sm">
+                    <div className="text-danger text-sm">
                       {activity.metadata.errorMessage}
                     </div>
                   </div>
@@ -717,26 +717,26 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
               {profitabilityData && (
                 <div className="space-y-4">
                   <div>
-                    <h4 className="text-xs uppercase text-white/40 font-medium mb-3 tracking-wider">Trade Performance</h4>
+                    <h4 className="text-xs uppercase text-ink-muted font-medium mb-3 tracking-wider">Trade Performance</h4>
                     
                     {/* Performance Summary */}
-                    <div className="bg-gradient-to-r from-blue-500/[0.05] to-purple-500/[0.05] border border-blue-500/[0.15] rounded-lg p-4 mb-4">
+                    <div className="bg-gradient-to-r from-accent/[0.05] to-accent/[0.05] border border-accent/[0.15] rounded-lg p-4 mb-4">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          <div className="p-1 rounded bg-blue-500/10">
+                          <div className="p-1 rounded bg-accent/10">
                             {profitabilityData.metrics.currentPnL.percentage >= 0 ? (
-                              <TrendingUp className="w-4 h-4 text-emerald-400" />
+                              <TrendingUp className="w-4 h-4 text-success" />
                             ) : (
-                              <TrendingDown className="w-4 h-4 text-red-400" />
+                              <TrendingDown className="w-4 h-4 text-danger" />
                             )}
                           </div>
-                          <span className="text-white/80 text-sm font-medium">Current P&L</span>
+                          <span className="text-ink-body text-sm font-medium">Current P&L</span>
                         </div>
                         <div className="text-right">
-                          <div className={`text-lg font-bold ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          <div className={`text-lg font-bold ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-success' : 'text-danger'}`}>
                             {profitabilityData.metrics.currentPnL.percentage >= 0 ? '+' : ''}{profitabilityData.metrics.currentPnL.percentage.toFixed(1)}%
                           </div>
-                          <div className={`text-xs ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
+                          <div className={`text-xs ${profitabilityData.metrics.currentPnL.percentage >= 0 ? 'text-success/80' : 'text-danger/80'}`}>
                             {profitabilityData.metrics.currentPnL.usdValue >= 0 ? '+$' : '-$'}{Math.abs(profitabilityData.metrics.currentPnL.usdValue).toFixed(2)}
                           </div>
                         </div>
@@ -754,27 +754,27 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                       {/* Key Metrics */}
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div>
-                          <div className="text-white/60">Best</div>
-                          <div className="text-emerald-400 font-medium">
+                          <div className="text-ink-muted">Best</div>
+                          <div className="text-success font-medium">
                             +{profitabilityData.metrics.bestPerformance.percentage.toFixed(1)}%
                           </div>
                         </div>
                         <div>
-                          <div className="text-white/60">Worst</div>
-                          <div className="text-red-400 font-medium">
+                          <div className="text-ink-muted">Worst</div>
+                          <div className="text-danger font-medium">
                             {profitabilityData.metrics.worstPerformance.percentage.toFixed(1)}%
                           </div>
                         </div>
                         <div>
-                          <div className="text-white/60">Time Held</div>
-                          <div className="text-white/80 font-medium">
+                          <div className="text-ink-muted">Time Held</div>
+                          <div className="text-ink-body font-medium">
                             {Math.floor(profitabilityData.metrics.timeHeld / (1000 * 60 * 60 * 24))}d{' '}
                             {Math.floor((profitabilityData.metrics.timeHeld % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))}h
                           </div>
                         </div>
                         <div>
-                          <div className="text-white/60">Avg Return</div>
-                          <div className={`font-medium ${profitabilityData.metrics.averageReturn >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          <div className="text-ink-muted">Avg Return</div>
+                          <div className={`font-medium ${profitabilityData.metrics.averageReturn >= 0 ? 'text-success' : 'text-danger'}`}>
                             {profitabilityData.metrics.averageReturn >= 0 ? '+' : ''}{profitabilityData.metrics.averageReturn.toFixed(1)}%
                           </div>
                         </div>
@@ -788,7 +788,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
         )}
 
         {/* Action Bar */}
-        <div className="flex items-center justify-between pt-4 border-t border-white/[0.08] mt-4">
+        <div className="flex items-center justify-between pt-4 border-t border-line mt-4">
           <div className="flex items-center space-x-4">
             <button
               onClick={(e) => {
@@ -796,8 +796,8 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 handleAction('favorite');
               }}
               className={`p-2 rounded-xl transition-all duration-200 ${isFavorited
-                ? 'bg-red-500/[0.08] border border-red-500/[0.15] text-red-400'
-                : 'bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-red-500/[0.08] hover:border-red-500/[0.15] hover:text-red-400'
+                ? 'bg-danger/[0.08] border border-danger/[0.15] text-danger'
+                : 'bg-surface border border-line text-ink-muted hover:bg-danger/[0.08] hover:border-danger/[0.15] hover:text-danger'
                 }`}
             >
               <Heart className={`w-4 h-4 ${isFavorited ? 'fill-current' : ''}`} />
@@ -809,16 +809,16 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 setShowReplies(!showReplies);
               }}
               className={`relative p-2 rounded-xl transition-all duration-200 ${showReplies
-                ? 'bg-blue-500/[0.15] border border-blue-500/[0.3] text-blue-300'
+                ? 'bg-accent/[0.15] border border-accent/[0.3] text-accent-text'
                 : (activity.replyCount > 0)
-                  ? 'bg-blue-500/[0.08] border border-blue-500/[0.15] text-blue-400'
-                  : 'bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-blue-500/[0.08] hover:border-blue-500/[0.15] hover:text-blue-400'
+                  ? 'bg-accent/[0.08] border border-accent/[0.15] text-accent-text'
+                  : 'bg-surface border border-line text-ink-muted hover:bg-accent/[0.08] hover:border-accent/[0.15] hover:text-accent-text'
                 }`}
               title={showReplies ? "Hide replies" : "Show replies"}
             >
               <MessageCircle className="w-4 h-4" />
               {activity.replyCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center px-1 animate-bounce">
+                <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-accent text-on-accent text-xs rounded-full flex items-center justify-center px-1 animate-bounce">
                   {activity.replyCount > 99 ? '99+' : activity.replyCount}
                 </span>
               )}
@@ -830,7 +830,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                   e.stopPropagation();
                   setShowProfitabilityDrawer(true);
                 }}
-                className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-blue-500/[0.08] hover:border-blue-500/[0.15] hover:text-blue-400 transition-all duration-200"
+                className="p-2 rounded-xl bg-surface border border-line text-ink-muted hover:bg-accent/[0.08] hover:border-accent/[0.15] hover:text-accent-text transition-all duration-200"
                 title="View trade performance details"
               >
                 <BarChart3 className="w-4 h-4" />
@@ -843,7 +843,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                   e.stopPropagation();
                   handleAction('repeat');
                 }}
-                className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-green-500/[0.08] hover:border-green-500/[0.15] hover:text-green-400 transition-all duration-200"
+                className="p-2 rounded-xl bg-surface border border-line text-ink-muted hover:bg-success/[0.08] hover:border-success/[0.15] hover:text-success transition-all duration-200"
               >
                 <Repeat2 className="w-4 h-4" />
               </button>
@@ -854,7 +854,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
                 e.stopPropagation();
                 handleAction('share');
               }}
-              className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-purple-500/[0.08] hover:border-purple-500/[0.15] hover:text-purple-400 transition-all duration-200"
+              className="p-2 rounded-xl bg-surface border border-line text-ink-muted hover:bg-blaze/[0.08] hover:border-blaze/[0.15] hover:text-blaze transition-all duration-200"
             >
               <Share className="w-4 h-4" />
             </button>
@@ -865,7 +865,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
               e.stopPropagation();
               handleAction('more');
             }}
-            className="p-2 rounded-xl bg-white/[0.03] border border-white/[0.08] text-white/60 hover:bg-white/[0.08] hover:text-white/90 transition-all duration-200"
+            className="p-2 rounded-xl bg-surface border border-line text-ink-muted hover:bg-surface-hover hover:text-ink transition-all duration-200"
           >
             <MoreHorizontal className="w-4 h-4" />
           </button>
@@ -873,7 +873,7 @@ export const ActivityCard: React.FC<ActivityCardProps> = ({
 
         {/* Reply Thread */}
         {showReplies && (
-          <div className="pt-4 border-t border-white/[0.08] animate-in slide-in-from-top-2 duration-300">
+          <div className="pt-4 border-t border-line animate-in slide-in-from-top-2 duration-300">
             <ReplyThread
               activityId={activity.id}
               replies={activity.replies || []}

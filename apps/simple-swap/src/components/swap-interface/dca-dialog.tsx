@@ -156,9 +156,9 @@ export const DcaDialog: React.FC = () => {
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="bg-background border border-border backdrop-blur-xl max-h-[90vh] overflow-y-auto sm:max-w-3xl">
                 <DialogHeader className="space-y-3">
-                    <DialogTitle className="text-xl font-semibold text-white/95">Split Swap</DialogTitle>
-                    <DialogDescription className="text-white/70 leading-relaxed">
-                        Instead of one large swap, create several smaller limit-orders on a schedule. This can smooth out price swings — a strategy called <span className="text-white/90 font-medium">Dollar-Cost Averaging</span>.
+                    <DialogTitle className="text-xl font-semibold text-ink">Split Swap</DialogTitle>
+                    <DialogDescription className="text-ink-body leading-relaxed">
+                        Instead of one large swap, create several smaller limit-orders on a schedule. This can smooth out price swings — a strategy called <span className="text-ink font-medium">Dollar-Cost Averaging</span>.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -166,9 +166,9 @@ export const DcaDialog: React.FC = () => {
                 <div className="space-y-6">
                 {/* Time Window Info */}
                 {hasFixedTimeWindow && (
-                    <div className="bg-blue-500/[0.08] border border-blue-500/[0.15] rounded-xl p-4 space-y-2">
-                        <h4 className="text-sm font-medium text-blue-400">Fixed Time Window</h4>
-                        <div className="text-xs text-white/70">
+                    <div className="bg-accent/[0.08] border border-accent/[0.15] rounded-xl p-4 space-y-2">
+                        <h4 className="text-sm font-medium text-accent-text">Fixed Time Window</h4>
+                        <div className="text-xs text-ink-body">
                             <div>Start: {displayStartTime.toLocaleString()}</div>
                             <div>End: {new Date(timeEndTime!).toLocaleString()}</div>
                             <div>Duration: {totalWindowMs ? Math.round(totalWindowMs / (1000 * 60 * 60)) : 0} hours</div>
@@ -179,14 +179,14 @@ export const DcaDialog: React.FC = () => {
                 {/* Split Mode Selector (only for fixed time windows) */}
                 {hasFixedTimeWindow ? (
                     <div className="space-y-3">
-                        <label className="text-sm font-medium text-white/90">Split Method</label>
+                        <label className="text-sm font-medium text-ink">Split Method</label>
                         <div className="grid grid-cols-2 gap-2">
                             <button
                                 onClick={() => setSplitMode('by-count')}
                                 className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                                     splitMode === 'by-count' 
-                                        ? 'bg-white/[0.1] text-white/95 border border-white/[0.15]' 
-                                        : 'bg-white/[0.03] text-white/70 border border-white/[0.08] hover:bg-white/[0.05] hover:text-white/90 hover:border-white/[0.12]'
+                                        ? 'bg-surface-hover text-ink border border-line-strong' 
+                                        : 'bg-surface text-ink-body border border-line hover:bg-surface-hover hover:text-ink hover:border-line-strong'
                                 }`}
                             >
                                 By Count
@@ -195,8 +195,8 @@ export const DcaDialog: React.FC = () => {
                                 onClick={() => setSplitMode('by-interval')}
                                 className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                                     splitMode === 'by-interval' 
-                                        ? 'bg-white/[0.1] text-white/95 border border-white/[0.15]' 
-                                        : 'bg-white/[0.03] text-white/70 border border-white/[0.08] hover:bg-white/[0.05] hover:text-white/90 hover:border-white/[0.12]'
+                                        ? 'bg-surface-hover text-ink border border-line-strong' 
+                                        : 'bg-surface text-ink-body border border-line hover:bg-surface-hover hover:text-ink hover:border-line-strong'
                                 }`}
                             >
                                 By Interval
@@ -206,7 +206,7 @@ export const DcaDialog: React.FC = () => {
                 ) : (
                     /* Frequency selector for open-ended time windows */
                     <div className="space-y-3">
-                        <label className="text-sm font-medium text-white/90">Interval Frequency</label>
+                        <label className="text-sm font-medium text-ink">Interval Frequency</label>
                         <div className="grid grid-cols-4 gap-2">
                             {(['hourly', 'daily', 'weekly', 'custom'] as const).map(opt => (
                                 <button
@@ -214,8 +214,8 @@ export const DcaDialog: React.FC = () => {
                                     onClick={() => setIntervalOption(opt)}
                                     className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                                         intervalOption === opt 
-                                            ? 'bg-white/[0.1] text-white/95 border border-white/[0.15]' 
-                                            : 'bg-white/[0.03] text-white/70 border border-white/[0.08] hover:bg-white/[0.05] hover:text-white/90 hover:border-white/[0.12]'
+                                            ? 'bg-surface-hover text-ink border border-line-strong' 
+                                            : 'bg-surface text-ink-body border border-line hover:bg-surface-hover hover:text-ink hover:border-line-strong'
                                     }`}
                                 >
                                     {opt === 'custom' ? 'Custom' : opt.charAt(0).toUpperCase() + opt.slice(1)}
@@ -231,11 +231,11 @@ export const DcaDialog: React.FC = () => {
                         {(!hasFixedTimeWindow || splitMode === 'by-count') && (
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label htmlFor="slices" className="text-sm font-medium text-white/90">
+                                    <label htmlFor="slices" className="text-sm font-medium text-ink">
                                         Number of orders
                                     </label>
                                     {hasFixedTimeWindow && splitMode === 'by-count' && (
-                                        <span className="text-xs text-white/60">Interval: {hours.toFixed(1)}h each</span>
+                                        <span className="text-xs text-ink-muted">Interval: {hours.toFixed(1)}h each</span>
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -243,11 +243,11 @@ export const DcaDialog: React.FC = () => {
                                         id="slices"
                                         type="number"
                                         min={1}
-                                        className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/95 focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.15] transition-all duration-200"
+                                        className="flex-1 bg-surface border border-line rounded-xl px-3 py-2 text-ink focus:outline-none focus:bg-surface-hover focus:border-line-strong transition-all duration-200"
                                         value={slices}
                                         onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSlices(Number(e.target.value))}
                                     />
-                                    <span className="text-sm text-white/60">orders</span>
+                                    <span className="text-sm text-ink-muted">orders</span>
                                 </div>
                             </div>
                         )}
@@ -256,11 +256,11 @@ export const DcaDialog: React.FC = () => {
                         {(!hasFixedTimeWindow && intervalOption === 'custom') || (hasFixedTimeWindow && splitMode === 'by-interval') ? (
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <label htmlFor="interval" className="text-sm font-medium text-white/90">
+                                    <label htmlFor="interval" className="text-sm font-medium text-ink">
                                         Interval
                                     </label>
                                     {hasFixedTimeWindow && splitMode === 'by-interval' && (
-                                        <span className="text-xs text-white/60">Orders: {finalSlices}</span>
+                                        <span className="text-xs text-ink-muted">Orders: {finalSlices}</span>
                                     )}
                                 </div>
                                 {hasFixedTimeWindow && splitMode === 'by-interval' ? (
@@ -272,8 +272,8 @@ export const DcaDialog: React.FC = () => {
                                                     onClick={() => setIntervalHours(hrs)}
                                                     className={`px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                                                         intervalHours === hrs 
-                                                            ? 'bg-white/[0.1] text-white/95 border border-white/[0.15]' 
-                                                            : 'bg-white/[0.03] text-white/70 border border-white/[0.08] hover:bg-white/[0.05] hover:text-white/90 hover:border-white/[0.12]'
+                                                            ? 'bg-surface-hover text-ink border border-line-strong' 
+                                                            : 'bg-surface text-ink-body border border-line hover:bg-surface-hover hover:text-ink hover:border-line-strong'
                                                     }`}
                                                 >
                                                     {hrs === 1 ? 'Hourly' : hrs === 24 ? 'Daily' : 'Weekly'}
@@ -287,11 +287,11 @@ export const DcaDialog: React.FC = () => {
                                                 min={0.1}
                                                 step={0.1}
                                                 placeholder="Custom"
-                                                className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/95 focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.15] transition-all duration-200"
+                                                className="flex-1 bg-surface border border-line rounded-xl px-3 py-2 text-ink focus:outline-none focus:bg-surface-hover focus:border-line-strong transition-all duration-200"
                                                 value={intervalHours}
                                                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIntervalHours(Number(e.target.value))}
                                             />
-                                            <span className="text-sm text-white/60">hours</span>
+                                            <span className="text-sm text-ink-muted">hours</span>
                                         </div>
                                     </div>
                                 ) : (
@@ -301,11 +301,11 @@ export const DcaDialog: React.FC = () => {
                                             type="number"
                                             min={0.1}
                                             step={0.1}
-                                            className="flex-1 bg-white/[0.03] border border-white/[0.08] rounded-xl px-3 py-2 text-white/95 focus:outline-none focus:bg-white/[0.05] focus:border-white/[0.15] transition-all duration-200"
+                                            className="flex-1 bg-surface border border-line rounded-xl px-3 py-2 text-ink focus:outline-none focus:bg-surface-hover focus:border-line-strong transition-all duration-200"
                                             value={intervalHours}
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setIntervalHours(Number(e.target.value))}
                                         />
-                                        <span className="text-sm text-white/60">hours</span>
+                                        <span className="text-sm text-ink-muted">hours</span>
                                     </div>
                                 )}
                             </div>
@@ -314,61 +314,61 @@ export const DcaDialog: React.FC = () => {
 
                 {/* Order summary */}
                 {fromToken && toToken && (
-                    <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
-                        <h4 className="text-sm font-medium text-white/90">Order Summary</h4>
+                    <div className="bg-surface-sunken border border-line-soft rounded-xl p-4 space-y-3">
+                        <h4 className="text-sm font-medium text-ink">Order Summary</h4>
                         <div className="flex items-center gap-3">
                             <div className="flex items-center gap-2">
                                 <TokenLogo token={fromToken} size="sm" />
-                                <span className="text-sm font-medium text-white/95">{defaultAmount} {fromToken.symbol}</span>
+                                <span className="text-sm font-medium text-ink">{defaultAmount} {fromToken.symbol}</span>
                             </div>
-                            <div className="text-white/60">→</div>
+                            <div className="text-ink-muted">→</div>
                             <div className="flex items-center gap-2">
                                 <TokenLogo token={toToken} size="sm" />
-                                <span className="text-sm font-medium text-white/95">{toToken.symbol}</span>
+                                <span className="text-sm font-medium text-ink">{toToken.symbol}</span>
                             </div>
                         </div>
                         {estimate && (
                             <div className="space-y-1 text-xs">
                                 <div className="flex items-center justify-between gap-3">
-                                    <div className="flex items-center gap-1.5 text-white/70">
+                                    <div className="flex items-center gap-1.5 text-ink-body">
                                         <span>Est. you receive</span>
                                         <InfoTooltip content={`Estimated from the current quote. Each order's post conditions guarantee at least 99% of the quote at the moment it executes (1% slippage). Orders execute at any point in their window, so the final total will differ from this estimate.`} />
                                     </div>
-                                    <span className="text-white/95 font-medium whitespace-nowrap">≈ {formatTokenAmount(estimate.total, toDecimals)} {toToken.symbol}</span>
+                                    <span className="text-ink font-medium whitespace-nowrap">≈ {formatTokenAmount(estimate.total, toDecimals)} {toToken.symbol}</span>
                                 </div>
-                                <div className="flex items-center justify-between gap-3 text-white/50">
+                                <div className="flex items-center justify-between gap-3 text-ink-muted">
                                     <span>Minimum</span>
                                     <span className="whitespace-nowrap">≈ {formatTokenAmount(estimate.minTotal, toDecimals)} {toToken.symbol}</span>
                                 </div>
-                                <div className="flex items-center justify-between gap-3 text-white/50">
+                                <div className="flex items-center justify-between gap-3 text-ink-muted">
                                     <span>Per order</span>
                                     <span className="whitespace-nowrap">≈ {formatTokenAmount(estimate.perOrder, toDecimals)} {toToken.symbol}</span>
                                 </div>
                             </div>
                         )}
                         {conditionToken && (
-                            <div className="text-xs text-white/60 bg-blue-500/[0.08] border border-blue-500/[0.15] rounded-lg px-2 py-1">
-                                Orders execute when <span className="text-blue-400 font-medium">{conditionToken.symbol}/{baseToken ? baseToken.symbol : 'USD'}</span> {direction === 'lt' ? '≤' : '≥'} {targetPrice}
+                            <div className="text-xs text-ink-muted bg-accent/[0.08] border border-accent/[0.15] rounded-lg px-2 py-1">
+                                Orders execute when <span className="text-accent-text font-medium">{conditionToken.symbol}/{baseToken ? baseToken.symbol : 'USD'}</span> {direction === 'lt' ? '≤' : '≥'} {targetPrice}
                             </div>
                         )}
                     </div>
                 )}
 
                 {/* Summary of calculated values */}
-                <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-2">
-                    <h4 className="text-sm font-medium text-white/90">Split Summary</h4>
+                <div className="bg-surface-sunken border border-line-soft rounded-xl p-4 space-y-2">
+                    <h4 className="text-sm font-medium text-ink">Split Summary</h4>
                     <div className="grid grid-cols-3 gap-4 text-xs">
                         <div>
-                            <span className="text-white/60">Orders:</span>
-                            <div className="text-white/90 font-medium">{finalSlices}</div>
+                            <span className="text-ink-muted">Orders:</span>
+                            <div className="text-ink font-medium">{finalSlices}</div>
                         </div>
                         <div>
-                            <span className="text-white/60">Interval:</span>
-                            <div className="text-white/90 font-medium">{hours < 1 ? `${Math.round(hours * 60)}m` : `${hours.toFixed(1)}h`}</div>
+                            <span className="text-ink-muted">Interval:</span>
+                            <div className="text-ink font-medium">{hours < 1 ? `${Math.round(hours * 60)}m` : `${hours.toFixed(1)}h`}</div>
                         </div>
                         <div>
-                            <span className="text-white/60">Per Order:</span>
-                            <div className="text-white/90 font-medium">{perSliceAmount.toFixed(6)} {fromToken?.symbol}</div>
+                            <span className="text-ink-muted">Per Order:</span>
+                            <div className="text-ink font-medium">{perSliceAmount.toFixed(6)} {fromToken?.symbol}</div>
                         </div>
                     </div>
                 </div>
@@ -377,38 +377,38 @@ export const DcaDialog: React.FC = () => {
                 <div className="space-y-6">
                 {/* Preview */}
                 {preview.length > 0 && (
-                    <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-4 space-y-3">
-                        <h4 className="text-sm font-medium text-white/90">Execution Schedule</h4>
+                    <div className="bg-surface-sunken border border-line-soft rounded-xl p-4 space-y-3">
+                        <h4 className="text-sm font-medium text-ink">Execution Schedule</h4>
                         <div className="space-y-2 max-h-64 overflow-y-auto">
                             {preview.map(r => (
-                                <div key={r.idx} className="bg-white/[0.02] rounded-lg p-3 flex items-center justify-between">
+                                <div key={r.idx} className="bg-surface-sunken rounded-lg p-3 flex items-center justify-between">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-6 h-6 rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-xs font-medium text-white/70">
+                                        <div className="w-6 h-6 rounded-full bg-surface border border-line flex items-center justify-center text-xs font-medium text-ink-body">
                                             {r.idx}
                                         </div>
                                         <div>
-                                            <div className="text-sm font-medium text-white/95">{r.window}</div>
-                                            <div className="text-xs text-white/60">{r.amount} {fromToken?.symbol}</div>
+                                            <div className="text-sm font-medium text-ink">{r.window}</div>
+                                            <div className="text-xs text-ink-muted">{r.amount} {fromToken?.symbol}</div>
                                         </div>
                                     </div>
                                     <div className="flex items-center">
                                         {statuses[r.idx - 1] === 'pending' && (
-                                            <div className="w-4 h-4 rounded-full bg-white/[0.1] border border-white/[0.2]"></div>
+                                            <div className="w-4 h-4 rounded-full bg-surface-hover border border-line-strong"></div>
                                         )}
                                         {statuses[r.idx - 1] === 'signing' && (
-                                            <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+                                            <Loader2 className="h-4 w-4 animate-spin text-accent-text" />
                                         )}
                                         {statuses[r.idx - 1] === 'done' && (
-                                            <Check className="h-4 w-4 text-green-400" />
+                                            <Check className="h-4 w-4 text-success" />
                                         )}
                                         {statuses[r.idx - 1] === 'error' && (
-                                            <XIcon className="h-4 w-4 text-red-400" />
+                                            <XIcon className="h-4 w-4 text-danger" />
                                         )}
                                     </div>
                                 </div>
                             ))}
                         </div>
-                        <div className="text-xs text-white/60 italic bg-white/[0.02] rounded-lg px-3 py-2">
+                        <div className="text-xs text-ink-muted italic bg-surface-sunken rounded-lg px-3 py-2">
                             Orders are placed at the scheduled time and stay active for one interval before expiring.
                         </div>
                     </div>
@@ -419,14 +419,14 @@ export const DcaDialog: React.FC = () => {
                 <DialogFooter className="mt-6 flex flex-col-reverse sm:flex-row gap-3">
                     <button
                         onClick={() => onOpenChange(false)}
-                        className="px-4 py-2 bg-white/[0.05] text-white/70 hover:bg-white/[0.08] hover:text-white/90 border border-white/[0.08] hover:border-white/[0.12] rounded-xl text-sm font-medium transition-all duration-200"
+                        className="px-4 py-2 bg-surface text-ink-body hover:bg-surface-hover hover:text-ink border border-line hover:border-line-strong rounded-xl text-sm font-medium transition-all duration-200"
                     >
                         Cancel
                     </button>
                     {phase === 'setup' && (
                         <button
                             onClick={startProcessing}
-                            className="px-4 py-2 bg-white/[0.1] text-white/95 hover:bg-white/[0.15] hover:text-white/100 border border-white/[0.15] rounded-xl text-sm font-medium transition-all duration-200"
+                            className="px-4 py-2 bg-surface-hover text-ink hover:bg-surface-selected hover:text-ink border border-line-strong rounded-xl text-sm font-medium transition-all duration-200"
                         >
                             Start Split Swap
                         </button>
@@ -434,7 +434,7 @@ export const DcaDialog: React.FC = () => {
                     {phase === 'processing' && (
                         <button
                             disabled
-                            className="px-4 py-2 bg-white/[0.02] text-white/40 border border-white/[0.06] rounded-xl text-sm font-medium cursor-not-allowed opacity-50 flex items-center gap-2"
+                            className="px-4 py-2 bg-surface-sunken text-ink-muted border border-line-soft rounded-xl text-sm font-medium cursor-not-allowed opacity-50 flex items-center gap-2"
                         >
                             <Loader2 className="h-4 w-4 animate-spin" />
                             Processing Orders…
@@ -446,7 +446,7 @@ export const DcaDialog: React.FC = () => {
                                 onOpenChange(false);
                                 router.push('/orders');
                             }}
-                            className="px-4 py-2 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/30 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2"
+                            className="px-4 py-2 bg-success/20 text-success hover:bg-success/30 border border-success/30 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2"
                         >
                             <Check className="h-4 w-4" />
                             View My Orders

@@ -51,14 +51,14 @@ function SwapInterfaceContentInner() {
       toast.success(
         <div className="flex flex-col gap-2">
           <div>
-            <div className="font-semibold text-white text-sm">Order Created Successfully</div>
-            <div className="text-white/80 text-xs mt-0.5">
+            <div className="font-semibold text-ink text-sm">Order Created Successfully</div>
+            <div className="text-ink-body text-xs mt-0.5">
               Your triggered order has been submitted and is now active.
             </div>
           </div>
           <a
             href="/orders"
-            className="inline-flex items-center gap-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-400 hover:text-green-300 border border-green-500/20 hover:border-green-500/30 px-3 py-1.5 text-xs rounded-xl font-medium transition-all duration-200 w-fit"
+            className="inline-flex items-center gap-1.5 bg-success/10 hover:bg-success/20 text-success hover:text-success border border-success/20 hover:border-success/30 px-3 py-1.5 text-xs rounded-xl font-medium transition-all duration-200 w-fit"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -74,8 +74,8 @@ function SwapInterfaceContentInner() {
       toast.success(
         <div className="flex flex-col gap-2">
           <div>
-            <div className="font-semibold text-white text-sm">Swap Transaction Submitted</div>
-            <div className="text-white/80 text-xs mt-0.5">
+            <div className="font-semibold text-ink text-sm">Swap Transaction Submitted</div>
+            <div className="text-ink-body text-xs mt-0.5">
               Your transaction has been broadcast to the Stacks blockchain.
             </div>
           </div>
@@ -83,7 +83,7 @@ function SwapInterfaceContentInner() {
             href={`https://explorer.hiro.so/txid/${swapSuccessInfo.txid}?chain=mainnet`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 border border-blue-500/20 hover:border-blue-500/30 px-3 py-1.5 text-xs rounded-xl font-medium transition-all duration-200 w-fit"
+            className="inline-flex items-center gap-1.5 bg-accent/10 hover:bg-accent/20 text-accent-text hover:text-accent-text border border-accent/20 hover:border-accent/30 px-3 py-1.5 text-xs rounded-xl font-medium transition-all duration-200 w-fit"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -112,7 +112,7 @@ function SwapInterfaceContentInner() {
           <div className="hidden 3xl:grid grid-cols-5 gap-6">
             {/* Left Side - Limit Conditions (3/5) */}
             <div className="col-span-3 space-y-6">
-              <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 backdrop-blur-sm">
+              <div className="bg-surface border border-line rounded-2xl p-5 backdrop-blur-sm">
                 <LimitConditionSection />
               </div>
 
@@ -121,7 +121,7 @@ function SwapInterfaceContentInner() {
             {/* Right Side - Send/Receive (2/5) */}
             <div className="col-span-2">
               {/* Token Input */}
-              <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 backdrop-blur-sm mb-6">
+              <div className="bg-surface-sunken border border-line-soft rounded-2xl p-5 backdrop-blur-sm mb-6">
                 <TokenInputSection />
               </div>
 
@@ -131,7 +131,7 @@ function SwapInterfaceContentInner() {
               </div>
 
               {/* Token Output */}
-              <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 backdrop-blur-sm mt-6 mb-6">
+              <div className="bg-surface-sunken border border-line-soft rounded-2xl p-5 backdrop-blur-sm mt-6 mb-6">
                 <TokenOutputSection />
               </div>
 
@@ -145,12 +145,12 @@ function SwapInterfaceContentInner() {
           {/* Below 3XL: Vertical Stack Layout */}
           <div className="3xl:hidden max-w-3xl mx-auto">
             {/* Limit Order Conditions */}
-            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 backdrop-blur-sm mb-6">
+            <div className="bg-surface border border-line rounded-2xl p-5 backdrop-blur-sm mb-6">
               <LimitConditionSection />
             </div>
 
             {/* Token Input */}
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 backdrop-blur-sm mb-6">
+            <div className="bg-surface-sunken border border-line-soft rounded-2xl p-5 backdrop-blur-sm mb-6">
               <TokenInputSection />
             </div>
 
@@ -160,7 +160,7 @@ function SwapInterfaceContentInner() {
             </div>
 
             {/* Token Output */}
-            <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 backdrop-blur-sm mt-6 mb-6">
+            <div className="bg-surface-sunken border border-line-soft rounded-2xl p-5 backdrop-blur-sm mt-6 mb-6">
               <TokenOutputSection />
             </div>
 
@@ -175,7 +175,7 @@ function SwapInterfaceContentInner() {
         /* Swap Mode - Traditional Centered Layout */
         <div className="max-w-2xl mx-auto">
           {/* Token Input */}
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 backdrop-blur-sm mb-6">
+          <div className="bg-surface-sunken border border-line-soft rounded-2xl p-5 backdrop-blur-sm mb-6">
             <TokenInputSection />
           </div>
 
@@ -185,7 +185,7 @@ function SwapInterfaceContentInner() {
           </div>
 
           {/* Token Output */}
-          <div className="bg-white/[0.02] border border-white/[0.06] rounded-2xl p-5 backdrop-blur-sm mt-6 mb-6">
+          <div className="bg-surface-sunken border border-line-soft rounded-2xl p-5 backdrop-blur-sm mt-6 mb-6">
             <TokenOutputSection />
           </div>
 

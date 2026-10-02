@@ -44,11 +44,11 @@ export function TransactionMonitoringStats({ stats }: TransactionMonitoringStats
     const successRateNum = parseFloat(successRate);
     const processingHealth = successRateNum >= 90 ? 'healthy' : successRateNum >= 70 ? 'warning' : 'error';
 
-    const healthColor = processingHealth === 'healthy' ? 'text-green-500' :
-        processingHealth === 'warning' ? 'text-yellow-500' : 'text-red-500';
+    const healthColor = processingHealth === 'healthy' ? 'text-success' :
+        processingHealth === 'warning' ? 'text-warning' : 'text-danger';
 
-    const healthBgColor = processingHealth === 'healthy' ? 'bg-green-500' :
-        processingHealth === 'warning' ? 'bg-yellow-500' : 'bg-red-500';
+    const healthBgColor = processingHealth === 'healthy' ? 'bg-success' :
+        processingHealth === 'warning' ? 'bg-warning' : 'bg-danger';
 
     return (
         <div className="bg-card rounded-lg border border-border p-6">
@@ -147,8 +147,8 @@ export function TransactionMonitoringStats({ stats }: TransactionMonitoringStats
 
                         <div className="flex justify-between items-center">
                             <span className="text-muted-foreground">Service Health:</span>
-                            <span className={`font-mono capitalize ${stats.txMonitor.processingHealth === 'healthy' ? 'text-green-500' :
-                                stats.txMonitor.processingHealth === 'warning' ? 'text-yellow-500' : 'text-red-500'
+                            <span className={`font-mono capitalize ${stats.txMonitor.processingHealth === 'healthy' ? 'text-success' :
+                                stats.txMonitor.processingHealth === 'warning' ? 'text-warning' : 'text-danger'
                                 }`}>
                                 {stats.txMonitor.processingHealth}
                             </span>
@@ -158,31 +158,31 @@ export function TransactionMonitoringStats({ stats }: TransactionMonitoringStats
                             <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">API:</span>
-                                    <span className={`font-mono capitalize ${stats.txMonitor.serviceHealth.api === 'healthy' ? 'text-green-500' :
-                                        stats.txMonitor.serviceHealth.api === 'warning' ? 'text-yellow-500' : 'text-red-500'
+                                    <span className={`font-mono capitalize ${stats.txMonitor.serviceHealth.api === 'healthy' ? 'text-success' :
+                                        stats.txMonitor.serviceHealth.api === 'warning' ? 'text-warning' : 'text-danger'
                                         }`}>
                                         {stats.txMonitor.serviceHealth.api}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Cron:</span>
-                                    <span className={`font-mono capitalize ${stats.txMonitor.serviceHealth.cron === 'healthy' ? 'text-green-500' :
-                                        stats.txMonitor.serviceHealth.cron === 'warning' ? 'text-yellow-500' : 'text-red-500'
+                                    <span className={`font-mono capitalize ${stats.txMonitor.serviceHealth.cron === 'healthy' ? 'text-success' :
+                                        stats.txMonitor.serviceHealth.cron === 'warning' ? 'text-warning' : 'text-danger'
                                         }`}>
                                         {stats.txMonitor.serviceHealth.cron}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Queue:</span>
-                                    <span className={`font-mono capitalize ${stats.txMonitor.serviceHealth.queue === 'healthy' ? 'text-green-500' :
-                                        stats.txMonitor.serviceHealth.queue === 'warning' ? 'text-yellow-500' : 'text-red-500'
+                                    <span className={`font-mono capitalize ${stats.txMonitor.serviceHealth.queue === 'healthy' ? 'text-success' :
+                                        stats.txMonitor.serviceHealth.queue === 'warning' ? 'text-warning' : 'text-danger'
                                         }`}>
                                         {stats.txMonitor.serviceHealth.queue}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">KV:</span>
-                                    <span className={`font-mono ${stats.txMonitor.serviceHealth.kvConnectivity ? 'text-green-500' : 'text-red-500'
+                                    <span className={`font-mono ${stats.txMonitor.serviceHealth.kvConnectivity ? 'text-success' : 'text-danger'
                                         }`}>
                                         {stats.txMonitor.serviceHealth.kvConnectivity ? 'Connected' : 'Disconnected'}
                                     </span>

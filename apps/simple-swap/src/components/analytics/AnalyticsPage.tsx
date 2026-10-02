@@ -18,7 +18,7 @@ function ShareOnX({ text }: { text: string }) {
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 rounded-full border border-white/[0.08] px-2.5 py-1 text-xs text-white/50 hover:border-white/[0.2] hover:text-white/90 transition-colors"
+            className="inline-flex items-center gap-1 rounded-full border border-line px-2.5 py-1 text-xs text-ink-muted hover:border-line-strong hover:text-ink transition-colors"
         >
             Share on 𝕏
         </a>
@@ -27,10 +27,10 @@ function ShareOnX({ text }: { text: string }) {
 
 function Card({ label, value, hint }: { label: string; value: string; hint?: string }) {
     return (
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5">
-            <div className="text-xs uppercase tracking-wide text-white/50">{label}</div>
-            <div className="mt-2 font-mono text-3xl font-semibold text-white/95">{value}</div>
-            {hint && <div className="mt-1 text-xs text-white/40">{hint}</div>}
+        <div className="rounded-xl border border-line bg-surface-sunken p-5">
+            <div className="text-xs uppercase tracking-wide text-ink-muted">{label}</div>
+            <div className="mt-2 font-mono text-3xl font-semibold text-ink">{value}</div>
+            {hint && <div className="mt-1 text-xs text-ink-muted">{hint}</div>}
         </div>
     );
 }
@@ -39,7 +39,7 @@ function Section({ title, share, children }: { title: string; share: string; chi
     return (
         <section className="space-y-3">
             <div className="flex items-center justify-between gap-3">
-                <h2 className="text-sm font-medium text-white/70">{title}</h2>
+                <h2 className="text-sm font-medium text-ink-body">{title}</h2>
                 <ShareOnX text={share} />
             </div>
             {children}
@@ -51,10 +51,10 @@ function PeriodRow({ rows }: { rows: [string, Period][] }) {
     return (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {rows.map(([label, p]) => (
-                <div key={label} className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
-                    <div className="text-xs text-white/50">{label}</div>
-                    <div className="mt-1 font-mono text-xl text-white/90">{usd(p.volumeUsd)}</div>
-                    <div className="text-xs text-white/40">{count(p.trades)} trades</div>
+                <div key={label} className="rounded-xl border border-line bg-surface-sunken p-4">
+                    <div className="text-xs text-ink-muted">{label}</div>
+                    <div className="mt-1 font-mono text-xl text-ink">{usd(p.volumeUsd)}</div>
+                    <div className="text-xs text-ink-muted">{count(p.trades)} trades</div>
                 </div>
             ))}
         </div>
@@ -65,18 +65,18 @@ function PeriodRow({ rows }: { rows: [string, Period][] }) {
 function WeeklyChart({ weeks }: { weeks: PlatformStats['weekly'] }) {
     const max = Math.max(...weeks.map(w => w.volumeUsd), 1);
     return (
-        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
+        <div className="rounded-xl border border-line bg-surface-sunken p-4">
             <div className="flex h-48 items-end gap-[2px]">
                 {weeks.map(w => (
                     <div
                         key={w.weekStart}
                         title={`Week of ${new Date(w.weekStart).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}: ${usd(w.volumeUsd)} · ${count(w.trades)} trades`}
-                        className="flex-1 rounded-t bg-orange-400/70 transition-colors hover:bg-orange-300"
+                        className="flex-1 rounded-t bg-accent/70 transition-colors hover:bg-accent"
                         style={{ height: `${Math.max((w.volumeUsd / max) * 100, w.trades > 0 ? 1.5 : 0)}%` }}
                     />
                 ))}
             </div>
-            <div className="mt-2 flex justify-between text-xs text-white/40">
+            <div className="mt-2 flex justify-between text-xs text-ink-muted">
                 <span>{month(weeks[0].weekStart)}</span>
                 <span>Now</span>
             </div>
@@ -86,16 +86,16 @@ function WeeklyChart({ weeks }: { weeks: PlatformStats['weekly'] }) {
 
 function Table({ head, rows }: { head: string; rows: { key: string; name: ReactNode; volumeUsd: number; trades: number }[] }) {
     return (
-        <div className="overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02]">
-            <div className="grid grid-cols-[24px_1fr_auto_auto] gap-3 border-b border-white/[0.06] px-4 py-2 text-xs text-white/40">
+        <div className="overflow-hidden rounded-xl border border-line bg-surface-sunken">
+            <div className="grid grid-cols-[24px_1fr_auto_auto] gap-3 border-b border-line-soft px-4 py-2 text-xs text-ink-muted">
                 <span>#</span><span>{head}</span><span className="w-24 text-right">Volume</span><span className="w-16 text-right">Trades</span>
             </div>
             {rows.map((row, i) => (
-                <div key={row.key} className="grid grid-cols-[24px_1fr_auto_auto] items-center gap-3 px-4 py-2.5 text-sm hover:bg-white/[0.03]">
-                    <span className="text-white/40">{i + 1}</span>
-                    <span className="min-w-0 truncate text-white/90">{row.name}</span>
-                    <span className="w-24 text-right font-mono text-white/80">{usd(row.volumeUsd)}</span>
-                    <span className="w-16 text-right font-mono text-white/50">{count(row.trades)}</span>
+                <div key={row.key} className="grid grid-cols-[24px_1fr_auto_auto] items-center gap-3 px-4 py-2.5 text-sm hover:bg-surface">
+                    <span className="text-ink-muted">{i + 1}</span>
+                    <span className="min-w-0 truncate text-ink">{row.name}</span>
+                    <span className="w-24 text-right font-mono text-ink-body">{usd(row.volumeUsd)}</span>
+                    <span className="w-16 text-right font-mono text-ink-muted">{count(row.trades)}</span>
                 </div>
             ))}
         </div>
@@ -111,7 +111,7 @@ const tokenRows = (tokens: TokenRanked[]) => tokens.map(t => ({
             {t.image
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img src={t.image} alt="" width={20} height={20} className="h-5 w-5 rounded-full" />
-                : <span className="h-5 w-5 rounded-full bg-white/10" />}
+                : <span className="h-5 w-5 rounded-full bg-surface-hover" />}
             {t.symbol}
         </span>
     ),
@@ -122,9 +122,9 @@ const walletRows = (wallets: WalletRanked[]) => wallets.map(w => ({
     volumeUsd: w.volumeUsd,
     trades: w.trades,
     name: (
-        <a href={`https://explorer.hiro.so/address/${w.id}?chain=mainnet`} target="_blank" rel="noopener noreferrer" className="hover:text-orange-300">
+        <a href={`https://explorer.hiro.so/address/${w.id}?chain=mainnet`} target="_blank" rel="noopener noreferrer" className="hover:text-accent-text">
             {w.bns
-                ? <>{w.bns} <span className="font-mono text-xs text-white/40">{shortAddress(w.id)}</span></>
+                ? <>{w.bns} <span className="font-mono text-xs text-ink-muted">{shortAddress(w.id)}</span></>
                 : <span className="font-mono">{shortAddress(w.id)}</span>}
         </a>
     ),
@@ -146,9 +146,9 @@ export default function AnalyticsPage({ stats }: { stats: PlatformStats }) {
     return (
         <div className="w-full max-w-6xl mx-auto px-4 py-8 space-y-8">
             <div className="space-y-1">
-                <h1 className="text-3xl font-semibold text-white/95">Charisma, by the numbers</h1>
+                <h1 className="text-3xl font-semibold text-ink">Charisma, by the numbers</h1>
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm text-white/60">Every trade through Charisma's routers since {since}, read from the chain. Updated every 15 minutes.</p>
+                    <p className="text-sm text-ink-muted">Every trade through Charisma's routers since {since}, read from the chain. Updated every 15 minutes.</p>
                     <ShareOnX text={share.headline} />
                 </div>
             </div>
@@ -181,7 +181,7 @@ export default function AnalyticsPage({ stats }: { stats: PlatformStats }) {
                 </Section>
             </div>
 
-            <p className="text-xs text-white/40">
+            <p className="text-xs text-ink-muted">
                 Volume is the amount put into each trade, valued at today&apos;s prices. Subnet trades count as the token they hold. Trades in tokens without a price are counted but add no volume.
             </p>
         </div>

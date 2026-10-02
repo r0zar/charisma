@@ -354,12 +354,12 @@ async function fetchAndEnrichOrders(
 
 const StatusBadge = ({ status }: { status: DisplayOrder['status'] }) => {
     const config = {
-        open: { icon: Clock, color: 'bg-blue-100 text-blue-700 border-blue-200', label: 'Open' },
-        broadcasted: { icon: Timer, color: 'bg-yellow-100 text-yellow-700 border-yellow-200', label: 'Broadcasted' },
-        confirmed: { icon: CheckCircle, color: 'bg-green-100 text-green-700 border-green-200', label: 'Confirmed' },
-        filled: { icon: CheckCircle, color: 'bg-green-100 text-green-700 border-green-200', label: 'Filled' },
-        failed: { icon: AlertTriangle, color: 'bg-red-100 text-red-700 border-red-200', label: 'Failed' },
-        cancelled: { icon: XCircle, color: 'bg-gray-100 text-gray-700 border-gray-200', label: 'Cancelled' }
+        open: { icon: Clock, color: 'bg-accent-soft text-accent-text border-accent', label: 'Open' },
+        broadcasted: { icon: Timer, color: 'bg-warning-soft text-warning border-warning', label: 'Broadcasted' },
+        confirmed: { icon: CheckCircle, color: 'bg-success-soft text-success border-success', label: 'Confirmed' },
+        filled: { icon: CheckCircle, color: 'bg-success-soft text-success border-success', label: 'Filled' },
+        failed: { icon: AlertTriangle, color: 'bg-danger-soft text-danger border-danger', label: 'Failed' },
+        cancelled: { icon: XCircle, color: 'bg-surface-hover text-ink-muted border-line', label: 'Cancelled' }
     };
 
     const { icon: Icon, color, label } = config[status];
@@ -374,24 +374,24 @@ const StatusBadge = ({ status }: { status: DisplayOrder['status'] }) => {
 
 const TypeBadge = ({ type }: { type: DisplayOrder['type'] }) => {
     const config = {
-        single: { color: 'bg-blue-50 text-blue-600 border-blue-200', label: 'LIMIT' },
-        dca: { color: 'bg-green-50 text-green-600 border-green-200', label: 'DCA' },
-        perpetual: { color: 'bg-purple-50 text-purple-600 border-purple-200', label: 'PERP' },
-        sandwich: { color: 'bg-orange-50 text-orange-600 border-orange-200', label: 'SANDWICH' }
+        single: { color: 'bg-accent-soft text-accent-text border-accent', label: 'LIMIT' },
+        dca: { color: 'bg-success-soft text-success border-success', label: 'DCA' },
+        perpetual: { color: 'bg-blaze-soft text-blaze border-blaze', label: 'PERP' },
+        sandwich: { color: 'bg-accent-soft text-accent-text border-accent', label: 'SANDWICH' }
     };
 
     return (
         <Badge variant="outline" className={config[type].color}>
-            {config[type].label}
+ {config[type].label}
         </Badge>
     );
 };
 
 const PriorityIndicator = ({ priority }: { priority: DisplayOrder['priority'] }) => {
     const colors = {
-        low: 'bg-gray-400',
-        medium: 'bg-yellow-400',
-        high: 'bg-red-400'
+        low: 'bg-surface-hover',
+        medium: 'bg-warning',
+        high: 'bg-danger'
     };
 
     return (
@@ -412,15 +412,15 @@ const TransactionStatus = ({ txHash, status, order }: {
         case 'broadcasted':
             return (
                 <div className="flex items-center gap-1 mt-1">
-                    <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse" />
-                    <span className="text-xs text-amber-400">Broadcasting...</span>
+                    <div className="w-2 h-2 bg-warning rounded-full animate-pulse" />
+                    <span className="text-xs text-warning">Broadcasting...</span>
                 </div>
             );
         case 'confirmed':
             return (
                 <div className="flex items-center gap-1 mt-1">
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full" />
-                    <span className="text-xs text-emerald-400">
+                    <div className="w-2 h-2 bg-success rounded-full" />
+                    <span className="text-xs text-success">
                         Confirmed {order.blockHeight ? `at block ${order.blockHeight}` : ''}
                     </span>
                 </div>
@@ -428,8 +428,8 @@ const TransactionStatus = ({ txHash, status, order }: {
         case 'failed':
             return (
                 <div className="flex items-center gap-1 mt-1">
-                    <div className="w-2 h-2 bg-red-400 rounded-full" />
-                    <span className="text-xs text-red-400">
+                    <div className="w-2 h-2 bg-danger rounded-full" />
+                    <span className="text-xs text-danger">
                         Failed: {order.failureReason || 'Unknown reason'}
                     </span>
                 </div>
@@ -755,9 +755,9 @@ export function OrdersTable() {
                                             <span className="font-medium text-sm">{order.inputTokenSymbol}</span>
                                             <div className="flex items-center gap-1">
                                                 {order.direction === 'buy' ? (
-                                                    <TrendingUp className="w-3 h-3 text-green-500" />
+                                                    <TrendingUp className="w-3 h-3 text-success" />
                                                 ) : (
-                                                    <TrendingDown className="w-3 h-3 text-red-500" />
+                                                    <TrendingDown className="w-3 h-3 text-danger" />
                                                 )}
                                             </div>
                                             <span className="text-muted-foreground text-sm">{order.outputTokenSymbol}</span>
@@ -834,7 +834,7 @@ export function OrdersTable() {
                                                         </>
                                                     )}
                                                     <DropdownMenuSeparator />
-                                                    <DropdownMenuItem className="gap-2 text-red-600">
+                                                    <DropdownMenuItem className="gap-2 text-danger">
                                                         <Trash2 className="w-4 h-4" />
                                                         Cancel Order
                                                     </DropdownMenuItem>

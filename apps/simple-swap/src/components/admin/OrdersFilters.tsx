@@ -124,31 +124,31 @@ export function OrdersFilters() {
             label: 'Active Orders',
             icon: Clock,
             action: () => handleFilterChange('status', 'open'),
-            color: 'bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100'
+            color: 'bg-accent-soft text-accent-text border-accent hover:bg-accent-soft'
         },
         {
             label: 'Confirmed Orders',
             icon: Zap,
             action: () => handleFilterChange('status', 'confirmed'),
-            color: 'bg-green-50 text-green-600 border-green-200 hover:bg-green-100'
+            color: 'bg-success-soft text-success border-success hover:bg-success-soft'
         },
         {
             label: 'Failed Orders',
             icon: X,
             action: () => handleFilterChange('status', 'failed'),
-            color: 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+            color: 'bg-danger-soft text-danger border-danger hover:bg-danger-soft'
         },
         {
             label: 'High Volume',
             icon: Filter,
             action: () => handleFilterChange('volumeRange', { min: '10000', max: '' }),
-            color: 'bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100'
+            color: 'bg-blaze-soft text-blaze border-blaze hover:bg-blaze-soft'
         },
         {
             label: 'High Priority',
             icon: Zap,
             action: () => handleFilterChange('priority', 'high'),
-            color: 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100'
+            color: 'bg-accent-soft text-accent-text border-accent hover:bg-accent-soft'
         },
     ];
 
@@ -181,7 +181,7 @@ export function OrdersFilters() {
                             variant="outline"
                             size="sm"
                             onClick={clearFilters}
-                            className="gap-2 text-red-600 border-red-200 hover:bg-red-50"
+                            className="gap-2 text-danger border-danger hover:bg-danger-soft"
                         >
                             <X className="w-4 h-4" />
                             Clear All

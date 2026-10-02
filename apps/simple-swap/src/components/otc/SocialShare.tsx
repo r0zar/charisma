@@ -44,7 +44,7 @@ export default function SocialShare({ offerUrl, offerTitle = "Check out this off
                 <div className="flex space-x-2">
                     <Input type="text" value={offerUrl} readOnly className="flex-grow" />
                     <Button variant="outline" onClick={handleCopyLink} size="icon" aria-label="Copy link">
-                        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                        {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
                     </Button>
                 </div>
                 <div className="flex space-x-2">

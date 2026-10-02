@@ -29,7 +29,7 @@ function PriceSeriesDialog({ open, onClose, contractId, symbol }: { open: boolea
 
     if (!open || !contractId) return null;
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-chrome">
             <div className="bg-card rounded-lg shadow-lg p-6 min-w-[340px] max-w-full relative">
                 <button className="absolute top-2 right-2 text-muted-foreground hover:text-foreground" onClick={onClose}>&times;</button>
                 <h2 className="text-lg font-semibold mb-2">Recent Price Series: <span className="font-mono">{symbol || contractId}</span></h2>
@@ -53,7 +53,7 @@ function PriceSeriesDialog({ open, onClose, contractId, symbol }: { open: boolea
                         Loading series...
                     </div>
                 ) : error ? (
-                    <div className="text-red-500">{error}</div>
+                    <div className="text-danger">{error}</div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="min-w-full border text-xs mt-2">
@@ -190,12 +190,12 @@ export function PriceMatrixDetailed() {
                         Loading tokens...
                     </div>
                 ) : error ? (
-                    <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-6">
+                    <div className="bg-danger-soft border border-danger/30 rounded-lg p-6">
                         <div className="flex items-center gap-3 mb-2">
-                            <AlertCircle className="w-5 h-5 text-red-400" />
-                            <h3 className="text-red-400 font-medium">Error Loading Price Data</h3>
+                            <AlertCircle className="w-5 h-5 text-danger" />
+                            <h3 className="text-danger font-medium">Error Loading Price Data</h3>
                         </div>
-                        <p className="text-red-300 text-sm mb-4">{error}</p>
+                        <p className="text-danger text-sm mb-4">{error}</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto overflow-y-visible">
@@ -289,7 +289,7 @@ export function PriceMatrixDetailed() {
                                                         <span>{token.metadata?.name || token.contractId.split('.')[1] || token.contractId}</span>
                                                         {token.metadata?.type === 'SUBNET' && (
                                                             <InfoTooltip content="Subnet token" side="top">
-                                                                <Flame className="w-3 h-3 text-red-500 flex-shrink-0" />
+                                                                <Flame className="w-3 h-3 text-danger flex-shrink-0" />
                                                             </InfoTooltip>
                                                         )}
                                                     </div>
@@ -320,7 +320,7 @@ export function PriceMatrixDetailed() {
                                         </td>
                                         <td className="px-4 py-4 text-right">
                                             {token.change1h !== null ? (
-                                                <div className={`inline-flex items-center text-sm font-medium ${token.change1h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                <div className={`inline-flex items-center text-sm font-medium ${token.change1h >= 0 ? 'text-success' : 'text-danger'}`}>
                                                     {token.change1h >= 0 ? (
                                                         <TrendingUp className="w-3 h-3 mr-1" />
                                                     ) : (
@@ -334,7 +334,7 @@ export function PriceMatrixDetailed() {
                                         </td>
                                         <td className="px-4 py-4 text-right">
                                             {token.change24h !== null ? (
-                                                <div className={`inline-flex items-center text-sm font-medium ${token.change24h >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                <div className={`inline-flex items-center text-sm font-medium ${token.change24h >= 0 ? 'text-success' : 'text-danger'}`}>
                                                     {token.change24h >= 0 ? (
                                                         <TrendingUp className="w-3 h-3 mr-1" />
                                                     ) : (
@@ -348,7 +348,7 @@ export function PriceMatrixDetailed() {
                                         </td>
                                         <td className="px-4 py-4 text-right">
                                             {token.change7d !== null ? (
-                                                <div className={`inline-flex items-center text-sm font-medium ${token.change7d >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                <div className={`inline-flex items-center text-sm font-medium ${token.change7d >= 0 ? 'text-success' : 'text-danger'}`}>
                                                     {token.change7d >= 0 ? (
                                                         <TrendingUp className="w-3 h-3 mr-1" />
                                                     ) : (
@@ -362,7 +362,7 @@ export function PriceMatrixDetailed() {
                                         </td>
                                         <td className="px-4 py-4 text-center">
                                             {token.price !== null ? (
-                                                <div className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-400 rounded-full text-xs">
+                                                <div className="inline-flex items-center gap-1 px-2 py-1 bg-success/20 text-success rounded-full text-xs">
                                                     <Activity className="w-3 h-3" />
                                                     Active
                                                 </div>
@@ -401,11 +401,11 @@ export function PriceMatrixDetailed() {
                                             {(() => {
                                                 const quality = (token.dataInsights?.dataQuality ?? 'unknown') as 'good' | 'stale' | 'sparse' | 'no-data' | 'error' | 'unknown';
                                                 const qualityConfig = {
-                                                    good: { color: 'text-green-400', bg: 'bg-green-500/20', label: 'Good' },
-                                                    stale: { color: 'text-yellow-400', bg: 'bg-yellow-500/20', label: 'Stale' },
-                                                    sparse: { color: 'text-orange-400', bg: 'bg-orange-500/20', label: 'Sparse' },
-                                                    'no-data': { color: 'text-red-400', bg: 'bg-red-500/20', label: 'No Data' },
-                                                    error: { color: 'text-red-400', bg: 'bg-red-500/20', label: 'Error' },
+                                                    good: { color: 'text-success', bg: 'bg-success/20', label: 'Good' },
+                                                    stale: { color: 'text-warning', bg: 'bg-warning/20', label: 'Stale' },
+                                                    sparse: { color: 'text-accent-text', bg: 'bg-accent/20', label: 'Sparse' },
+                                                    'no-data': { color: 'text-danger', bg: 'bg-danger/20', label: 'No Data' },
+                                                    error: { color: 'text-danger', bg: 'bg-danger/20', label: 'Error' },
                                                     unknown: { color: 'text-muted-foreground', bg: 'bg-muted', label: 'Unknown' }
                                                 } as const;
                                                 const config = qualityConfig[quality];

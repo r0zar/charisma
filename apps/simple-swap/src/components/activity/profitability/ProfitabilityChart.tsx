@@ -198,10 +198,10 @@ export const ProfitabilityChart: React.FC<ProfitabilityChartProps> = ({
   if (!data?.chartData || data.chartData.length === 0) {
     return (
       <div 
-        className="flex items-center justify-center bg-white/[0.02] rounded-lg border border-white/[0.05]"
+        className="flex items-center justify-center bg-surface-sunken rounded-lg border border-line-soft"
         style={{ height }}
       >
-        <span className="text-sm text-white/40">No profitability data available</span>
+        <span className="text-sm text-ink-muted">No profitability data available</span>
       </div>
     );
   }
@@ -217,8 +217,8 @@ export const ProfitabilityChart: React.FC<ProfitabilityChartProps> = ({
               onClick={() => onTimeRangeChange(option.value)}
               className={`px-3 py-1.5 text-sm font-medium rounded-xl transition-all duration-200 ${
                 timeRange === option.value
-                  ? 'bg-white/[0.08] text-white border border-white/[0.2]'
-                  : 'text-white/60 hover:text-white/90 hover:bg-white/[0.03] border border-transparent'
+                  ? 'bg-surface-hover text-ink border border-line-strong'
+                  : 'text-ink-muted hover:text-ink hover:bg-surface border border-transparent'
               }`}
             >
               {option.label}
@@ -231,14 +231,14 @@ export const ProfitabilityChart: React.FC<ProfitabilityChartProps> = ({
       <div className="relative">
         <div 
           ref={containerRef}
-          className="w-full rounded-lg border border-white/[0.05] bg-black/20 overflow-hidden"
+          className="w-full rounded-lg border border-line-soft bg-surface overflow-hidden"
           style={{ height }}
         />
         
         {loading && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm rounded-lg">
-            <div className="flex items-center gap-3 text-sm text-white/70">
-              <div className="h-4 w-4 border-2 border-white/30 border-t-white/80 rounded-full animate-spin" />
+          <div className="absolute inset-0 bg-overlay flex items-center justify-center backdrop-blur-sm rounded-lg">
+            <div className="flex items-center gap-3 text-sm text-ink-body">
+              <div className="h-4 w-4 border-2 border-line-strong border-t-ink/80 rounded-full animate-spin" />
               <span>Loading chart...</span>
             </div>
           </div>

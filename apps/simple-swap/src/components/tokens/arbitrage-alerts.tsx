@@ -29,23 +29,23 @@ export default function ArbitrageAlerts({ opportunities, onClose }: ArbitrageAle
     if (sortedOpportunities.length === 0) return null;
 
     return (
-        <div className="relative bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-500/20 rounded-2xl p-6">
+        <div className="relative bg-gradient-to-r from-warning/10 via-accent/10 to-warning/10 border border-warning/20 rounded-2xl p-6">
             {/* Close button */}
             <button
                 onClick={onClose}
-                className="absolute top-4 right-4 p-1 rounded-lg hover:bg-white/10 transition-colors"
+                className="absolute top-4 right-4 p-1 rounded-lg hover:bg-surface-selected transition-colors"
                 aria-label="Close arbitrage alerts"
             >
-                <X className="h-4 w-4 text-white/60" />
+                <X className="h-4 w-4 text-ink-muted" />
             </button>
 
             {/* Header */}
             <div className="flex items-center gap-3 mb-4">
                 <div className="relative">
-                    <AlertTriangle className="h-5 w-5 text-amber-400" />
-                    <div className="absolute inset-0 h-5 w-5 text-amber-400/40 blur-sm animate-pulse" />
+                    <AlertTriangle className="h-5 w-5 text-warning" />
+                    <div className="absolute inset-0 h-5 w-5 text-warning/40 blur-sm animate-pulse" />
                 </div>
-                <h3 className="text-lg font-medium text-white/90">
+                <h3 className="text-lg font-medium text-ink">
                     Arbitrage Opportunities Detected
                 </h3>
             </div>
@@ -56,39 +56,39 @@ export default function ArbitrageAlerts({ opportunities, onClose }: ArbitrageAle
                     <Link
                         key={opp.tokenId}
                         href={`/tokens/${encodeURIComponent(opp.tokenId)}`}
-                        className="group relative bg-white/5 hover:bg-white/10 rounded-xl p-4 transition-all duration-200 border border-white/10 hover:border-amber-400/30"
+                        className="group relative bg-surface hover:bg-surface-selected rounded-xl p-4 transition-all duration-200 border border-line hover:border-warning/30"
                     >
                         {/* Token info */}
                         <div className="flex items-start justify-between mb-3">
                             <div>
-                                <h4 className="font-medium text-white/90 group-hover:text-white transition-colors">
+                                <h4 className="font-medium text-ink group-hover:text-ink transition-colors">
                                     {opp.symbol}
                                 </h4>
-                                <div className="text-xs text-white/50 mt-1">
+                                <div className="text-xs text-ink-muted mt-1">
                                     {getTimeAgo(opp.timestamp)}
                                 </div>
                             </div>
-                            <TrendingUp className="h-4 w-4 text-amber-400" />
+                            <TrendingUp className="h-4 w-4 text-warning" />
                         </div>
 
                         {/* Price comparison */}
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                                <span className="text-white/60">Market Price:</span>
-                                <span className="text-white/90 font-mono">
+                                <span className="text-ink-muted">Market Price:</span>
+                                <span className="text-ink font-mono">
                                     ${opp.marketPrice.toFixed(4)}
                                 </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-white/60">Virtual Value:</span>
-                                <span className="text-white/90 font-mono">
+                                <span className="text-ink-muted">Virtual Value:</span>
+                                <span className="text-ink font-mono">
                                     ${opp.virtualValue.toFixed(4)}
                                 </span>
                             </div>
-                            <div className="pt-2 border-t border-white/10">
+                            <div className="pt-2 border-t border-line">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-white/60">Deviation:</span>
-                                    <span className={`font-medium ${opp.deviation > 10 ? 'text-amber-400' : 'text-yellow-400'
+                                    <span className="text-ink-muted">Deviation:</span>
+                                    <span className={`font-medium ${opp.deviation > 10 ? 'text-warning' : 'text-warning'
                                         }`}>
                                         {opp.deviation.toFixed(1)}%
                                     </span>
@@ -97,13 +97,13 @@ export default function ArbitrageAlerts({ opportunities, onClose }: ArbitrageAle
                         </div>
 
                         {/* Hover effect */}
-                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-400/0 via-amber-400/5 to-amber-400/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-warning/0 via-warning/5 to-warning/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     </Link>
                 ))}
             </div>
 
             {/* Footer message */}
-            <div className="mt-4 text-xs text-white/50 text-center">
+            <div className="mt-4 text-xs text-ink-muted text-center">
                 Market prices may differ from intrinsic values. Trade at your own risk.
             </div>
         </div>

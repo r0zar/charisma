@@ -112,14 +112,14 @@ export default function TokenOutputSection() {
             {/* Premium Header with Analytics */}
             <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
-                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-green-500/20 text-green-400 flex items-center justify-center flex-shrink-0">
+                    <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-success/20 text-success flex items-center justify-center flex-shrink-0">
                         <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                             <path d="M12 2v20M2 12h20" />
                         </svg>
                     </div>
                     <div className="min-w-0">
-                        <h4 className="text-sm font-semibold text-white/95">{label}</h4>
-                        <p className="text-xs text-white/60 hidden sm:block">Expected output amount</p>
+                        <h4 className="text-sm font-semibold text-ink">{label}</h4>
+                        <p className="text-xs text-ink-muted hidden sm:block">Expected output amount</p>
                     </div>
                 </div>
                 
@@ -127,7 +127,7 @@ export default function TokenOutputSection() {
                     <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setShowChart(!showChart); }}
-                        className="h-8 w-8 rounded-lg bg-white/[0.03] border border-white/[0.08] text-white/70 hover:text-white/90 hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-200 flex items-center justify-center backdrop-blur-sm flex-shrink-0"
+                        className="h-8 w-8 rounded-lg bg-surface border border-line text-ink-body hover:text-ink hover:bg-surface-hover hover:border-line-strong transition-all duration-200 flex items-center justify-center backdrop-blur-sm flex-shrink-0"
                         title={showChart ? 'Hide price chart' : 'Show price chart'}
                     >
                         <ChevronDown className={`w-4 h-4 transition-transform ${showChart ? 'rotate-180' : ''}`} />
@@ -137,7 +137,7 @@ export default function TokenOutputSection() {
 
             {/* Balance Display - Invisible until hover */}
             {selectedToToken && (
-                <div className="bg-transparent hover:bg-white/[0.03] rounded-xl p-3 sm:p-4 transition-all duration-200">
+                <div className="bg-transparent hover:bg-surface rounded-xl p-3 sm:p-4 transition-all duration-200">
                     <div className="flex items-center justify-between mb-3 gap-3">
                         <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
                             <div className="relative flex-shrink-0">
@@ -160,7 +160,7 @@ export default function TokenOutputSection() {
                                             suppressFlame={!isSubnetSelected}
                                         />
                                         {/* Subtle toggle indicator */}
-                                        <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white/20 bg-green-500" />
+                                        <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-line-strong bg-success" />
                                     </button>
                                 )}
                                 {!hasBothVersionsForToken && selectedToToken && (
@@ -169,18 +169,18 @@ export default function TokenOutputSection() {
                             </div>
                             
                             <div className="min-w-0">
-                                <div className="text-sm font-medium text-white/95">{selectedToToken.symbol}</div>
-                                <div className="text-xs text-white/60 truncate">{selectedToToken.name}</div>
+                                <div className="text-sm font-medium text-ink">{selectedToToken.symbol}</div>
+                                <div className="text-xs text-ink-muted truncate">{selectedToToken.name}</div>
                             </div>
                         </div>
 
                         <div className="text-right flex-shrink-0">
                             <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} activeLabel={tooltipData.activeLabel} side="bottom">
                                 <div className="cursor-help">
-                                    <div className="text-sm font-semibold text-white/95">
+                                    <div className="text-sm font-semibold text-ink">
                                         {compactBalance} {selectedToToken.symbol}
                                     </div>
-                                    <div className="text-xs text-white/60">
+                                    <div className="text-xs text-ink-muted">
                                         {isSubnetSelected ? 'Subnet' : 'Mainnet'}
                                     </div>
                                 </div>
@@ -189,10 +189,10 @@ export default function TokenOutputSection() {
                     </div>
 
                     {/* Network Status Indicator */}
-                    <div className="flex items-center justify-between pt-3 border-t border-white/[0.08] gap-3">
+                    <div className="flex items-center justify-between pt-3 border-t border-line gap-3">
                         <div className="flex items-center space-x-2 min-w-0 flex-1">
-                            <div className="h-2 w-2 rounded-full bg-green-400 flex-shrink-0"></div>
-                            <span className="text-xs text-white/70 truncate">
+                            <div className="h-2 w-2 rounded-full bg-success flex-shrink-0"></div>
+                            <span className="text-xs text-ink-body truncate">
                                 Connected to {isSubnetSelected ? 'Subnet' : 'Mainnet'} • {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Price loading...'}
                             </span>
                         </div>
@@ -201,8 +201,8 @@ export default function TokenOutputSection() {
                         {totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingQuote && (
                             <div className={`px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${
                                 totalPriceImpact.priceImpact > 0
-                                    ? 'text-green-400 bg-green-500/20 border border-green-500/30'
-                                    : 'text-red-400 bg-red-500/20 border border-red-500/30'
+                                    ? 'text-success bg-success/20 border border-success/30'
+                                    : 'text-danger bg-danger/20 border border-danger/30'
                             }`}>
                                 {totalPriceImpact.priceImpact > 0 ? '+' : ''}
                                 {totalPriceImpact.priceImpact.toFixed(2)}%
@@ -213,23 +213,23 @@ export default function TokenOutputSection() {
             )}
 
             {/* Amount Display - Invisible until hover */}
-            <div className="group bg-transparent hover:bg-white/[0.02] rounded-xl p-3 sm:p-4 transition-all duration-200">
+            <div className="group bg-transparent hover:bg-surface rounded-xl p-3 sm:p-4 transition-all duration-200">
                 <div className="flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
                         {isLoadingQuote ? (
                             <div className="flex items-center space-x-3">
-                                <div className="animate-pulse bg-white/[0.05] rounded-xl h-12 w-32"></div>
+                                <div className="animate-pulse bg-surface rounded-xl h-12 w-32"></div>
                                 <div className="relative h-5 w-5">
-                                    <div className="absolute animate-ping h-full w-full rounded-full bg-green-400 opacity-30"></div>
-                                    <div className="absolute h-full w-full rounded-full bg-green-400 opacity-75 animate-pulse"></div>
+                                    <div className="absolute animate-ping h-full w-full rounded-full bg-success opacity-30"></div>
+                                    <div className="absolute h-full w-full rounded-full bg-success opacity-75 animate-pulse"></div>
                                 </div>
                             </div>
                         ) : (
                             <>
-                                <div className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white/95">
+                                <div className="text-xl sm:text-2xl lg:text-3xl font-semibold text-ink">
                                     {outputAmount}
                                 </div>
-                                <div className="text-sm text-white/60 mt-1">
+                                <div className="text-sm text-ink-muted mt-1">
                                     {(() => {
                                         const hasPrice = hasValidPrice(price);
                                         const hasOutput = outputAmount;
@@ -263,18 +263,18 @@ export default function TokenOutputSection() {
 
             {/* Collapsible Chart */}
             {showChart && selectedToToken && (
-                <div className="bg-white/[0.02] border border-white/[0.06] rounded-xl p-3 sm:p-4 backdrop-blur-sm">
+                <div className="bg-surface-sunken border border-line-soft rounded-xl p-3 sm:p-4 backdrop-blur-sm">
                     <div className="mb-3 flex items-center justify-between gap-3">
                         <div className="flex items-center space-x-2 min-w-0 flex-1">
-                            <div className="h-6 w-6 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center flex-shrink-0">
+                            <div className="h-6 w-6 rounded-lg bg-success/20 text-success flex items-center justify-center flex-shrink-0">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                     <path d="M3 3v18h18" />
                                     <path d="m19 9-5 5-4-4-3 3" />
                                 </svg>
                             </div>
-                            <span className="text-sm font-medium text-white/90">Price Chart</span>
+                            <span className="text-sm font-medium text-ink">Price Chart</span>
                         </div>
-                        <div className="text-xs text-white/60 flex-shrink-0">
+                        <div className="text-xs text-ink-muted flex-shrink-0">
                             {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Loading...'}
                         </div>
                     </div>

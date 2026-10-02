@@ -117,15 +117,15 @@ export default function SwapHeader() {
             {/* Left Side - Mode Selection & Status */}
             <div className="flex items-center space-x-4">
                 {/* Compact Mode Toggle */}
-                <div className="flex items-center bg-white/[0.04] border border-white/[0.08] rounded-xl p-1">
+                <div className="flex items-center bg-surface border border-line rounded-xl p-1">
                     <button
                         onClick={() => setMode('swap')}
                         className={`relative px-3 sm:px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 flex items-center space-x-2 cursor-pointer ${mode === 'swap'
-                            ? 'bg-white/[0.1] text-white'
-                            : 'text-white/70 hover:text-white/90 hover:bg-white/[0.05]'
+                            ? 'bg-surface-hover text-ink'
+                            : 'text-ink-body hover:text-ink hover:bg-surface-hover'
                             }`}
                     >
-                        <div className={`hidden sm:block h-2 w-2 rounded-full transition-all duration-300 ${mode === 'swap' ? 'bg-blue-400' : 'bg-white/40'}`} />
+                        <div className={`hidden sm:block h-2 w-2 rounded-full transition-all duration-300 ${mode === 'swap' ? 'bg-accent' : 'bg-line-strong'}`} />
                         <Repeat className="w-4 h-4" />
                         <span className="hidden sm:inline">Instant Swaps</span>
                         <span className="sm:hidden">Instant</span>
@@ -138,13 +138,13 @@ export default function SwapHeader() {
                             : "Switch to order mode for triggered swaps"
                         }
                         className={`relative px-3 sm:px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-300 flex items-center space-x-2 ${isOrderModeDisabled
-                            ? 'text-white/30 cursor-not-allowed opacity-50'
+                            ? 'text-ink-faint cursor-not-allowed opacity-50'
                             : mode === 'order'
-                                ? 'bg-white/[0.1] text-white cursor-pointer'
-                                : 'text-white/70 hover:text-white/90 hover:bg-white/[0.05] cursor-pointer'
+                                ? 'bg-surface-hover text-ink cursor-pointer'
+                                : 'text-ink-body hover:text-ink hover:bg-surface-hover cursor-pointer'
                             }`}
                     >
-                        <div className={`hidden sm:block h-2 w-2 rounded-full transition-all duration-300 ${mode === 'order' && !isOrderModeDisabled ? 'bg-purple-400' : 'bg-white/40'}`} />
+                        <div className={`hidden sm:block h-2 w-2 rounded-full transition-all duration-300 ${mode === 'order' && !isOrderModeDisabled ? 'bg-blaze' : 'bg-line-strong'}`} />
                         <AlarmCheck className="w-4 h-4" />
                         <span className="hidden sm:inline">Triggered Swaps</span>
                         <span className="sm:hidden">Triggered</span>
@@ -157,12 +157,12 @@ export default function SwapHeader() {
                 {/* Pro Trading - Compact Button - Only on very large screens */}
                 <div className="hidden 3xl:block">
                     <Link href="/pro">
-                        <div className="group bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm rounded-lg px-3 py-2 hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-300 cursor-pointer">
+                        <div className="group bg-surface border border-line backdrop-blur-sm rounded-lg px-3 py-2 hover:bg-surface-hover hover:border-line-strong transition-all duration-300 cursor-pointer">
                             <div className="flex items-center space-x-2">
-                                <Monitor className="w-4 h-4 text-white/90" />
+                                <Monitor className="w-4 h-4 text-ink" />
                                 <div>
-                                    <span className="text-sm font-semibold text-white/95">Pro Trading</span>
-                                    <span className="text-xs text-white/60 ml-2">Advanced tools</span>
+                                    <span className="text-sm font-semibold text-ink">Pro Trading</span>
+                                    <span className="text-xs text-ink-muted ml-2">Advanced tools</span>
                                 </div>
                             </div>
                         </div>
@@ -172,10 +172,10 @@ export default function SwapHeader() {
                 {/* Share - Simplified Button */}
                 <button
                     onClick={handleShare}
-                    className="h-10 w-10 bg-white/[0.04] border border-white/[0.08] backdrop-blur-sm rounded-lg hover:bg-white/[0.08] hover:border-white/[0.12] transition-all duration-300 flex items-center justify-center cursor-pointer"
+                    className="h-10 w-10 bg-surface border border-line backdrop-blur-sm rounded-lg hover:bg-surface-hover hover:border-line-strong transition-all duration-300 flex items-center justify-center cursor-pointer"
                     title="Share this swap configuration"
                 >
-                    <Share2 className="w-4 h-4 text-white/80 hover:text-white/95 transition-colors duration-300" />
+                    <Share2 className="w-4 h-4 text-ink-body hover:text-ink transition-colors duration-300" />
                 </button>
             </div>
         </div>

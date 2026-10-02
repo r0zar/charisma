@@ -33,7 +33,7 @@ function ChartDiagnosticsFallback() {
                 </p>
             </div>
             <div className="flex justify-center items-center py-12">
-                <div className="h-8 w-8 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
+                <div className="h-8 w-8 border-2 border-line border-t-line rounded-full animate-spin" />
             </div>
         </div>
     );
