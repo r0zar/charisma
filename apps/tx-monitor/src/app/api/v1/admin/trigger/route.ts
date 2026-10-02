@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getQueuedTransactions, realTimeCheck, removeFromQueue } from '@/lib/transaction-monitor';
 import type { TransactionInfo } from '@/lib/types';
+import { isFinalStatus } from '@/lib/types';
 
 /**
  * Manually trigger transaction monitoring for all queued transactions
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
                 updated++;
                 
                 // If transaction is confirmed or failed, remove from queue
-                if (result.status === 'success' || result.status === 'abort_by_response' || result.status === 'abort_by_post_condition') {
+                if (isFinalStatus(result.status)) {
                     toRemove.push(txid);
                     console.log(`[TX-MONITOR-ADMIN] Transaction ${txid} completed with status: ${result.status}`);
                 } else if (result.status === 'pending') {

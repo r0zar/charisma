@@ -29,6 +29,7 @@ function getStatusIcon(status: string) {
             return <CheckCircle className="w-5 h-5 text-success" />;
         case 'abort_by_response':
         case 'abort_by_post_condition':
+        case 'dropped':
             return <XCircle className="w-5 h-5 text-danger" />;
         default:
             return <Clock className="w-5 h-5 text-warning" />;
@@ -41,6 +42,7 @@ function getStatusColor(status: string): string {
             return 'text-success';
         case 'abort_by_response':
         case 'abort_by_post_condition':
+        case 'dropped':
             return 'text-danger';
         default:
             return 'text-warning';

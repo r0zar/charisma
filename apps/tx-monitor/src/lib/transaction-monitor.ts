@@ -1,6 +1,6 @@
 import { kv } from '@vercel/kv';
 import { getTransactionDetails } from '@repo/polyglot';
-import type { TransactionStatus, TransactionInfo, QueueAddResponse, StatusResponse, QueueStatsResponse, MetricsSnapshot, MetricsHistoryResponse } from './types';
+import { isFinalStatus, type TransactionStatus, type TransactionInfo, type QueueAddResponse, type StatusResponse, type QueueStatsResponse, type MetricsSnapshot, type MetricsHistoryResponse } from './types';
 
 const QUEUE_KEY = 'tx:queue';
 const STATUS_KEY_PREFIX = 'tx:status:';
@@ -44,6 +44,11 @@ export async function checkTransactionStatus(txid: string): Promise<{
                 blockTime: txDetails.block_time,
                 txResult: txDetails.tx_result
             };
+        }
+
+        // Hiro names each way out of the mempool (dropped_replace_by_fee, dropped_stale_garbage_collect, …): all mean it never ran
+        if (String(txDetails.tx_status).startsWith('dropped')) {
+            return { status: 'dropped', blockHeight: undefined, blockTime: undefined, txResult: undefined };
         }
 
         const status = txDetails.tx_status as TransactionStatus;
@@ -182,7 +187,7 @@ export async function setCachedStatus(txid: string, info: TransactionInfo): Prom
     // Set different cache times based on transaction status
     let ttl: number;
     
-    if (info.status === 'success' || info.status === 'abort_by_response' || info.status === 'abort_by_post_condition') {
+    if (isFinalStatus(info.status)) {
         // Confirmed/failed transactions are immutable - cache for 24 hours
         ttl = 24 * 60 * 60; // 24 hours
     } else if (info.status === 'not_found') {
@@ -225,7 +230,7 @@ export async function realTimeCheck(txid: string): Promise<StatusResponse> {
             const result = await checkTransactionStatus(txid);
             
             // If confirmed or failed, return immediately
-            if (result.status === 'success' || result.status === 'abort_by_response' || result.status === 'abort_by_post_condition') {
+            if (isFinalStatus(result.status)) {
                 const info: TransactionInfo = {
                     txid,
                     status: result.status,
@@ -339,7 +344,7 @@ export async function getQueueStats(): Promise<QueueStatsResponse> {
             totalProcessed++;
             if (cached.status === 'success') {
                 totalSuccessful++;
-            } else if (cached.status === 'abort_by_response' || cached.status === 'abort_by_post_condition') {
+            } else if (cached.status === 'abort_by_response' || cached.status === 'abort_by_post_condition' || cached.status === 'dropped') {
                 totalFailed++;
             }
         }

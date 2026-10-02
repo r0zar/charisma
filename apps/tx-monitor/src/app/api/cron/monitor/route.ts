@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getQueuedTransactions, checkTransactionStatus, setCachedStatus, removeFromQueue, cleanupOldTransactions, storeMetricsSnapshot, updateLastCronRun, getCachedStatus } from '@/lib/transaction-monitor';
 import { handleTransactionStatusUpdate, retryFailedNotifications, addActivityTransactionsToQueue } from '@/lib/activity-integration';
-import type { TransactionInfo, CronMonitorResult } from '@/lib/types';
+import { isFinalStatus, type TransactionInfo, type CronMonitorResult } from '@/lib/types';
 
 // Environment variable for cron authentication
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -48,6 +48,9 @@ export async function GET(request: NextRequest) {
         
         if (txids.length === 0) {
             console.log('[TX-MONITOR-CRON] No transactions need monitoring');
+            // A run with nothing to do is still a run: record it, or the health check reports the cron as stalled
+            await storeMetricsSnapshot();
+            await updateLastCronRun();
             return NextResponse.json({
                 success: true,
                 message: 'No transactions to monitor',
@@ -94,7 +97,7 @@ export async function GET(request: NextRequest) {
                 }
                 
                 // If transaction is confirmed or failed, remove from queue
-                if (txResult.status === 'success' || txResult.status === 'abort_by_response' || txResult.status === 'abort_by_post_condition') {
+                if (isFinalStatus(txResult.status)) {
                     toRemove.push(txid);
                     console.log(`[TX-MONITOR-CRON] Transaction ${txid} completed with status: ${txResult.status}`);
                 } else {

@@ -337,6 +337,7 @@ export function mapTransactionStatusToActivity(txStatus: string): ActivityStatus
       return 'completed';
     case 'abort_by_response':
     case 'abort_by_post_condition':
+    case 'dropped':
       return 'failed';
     case 'pending':
     case 'broadcasted':

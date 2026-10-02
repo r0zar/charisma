@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TxMonitorClient } from '@repo/tx-monitor-client';
 
-export type TransactionStatus = 'success' | 'abort_by_response' | 'abort_by_post_condition' | 'pending' | 'broadcasted' | 'not_found' | 'unknown';
+export type TransactionStatus = 'success' | 'abort_by_response' | 'abort_by_post_condition' | 'dropped' | 'pending' | 'broadcasted' | 'not_found' | 'unknown';
 
 export interface TransactionStatusInfo {
     status: TransactionStatus;
@@ -94,7 +94,7 @@ export function useTransactionStatus(txid: string | null | undefined): Transacti
     }, [txid, status]);
 
     const isConfirmed = status === 'success';
-    const isFailed = status === 'abort_by_response' || status === 'abort_by_post_condition' || status === 'not_found';
+    const isFailed = status === 'abort_by_response' || status === 'abort_by_post_condition' || status === 'dropped' || status === 'not_found';
     const isPending = status === 'pending' || status === 'broadcasted' || (!!txid && status === 'unknown');
 
     return {

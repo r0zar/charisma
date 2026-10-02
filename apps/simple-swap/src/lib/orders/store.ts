@@ -183,6 +183,22 @@ export async function broadcastOrder(uuid: string, txid: string): Promise<LimitO
     return order;
 }
 
+/**
+ * The network dropped the order's transaction (replaced, expired, too expensive), so nothing ran: the order is open
+ * again and the executor tries once more. Blaze spends a uuid once, so the order can never run twice.
+ */
+export async function reopenOrder(uuid: string): Promise<LimitOrder | undefined> {
+    const order = await getOrder(uuid);
+    if (!order) return undefined;
+    if (order.status === 'broadcasted') {
+        order.status = 'open';
+        delete order.txid;
+        delete order.broadcastedAt;
+        await kv.hset(HASH_KEY, { [uuid]: JSON.stringify(order) });
+    }
+    return order;
+}
+
 export async function confirmOrder(uuid: string, blockHeight?: number, blockTime?: number): Promise<LimitOrder | undefined> {
     const order = await getOrder(uuid);
     if (!order) {

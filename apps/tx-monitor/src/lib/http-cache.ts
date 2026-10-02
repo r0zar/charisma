@@ -1,4 +1,4 @@
-import type { TransactionStatus } from './types';
+import { isFinalStatus, type TransactionStatus } from './types';
 
 /**
  * Cache configuration for different transaction statuses
@@ -17,6 +17,12 @@ export const CACHE_CONFIG = {
     mustRevalidate: false
   },
   abort_by_post_condition: {
+    maxAge: 3600, // 1 hour
+    staleWhileRevalidate: 86400, // 24 hours
+    mustRevalidate: false
+  },
+  // Dropped transactions never run, and stay dropped
+  dropped: {
     maxAge: 3600, // 1 hour
     staleWhileRevalidate: 86400, // 24 hours
     mustRevalidate: false
@@ -56,7 +62,7 @@ export function getTransactionCacheHeaders(txid: string, status: TransactionStat
   };
 
   // A settled transaction never changes, so its txid + final status is a stable ETag (clients get 304s)
-  if (status === 'success' || status === 'abort_by_response' || status === 'abort_by_post_condition') {
+  if (isFinalStatus(status)) {
     headers['ETag'] = `"${txid}-${status}"`;
   }
 

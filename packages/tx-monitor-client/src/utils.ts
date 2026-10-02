@@ -4,6 +4,7 @@ export function isTransactionFinal(status: TransactionStatus): boolean {
   return status === 'success' || 
          status === 'abort_by_response' || 
          status === 'abort_by_post_condition' || 
+         status === 'dropped' || 
          status === 'not_found';
 }
 
@@ -14,6 +15,7 @@ export function isTransactionSuccessful(status: TransactionStatus): boolean {
 export function isTransactionFailed(status: TransactionStatus): boolean {
   return status === 'abort_by_response' || 
          status === 'abort_by_post_condition' || 
+         status === 'dropped' || 
          status === 'not_found';
 }
 
@@ -26,6 +28,7 @@ export function getStatusPriority(status: TransactionStatus): number {
     'success': 0,
     'abort_by_response': 1,
     'abort_by_post_condition': 2,
+    'dropped': 3,
     'not_found': 3,
     'pending': 4,
     'broadcasted': 5

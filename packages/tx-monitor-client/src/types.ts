@@ -1,4 +1,5 @@
-export type TransactionStatus = 'success' | 'abort_by_response' | 'abort_by_post_condition' | 'pending' | 'broadcasted' | 'not_found';
+/** dropped: the network threw the transaction out of the mempool (replaced, expired, too expensive); it never ran */
+export type TransactionStatus = 'success' | 'abort_by_response' | 'abort_by_post_condition' | 'dropped' | 'pending' | 'broadcasted' | 'not_found';
 
 export interface TransactionInfo {
   txid: string;

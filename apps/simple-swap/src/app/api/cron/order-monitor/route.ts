@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { TxMonitorClient } from '@repo/tx-monitor-client';
-import { confirmOrder, failOrder, expireOrder } from '@/lib/orders/store';
+import { confirmOrder, failOrder, expireOrder, reopenOrder } from '@/lib/orders/store';
 
 // Environment variable for cron authentication
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -138,6 +138,12 @@ export async function GET(request: NextRequest) {
                     result.ordersUpdated++;
                     result.failedTransactions++;
                     console.log(`[ORDER-MONITOR] ❌ Order ${uuid} marked as 'failed' due to transaction failure ${order.txid} (${txStatus.status})`);
+
+                } else if (txStatus.status === 'dropped') {
+                    await reopenOrder(uuid);
+                    monitorResult.orderUpdated = true;
+                    result.ordersUpdated++;
+                    console.log(`[ORDER-MONITOR] ↩️ Order ${uuid}: the network dropped ${order.txid}, so nothing ran; the order is open again`);
 
                 } else if (orderAge > ABSOLUTE_MAX_AGE || sentAge > BROADCASTED_MAX_AGE) {
                     const is90Day = orderAge > ABSOLUTE_MAX_AGE;

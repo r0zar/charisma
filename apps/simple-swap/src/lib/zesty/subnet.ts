@@ -58,7 +58,7 @@ export async function waitForConfirmation(txid: string, timeoutMs = 10 * 60 * 10
   while (Date.now() < deadline) {
     const { status } = await txMonitor.getTransactionStatus(txid);
     if (status === 'success') return;
-    if (status === 'abort_by_response' || status === 'abort_by_post_condition') {
+    if (status === 'abort_by_response' || status === 'abort_by_post_condition' || status === 'dropped') {
       throw new Error(`Transaction ${txid} failed (${status})`);
     }
     await new Promise(resolve => setTimeout(resolve, 5000));

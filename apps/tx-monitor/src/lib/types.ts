@@ -1,4 +1,9 @@
-export type TransactionStatus = 'success' | 'abort_by_response' | 'abort_by_post_condition' | 'pending' | 'broadcasted' | 'not_found';
+/** dropped: the network threw the transaction out of the mempool (replaced, expired, too expensive); it never ran */
+export type TransactionStatus = 'success' | 'abort_by_response' | 'abort_by_post_condition' | 'dropped' | 'pending' | 'broadcasted' | 'not_found';
+
+/** A status that won't change again: the transaction ran (either way), or the network dropped it */
+export const isFinalStatus = (status: TransactionStatus) =>
+  status === 'success' || status === 'abort_by_response' || status === 'abort_by_post_condition' || status === 'dropped';
 
 export interface TransactionInfo {
   txid: string;

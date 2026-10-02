@@ -239,7 +239,7 @@ async function updateActivityByTxid(
       // If transaction succeeded and we have mapping, create activity with real data
       if (currentStatus === 'success') {
         await createActivityOnTransactionSuccess(txid);
-      } else if (currentStatus === 'abort_by_response' || currentStatus === 'abort_by_post_condition') {
+      } else if (currentStatus === 'abort_by_response' || currentStatus === 'abort_by_post_condition' || currentStatus === 'dropped') {
         await createActivityOnTransactionFailure(txid, currentStatus);
       }
       return;
