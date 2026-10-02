@@ -78,7 +78,7 @@ export default function SwapPageClient({ tokens, searchParams, initialBalances }
                             </button>
                         </div>
 
-                        <main className="flex-1 h-full">
+                        <main className="flex-1 min-h-0">
                             <div className="flex h-full">
                                 {/* Mobile Overlay */}
                                 {(leftSidebarOpen || rightSidebarOpen) && (
