@@ -6,7 +6,7 @@
 import { ActivityItem } from './activity-types';
 import { getUserActivityTimeline } from './activity-storage';
 import { calculateTradeProfitability } from './profitability-service';
-import { getTokenMetadataCached, listPrices, getAddressBalance } from '@repo/tokens';
+import { getTokenMetadataCached, listPrices, balanceClient } from '@repo/tokens';
 import {
   PortfolioProfitabilityData,
   PortfolioProfitabilityMetrics,
@@ -29,7 +29,10 @@ async function getCurrentPortfolioData(userAddress: string): Promise<{
     console.log(`[PORTFOLIO] Fetching current portfolio value for ${userAddress}`);
 
     // Fetch user balance data using @packages/tokens
-    const balanceData = await getAddressBalance(userAddress);
+    const balanceData = await balanceClient.getAddressBalances(userAddress);
+    if (!balanceData) {
+      throw new Error(`[PORTFOLIO] The balance service returned nothing for ${userAddress}`);
+    }
 
     console.log(`[PORTFOLIO] Retrieved balance data for ${userAddress}`);
 
