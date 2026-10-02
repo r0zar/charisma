@@ -259,7 +259,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         try {
             console.log('swapTokens route:', route);
             const txCfg = await buildSwapTransaction(router, route, address);
-            const response = await request('stx_callContract', txCfg);
+            const response = await request('stx_callContract', { ...txCfg, address });
             return response;
         } catch (error: any) {
             console.error('executeSwap error:', error);

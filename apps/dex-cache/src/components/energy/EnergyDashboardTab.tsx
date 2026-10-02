@@ -559,6 +559,7 @@ export function EnergyDashboardTab() {
             console.log(walletState.address, energyTokenMetadata, energyBalance, hooterTheOwlToken);
 
             const response = await request('stx_callContract', {
+                address: walletState.address,
                 contract: hooterFarmX10Contract,
                 functionName: 'claim',
                 functionArgs: [uintCV(energyBalance)],

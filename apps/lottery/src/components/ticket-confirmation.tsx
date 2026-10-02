@@ -148,6 +148,7 @@ export function TicketConfirmation({ ticket, onConfirmationUpdate }: TicketConfi
 
       console.log(`Burning ${burnAmount} microSTONE from ${ticket.walletAddress} to ${BURN_ADDRESS}`)
       const contractCallOptions = {
+        address: ticket.walletAddress,
         contract: `${STONE_CONTRACT_ADDRESS}.${STONE_CONTRACT_NAME}` as `${string}.${string}`,
         functionName: 'transfer',
         functionArgs: [

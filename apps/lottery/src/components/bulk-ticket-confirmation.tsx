@@ -166,6 +166,7 @@ export function BulkTicketConfirmation({ tickets, onConfirmationUpdate }: BulkTi
       ]
 
       const contractCallOptions = {
+        address: tickets[0].walletAddress,
         contract: `${STONE_CONTRACT_ADDRESS}.${STONE_CONTRACT_NAME}` as `${string}.${string}`,
         functionName: 'transfer',
         functionArgs: [

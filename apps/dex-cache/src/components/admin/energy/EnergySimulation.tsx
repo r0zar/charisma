@@ -258,6 +258,7 @@ export function EnergyTracker() {
             const hooterTheOwlToken = await getTokenMetadataCached('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl');
             const hooterFarmX10Contract = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-farm-x10';
             const response = await request('stx_callContract', {
+                address: walletState.address,
                 contract: hooterFarmX10Contract,
                 functionName: 'claim',
                 functionArgs: [uintCV(energyBalance)], // 1000 energy in micro-units

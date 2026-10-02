@@ -116,6 +116,7 @@ export function DepositCharismaButton({
             }
 
             const params = {
+                address,
                 contract: CHARISMA_SUBNET_CONTRACT as any,
                 functionName: 'deposit', // Assuming the function is named 'deposit'
                 functionArgs: [

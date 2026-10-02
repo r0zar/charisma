@@ -330,6 +330,7 @@ export function EnergyTankVisualization({
             }
 
             const response = await request('stx_callContract', {
+                address: walletState.address,
                 contract: engineContractId as any,
                 functionName: 'tap',
                 functionArgs: [],

@@ -192,6 +192,7 @@ export function RemoveLiquidityModal({ vault, prices, trigger }: RemoveLiquidity
             }
 
             const params = {
+                address: walletState.address,
                 contract: `${contractAddress}.${contractName}` as `${string}.${string}`,
                 functionName: 'execute',
                 functionArgs: [

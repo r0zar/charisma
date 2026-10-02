@@ -280,6 +280,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
 
             // Set up contract call parameters
             const params = {
+                address: walletState.address,
                 contract: `${contractAddress}.${contractName}` as `${string}.${string}`,
                 functionName: 'execute',
                 functionArgs: [
@@ -372,6 +373,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
 
             // Set up contract call parameters
             const params = {
+                address: walletState.address,
                 contract: `${contractAddress}.${contractName}` as `${string}.${string}`,
                 functionName: 'execute',
                 functionArgs: [

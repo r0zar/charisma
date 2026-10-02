@@ -207,6 +207,7 @@ export function AddLiquidityModal({ vault, prices, trigger }: AddLiquidityModalP
             }
 
             const params = {
+                address: walletState.address,
                 contract: `${contractAddress}.${contractName}` as `${string}.${string}`,
                 functionName: 'execute',
                 functionArgs: [
