@@ -52,8 +52,8 @@ function MenuContent({ onClose }: { onClose?: () => void }) {
     },
     {
       icon: Palette,
-      title: "Skins",
-      href: "/skins",
+      title: "Theme",
+      href: "/settings/appearance",
     },
   ]
 
@@ -84,7 +84,7 @@ function MenuContent({ onClose }: { onClose?: () => void }) {
                 key={index}
                 onClick={item.onClick}
                 disabled={item.disabled}
-                className="flex flex-col items-center space-y-2 p-4 rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
+                className="flex flex-col items-center space-y-2 p-4 rounded-lg hover:bg-surface-hover transition-colors disabled:opacity-50"
               >
                 <Icon className="h-6 w-6" />
                 <span className="text-xs font-medium">{item.title}</span>
@@ -97,7 +97,7 @@ function MenuContent({ onClose }: { onClose?: () => void }) {
               key={index}
               href={item.href!}
               onClick={onClose}
-              className="flex flex-col items-center space-y-2 p-4 rounded-lg hover:bg-accent transition-colors"
+              className="flex flex-col items-center space-y-2 p-4 rounded-lg hover:bg-surface-hover transition-colors"
             >
               <Icon className="h-6 w-6" />
               <span className="text-xs font-medium">{item.title}</span>
@@ -121,7 +121,7 @@ export function WalletDropdown() {
 
   // Always show menu button (handles both navigation and wallet for all screen sizes)
   const trigger = walletState.connected ? (
-    <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0">
+    <Button variant="ghost" className="relative h-9 w-9 rounded-full p-0 hover:bg-on-chrome/10">
       <Avatar className="h-8 w-8">
         <AvatarFallback>
           <User className="h-4 w-4" />
@@ -135,7 +135,7 @@ export function WalletDropdown() {
       </Badge>
     </Button>
   ) : (
-    <Button variant="ghost" size="sm">
+    <Button variant="ghost" size="sm" aria-label="Menu" className="h-9 w-9 rounded-xl text-on-chrome-muted hover:bg-on-chrome/10 hover:text-on-chrome">
       <Menu className="h-5 w-5" />
     </Button>
   )

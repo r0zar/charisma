@@ -16,7 +16,7 @@ export default function NotFound() {
       <div className="flex flex-col gap-8 items-center text-center max-w-lg">
         {/* 404 Display */}
         <div className="space-y-2">
-          <h1 className="text-8xl font-bold text-primary/20 select-none">404</h1>
+          <h1 className="text-8xl font-bold text-accent-text/20 select-none">404</h1>
           <div className="h-1 w-24 bg-gradient-to-r from-primary to-primary/20 mx-auto rounded-full" />
         </div>
 

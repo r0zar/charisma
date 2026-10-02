@@ -102,9 +102,9 @@ export function ApiTester() {
   };
 
   const getStatusColor = (status: number) => {
-    if (status >= 200 && status < 300) return 'text-green-600';
-    if (status >= 400 && status < 500) return 'text-yellow-600';
-    return 'text-red-600';
+    if (status >= 200 && status < 300) return 'text-success';
+    if (status >= 400 && status < 500) return 'text-warning';
+    return 'text-danger';
   };
 
   const getStatusVariant = (status: number) => {
@@ -116,7 +116,7 @@ export function ApiTester() {
   return (
     <section className="mb-16">
       <div className="flex items-center gap-2 mb-6">
-        <Play className="w-6 h-6 text-primary" />
+        <Play className="w-6 h-6 text-accent-text" />
         <h2 className="text-2xl font-bold">API Tester</h2>
       </div>
       <p className="text-muted-foreground mb-8">
@@ -298,7 +298,7 @@ export function ApiTester() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Transaction IDs (one per line):</label>
               <textarea
-                className="w-full min-h-[80px] px-3 py-2 border rounded-md bg-background text-sm"
+                className="w-full min-h-[80px] px-3 py-2 border rounded-md bg-surface text-sm"
                 placeholder="0x4de9ba6561796962d868d6dd3bdf6c2092bd612d1165914eafd6bae9332e0557&#10;0x1234567890abcdef1234567890abcdef12345678"
                 value={testTxids.join('\n')}
                 onChange={(e) => setTestTxids(e.target.value.split('\n').filter(Boolean))}
@@ -358,7 +358,7 @@ export function ApiTester() {
         {/* Note about testing */}
         <div className="border rounded-lg p-4 bg-muted/50">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 text-warning mt-0.5 flex-shrink-0" />
             <div>
               <h4 className="font-semibold mb-1">Testing Note</h4>
               <p className="text-sm text-muted-foreground mb-2">

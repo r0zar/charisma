@@ -104,7 +104,7 @@ export function TransactionMonitoringStats() {
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-center py-8 text-red-500">
+                    <div className="text-center py-8 text-danger">
                         Error: {error}
                         <Button onClick={handleRefresh} variant="outline" className="mt-2 ml-2">
                             Retry
@@ -124,11 +124,11 @@ export function TransactionMonitoringStats() {
         ? ((stats.totalSuccessful / totalMonitored) * 100).toFixed(1)
         : '0';
     
-    const healthColor = stats.processingHealth === 'healthy' ? 'text-green-500' : 
-                       stats.processingHealth === 'warning' ? 'text-yellow-500' : 'text-red-500';
+    const healthColor = stats.processingHealth === 'healthy' ? 'text-success' : 
+                       stats.processingHealth === 'warning' ? 'text-warning' : 'text-danger';
     
-    const healthBgColor = stats.processingHealth === 'healthy' ? 'bg-green-500' : 
-                         stats.processingHealth === 'warning' ? 'bg-yellow-500' : 'bg-red-500';
+    const healthBgColor = stats.processingHealth === 'healthy' ? 'bg-success' : 
+                         stats.processingHealth === 'warning' ? 'bg-warning' : 'bg-danger';
     
     return (
         <Card>

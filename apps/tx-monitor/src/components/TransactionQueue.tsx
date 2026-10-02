@@ -35,24 +35,24 @@ async function fetchQueue(): Promise<QueueResponse> {
 function getStatusIcon(status: string) {
     switch (status) {
         case 'success':
-            return <CheckCircle className="w-4 h-4 text-green-500" />;
+            return <CheckCircle className="w-4 h-4 text-success" />;
         case 'abort_by_response':
         case 'abort_by_post_condition':
-            return <XCircle className="w-4 h-4 text-red-500" />;
+            return <XCircle className="w-4 h-4 text-danger" />;
         default:
-            return <Clock className="w-4 h-4 text-yellow-500" />;
+            return <Clock className="w-4 h-4 text-warning" />;
     }
 }
 
 function getStatusColor(status: string): string {
     switch (status) {
         case 'success':
-            return 'text-green-500';
+            return 'text-success';
         case 'abort_by_response':
         case 'abort_by_post_condition':
-            return 'text-red-500';
+            return 'text-danger';
         default:
-            return 'text-yellow-500';
+            return 'text-warning';
     }
 }
 
@@ -129,7 +129,7 @@ export function TransactionQueue() {
                     <CardTitle>Transaction Queue</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-center py-8 text-red-500">
+                    <div className="text-center py-8 text-danger">
                         Error: {error}
                         <Button onClick={loadQueue} variant="outline" className="mt-2 ml-2">
                             Retry

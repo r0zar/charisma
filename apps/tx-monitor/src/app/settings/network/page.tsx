@@ -115,7 +115,7 @@ export default function NetworkSettingsPage() {
                 </div>
                 
                 <div className="flex items-center gap-2 mb-3">
-                  <code className="text-sm bg-background p-2 rounded flex-1 break-all border">
+                  <code className="text-sm bg-surface p-2 rounded flex-1 break-all border">
                     {walletState.address}
                   </code>
                   <Button size="sm" variant="ghost" onClick={copyAddress}>
@@ -145,7 +145,7 @@ export default function NetworkSettingsPage() {
                 <div className="p-3 border rounded-lg border-border">
                   <p className="text-sm font-medium text-muted-foreground">Network Status</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-success rounded-full"></div>
                     <p className="text-sm">Connected</p>
                   </div>
                 </div>

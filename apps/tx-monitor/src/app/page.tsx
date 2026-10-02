@@ -9,7 +9,7 @@ export default function HomePage() {
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-4xl">
         {/* Hero Section */}
         <div className="mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-accent-text text-sm font-medium mb-6">
             <Database className="w-4 h-4" />
             API Documentation
           </div>
@@ -39,7 +39,7 @@ export default function HomePage() {
         {/* Quick Start */}
         <section className="mb-16">
           <div className="flex items-center gap-2 mb-6">
-            <Zap className="w-6 h-6 text-primary" />
+            <Zap className="w-6 h-6 text-accent-text" />
             <h2 className="text-2xl font-bold">Quick Start</h2>
           </div>
           <p className="text-muted-foreground mb-8">
@@ -75,7 +75,7 @@ export default function HomePage() {
         {/* API Endpoints */}
         <section className="mb-16">
           <div className="flex items-center gap-2 mb-6">
-            <Code className="w-6 h-6 text-primary" />
+            <Code className="w-6 h-6 text-accent-text" />
             <h2 className="text-2xl font-bold">API Endpoints</h2>
           </div>
           <p className="text-muted-foreground mb-8">
@@ -194,7 +194,7 @@ X-Cache-Status: HIT`}</code></pre>
         {/* Caching Strategy */}
         <section className="mb-16">
           <div className="flex items-center gap-2 mb-6">
-            <Zap className="w-6 h-6 text-primary" />
+            <Zap className="w-6 h-6 text-accent-text" />
             <h2 className="text-2xl font-bold">Caching Strategy</h2>
           </div>
           <p className="text-muted-foreground mb-8">
@@ -204,7 +204,7 @@ X-Cache-Status: HIT`}</code></pre>
           <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
             <div className="border rounded-lg p-6">
               <div className="flex items-center gap-3 mb-3">
-                <CheckCircle className="w-5 h-5 text-green-500" />
+                <CheckCircle className="w-5 h-5 text-success" />
                 <h3 className="text-lg font-semibold">Confirmed Transactions</h3>
               </div>
               <p className="text-muted-foreground mb-4">
@@ -228,7 +228,7 @@ X-Cache-Status: HIT`}</code></pre>
             
             <div className="border rounded-lg p-6">
               <div className="flex items-center gap-3 mb-3">
-                <Clock className="w-5 h-5 text-yellow-500" />
+                <Clock className="w-5 h-5 text-warning" />
                 <h3 className="text-lg font-semibold">Pending Transactions</h3>
               </div>
               <p className="text-muted-foreground mb-4">
@@ -255,7 +255,7 @@ X-Cache-Status: HIT`}</code></pre>
         {/* Transaction Statuses */}
         <section className="mb-16">
           <div className="flex items-center gap-2 mb-6">
-            <Code className="w-6 h-6 text-primary" />
+            <Code className="w-6 h-6 text-accent-text" />
             <h2 className="text-2xl font-bold">Transaction Statuses</h2>
           </div>
           <p className="text-muted-foreground mb-8">
@@ -265,7 +265,7 @@ X-Cache-Status: HIT`}</code></pre>
           <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
             <div className="border rounded-lg p-6">
               <div className="flex items-center gap-3 mb-3">
-                <CheckCircle className="w-5 h-5 text-green-500" />
+                <CheckCircle className="w-5 h-5 text-success" />
                 <code className="text-sm bg-muted px-2 py-1 rounded">success</code>
               </div>
               <p className="text-muted-foreground">
@@ -275,7 +275,7 @@ X-Cache-Status: HIT`}</code></pre>
             
             <div className="border rounded-lg p-6">
               <div className="flex items-center gap-3 mb-3">
-                <XCircle className="w-5 h-5 text-red-500" />
+                <XCircle className="w-5 h-5 text-danger" />
                 <code className="text-sm bg-muted px-2 py-1 rounded">abort_by_response</code>
               </div>
               <p className="text-muted-foreground">
@@ -285,7 +285,7 @@ X-Cache-Status: HIT`}</code></pre>
             
             <div className="border rounded-lg p-6">
               <div className="flex items-center gap-3 mb-3">
-                <XCircle className="w-5 h-5 text-red-500" />
+                <XCircle className="w-5 h-5 text-danger" />
                 <code className="text-sm bg-muted px-2 py-1 rounded">abort_by_post_condition</code>
               </div>
               <p className="text-muted-foreground">
@@ -295,7 +295,7 @@ X-Cache-Status: HIT`}</code></pre>
             
             <div className="border rounded-lg p-6">
               <div className="flex items-center gap-3 mb-3">
-                <Clock className="w-5 h-5 text-yellow-500" />
+                <Clock className="w-5 h-5 text-warning" />
                 <code className="text-sm bg-muted px-2 py-1 rounded">pending</code>
               </div>
               <p className="text-muted-foreground">
@@ -305,7 +305,7 @@ X-Cache-Status: HIT`}</code></pre>
             
             <div className="border rounded-lg p-6">
               <div className="flex items-center gap-3 mb-3">
-                <XCircle className="w-5 h-5 text-gray-500" />
+                <XCircle className="w-5 h-5 text-ink-muted" />
                 <code className="text-sm bg-muted px-2 py-1 rounded">not_found</code>
               </div>
               <p className="text-muted-foreground">
@@ -318,7 +318,7 @@ X-Cache-Status: HIT`}</code></pre>
         {/* Features */}
         <section className="mb-16">
           <div className="flex items-center gap-2 mb-6">
-            <Zap className="w-6 h-6 text-primary" />
+            <Zap className="w-6 h-6 text-accent-text" />
             <h2 className="text-2xl font-bold">Key Features</h2>
           </div>
           <p className="text-muted-foreground mb-8">
@@ -327,7 +327,7 @@ X-Cache-Status: HIT`}</code></pre>
 
           <div className="grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             <div className="border rounded-lg p-6">
-              <Zap className="w-8 h-8 text-primary mb-4" />
+              <Zap className="w-8 h-8 text-accent-text mb-4" />
               <h3 className="text-lg font-semibold mb-3">Real-time Monitoring</h3>
               <p className="text-muted-foreground">
                 Get instant status updates with 30-second real-time checks. Automatic fallback to background monitoring for pending transactions.
@@ -335,7 +335,7 @@ X-Cache-Status: HIT`}</code></pre>
             </div>
 
             <div className="border rounded-lg p-6">
-              <Database className="w-8 h-8 text-primary mb-4" />
+              <Database className="w-8 h-8 text-accent-text mb-4" />
               <h3 className="text-lg font-semibold mb-3">Queue-based Processing</h3>
               <p className="text-muted-foreground">
                 Efficient queue management with automatic cleanup. Handles thousands of transactions with minimal resource usage.
@@ -343,7 +343,7 @@ X-Cache-Status: HIT`}</code></pre>
             </div>
 
             <div className="border rounded-lg p-6">
-              <Activity className="w-8 h-8 text-primary mb-4" />
+              <Activity className="w-8 h-8 text-accent-text mb-4" />
               <h3 className="text-lg font-semibold mb-3">Smart Caching</h3>
               <p className="text-muted-foreground">
                 Intelligent HTTP caching based on transaction status. Confirmed transactions cached for 1 hour, pending for 30 seconds.
@@ -355,7 +355,7 @@ X-Cache-Status: HIT`}</code></pre>
         {/* Integration Examples */}
         <section className="mb-16">
           <div className="flex items-center gap-2 mb-6">
-            <Code className="w-6 h-6 text-primary" />
+            <Code className="w-6 h-6 text-accent-text" />
             <h2 className="text-2xl font-bold">Integration Examples</h2>
           </div>
           <p className="text-muted-foreground mb-8">

@@ -26,7 +26,7 @@ import type { QueueStatsResponse, MetricsHistoryResponse, HealthCheckResponse } 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-background border border-border rounded-lg shadow-lg p-3 min-w-[200px]">
+      <div className="bg-surface border border-border rounded-lg shadow-lg p-3 min-w-[200px]">
         <p className="text-sm font-medium text-foreground mb-2">{label}</p>
         <div className="space-y-1">
           {payload.map((entry: any, index: number) => (
@@ -302,10 +302,10 @@ export default function DashboardPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+        <div className="p-4 bg-danger-soft border border-danger/30 rounded-md">
           <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-red-500" />
-            <p className="text-red-700 text-sm">{error}</p>
+            <AlertCircle className="h-4 w-4 text-danger" />
+            <p className="text-danger text-sm">{error}</p>
           </div>
         </div>
       )}
@@ -336,8 +336,8 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className={`text-2xl font-bold mb-2 ${
-              (activityStats?.pipeline?.healthScore || 0) >= 80 ? 'text-green-600' : 
-              (activityStats?.pipeline?.healthScore || 0) >= 60 ? 'text-yellow-600' : 'text-red-600'
+              (activityStats?.pipeline?.healthScore || 0) >= 80 ? 'text-success' : 
+              (activityStats?.pipeline?.healthScore || 0) >= 60 ? 'text-warning' : 'text-danger'
             }`}>
               {Math.round(activityStats?.pipeline?.healthScore || 0)}%
             </div>
@@ -412,8 +412,8 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="pt-0">
             <div className={`text-2xl font-bold mb-2 ${
-              (activityStats?.pipeline?.errorRate || 0) < 5 ? 'text-green-600' : 
-              (activityStats?.pipeline?.errorRate || 0) < 15 ? 'text-yellow-600' : 'text-red-600'
+              (activityStats?.pipeline?.errorRate || 0) < 5 ? 'text-success' : 
+              (activityStats?.pipeline?.errorRate || 0) < 15 ? 'text-warning' : 'text-danger'
             }`}>
               {activityStats?.pipeline?.errorRate !== undefined
                 ? `${activityStats.pipeline.errorRate.toFixed(1)}%`
@@ -640,9 +640,9 @@ export default function DashboardPage() {
                   <div key={status} className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground capitalize">{status}</span>
                     <span className={`text-sm font-mono ${
-                      status === 'completed' ? 'text-green-600' : 
-                      status === 'failed' ? 'text-red-600' : 
-                      status === 'pending' ? 'text-yellow-600' : ''
+                      status === 'completed' ? 'text-success' : 
+                      status === 'failed' ? 'text-danger' : 
+                      status === 'pending' ? 'text-warning' : ''
                     }`}>
                       {count as number}
                     </span>
@@ -716,11 +716,11 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Successful</span>
-                  <span className="text-sm font-mono text-green-600">{stats?.totalSuccessful || 0}</span>
+                  <span className="text-sm font-mono text-success">{stats?.totalSuccessful || 0}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Failed</span>
-                  <span className="text-sm font-mono text-red-600">{stats?.totalFailed || 0}</span>
+                  <span className="text-sm font-mono text-danger">{stats?.totalFailed || 0}</span>
                 </div>
               </div>
             </CardContent>

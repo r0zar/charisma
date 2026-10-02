@@ -26,24 +26,24 @@ async function lookupTransaction(txid: string): Promise<StatusResponse> {
 function getStatusIcon(status: string) {
     switch (status) {
         case 'success':
-            return <CheckCircle className="w-5 h-5 text-green-500" />;
+            return <CheckCircle className="w-5 h-5 text-success" />;
         case 'abort_by_response':
         case 'abort_by_post_condition':
-            return <XCircle className="w-5 h-5 text-red-500" />;
+            return <XCircle className="w-5 h-5 text-danger" />;
         default:
-            return <Clock className="w-5 h-5 text-yellow-500" />;
+            return <Clock className="w-5 h-5 text-warning" />;
     }
 }
 
 function getStatusColor(status: string): string {
     switch (status) {
         case 'success':
-            return 'text-green-500';
+            return 'text-success';
         case 'abort_by_response':
         case 'abort_by_post_condition':
-            return 'text-red-500';
+            return 'text-danger';
         default:
-            return 'text-yellow-500';
+            return 'text-warning';
     }
 }
 
@@ -112,8 +112,8 @@ export function TransactionLookup() {
                     </div>
 
                     {error && (
-                        <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-                            <p className="text-red-700 text-sm">{error}</p>
+                        <div className="p-3 bg-danger-soft border border-danger/30 rounded-md">
+                            <p className="text-danger text-sm">{error}</p>
                         </div>
                     )}
 
