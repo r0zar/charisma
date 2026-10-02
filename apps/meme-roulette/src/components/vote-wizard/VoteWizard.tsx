@@ -166,10 +166,10 @@ const VoteWizard = ({ isOpen, onClose, tokens }: VoteWizardProps) => {
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className={`${wizardState.step === 'token' && wizardState.showingAllTokens ? 'sm:max-w-[900px]' : 'sm:max-w-[600px]'} max-h-[90vh] p-0 overflow-hidden bg-card/95 backdrop-blur-md border-primary/20`}>
+            <DialogContent className={`${wizardState.step === 'token' && wizardState.showingAllTokens ? 'sm:max-w-[900px]' : 'sm:max-w-[600px]'} max-h-[90vh] p-0 overflow-hidden bg-surface-raised border-accent-line`}>
                 <DialogHeader className="p-6 pb-4 bg-gradient-to-b from-card to-transparent">
                     <DialogTitle className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                        <Heart className="h-6 w-6 text-red-500" />
+                        <Heart className="h-6 w-6 text-danger" />
                         Vote for Your Favorite!
                     </DialogTitle>
                     <p className="text-muted-foreground mt-1">

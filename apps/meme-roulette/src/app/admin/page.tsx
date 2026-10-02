@@ -247,7 +247,7 @@ export default function AdminPage() {
                                 <CardDescription>Clear bets and start a new spin</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <p className="text-amber-500 mb-4">Warning: This will clear all current bets and set a new spin time.</p>
+                                <p className="text-warning mb-4">Warning: This will clear all current bets and set a new spin time.</p>
                             </CardContent>
                             <CardFooter>
                                 <Button onClick={handleReset} disabled={loading} variant="destructive">

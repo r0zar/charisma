@@ -43,11 +43,11 @@ const AchievementBadges = () => {
 
     const getRarityColor = (rarity: string) => {
         switch (rarity) {
-            case 'common': return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
-            case 'rare': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-            case 'epic': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-            case 'legendary': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-            default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+            case 'common': return 'bg-surface-hover text-ink-body border-line';
+            case 'rare': return 'bg-accent/20 text-accent-text border-accent/30';
+            case 'epic': return 'bg-blaze/20 text-blaze border-blaze/30';
+            case 'legendary': return 'bg-warning/20 text-warning border-warning/30';
+            default: return 'bg-surface-hover text-ink-body border-line';
         }
     };
 
@@ -80,11 +80,11 @@ const AchievementBadges = () => {
         const sizeClass = size === 'sm' ? 'h-3 w-3' : 'h-4 w-4';
         switch (rarity) {
             case 'legendary': return <Sparkles className={sizeClass} />;
-            case 'epic': return <Diamond className={sizeClass} />;
-            case 'rare': return <Hexagon className={sizeClass} />;
-            case 'common':
+ case 'epic': return <Diamond className={sizeClass} />;
+ case 'rare': return <Hexagon className={sizeClass} />;
+ case 'common':
             default: return <Circle className={sizeClass} />;
-        }
+ }
     };
 
     const isUnlocked = (achievementId: string): boolean => {
@@ -117,7 +117,7 @@ const AchievementBadges = () => {
                                 {getRarityIcon(achievement.rarity, 'sm')}
                             </Badge>
                             {unlocked && unlockedDate && (
-                                <div className="flex items-center gap-1 text-green-400">
+                                <div className="flex items-center gap-1 text-success">
                                     <Calendar className="h-3 w-3" />
                                     <span>{unlockedDate}</span>
                                 </div>
@@ -181,18 +181,18 @@ const AchievementBadges = () => {
     return (
         <div className="flex flex-col gap-0 md:gap-6 mb-0 md:mb-8">
             {/* Header */}
-            <div className="bg-background/50 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+            <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h1 className="text-base sm:text-lg font-semibold font-display flex items-center gap-2 mb-2">
-                            <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                            <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-accent-text" />
                             Achievement Badges
                         </h1>
                         <p className="text-sm text-muted-foreground">Collect badges by participating in the meme roulette madness</p>
                     </div>
                     <div className="flex items-center gap-3 text-xs">
                         <div className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2 border border-border/20">
-                            <Zap className="h-3 w-3 text-primary" />
+                            <Zap className="h-3 w-3 text-accent-text" />
                             <span className="text-muted-foreground">
                                 {userAchievementsData?.unlockedCount || 0}/{achievementsData?.totalCount || 0} Unlocked
                             </span>
@@ -202,7 +202,7 @@ const AchievementBadges = () => {
             </div>
 
             {/* Filters */}
-            <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+            <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
                 <div className="flex flex-col lg:flex-row gap-4">
                     {/* Search */}
                     <div className="relative flex-1">
@@ -221,7 +221,7 @@ const AchievementBadges = () => {
                         <select
                             value={filterRarity}
                             onChange={(e) => setFilterRarity(e.target.value)}
-                            className="px-3 py-2 bg-background border border-border rounded-lg text-sm"
+                            className="px-3 py-2 bg-surface border border-border rounded-lg text-sm"
                         >
                             <option value="all">All Rarities</option>
                             <option value="common">Common</option>
@@ -234,7 +234,7 @@ const AchievementBadges = () => {
                         <select
                             value={filterType}
                             onChange={(e) => setFilterType(e.target.value)}
-                            className="px-3 py-2 bg-background border border-border rounded-lg text-sm"
+                            className="px-3 py-2 bg-surface border border-border rounded-lg text-sm"
                         >
                             <option value="all">All Types</option>
                             <option value="milestone">Milestone</option>
@@ -249,7 +249,7 @@ const AchievementBadges = () => {
                             onClick={() => setShowUnlockedOnly(!showUnlockedOnly)}
                             className={`px-3 py-2 rounded-lg text-sm border transition-colors ${showUnlockedOnly
                                 ? 'bg-primary text-primary-foreground border-primary'
-                                : 'bg-background border-border text-muted-foreground hover:text-foreground'
+                                : 'bg-surface border-border text-muted-foreground hover:text-foreground'
                                 }`}
                         >
                             Unlocked Only
@@ -259,7 +259,7 @@ const AchievementBadges = () => {
             </div>
 
             {/* Achievement Grid */}
-            <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+            <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
                 {isLoading ? (
                     // Loading skeleton
                     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-3">
@@ -290,7 +290,7 @@ const AchievementBadges = () => {
                     </div>
                     <div className="flex items-center gap-1">
                         <span>Progress:</span>
-                        <span className="font-medium text-primary">
+                        <span className="font-medium text-accent-text">
                             {Math.round(((userAchievementsData?.unlockedCount || 0) / (achievementsData?.totalCount || 1)) * 100)}%
                         </span>
                     </div>
@@ -349,8 +349,8 @@ const AchievementBadges = () => {
 
                             {isUnlocked(selectedAchievement.id) ? (
                                 <div className="space-y-3">
-                                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-                                        <div className="flex items-center gap-2 text-green-400 font-medium mb-1">
+                                    <div className="bg-success/10 border border-success/20 rounded-lg p-3">
+                                        <div className="flex items-center gap-2 text-success font-medium mb-1">
                                             <Trophy className="h-4 w-4" />
                                             Achievement Unlocked!
                                         </div>

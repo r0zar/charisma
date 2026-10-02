@@ -24,25 +24,25 @@ const InstructionsContent = () => (
                 </Button>
             </DialogClose>
         </DialogHeader>
-        <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none py-4">
+        <div className="prose prose-sm sm:prose-base max-w-none py-4">
             {/* Copied content from InstructionsOverlay */}
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 text-primary">Welcome to Meme Roulette!</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-6 text-accent-text">Welcome to Meme Roulette!</h2>
             <p className="text-center mb-6">
-                Get ready for a collective meme coin pump! Join everyone in committing <span className="font-semibold text-primary">CHA</span> to influence which token gets the big buy. Here's the plan:
+                Get ready for a collective meme coin pump! Join everyone in committing <span className="font-semibold text-accent-text">CHA</span> to influence which token gets the big buy. Here's the plan:
             </p>
             <ol className="list-decimal space-y-4 pl-5">
                 <li>
-                    <strong>Commit Your CHA:</strong> Use your <span className="font-semibold text-primary">CHA</span> balance to back the meme tokens you want to see pumped. The more <span className="font-semibold text-primary">CHA</span> collectively committed to a token, the higher its chance of being selected for the pump!
+                    <strong>Commit Your CHA:</strong> Use your <span className="font-semibold text-accent-text">CHA</span> balance to back the meme tokens you want to see pumped. The more <span className="font-semibold text-accent-text">CHA</span> collectively committed to a token, the higher its chance of being selected for the pump!
                 </li>
                 <li>
-                    <strong>The Selection:</strong> When the timer hits zero, the voting phase locks. A token is then chosen based on the total <span className="font-semibold text-primary">CHA</span> committed to each one – more commitment means better odds.
+                    <strong>The Selection:</strong> When the timer hits zero, the voting phase locks. A token is then chosen based on the total <span className="font-semibold text-accent-text">CHA</span> committed to each one – more commitment means better odds.
                 </li>
                 <li>
-                    <strong>The Group Pump:</strong> ALL <span className="font-semibold text-primary">CHA</span> committed by everyone this round is automatically used to market-buy the WINNING token! Everyone who committed receives the winning token equivalent to their committed <span className="font-semibold text-primary">CHA</span> amount (executed based on commitment time order).
+                    <strong>The Group Pump:</strong> ALL <span className="font-semibold text-accent-text">CHA</span> committed by everyone this round is automatically used to market-buy the WINNING token! Everyone who committed receives the winning token equivalent to their committed <span className="font-semibold text-accent-text">CHA</span> amount (executed based on commitment time order).
                 </li>
             </ol>
             <p className="text-center mt-8 font-semibold">
-                Rally together! Which meme will get the pump? Commit your <span className="font-semibold text-primary">CHA</span> and boost the odds!
+                Rally together! Which meme will get the pump? Commit your <span className="font-semibold text-accent-text">CHA</span> and boost the odds!
             </p>
         </div>
         <DialogFooter className="mt-6 sm:justify-center">

@@ -243,13 +243,13 @@ export function SwapStxToChaButton({
         }}>
             <DialogTrigger asChild>
                 <Button className={className} variant={variant} size={size} {...buttonProps}>
-                    {buttonLabel}
+ {buttonLabel}
                 </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <Repeat className="h-5 w-5 text-primary" /> Swap STX for CHA
+                        <Repeat className="h-5 w-5 text-accent-text" /> Swap STX for CHA
                     </DialogTitle>
                     <DialogDescription>
                         Enter the amount of STX you want to swap. The estimated CHA received will be shown.
@@ -270,7 +270,7 @@ export function SwapStxToChaButton({
                                         const maxAmount = formatStxAmount(stxBalance);
                                         form.setValue('stxAmount', maxAmount);
                                     }}
-                                    className="text-xs text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="text-xs text-accent-text hover:text-accent-text/80 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Max
                                 </button>

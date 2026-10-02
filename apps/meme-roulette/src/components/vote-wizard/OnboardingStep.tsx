@@ -22,7 +22,7 @@ export const OnboardingStep = ({
         return (
             <div className="px-6 pb-6 space-y-6">
                 <div className="text-center space-y-4">
-                    <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-6">
+                    <div className="bg-accent/10 border border-accent/20 rounded-xl p-6">
                         <div className="text-4xl mb-3">💰</div>
                         <h3 className="font-bold text-lg mb-2">Get Some CHA to Start Voting!</h3>
                         <p className="text-muted-foreground text-sm mb-4">
@@ -52,7 +52,7 @@ export const OnboardingStep = ({
     return (
         <div className="px-6 pb-6 space-y-6">
             <div className="text-center space-y-4">
-                <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-6">
+                <div className="bg-accent/10 border border-accent/20 rounded-xl p-6">
                     <div className="text-4xl mb-3">🏦</div>
                     <h3 className="font-bold text-lg mb-2">Deposit CHA to Start Voting!</h3>
                     <p className="text-muted-foreground text-sm mb-4">

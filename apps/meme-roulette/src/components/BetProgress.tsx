@@ -168,36 +168,36 @@ const BetProgress = ({
         switch (urgencyLevel) {
             case 'record':
                 return {
-                    barColor: 'from-yellow-400 via-yellow-500 to-yellow-600',
-                    glowColor: 'rgba(252, 211, 77, 0.4)',
-                    textColor: 'text-yellow-500',
-                    bgColor: 'bg-yellow-500/10',
+                    barColor: 'from-warning via-warning to-warning',
+                    glowColor: 'color-mix(in srgb, var(--warning) 40%, transparent)',
+                    textColor: 'text-warning',
+                    bgColor: 'bg-warning/10',
                     icon: Crown,
                     pulseClass: 'animate-pulse'
                 };
             case 'challenge':
                 return {
-                    barColor: 'from-orange-400 via-orange-500 to-orange-600',
-                    glowColor: 'rgba(251, 146, 60, 0.4)',
-                    textColor: 'text-orange-500',
-                    bgColor: 'bg-orange-500/10',
+                    barColor: 'from-accent via-accent to-accent',
+                    glowColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
+                    textColor: 'text-accent-text',
+                    bgColor: 'bg-accent/10',
                     icon: Trophy,
                     pulseClass: 'animate-pulse-medium'
                 };
             case 'progress':
                 return {
-                    barColor: 'from-blue-400 via-blue-500 to-blue-600',
-                    glowColor: 'rgba(96, 165, 250, 0.4)',
-                    textColor: 'text-blue-500',
-                    bgColor: 'bg-blue-500/10',
+                    barColor: 'from-accent via-accent to-accent',
+                    glowColor: 'color-mix(in srgb, var(--accent) 40%, transparent)',
+                    textColor: 'text-accent-text',
+                    bgColor: 'bg-accent/10',
                     icon: TrendingUp,
                     pulseClass: ''
                 };
             default:
                 return {
-                    barColor: 'from-emerald-400 via-emerald-500 to-emerald-600',
-                    glowColor: 'rgba(16, 185, 129, 0.4)',
-                    textColor: 'text-primary',
+                    barColor: 'from-success via-success to-success',
+                    glowColor: 'color-mix(in srgb, var(--success) 40%, transparent)',
+                    textColor: 'text-accent-text',
                     bgColor: 'bg-primary/10',
                     icon: Target,
                     pulseClass: ''
@@ -233,7 +233,7 @@ const BetProgress = ({
 
                     {/* ATH marker */}
                     <div
-                        className="absolute top-0 h-full w-0.5 bg-yellow-500 z-10 opacity-80"
+                        className="absolute top-0 h-full w-0.5 bg-warning z-10 opacity-80"
                         style={{ left: '100%' }}
                         title={`ATH: ${formatCHAAmount(effectiveATH)} CHA`}
                     />
@@ -248,7 +248,7 @@ const BetProgress = ({
                     >
                         {/* Animated shimmer */}
                         <div
-                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-line-strong to-transparent"
                             style={{
                                 animation: 'shimmer 2s infinite',
                                 width: '100%'
@@ -258,10 +258,10 @@ const BetProgress = ({
                         {/* Record breaking extension */}
                         {isNewRecord && (
                             <div
-                                className="absolute top-0 left-full h-full bg-gradient-to-r from-yellow-400 to-yellow-600 animate-pulse"
+                                className="absolute top-0 left-full h-full bg-gradient-to-r from-warning to-warning animate-pulse"
                                 style={{
                                     width: `${Math.min(20, (current - effectiveATH) / effectiveATH * 100)}%`,
-                                    boxShadow: '0 0 25px rgba(252, 211, 77, 0.6)'
+                                    boxShadow: '0 0 25px color-mix(in srgb, var(--warning) 60%, transparent)'
                                 }}
                             />
                         )}
@@ -273,7 +273,7 @@ const BetProgress = ({
                     className={`absolute -top-1 h-6 flex items-center transition-all duration-1000 ease-out`}
                     style={{ left: `${Math.max(0, Math.min(95, athProgress))}%` }}
                 >
-                    <div className={`ml-2 text-xs font-mono font-bold ${textColor} whitespace-nowrap bg-background/80 px-2 py-1 rounded-md border`}>
+                    <div className={`ml-2 text-xs font-mono font-bold ${textColor} whitespace-nowrap bg-surface-sunken px-2 py-1 rounded-md border`}>
                         {isEmptyRound ? 'Ready!' : `${Math.round(athProgress)}%`}
                     </div>
                 </div>
@@ -284,10 +284,10 @@ const BetProgress = ({
                 <div className="flex items-center gap-4">
                     <span className="text-muted-foreground">
                         Current: <CHAAmountWithTooltip amount={current} className={textColor} />
-                    </span>
+ </span>
                     {previousRoundAmount > 0 && (
                         <span className="text-muted-foreground">
-                            vs Last: <span className={`font-mono ${previousProgress >= 100 ? 'text-green-500' : 'text-muted-foreground'}`}>
+                            vs Last: <span className={`font-mono ${previousProgress >= 100 ? 'text-success' : 'text-muted-foreground'}`}>
                                 {Math.round(previousProgress)}%
                             </span>
                         </span>
@@ -301,8 +301,8 @@ const BetProgress = ({
 
             {/* Record breaking celebration */}
             {showCelebration && (
-                <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-lg p-3 text-center animate-pulse">
-                    <div className="flex items-center justify-center gap-2 text-yellow-500 font-bold">
+                <div className="bg-gradient-to-r from-warning/20 to-accent/20 border border-warning/30 rounded-lg p-3 text-center animate-pulse">
+                    <div className="flex items-center justify-center gap-2 text-warning font-bold">
                         <Crown className="h-5 w-5" />
                         <span>🎉 NEW ROUND RECORD! 🎉</span>
                         <Crown className="h-5 w-5" />

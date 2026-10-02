@@ -54,14 +54,14 @@ export function PendingReferralIndicator() {
                 <CardContent className="p-4">
                     <div className="flex items-start gap-3">
                         <div className="flex-shrink-0 bg-primary/20 rounded-full p-2">
-                            <Gift className="h-4 w-4 text-primary" />
+                            <Gift className="h-4 w-4 text-accent-text" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <h4 className="font-semibold text-sm mb-1 text-foreground">
                                 Referral Code Ready! 🎁
                             </h4>
                             <p className="text-xs text-muted-foreground mb-3">
-                                Connect your wallet to claim your referral code: <span className="font-mono text-primary">{pendingCode}</span>
+                                Connect your wallet to claim your referral code: <span className="font-mono text-accent-text">{pendingCode}</span>
                             </p>
                             <div className="flex gap-2">
                                 <Button

@@ -545,8 +545,8 @@ const SpinAnimationOverlay = React.memo(({
     // Server-side or initial client render - return minimal loading state
     if (typeof window === 'undefined' || !isClient) {
         return (
-            <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
-                <div className="text-primary text-2xl">Loading...</div>
+            <div className="fixed inset-0 bg-overlay backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
+                <div className="text-accent-text text-2xl">Loading...</div>
             </div>
         );
     }
@@ -554,8 +554,8 @@ const SpinAnimationOverlay = React.memo(({
     // If cards aren't generated yet, show loading
     if (tokenCardsRef.current.length === 0) {
         return (
-            <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
-                <div className="text-primary text-2xl animate-pulse">Loading...</div>
+            <div className="fixed inset-0 bg-overlay backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
+                <div className="text-accent-text text-2xl animate-pulse">Loading...</div>
             </div>
         );
     }
@@ -565,11 +565,11 @@ const SpinAnimationOverlay = React.memo(({
 
     return (
         <>
-            <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4 overflow-hidden">
+            <div className="fixed inset-0 bg-overlay backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4 overflow-hidden">
                 {/* Token Grid with Spotlight */}
                 <div className="w-full max-w-5xl relative py-4 mb-8">
                     <div className={gridClass}>
-                        {tokenCardsRef.current.map((card, index) => {
+ {tokenCardsRef.current.map((card, index) => {
                             // Exactly compare current spotlight index with this card index
                             const isSpotlight = spotlightIndex === index;
                             const isFinalWinner = finalWinnerIndexRef.current === index;
@@ -578,12 +578,12 @@ const SpinAnimationOverlay = React.memo(({
                             const style = isFinalWinner && hasLanded ? {
                                 transform: winnerSpring.scale.to(s => `scale(${s})`),
                                 boxShadow: winnerSpring.glow.to(g =>
-                                    `0 0 ${8 + g * 24}px ${g * 12}px rgba(var(--color-primary), ${0.3 + g * 0.5})`)
+                                    `0 0 ${8 + g * 24}px ${g * 12}px color-mix(in srgb, var(--accent) ${Math.round((0.3 + g * 0.5) * 100)}%, transparent)`)
                             } : isSpotlight && !hasLanded ? {
                                 // Dynamic spotlight styling
                                 transform: spotlightSpring.scale.to(s => `scale(${s})`),
                                 boxShadow: spotlightSpring.glow.to(g =>
-                                    `0 0 ${g * 16}px ${g * 12}px rgba(var(--color-primary), ${0.2 + g * 0.3})`),
+                                    `0 0 ${g * 16}px ${g * 12}px color-mix(in srgb, var(--accent) ${Math.round((0.2 + g * 0.3) * 100)}%, transparent)`),
                                 borderColor: spotlightSpring.accentColor,
                             } : {};
 
@@ -610,7 +610,7 @@ const SpinAnimationOverlay = React.memo(({
                                         <div
                                             className="absolute inset-0 rounded-lg animate-pulse-medium"
                                             style={{
-                                                background: `radial-gradient(circle, rgba(var(--color-primary), 0.5) 0%, rgba(var(--color-primary), 0.2) 70%, rgba(var(--color-primary), 0) 100%)`,
+                                                background: `radial-gradient(circle, color-mix(in srgb, var(--accent) 50%, transparent) 0%, color-mix(in srgb, var(--accent) 20%, transparent) 70%, transparent 100%)`,
                                                 opacity: 0.8
                                             }}
                                         />
@@ -638,7 +638,7 @@ const SpinAnimationOverlay = React.memo(({
 
             {/* Result Dialog - shown when animation completes */}
             <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
-                <DialogContent className="bg-background/95 backdrop-blur-lg border-primary/30 p-0 max-w-xl overflow-visible z-[100]">
+                <DialogContent className="bg-surface-raised border-accent-line p-0 max-w-xl overflow-visible z-[100]">
                     <DialogHeader className="sr-only">
                         <DialogTitle>Token Selection Results</DialogTitle>
                     </DialogHeader>
@@ -670,29 +670,29 @@ const SpinAnimationOverlay = React.memo(({
 
                             <div className="glass-card p-5 space-y-4 text-left max-w-md mx-auto">
                                 <h3 className="font-display text-lg font-medium flex items-center gap-2">
-                                    <Rocket className="h-5 w-5 text-primary" />
+                                    <Rocket className="h-5 w-5 text-accent-text" />
                                     Group Pump Execution
                                 </h3>
                                 <div className="space-y-3">
                                     <div className="flex gap-3 items-start">
                                         <div className="bg-primary/20 rounded-full w-7 h-7 flex items-center justify-center mt-0.5 shrink-0">
-                                            <span className="text-sm font-bold text-primary">1</span>
+                                            <span className="text-sm font-bold text-accent-text">1</span>
                                         </div>
                                         <p className="text-sm">
-                                            <span className="text-primary font-semibold numeric">All CHA</span> committed in this round will be used to purchase <span className="font-semibold">{displayToken.symbol}</span> tokens.
+                                            <span className="text-accent-text font-semibold numeric">All CHA</span> committed in this round will be used to purchase <span className="font-semibold">{displayToken.symbol}</span> tokens.
                                         </p>
                                     </div>
                                     <div className="flex gap-3 items-start">
                                         <div className="bg-primary/20 rounded-full w-7 h-7 flex items-center justify-center mt-0.5 shrink-0">
-                                            <span className="text-sm font-bold text-primary">2</span>
+                                            <span className="text-sm font-bold text-accent-text">2</span>
                                         </div>
                                         <p className="text-sm">
-                                            Each participant will receive <span className="font-semibold">{displayToken.symbol}</span> tokens equal to the value of <span className="text-primary font-semibold numeric">CHA</span> they committed.
+                                            Each participant will receive <span className="font-semibold">{displayToken.symbol}</span> tokens equal to the value of <span className="text-accent-text font-semibold numeric">CHA</span> they committed.
                                         </p>
                                     </div>
                                     <div className="flex gap-3 items-start">
                                         <div className="bg-primary/20 rounded-full w-7 h-7 flex items-center justify-center mt-0.5 shrink-0">
-                                            <span className="text-sm font-bold text-primary">3</span>
+                                            <span className="text-sm font-bold text-accent-text">3</span>
                                         </div>
                                         <p className="text-sm">
                                             Purchases will be executed in the same order that commitments were placed.
@@ -704,7 +704,7 @@ const SpinAnimationOverlay = React.memo(({
                                     <p className="text-sm text-muted-foreground">
                                         Next round starts in:
                                     </p>
-                                    <span className="font-mono text-lg font-semibold text-primary numeric">{formatTime(resetTimeLeft)}</span>
+                                    <span className="font-mono text-lg font-semibold text-accent-text numeric">{formatTime(resetTimeLeft)}</span>
                                 </div>
                             </div>
 

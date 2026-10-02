@@ -36,11 +36,11 @@ export default function SpinReadyDisplay({
         .sort((a, b) => b.amount - a.amount);
 
     return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
+        <div className="fixed inset-0 bg-overlay backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
             <div className="bg-card/95 backdrop-blur-lg border border-border rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-auto">
                 {/* Header */}
                 <div className="text-center mb-6">
-                    <h2 className="text-2xl md:text-3xl font-bold font-display mb-2 text-primary">
+                    <h2 className="text-2xl md:text-3xl font-bold font-display mb-2 text-accent-text">
                         🚀 Ready to Spin!
                     </h2>
                     <p className="text-muted-foreground">
@@ -52,15 +52,15 @@ export default function SpinReadyDisplay({
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                     {/* Total Amount */}
                     <div className="bg-primary/10 border border-primary/20 rounded-xl p-6 text-center">
-                        <DollarSign className="h-8 w-8 text-primary mx-auto mb-3" />
-                        <h3 className="text-lg font-semibold mb-2 text-primary">Total CHA to Spend</h3>
-                        <div className="text-3xl font-bold text-primary mb-2">
+                        <DollarSign className="h-8 w-8 text-accent-text mx-auto mb-3" />
+                        <h3 className="text-lg font-semibold mb-2 text-accent-text">Total CHA to Spend</h3>
+                        <div className="text-3xl font-bold text-accent-text mb-2">
                             <TokenAmountDisplay
                                 amount={totalValidCHA}
                                 decimals={CHA_DECIMALS}
                                 symbol="CHA"
                                 usdPrice={chaPrice}
-                                className="text-primary"
+                                className="text-accent-text"
                                 size="lg"
                                 showUsd={true}
                             />
@@ -71,10 +71,10 @@ export default function SpinReadyDisplay({
                     </div>
 
                     {/* Valid Users */}
-                    <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-6 text-center">
-                        <Users className="h-8 w-8 text-green-400 mx-auto mb-3" />
-                        <h3 className="text-lg font-semibold mb-2 text-green-400">Participating Users</h3>
-                        <div className="text-3xl font-bold text-green-400 mb-2">
+                    <div className="bg-success/10 border border-success/20 rounded-xl p-6 text-center">
+                        <Users className="h-8 w-8 text-success mx-auto mb-3" />
+                        <h3 className="text-lg font-semibold mb-2 text-success">Participating Users</h3>
+                        <div className="text-3xl font-bold text-success mb-2">
                             {validUsers.length}
                         </div>
                         <p className="text-sm text-muted-foreground">
@@ -84,9 +84,9 @@ export default function SpinReadyDisplay({
 
                     {/* Tokens in Competition */}
                     <div className="bg-secondary/10 border border-secondary/20 rounded-xl p-6 text-center">
-                        <TrendingUp className="h-8 w-8 text-secondary mx-auto mb-3" />
-                        <h3 className="text-lg font-semibold mb-2 text-secondary">Tokens in Competition</h3>
-                        <div className="text-3xl font-bold text-secondary mb-2">
+                        <TrendingUp className="h-8 w-8 text-accent-text mx-auto mb-3" />
+                        <h3 className="text-lg font-semibold mb-2 text-accent-text">Tokens in Competition</h3>
+                        <div className="text-3xl font-bold text-accent-text mb-2">
                             {tokensWithBets.length}
                         </div>
                         <p className="text-sm text-muted-foreground">
@@ -98,7 +98,7 @@ export default function SpinReadyDisplay({
                 {/* Token Breakdown */}
                 <div className="bg-muted/20 border border-border rounded-xl p-6 mb-6">
                     <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                        <TrendingUp className="h-6 w-6 text-primary" />
+                        <TrendingUp className="h-6 w-6 text-accent-text" />
                         Token Breakdown
                     </h3>
 
@@ -138,7 +138,7 @@ export default function SpinReadyDisplay({
                                                 decimals={CHA_DECIMALS}
                                                 symbol="CHA"
                                                 usdPrice={chaPrice}
-                                                className="text-primary"
+                                                className="text-accent-text"
                                                 size="sm"
                                                 showUsdInTooltip={true}
                                             />
@@ -147,7 +147,7 @@ export default function SpinReadyDisplay({
 
                                     <div className="flex justify-between items-center">
                                         <span className="text-sm text-muted-foreground">Share:</span>
-                                        <span className="font-semibold text-primary">
+                                        <span className="font-semibold text-accent-text">
                                             {percentage.toFixed(1)}%
                                         </span>
                                     </div>
@@ -176,25 +176,25 @@ export default function SpinReadyDisplay({
 
                 {/* What Happens Next */}
                 <div className="bg-primary/10 border border-primary/20 rounded-xl p-6 mb-6">
-                    <h3 className="text-lg font-semibold mb-3 text-primary flex items-center gap-2">
+                    <h3 className="text-lg font-semibold mb-3 text-accent-text flex items-center gap-2">
                         <Clock className="h-5 w-5" />
                         What Happens Next
                     </h3>
                     <div className="space-y-2 text-sm text-muted-foreground">
                         <div className="flex items-start gap-2">
-                            <div className="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold text-primary mt-0.5 shrink-0">
+                            <div className="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold text-accent-text mt-0.5 shrink-0">
                                 1
                             </div>
                             <p>One token will be randomly selected based on the CHA amounts committed</p>
                         </div>
                         <div className="flex items-start gap-2">
-                            <div className="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold text-primary mt-0.5 shrink-0">
+                            <div className="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold text-accent-text mt-0.5 shrink-0">
                                 2
                             </div>
                             <p>All validated CHA will be swapped to the winning token</p>
                         </div>
                         <div className="flex items-start gap-2">
-                            <div className="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold text-primary mt-0.5 shrink-0">
+                            <div className="bg-primary/20 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold text-accent-text mt-0.5 shrink-0">
                                 3
                             </div>
                             <p>Users who voted for the winning token will receive their share of tokens</p>
@@ -214,7 +214,7 @@ export default function SpinReadyDisplay({
                         </button>
                     ) : (
                         <div className="bg-secondary/10 border border-secondary/20 rounded-lg p-4">
-                            <div className="flex items-center justify-center gap-2 text-secondary">
+                            <div className="flex items-center justify-center gap-2 text-accent-text">
                                 <Clock className="h-5 w-5 animate-pulse" />
                                 <span className="font-semibold">Preparing to spin...</span>
                             </div>

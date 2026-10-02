@@ -4,7 +4,7 @@ import './globals.css';
 import { Providers } from './providers';
 import AppShell from '@/components/layout/AppShell';
 import { Toaster } from '@/components/ui/sonner';
-import { spaceGrotesk, dmMono, inter } from '@/styles/fonts';
+import { THEME_SCRIPT } from '@repo/brand/react';
 import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
@@ -43,8 +43,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${spaceGrotesk.variable} ${dmMono.variable} ${inter.variable}`}>
-      <body className="font-body bg-background text-foreground antialiased">
+    <html lang="en" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} /></head>
+      <body className="font-sans antialiased">
         <Providers>
           <AppShell>
             {children}

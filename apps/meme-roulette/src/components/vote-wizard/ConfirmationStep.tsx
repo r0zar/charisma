@@ -88,11 +88,11 @@ export const ConfirmationStep = ({
             <div className="px-4 sm:px-6 pb-6 space-y-4 sm:space-y-6">
                 <div className="space-y-3 sm:space-y-4 text-center">
                     <div className="flex justify-center">
-                        <div className="bg-green-500/20 border border-green-500/30 rounded-full p-4 mb-4">
-                            <Trophy className="h-8 w-8 text-green-500" />
+                        <div className="bg-success/20 border border-success/30 rounded-full p-4 mb-4">
+                            <Trophy className="h-8 w-8 text-success" />
                         </div>
                     </div>
-                    <h3 className="font-semibold text-lg sm:text-xl text-green-600">
+                    <h3 className="font-semibold text-lg sm:text-xl text-success">
                         Vote Placed Successfully! 🎉
                     </h3>
                     <p className="text-sm text-muted-foreground">
@@ -155,11 +155,11 @@ export const ConfirmationStep = ({
 
                     <div className="border-t border-primary/20 pt-3 sm:pt-4 text-xs sm:text-sm text-muted-foreground space-y-2">
                         <div className="flex items-start gap-2">
-                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success mt-0.5 flex-shrink-0" />
                             <span>Everyone gets the winning token worth their vote amount</span>
                         </div>
                         <div className="flex items-start gap-2">
-                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                            <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-success mt-0.5 flex-shrink-0" />
                             <span>If <strong className="break-all">{selectedToken.symbol}</strong> wins, it's extra nice if you already hold some!</span>
                         </div>
                     </div>

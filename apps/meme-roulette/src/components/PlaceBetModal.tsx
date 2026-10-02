@@ -192,10 +192,10 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                 }
             }}
         >
-            <DialogContent className="sm:max-w-[425px] md:max-w-[600px] lg:max-w-[800px] p-0 overflow-hidden max-h-[95vh] bg-card/95 backdrop-blur-md border-primary/20">
+            <DialogContent className="sm:max-w-[425px] md:max-w-[600px] lg:max-w-[800px] p-0 overflow-hidden max-h-[95vh] bg-surface-raised border-accent-line">
                 <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 bg-gradient-to-b from-card to-transparent">
                     <DialogTitle className="text-lg sm:text-xl md:text-2xl font-display tracking-tight flex items-center gap-2">
-                        <Rocket className="h-4 w-4 sm:h-5 sm:w-5 text-primary animate-float" />
+                        <Rocket className="h-4 w-4 sm:h-5 sm:w-5 text-accent-text animate-float" />
                         Commit to Pump a Token
                     </DialogTitle>
                     <DialogDescription className="text-sm md:text-base opacity-90">
@@ -207,14 +207,14 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                 <div className="flex border-b border-border/30 md:hidden">
                     <button
                         type="button"
-                        className={`flex-1 py-2 text-sm font-medium ${activeTab === 'search' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}
+                        className={`flex-1 py-2 text-sm font-medium ${activeTab === 'search' ? 'text-accent-text border-b-2 border-primary' : 'text-muted-foreground'}`}
                         onClick={() => setActiveTab('search')}
                     >
                         Find Token
                     </button>
                     <button
                         type="button"
-                        className={`flex-1 py-2 text-sm font-medium ${activeTab === 'details' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}
+                        className={`flex-1 py-2 text-sm font-medium ${activeTab === 'details' ? 'text-accent-text border-b-2 border-primary' : 'text-muted-foreground'}`}
                         onClick={() => setActiveTab('details')}
                         disabled={!selectedToken}
                     >
@@ -235,7 +235,7 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                             />
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         </div>
-                        <ScrollArea className="h-[35vh] sm:h-[40vh] md:h-[350px] border-0 md:border border-border/50 rounded-none md:rounded-xl bg-background/30 md:glass-card overflow-y-auto">
+                        <ScrollArea className="h-[35vh] sm:h-[40vh] md:h-[350px] border-0 md:border border-border/50 rounded-none md:rounded-xl bg-surface md:glass-card overflow-y-auto">
                             <div className="p-3 sm:p-4 space-y-1">
                                 {filteredTokens.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No tokens found.</p>}
                                 {filteredTokens.map((token: Token) => (
@@ -244,7 +244,7 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                         onClick={() => setSelectedToken(token)}
                                         className={`w-full p-3 rounded-lg transition-all duration-200 border-0 ${selectedToken?.id === token.id
                                             ? 'bg-primary/10 border-primary/30'
-                                            : 'bg-background/50 hover:bg-background/80'
+                                            : 'bg-surface hover:bg-background/80'
                                             }`}
                                         type="button"
                                     >
@@ -262,11 +262,11 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                                     <TooltipProvider delayDuration={100}>
                                                         <Tooltip>
                                                             <TooltipTrigger asChild>
-                                                                <div className="absolute -top-1 -right-1 bg-red-500 p-0.5 rounded-full shadow-md">
-                                                                    <Flame className="h-3 w-3 text-white" />
+                                                                <div className="absolute -top-1 -right-1 bg-danger p-0.5 rounded-full shadow-md">
+                                                                    <Flame className="h-3 w-3 text-ink" />
                                                                 </div>
                                                             </TooltipTrigger>
-                                                            <TooltipContent className="bg-background border-primary/30 shadow-xl rounded-md text-foreground p-2">
+                                                            <TooltipContent className="bg-surface border-primary/30 shadow-xl rounded-md text-foreground p-2">
                                                                 <p className="text-xs font-medium">Subnet Token</p>
                                                                 <p className="text-xs text-muted-foreground">This token operates on a subnet for enhanced performance.</p>
                                                             </TooltipContent>
@@ -279,7 +279,7 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                                 <div className="text-xs text-muted-foreground font-mono">{token.symbol}</div>
                                             </div>
                                             {selectedToken?.id === token.id && (
-                                                <TrendingUp className="h-4 w-4 text-primary flex-shrink-0" />
+                                                <TrendingUp className="h-4 w-4 text-accent-text flex-shrink-0" />
                                             )}
                                         </div>
                                     </button>
@@ -291,7 +291,7 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                     {/* Token Details Section - Hidden on mobile when search tab is active */}
                     <div className={`flex flex-col gap-3 sm:gap-4 overflow-auto ${activeTab === 'search' ? 'hidden md:flex' : 'flex'}`}>
                         {selectedToken ? (
-                            <div className="bg-background/30 md:glass-card p-4 md:p-5 flex flex-col gap-4 my-3 sm:my-4 md:my-2 border-0 md:border md:rounded-xl">
+                            <div className="bg-surface md:glass-card p-4 md:p-5 flex flex-col gap-4 my-3 sm:my-4 md:my-2 border-0 md:border md:rounded-xl">
                                 <div className="flex items-center gap-3">
                                     <div className="relative flex-shrink-0">
                                         <Image
@@ -306,11 +306,11 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                             <TooltipProvider delayDuration={100}>
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
-                                                        <div className="absolute -top-1 -right-1 bg-red-500 p-1 rounded-full shadow-md">
-                                                            <Flame className="h-3.5 w-3.5 text-white" />
+                                                        <div className="absolute -top-1 -right-1 bg-danger p-1 rounded-full shadow-md">
+                                                            <Flame className="h-3.5 w-3.5 text-ink" />
                                                         </div>
                                                     </TooltipTrigger>
-                                                    <TooltipContent className="bg-background border-primary/30 shadow-xl rounded-md text-foreground p-2">
+                                                    <TooltipContent className="bg-surface border-primary/30 shadow-xl rounded-md text-foreground p-2">
                                                         <p className="text-xs font-medium">Subnet Token</p>
                                                         <p className="text-xs text-muted-foreground">This token operates on a subnet for enhanced performance.</p>
                                                     </TooltipContent>
@@ -323,7 +323,7 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                     </div>
                                     <div className="min-w-0 flex-1">
                                         <h3 className="text-lg md:text-xl font-display font-semibold truncate">{selectedToken.name}</h3>
-                                        <p className="text-sm font-mono text-primary">{selectedToken.symbol}</p>
+                                        <p className="text-sm font-mono text-accent-text">{selectedToken.symbol}</p>
                                     </div>
                                     <div className="ml-auto md:hidden">
                                         <Button variant="ghost" size="icon" onClick={() => setActiveTab('search')}>
@@ -355,13 +355,13 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                             min="0"
                                         />
                                         {amountValidationMessage && (
-                                            <p className="text-xs text-red-500 mt-2">{amountValidationMessage}</p>
+                                            <p className="text-xs text-danger mt-2">{amountValidationMessage}</p>
                                         )}
                                     </div>
 
                                     <div className="text-xs text-muted-foreground bg-muted/20 p-3 rounded-lg">
                                         Available to commit: {' '}
-                                        <span className={`font-medium ${subnetBalanceLoading ? 'opacity-50' : 'text-primary'}`}>
+                                        <span className={`font-medium ${subnetBalanceLoading ? 'opacity-50' : 'text-accent-text'}`}>
                                             {subnetBalanceLoading ? 'Loading...' : `${formatBalance(subnetBalance, CHA_DECIMALS)} ${CHA_SYMBOL}`}
                                         </span>
                                     </div>
@@ -370,7 +370,7 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                 <div className="bg-muted/30 p-4 rounded-lg border border-border/20">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm font-medium">Your commitment:</span>
-                                        <span className="font-mono text-primary font-bold">{chaAmount || '0'} CHA</span>
+                                        <span className="font-mono text-accent-text font-bold">{chaAmount || '0'} CHA</span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-medium">Token:</span>
@@ -379,8 +379,8 @@ const PlaceBetModal = ({ isOpen, onClose, tokens }: PlaceBetModalProps) => {
                                 </div>
                             </div>
                         ) : (
-                            <div className="bg-background/20 md:glass-card flex flex-col items-center justify-center h-[40vh] md:h-full py-12 px-4 my-4 md:my-2 border-0 md:border md:rounded-xl">
-                                <div className="text-primary/30 mb-4">
+                            <div className="bg-surface md:glass-card flex flex-col items-center justify-center h-[40vh] md:h-full py-12 px-4 my-4 md:my-2 border-0 md:border md:rounded-xl">
+                                <div className="text-accent-text/30 mb-4">
                                     <Rocket size={48} />
                                 </div>
                                 <p className="text-muted-foreground text-center">Select a token from the list to commit CHA</p>

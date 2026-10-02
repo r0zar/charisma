@@ -353,8 +353,8 @@ export function BalanceValidationPanel({ status }: BalanceValidationPanelProps) 
                                 </div>
 
                                 <div className="border border-border p-4 rounded-md bg-card">
-                                    <h3 className="font-semibold text-primary">Total Valid CHA</h3>
-                                    <p className="text-2xl font-bold text-primary numeric">
+                                    <h3 className="font-semibold text-accent-text">Total Valid CHA</h3>
+                                    <p className="text-2xl font-bold text-accent-text numeric">
                                         {formatCHA(validationResults.stats?.validCHA || 0)}
                                     </p>
                                     <p className="text-sm text-muted-foreground numeric">

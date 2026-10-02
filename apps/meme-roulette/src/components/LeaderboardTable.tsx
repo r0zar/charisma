@@ -99,7 +99,7 @@ export function LeaderboardTable({ tokens, tokenBets, isLoading, chaPrice }: Lea
             <div className="glass-card p-8 text-center">
                 <div className="flex flex-col items-center justify-center gap-4">
                     <div className="rounded-full bg-muted/30 p-4 w-16 h-16 flex items-center justify-center animate-pulse-medium">
-                        <RefreshCw className="h-8 w-8 text-primary/60 animate-spin-slow" />
+                        <RefreshCw className="h-8 w-8 text-accent-text/60 animate-spin-slow" />
                     </div>
                     <div className="space-y-3">
                         <h3 className="text-xl font-display font-medium">Waiting for First Commitments</h3>
@@ -108,7 +108,7 @@ export function LeaderboardTable({ tokens, tokenBets, isLoading, chaPrice }: Lea
                         </p>
                         <div className="mt-6 flex justify-center">
                             <div className="bg-muted/30 px-6 py-4 rounded-lg border border-border/40 max-w-md">
-                                <p className="text-sm text-primary/90 font-display">
+                                <p className="text-sm text-accent-text/90 font-display">
                                     The token with the most committed CHA has the highest chance of being pumped in the group buy.
                                 </p>
                             </div>
@@ -124,7 +124,7 @@ export function LeaderboardTable({ tokens, tokenBets, isLoading, chaPrice }: Lea
             <div className="glass-card p-8 text-center">
                 <div className="flex flex-col items-center justify-center gap-4">
                     <div className="rounded-full bg-muted/30 p-4 w-16 h-16 flex items-center justify-center">
-                        <Trophy className="h-8 w-8 text-primary/60" />
+                        <Trophy className="h-8 w-8 text-accent-text/60" />
                     </div>
                     <div className="space-y-3">
                         <h3 className="text-xl font-display font-medium">No Commitments Yet</h3>
@@ -140,9 +140,9 @@ export function LeaderboardTable({ tokens, tokenBets, isLoading, chaPrice }: Lea
     // Medal colors based on ranking
     const getMedalColor = (index: number) => {
         switch (index) {
-            case 0: return "text-yellow-400"; // gold
-            case 1: return "text-gray-300";   // silver
-            case 2: return "text-amber-600";  // bronze
+            case 0: return "text-warning"; // gold
+            case 1: return "text-ink-body";   // silver
+            case 2: return "text-warning";  // bronze
             default: return "text-muted-foreground";
         }
     };
@@ -204,7 +204,7 @@ export function LeaderboardTable({ tokens, tokenBets, isLoading, chaPrice }: Lea
                                     </div>
                                 </TableCell>
 
-                                <TableCell className="text-right font-mono tabular-nums text-primary relative z-10 font-medium w-[120px]">
+                                <TableCell className="text-right font-mono tabular-nums text-accent-text relative z-10 font-medium w-[120px]">
                                     <div className="text-right">
                                         <div className="font-bold">{formatCHAAmount(item.totalBet)} CHA</div>
                                         {chaPrice && (

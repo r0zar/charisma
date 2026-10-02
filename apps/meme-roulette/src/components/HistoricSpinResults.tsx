@@ -59,7 +59,7 @@ const HistoricSpinResults = () => {
     if (error) {
         return (
             <div className="text-center py-8">
-                <div className="text-red-500 mb-4">
+                <div className="text-danger mb-4">
                     <Target className="h-8 w-8 mx-auto mb-2" />
                     <p>Failed to load historic results</p>
                     <p className="text-sm text-muted-foreground">{error}</p>
@@ -75,11 +75,11 @@ const HistoricSpinResults = () => {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="bg-background/50 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+            <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
                         <h2 className="text-base sm:text-lg font-semibold font-display flex items-center gap-2 mb-2">
-                            <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                            <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-accent-text" />
                             Historic Spin Results
                         </h2>
                         <p className="text-sm text-muted-foreground">
@@ -100,7 +100,7 @@ const HistoricSpinResults = () => {
             </div>
 
             {/* Results Table */}
-            <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+            <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
                 <div className="rounded-xl overflow-hidden">
                     <Table className="w-full">
                         <TableHeader className="bg-card">
@@ -180,17 +180,17 @@ const HistoricSpinResults = () => {
                                                                 />
                                                             ) : (
                                                                 <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                                                                    <span className="text-xs font-bold text-primary">
+                                                                    <span className="text-xs font-bold text-accent-text">
                                                                         {spin.winningTokenInfo.symbol?.[0] || '?'}
                                                                     </span>
                                                                 </div>
                                                             )}
                                                             <div className="min-w-0">
                                                                 <div className="font-medium truncate flex items-center gap-1">
-                                                                    <Trophy className="h-3 w-3 text-yellow-500" />
+                                                                    <Trophy className="h-3 w-3 text-warning" />
                                                                     {spin.winningTokenInfo.symbol}
                                                                     {spin.isATH && (
-                                                                        <Badge variant="outline" className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">
+                                                                        <Badge variant="outline" className="text-xs bg-accent/20 text-accent-text border-accent/30">
                                                                             <Flame className="h-2 w-2 mr-1" />
                                                                             ATH
                                                                         </Badge>
@@ -218,7 +218,7 @@ const HistoricSpinResults = () => {
                                                     decimals={CHA_DECIMALS}
                                                     symbol="CHA"
                                                     usdPrice={chaPrice}
-                                                    className="text-primary"
+                                                    className="text-accent-text"
                                                     size="sm"
                                                     showUsdInTooltip={true}
                                                 />
@@ -231,7 +231,7 @@ const HistoricSpinResults = () => {
                                                 </div>
                                             </TableCell>
 
-                                            <TableCell className="text-center font-mono text-blue-400 hidden md:table-cell">
+                                            <TableCell className="text-center font-mono text-accent-text hidden md:table-cell">
                                                 <div className="flex items-center justify-center gap-1">
                                                     <TrendingUp className="h-3 w-3" />
                                                     {spin.totalVotes}
@@ -319,7 +319,7 @@ const HistoricSpinResults = () => {
                     </div>
                     <div className="flex items-center gap-1">
                         <span>Powered by</span>
-                        <span className="font-bold text-primary">Charisma</span>
+                        <span className="font-bold text-accent-text">Charisma</span>
                     </div>
                 </div>
             </div>

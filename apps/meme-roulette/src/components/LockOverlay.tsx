@@ -23,7 +23,7 @@ const LockOverlay = ({ timeLeft }: LockOverlayProps) => {
             transition={{ type: "spring", damping: 20, stiffness: 100 }}
         >
             <motion.div
-                className="bg-gradient-to-r from-yellow-500/90 via-orange-500/90 to-amber-500/90 backdrop-blur-sm p-3 shadow-lg border-b border-yellow-400"
+                className="bg-gradient-to-r from-warning/90 via-accent/90 to-warning/90 backdrop-blur-sm p-3 shadow-lg border-b border-warning"
                 animate={{
                     boxShadow: ["0 4px 20px rgba(234, 179, 8, 0.3)", "0 4px 30px rgba(234, 179, 8, 0.6)", "0 4px 20px rgba(234, 179, 8, 0.3)"]
                 }}
@@ -39,24 +39,24 @@ const LockOverlay = ({ timeLeft }: LockOverlayProps) => {
                             transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
                             className="mr-3"
                         >
-                            <Lock className="h-6 w-6 text-white" strokeWidth={1.5} />
+                            <Lock className="h-6 w-6 text-ink" strokeWidth={1.5} />
                         </motion.div>
-                        <h2 className="text-xl font-bold text-white font-display">Entries Locked!</h2>
+                        <h2 className="text-xl font-bold text-ink font-display">Entries Locked!</h2>
                     </div>
 
                     <div className="flex items-center gap-3">
                         <div className="flex items-center mr-3">
-                            <Clock className="h-5 w-5 text-white mr-2" />
-                            <span className="text-xl font-mono text-white font-bold">{formatTime()}</span>
+                            <Clock className="h-5 w-5 text-ink mr-2" />
+                            <span className="text-xl font-mono text-ink font-bold">{formatTime()}</span>
                         </div>
 
                         <motion.div
                             animate={{ scale: [1, 1.1, 1] }}
                             transition={{ duration: 1.5, repeat: Infinity }}
-                            className="hidden md:flex items-center gap-2 bg-black/20 px-4 py-2 rounded-full"
+                            className="hidden md:flex items-center gap-2 bg-surface-sunken px-4 py-2 rounded-full"
                         >
-                            <Rocket className="h-5 w-5 text-white" />
-                            <span className="text-white font-semibold font-display">Pump Incoming!</span>
+                            <Rocket className="h-5 w-5 text-ink" />
+                            <span className="text-ink font-semibold font-display">Pump Incoming!</span>
                         </motion.div>
                     </div>
                 </div>
@@ -64,7 +64,7 @@ const LockOverlay = ({ timeLeft }: LockOverlayProps) => {
 
             {/* Exciting pulse effect across screen */}
             <motion.div
-                className="h-1 bg-yellow-400 w-full"
+                className="h-1 bg-warning w-full"
                 initial={{ scaleX: 0, opacity: 0 }}
                 animate={{
                     scaleX: [0, 1, 0],

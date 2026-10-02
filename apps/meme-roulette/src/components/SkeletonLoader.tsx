@@ -7,7 +7,7 @@ interface SkeletonProps {
 
 const SkeletonLoader = ({ type, count = 1 }: SkeletonProps) => {
     const Shimmer = () => (
-        <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-gray-300/30 dark:via-gray-600/30 to-transparent"></div>
+        <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-surface-hover to-transparent"></div>
     );
 
     const renderSkeletons = () => {

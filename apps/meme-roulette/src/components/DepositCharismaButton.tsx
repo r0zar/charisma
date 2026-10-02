@@ -180,11 +180,11 @@ export function DepositCharismaButton({
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <Button className={className} variant={variant} size={size} {...buttonProps}>{buttonLabel}</Button>
-            </DialogTrigger>
+ </DialogTrigger>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <Rocket className="h-5 w-5 text-primary" /> Deposit Mainnet CHA
+                        <Rocket className="h-5 w-5 text-accent-text" /> Deposit Mainnet CHA
                     </DialogTitle>
                     <DialogDescription>
                         Enter the amount of mainnet CHA you want to deposit.
@@ -202,7 +202,7 @@ export function DepositCharismaButton({
                                     const maxAmount = formatBalance(mainnetBalance);
                                     form.setValue('amount', maxAmount);
                                 }}
-                                className="text-xs text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="text-xs text-accent-text hover:text-accent-text/80 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Max
                             </button>

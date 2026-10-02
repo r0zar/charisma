@@ -74,7 +74,7 @@ export function GameStateVisualization({ status }: GameStateVisualizationProps) 
             case 'locked':
                 return { label: '🔒 Voting Locked', color: 'text-warning', bg: 'bg-warning/10' };
             case 'spinning':
-                return { label: '🎰 Spinning', color: 'text-primary', bg: 'bg-primary/10' };
+                return { label: '🎰 Spinning', color: 'text-accent-text', bg: 'bg-primary/10' };
             case 'complete':
                 return { label: '✅ Complete', color: 'text-muted-foreground', bg: 'bg-muted/10' };
             default:
@@ -114,7 +114,7 @@ export function GameStateVisualization({ status }: GameStateVisualizationProps) 
                                 <Clock className="h-4 w-4" />
                                 Time Remaining
                             </h4>
-                            <p className="text-2xl font-mono numeric font-bold text-primary">
+                            <p className="text-2xl font-mono numeric font-bold text-accent-text">
                                 {getTimeRemaining()}
                             </p>
                             <p className="text-sm text-muted-foreground mt-1">
@@ -139,18 +139,18 @@ export function GameStateVisualization({ status }: GameStateVisualizationProps) 
                     {/* Round Statistics */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="border border-border p-4 rounded-lg bg-card text-center">
-                            <TrendingUp className="h-6 w-6 text-primary mx-auto mb-2" />
+                            <TrendingUp className="h-6 w-6 text-accent-text mx-auto mb-2" />
                             <h4 className="font-semibold mb-1">Total CHA</h4>
-                            <p className="text-xl font-bold numeric text-primary">
+                            <p className="text-xl font-bold numeric text-accent-text">
                                 {formatCHA(getTotalBets())}
                             </p>
                             <p className="text-xs text-muted-foreground">committed this round</p>
                         </div>
 
                         <div className="border border-border p-4 rounded-lg bg-card text-center">
-                            <Users className="h-6 w-6 text-secondary mx-auto mb-2" />
+                            <Users className="h-6 w-6 text-accent-text mx-auto mb-2" />
                             <h4 className="font-semibold mb-1">Active Users</h4>
-                            <p className="text-xl font-bold text-secondary">
+                            <p className="text-xl font-bold text-accent-text">
                                 {getUserCount()}
                             </p>
                             <p className="text-xs text-muted-foreground">have placed votes</p>
@@ -170,7 +170,7 @@ export function GameStateVisualization({ status }: GameStateVisualizationProps) 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="border border-border p-4 rounded-lg bg-card">
                             <h4 className="font-semibold mb-2">Round Duration</h4>
-                            <p className="text-lg font-bold text-primary">
+                            <p className="text-lg font-bold text-accent-text">
                                 {status?.roundDuration?.duration
                                     ? `${Math.round(status.roundDuration.duration / 60000)} minutes`
                                     : 'Not set'

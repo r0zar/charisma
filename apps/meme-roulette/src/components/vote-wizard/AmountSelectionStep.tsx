@@ -89,8 +89,8 @@ export const AmountSelectionStep = ({
                                     ${isSelected
                                         ? 'border-primary bg-primary text-primary-foreground ring-2 ring-primary/20'
                                         : canAfford
-                                            ? 'border-border/30 hover:border-primary/50 bg-background hover:bg-muted/50 cursor-pointer'
-                                            : 'border-border/20 opacity-50 cursor-not-allowed bg-background'
+                                            ? 'border-border/30 hover:border-primary/50 bg-surface hover:bg-muted/50 cursor-pointer'
+                                            : 'border-border/20 opacity-50 cursor-not-allowed bg-surface'
                                     }
                                 `}
                             >
@@ -104,7 +104,7 @@ export const AmountSelectionStep = ({
                 </div>
 
                 <div className="text-center text-sm text-muted-foreground">
-                    Balance: <span className="font-medium text-primary">{availableBalance} CHA</span>
+                    Balance: <span className="font-medium text-accent-text">{availableBalance} CHA</span>
                 </div>
             </div>
 

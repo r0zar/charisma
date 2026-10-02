@@ -42,39 +42,39 @@ const SpinCountdown = ({ timeLeft, totalTime, label = "Time until next round" }:
         switch (urgencyLevel) {
             case 'extreme':
                 return {
-                    progressColor: '#dc2626', // red-600 - even more intense
-                    glowColor: 'rgba(220, 38, 38, 0.8)', // Maximum glow intensity
-                    textColor: 'text-red-600',
-                    bgColor: 'bg-red-600/30', // Very intense background
-                    borderColor: 'border-red-600/80', // Very strong border
+                    progressColor: 'var(--danger)',
+                    glowColor: 'color-mix(in srgb, var(--danger) 80%, transparent)',
+                    textColor: 'text-danger',
+                    bgColor: 'bg-danger/30', // Very intense background
+                    borderColor: 'border-danger/80', // Very strong border
                     icon: AlertTriangle,
-                    pulseClass: 'animate-pulse-fast ring-4 ring-red-600/50 shadow-2xl shadow-red-600/60' // Maximum effects
+                    pulseClass: 'animate-pulse-fast ring-4 ring-danger/50 shadow-2xl shadow-danger/60' // Maximum effects
                 };
             case 'critical':
                 return {
-                    progressColor: '#ef4444', // red-500
-                    glowColor: 'rgba(239, 68, 68, 0.4)', // Moderate glow
-                    textColor: 'text-red-500',
-                    bgColor: 'bg-red-500/15', // Less intense background
-                    borderColor: 'border-red-500/40', // Moderate border
+                    progressColor: 'var(--danger)',
+                    glowColor: 'color-mix(in srgb, var(--danger) 40%, transparent)',
+                    textColor: 'text-danger',
+                    bgColor: 'bg-danger/15', // Less intense background
+                    borderColor: 'border-danger/40', // Moderate border
                     icon: AlertTriangle,
                     pulseClass: 'animate-pulse-medium' // Less aggressive pulse
                 };
             case 'warning':
                 return {
-                    progressColor: '#f59e0b', // amber-500
-                    glowColor: 'rgba(245, 158, 11, 0.3)',
-                    textColor: 'text-amber-500',
-                    bgColor: 'bg-amber-500/10',
-                    borderColor: 'border-amber-500/30',
+                    progressColor: 'var(--warning)',
+                    glowColor: 'color-mix(in srgb, var(--warning) 30%, transparent)',
+                    textColor: 'text-warning',
+                    bgColor: 'bg-warning/10',
+                    borderColor: 'border-warning/30',
                     icon: Clock,
                     pulseClass: 'animate-pulse-medium'
                 };
             default:
                 return {
-                    progressColor: '#10b981', // emerald-500
-                    glowColor: 'rgba(16, 185, 129, 0.2)',
-                    textColor: 'text-primary',
+                    progressColor: 'var(--accent)',
+                    glowColor: 'color-mix(in srgb, var(--accent) 20%, transparent)',
+                    textColor: 'text-accent-text',
                     bgColor: 'bg-primary/5',
                     borderColor: 'border-primary/20',
                     icon: Zap,
@@ -161,7 +161,7 @@ const SpinCountdown = ({ timeLeft, totalTime, label = "Time until next round" }:
                                 className={`h-full rounded-full transition-all duration-1000 ease-out relative ${urgencyLevel === 'extreme' ? 'animate-pulse-fast' : ''}`}
                                 style={{
                                     width: `${elapsedProgress * 100}%`,
-                                    background: `linear-gradient(90deg, ${progressColor}, ${progressColor}cc)`,
+                                    background: `linear-gradient(90deg, ${progressColor}, color-mix(in srgb, ${progressColor} 80%, transparent))`,
                                     boxShadow: urgencyLevel === 'extreme'
                                         ? `0 0 30px ${glowColor}, 0 0 60px ${glowColor}` // Much stronger glow for extreme
                                         : `0 0 12px ${glowColor}`
@@ -200,13 +200,13 @@ const SpinCountdown = ({ timeLeft, totalTime, label = "Time until next round" }:
 
             {/* Urgent Messages */}
             {urgencyLevel === 'extreme' && totalSeconds > 0 && (
-                <div className="mt-4 bg-gradient-to-r from-red-600/40 via-red-700/50 to-red-600/40 border-2 border-red-600/80 rounded-lg p-4 animate-pulse-fast ring-2 ring-red-600/60">
-                    <div className="flex items-center justify-center gap-3 text-red-600 text-base md:text-lg font-bold">
+                <div className="mt-4 bg-gradient-to-r from-danger/40 via-danger/50 to-danger/40 border-2 border-danger/80 rounded-lg p-4 animate-pulse-fast ring-2 ring-danger/60">
+                    <div className="flex items-center justify-center gap-3 text-danger text-base md:text-lg font-bold">
                         <AlertTriangle className="h-6 w-6 animate-bounce" />
                         <span className="text-center animate-pulse-fast">🚨 FINAL MINUTES TO VOTE! 🚨</span>
                         <AlertTriangle className="h-6 w-6 animate-bounce" />
                     </div>
-                    <div className="text-center text-red-500 text-sm font-medium mt-2 animate-pulse">
+                    <div className="text-center text-danger text-sm font-medium mt-2 animate-pulse">
                         VOTING LOCKS IN {Math.floor(totalSeconds / 60)} MINUTES!
                     </div>
                 </div>
@@ -214,8 +214,8 @@ const SpinCountdown = ({ timeLeft, totalTime, label = "Time until next round" }:
 
             {/* Critical warning for last hour (less intense) */}
             {urgencyLevel === 'critical' && totalSeconds > 0 && (
-                <div className="mt-4 bg-gradient-to-r from-red-500/20 via-red-500/30 to-red-500/20 border border-red-500/50 rounded-lg p-3">
-                    <div className="flex items-center justify-center gap-2 text-red-500 text-sm font-medium">
+                <div className="mt-4 bg-gradient-to-r from-danger/20 via-danger/30 to-danger/20 border border-danger/50 rounded-lg p-3">
+                    <div className="flex items-center justify-center gap-2 text-danger text-sm font-medium">
                         <AlertTriangle className="h-4 w-4" />
                         <span>Less than an hour remaining - make your final votes!</span>
                     </div>

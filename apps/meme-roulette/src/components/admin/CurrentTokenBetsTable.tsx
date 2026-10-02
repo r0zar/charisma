@@ -68,11 +68,11 @@ export function CurrentTokenBetsTable({ status }: CurrentTokenBetsTableProps) {
     const getTokenBadgeColor = (type: string) => {
         switch (type?.toUpperCase()) {
             case 'SIP10':
-                return 'bg-blue-500/10 text-blue-500 border-blue-500/20';
+                return 'bg-accent/10 text-accent-text border-accent/20';
             case 'SUBNET':
-                return 'bg-purple-500/10 text-purple-500 border-purple-500/20';
+                return 'bg-blaze/10 text-blaze border-blaze/20';
             case 'MEMECOIN':
-                return 'bg-orange-500/10 text-orange-500 border-orange-500/20';
+                return 'bg-accent/10 text-accent-text border-accent/20';
             default:
                 return 'bg-muted/10 text-muted-foreground border-border';
         }
@@ -138,9 +138,9 @@ export function CurrentTokenBetsTable({ status }: CurrentTokenBetsTableProps) {
                                         <TableCell className="text-center">
                                             <div className="flex items-center justify-center">
                                                 {isTopToken && (
-                                                    <Trophy className="h-4 w-4 text-primary mr-1" />
+                                                    <Trophy className="h-4 w-4 text-accent-text mr-1" />
                                                 )}
-                                                <span className={`font-bold ${isTopToken ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                <span className={`font-bold ${isTopToken ? 'text-accent-text' : 'text-muted-foreground'}`}>
                                                     #{index + 1}
                                                 </span>
                                             </div>
@@ -183,7 +183,7 @@ export function CurrentTokenBetsTable({ status }: CurrentTokenBetsTableProps) {
 
                                         <TableCell className="text-right">
                                             <div className="space-y-1">
-                                                <div className={`font-bold numeric ${isTopToken ? 'text-primary' : 'text-foreground'}`}>
+                                                <div className={`font-bold numeric ${isTopToken ? 'text-accent-text' : 'text-foreground'}`}>
                                                     {formatCHA(item.amount)} CHA
                                                 </div>
                                                 {chaPrice && (
@@ -196,7 +196,7 @@ export function CurrentTokenBetsTable({ status }: CurrentTokenBetsTableProps) {
 
                                         <TableCell className="text-right">
                                             <div className="space-y-2">
-                                                <div className={`font-bold numeric ${isTopToken ? 'text-primary' : 'text-muted-foreground'}`}>
+                                                <div className={`font-bold numeric ${isTopToken ? 'text-accent-text' : 'text-muted-foreground'}`}>
                                                     {percentage.toFixed(1)}%
                                                 </div>
                                                 <div className="bg-muted/30 h-2 rounded-full overflow-hidden">
@@ -210,7 +210,7 @@ export function CurrentTokenBetsTable({ status }: CurrentTokenBetsTableProps) {
 
                                         <TableCell className="text-center">
                                             <Badge variant="outline" className={getTokenBadgeColor(item.type)}>
-                                                {item.type || 'UNKNOWN'}
+ {item.type || 'UNKNOWN'}
                                             </Badge>
                                         </TableCell>
                                     </TableRow>

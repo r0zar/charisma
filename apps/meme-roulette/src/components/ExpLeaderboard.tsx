@@ -50,9 +50,9 @@ const LeaderboardComponent = () => {
 
   const getMedalColor = (rank: number) => {
     switch (rank) {
-      case 1: return "text-yellow-400";
-      case 2: return "text-gray-300";
-      case 3: return "text-amber-600";
+      case 1: return "text-warning";
+      case 2: return "text-ink-body";
+      case 3: return "text-warning";
       default: return "text-muted-foreground";
     }
   };
@@ -71,11 +71,11 @@ const LeaderboardComponent = () => {
   return (
     <div className="flex flex-col gap-0 md:gap-6 mb-0 md:mb-8">
       {/* Main Header */}
-      <div className="bg-background/50 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+      <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-base sm:text-lg font-semibold font-display flex items-center gap-2 mb-2">
-              <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-accent-text" />
               Meme Roulette Analytics
             </h1>
             <p className="text-sm text-muted-foreground">Live leaderboards and complete historic results</p>
@@ -85,7 +85,7 @@ const LeaderboardComponent = () => {
 
       {/* Tabs */}
       <Tabs defaultValue="leaderboard" className="w-full">
-        <div className="bg-background/40 md:glass-card px-4 py-4 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+        <div className="bg-surface md:glass-card px-4 py-4 md:p-6 border-b border-border/20 md:border md:rounded-xl">
           <TabsList className="flex w-full flex-nowrap overflow-x-auto bg-muted/20 gap-1 no-scrollbar">
             <TabsTrigger value="leaderboard" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground min-w-[140px] sm:min-w-[160px] px-3 py-2 sm:text-base text-sm">
               <Trophy className="h-4 w-4 mr-2" />
@@ -108,18 +108,18 @@ const LeaderboardComponent = () => {
         <TabsContent value="leaderboard" className="mt-0">
           <div className="flex flex-col gap-0 md:gap-6 mb-0 md:mb-8">
             {/* Header Section */}
-            <div className="bg-background/50 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+            <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <h1 className="text-base sm:text-lg font-semibold font-display flex items-center gap-2 mb-2">
-                    <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                    <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-accent-text" />
                     Player Leaderboard
                   </h1>
                   <p className="text-sm text-muted-foreground">Top players ranked by their meme roulette activity</p>
                 </div>
                 <div className="flex items-center gap-3 text-xs">
                   <div className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2 border border-border/20">
-                    <div className="bg-green-500 w-2 h-2 rounded-full animate-pulse"></div>
+                    <div className="bg-success w-2 h-2 rounded-full animate-pulse"></div>
                     <Users className="h-3 w-3 text-muted-foreground" />
                     <span className="text-muted-foreground">{leaderboardData?.totalUsers || 0} Active</span>
                   </div>
@@ -132,7 +132,7 @@ const LeaderboardComponent = () => {
             </div>
 
             {/* Search and Filters */}
-            <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+            <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="relative w-full md:w-64">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -161,7 +161,7 @@ const LeaderboardComponent = () => {
             </div>
 
             {/* Leaderboard Table */}
-            <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+            <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
               <div className="rounded-xl overflow-hidden">
                 <Table className="w-full">
                   <TableHeader className="bg-card">
@@ -209,7 +209,7 @@ const LeaderboardComponent = () => {
                           <TableCell className="text-right hidden xl:table-cell">
                             <div className="w-12 h-4 bg-muted/30 rounded animate-pulse ml-auto" />
                           </TableCell>
-                          <TableCell className="text-right font-mono text-purple-500 hidden md:table-cell">
+                          <TableCell className="text-right font-mono text-blaze hidden md:table-cell">
                             <div className="w-12 h-4 bg-muted/30 rounded animate-pulse ml-auto" />
                           </TableCell>
                           <TableCell className="hidden sm:table-cell">
@@ -249,7 +249,7 @@ const LeaderboardComponent = () => {
                                 <div className="font-medium font-display truncate flex items-center gap-2">
                                   {entry.displayName}
                                   {isCurrentUser && (
-                                    <Badge variant="outline" className="text-xs bg-primary/20 text-primary border-primary/30">
+                                    <Badge variant="outline" className="text-xs bg-primary/20 text-accent-text border-primary/30">
                                       You
                                     </Badge>
                                   )}
@@ -275,13 +275,13 @@ const LeaderboardComponent = () => {
                             </div>
                           </TableCell>
 
-                          <TableCell className="text-right font-mono tabular-nums text-primary relative z-10 font-medium">
+                          <TableCell className="text-right font-mono tabular-nums text-accent-text relative z-10 font-medium">
                             <TokenAmountDisplay
                               amount={entry.score}
                               decimals={CHA_DECIMALS}
                               symbol="CHA"
                               usdPrice={chaPrice}
-                              className="text-primary"
+                              className="text-accent-text"
                               size="sm"
                               showUsdInTooltip={true}
                             />
@@ -291,52 +291,52 @@ const LeaderboardComponent = () => {
                             {entry.stats.totalVotes.toLocaleString()}
                           </TableCell>
 
-                          <TableCell className="text-right font-mono text-blue-400 hidden md:table-cell">
+                          <TableCell className="text-right font-mono text-accent-text hidden md:table-cell">
                             <TokenAmountDisplay
                               amount={entry.stats.averageVoteSize}
                               decimals={CHA_DECIMALS}
                               symbol="CHA"
                               usdPrice={chaPrice}
-                              className="text-blue-400"
+                              className="text-accent-text"
                               size="sm"
                               showUsdInTooltip={true}
                             />
                           </TableCell>
 
-                          <TableCell className="text-right font-mono text-green-400 hidden lg:table-cell">
+                          <TableCell className="text-right font-mono text-success hidden lg:table-cell">
                             <TokenAmountDisplay
                               amount={entry.stats.biggestVote}
                               decimals={CHA_DECIMALS}
                               symbol="CHA"
                               usdPrice={chaPrice}
-                              className="text-green-400"
+                              className="text-success"
                               size="sm"
                               showUsdInTooltip={true}
                             />
                           </TableCell>
 
-                          <TableCell className="text-right font-mono text-amber-400 hidden xl:table-cell">
+                          <TableCell className="text-right font-mono text-warning hidden xl:table-cell">
                             {winRate.toFixed(1)}%
                           </TableCell>
 
-                          <TableCell className="text-right font-mono text-purple-500 hidden md:table-cell">
+                          <TableCell className="text-right font-mono text-blaze hidden md:table-cell">
                             {typeof entry.referralCount === 'number' ? entry.referralCount : 0}
                           </TableCell>
 
                           <TableCell className="hidden sm:table-cell">
                             <div className="flex flex-wrap gap-1">
                               {entry.stats.lastActivityTime > Date.now() - (24 * 60 * 60 * 1000) && (
-                                <Badge variant="outline" className="text-xs bg-primary/20 text-primary border-primary/30">
+                                <Badge variant="outline" className="text-xs bg-primary/20 text-accent-text border-primary/30">
                                   Active
                                 </Badge>
                               )}
                               {entry.stats.biggestVote >= 100 * (10 ** CHA_DECIMALS) && (
-                                <Badge variant="outline" className="text-xs bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
+                                <Badge variant="outline" className="text-xs bg-warning/20 text-warning border-warning/30">
                                   Whale
                                 </Badge>
                               )}
                               {entry.stats.currentStreak >= 5 && (
-                                <Badge variant="outline" className="text-xs bg-orange-500/20 text-orange-400 border-orange-500/30">
+                                <Badge variant="outline" className="text-xs bg-accent/20 text-accent-text border-accent/30">
                                   Streak
                                 </Badge>
                               )}
@@ -358,7 +358,7 @@ const LeaderboardComponent = () => {
                 {/* Coming Soon Features */}
                 <div className="mt-6 p-4 bg-muted/10 border border-border/20 rounded-lg">
                   <h3 className="font-medium font-display mb-2 flex items-center gap-2">
-                    <Zap className="h-4 w-4 text-primary" />
+                    <Zap className="h-4 w-4 text-accent-text" />
                     Coming Soon Features
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
@@ -367,7 +367,7 @@ const LeaderboardComponent = () => {
                       <span>XP & Level System</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs bg-green-500/20 text-green-400 border-green-500/30">Live</Badge>
+                      <Badge variant="outline" className="text-xs bg-success/20 text-success border-success/30">Live</Badge>
                       <span>Achievement Badges</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -389,7 +389,7 @@ const LeaderboardComponent = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <span>Powered by</span>
-                  <span className="font-bold text-primary">Charisma</span>
+                  <span className="font-bold text-accent-text">Charisma</span>
                 </div>
               </div>
             </div>

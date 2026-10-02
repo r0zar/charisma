@@ -125,13 +125,13 @@ export const TokenSelectionStep = ({
         >
             {/* Hot/Trending badges */}
             {token.isHot && (
-                <div className="absolute -top-2 -right-2 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                <div className="absolute -top-2 -right-2 bg-accent text-on-accent px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                     <Flame className="h-3 w-3" />
                     HOT
                 </div>
             )}
             {token.isTrending && !token.isHot && (
-                <div className="absolute -top-2 -right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                <div className="absolute -top-2 -right-2 bg-success-fill text-on-fill px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                     <TrendingUp className="h-3 w-3" />
                     TRENDING
                 </div>
@@ -150,13 +150,13 @@ export const TokenSelectionStep = ({
                     <div className="font-semibold truncate">{token.name}</div>
                     <div className="text-sm text-muted-foreground font-mono">{token.symbol}</div>
                     {token.currentVotes > 0 && (
-                        <div className="flex items-center gap-1 text-xs text-primary mt-1">
+                        <div className="flex items-center gap-1 text-xs text-accent-text mt-1">
                             <Users className="h-3 w-3" />
                             {formatBalance(token.currentVotes.toString(), CHA_DECIMALS)} CHA voted
                         </div>
                     )}
                 </div>
-                {isSelected && <Crown className="h-5 w-5 text-primary" />}
+                {isSelected && <Crown className="h-5 w-5 text-accent-text" />}
             </div>
         </button>
     );
@@ -223,12 +223,12 @@ export const TokenSelectionStep = ({
                                         >
                                             {/* Hot/Trending badges */}
                                             {token.isHot && (
-                                                <div className="absolute -top-1 -right-1 bg-orange-500 text-white px-1 py-0.5 rounded-full text-xs font-bold flex items-center gap-1">
+                                                <div className="absolute -top-1 -right-1 bg-accent text-on-accent px-1 py-0.5 rounded-full text-xs font-bold flex items-center gap-1">
                                                     <Flame className="h-2 w-2" />
                                                 </div>
                                             )}
                                             {token.isTrending && !token.isHot && (
-                                                <div className="absolute -top-1 -right-1 bg-green-500 text-white px-1 py-0.5 rounded-full text-xs font-bold flex items-center gap-1">
+                                                <div className="absolute -top-1 -right-1 bg-success-fill text-on-fill px-1 py-0.5 rounded-full text-xs font-bold flex items-center gap-1">
                                                     <TrendingUp className="h-2 w-2" />
                                                 </div>
                                             )}
@@ -246,13 +246,13 @@ export const TokenSelectionStep = ({
                                                     <div className="font-semibold text-xs sm:text-sm truncate">{token.name}</div>
                                                     <div className="text-xs text-muted-foreground font-mono">{token.symbol}</div>
                                                     {token.currentVotes > 0 && (
-                                                        <div className="flex items-center justify-center gap-1 text-xs text-primary mt-1">
+                                                        <div className="flex items-center justify-center gap-1 text-xs text-accent-text mt-1">
                                                             <Users className="h-2 w-2" />
                                                             <span className="hidden sm:inline">{formatBalance(token.currentVotes.toString(), CHA_DECIMALS)}</span>
                                                         </div>
                                                     )}
                                                 </div>
-                                                {selectedToken?.id === token.id && <Crown className="h-2 w-2 sm:h-3 sm:w-3 text-primary" />}
+                                                {selectedToken?.id === token.id && <Crown className="h-2 w-2 sm:h-3 sm:w-3 text-accent-text" />}
                                             </div>
                                         </div>
                                     ))}

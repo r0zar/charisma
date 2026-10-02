@@ -184,9 +184,9 @@ export default function HubPage() {
   const renderMyBetsSection = () => {
     if (!hasMounted || (isFeedLoading && myBets?.length === 0)) {
       return (
-        <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+        <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
           <h2 className="text-base sm:text-lg font-semibold font-display mb-3 sm:mb-4 flex items-center gap-2">
-            <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-accent-text" />
             My Votes
           </h2>
           <SkeletonLoader type="generic" count={2} />
@@ -196,9 +196,9 @@ export default function HubPage() {
 
     if (!myBets || myBets.length === 0) {
       return (
-        <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+        <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
           <h2 className="text-base sm:text-lg font-semibold font-display mb-3 sm:mb-4 flex items-center gap-2">
-            <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-accent-text" />
             My Votes
           </h2>
           <div className="bg-muted/10 border border-border/20 p-6 sm:p-8 rounded-xl text-center">
@@ -221,10 +221,10 @@ export default function HubPage() {
     const sortedBets = [...myBets].sort((a, b) => b.voteTime - a.voteTime);
 
     return (
-      <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+      <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <h2 className="text-base sm:text-lg font-semibold font-display flex items-center gap-2">
-            <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            <HandCoins className="h-4 w-4 sm:h-5 sm:w-5 text-accent-text" />
             My Votes
           </h2>
           {myBets && myBets.length > 0 && (
@@ -289,7 +289,7 @@ export default function HubPage() {
                           decimals={CHA_DECIMALS}
                           symbol="CHA"
                           usdPrice={chaPrice}
-                          className="font-medium text-primary"
+                          className="font-medium text-accent-text"
                           size="sm"
                           showUsdInTooltip={true}
                         />
@@ -364,9 +364,9 @@ export default function HubPage() {
 
         {/* Multi-Stage Spin Displays */}
         {currentSpinPhase === 'starting' && (
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
+          <div className="fixed inset-0 bg-overlay backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
             <div className="bg-card/95 backdrop-blur-lg border border-border rounded-xl p-8 max-w-md w-full text-center">
-              <h2 className="text-2xl font-bold font-display mb-4 text-primary">
+              <h2 className="text-2xl font-bold font-display mb-4 text-accent-text">
                 🎰 Spin Starting!
               </h2>
               <p className="text-muted-foreground mb-6">
@@ -374,7 +374,7 @@ export default function HubPage() {
               </p>
               <div className="flex items-center justify-center gap-2">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                <span className="text-primary font-semibold">Processing...</span>
+                <span className="text-accent-text font-semibold">Processing...</span>
               </div>
             </div>
           </div>
@@ -397,9 +397,9 @@ export default function HubPage() {
         )}
 
         {currentSpinPhase === 'spinning' && (
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
+          <div className="fixed inset-0 bg-overlay backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
             <div className="bg-card/95 backdrop-blur-lg border border-border rounded-xl p-8 max-w-md w-full text-center">
-              <h2 className="text-2xl font-bold font-display mb-4 text-primary">
+              <h2 className="text-2xl font-bold font-display mb-4 text-accent-text">
                 🎲 Spinning...
               </h2>
               <p className="text-muted-foreground mb-6">
@@ -407,7 +407,7 @@ export default function HubPage() {
               </p>
               <div className="flex items-center justify-center gap-2">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <span className="text-primary font-semibold">Selecting Winner...</span>
+                <span className="text-accent-text font-semibold">Selecting Winner...</span>
               </div>
             </div>
           </div>
@@ -436,12 +436,12 @@ export default function HubPage() {
 
         <div className={`flex flex-col gap-0 md:gap-6 mb-0 md:mb-8 ${currentSpinPhase !== 'idle' ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
           {/* Combined Status Section - Full width, better balanced layout */}
-          <div className="bg-background/50 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
+          <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Countdown Section */}
               <div className="lg:col-span-2">
                 <h2 className="text-base sm:text-lg font-semibold mb-4 font-display flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-accent-text" />
                   Next Mass Buy In
                 </h2>
                 <SpinCountdown
@@ -455,19 +455,19 @@ export default function HubPage() {
               <div className="lg:col-span-1 flex flex-col justify-between">
                 <div>
                   <h2 className="text-base sm:text-lg font-semibold mb-3 font-display flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                    <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-accent-text" />
                     Funds Raised
                   </h2>
 
                   {/* Current Amount */}
                   <div className="text-center lg:text-left mb-4">
-                    <div className="text-3xl sm:text-4xl lg:text-5xl font-bold font-display text-primary mb-1 numeric" aria-live="polite">
+                    <div className="text-3xl sm:text-4xl lg:text-5xl font-bold font-display text-accent-text mb-1 numeric" aria-live="polite">
                       <TokenAmountDisplay
                         amount={totalBetSum}
                         decimals={CHA_DECIMALS}
                         symbol="CHA"
                         usdPrice={chaPrice}
-                        className="text-primary"
+                        className="text-accent-text"
                         size="lg"
                         showUsd={true}
                       />
@@ -529,7 +529,7 @@ export default function HubPage() {
 
         {/* Action Section */}
         {currentSpinPhase === 'idle' && (
-          <div className="bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl mb-0 md:mb-8">
+          <div className="bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl mb-0 md:mb-8">
             <div className="max-w-md mx-auto">
               <Button
                 size="lg"
@@ -545,9 +545,9 @@ export default function HubPage() {
         )}
 
         {/* Leaderboard Section */}
-        <div className={`bg-background/40 md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl md:mb-6 ${currentSpinPhase !== 'idle' ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
+        <div className={`bg-surface md:glass-card px-4 py-6 md:p-6 border-b border-border/20 md:border md:rounded-xl md:mb-6 ${currentSpinPhase !== 'idle' ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-300`}>
           <h2 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 font-display flex items-center gap-2">
-            <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-accent-text" />
             Token Leaderboard
           </h2>
           <LeaderboardTable

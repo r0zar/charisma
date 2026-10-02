@@ -77,17 +77,17 @@ const showVoteNotification = (amount: number, token: Token, userId: string) => {
                 {amount >= 50 ? (
                     <>
                         <div className="animate-shake font-bold">
-                            <span className="text-lg uppercase text-green-500">MEGA BUY!</span>
+                            <span className="text-lg uppercase text-success">MEGA BUY!</span>
                         </div>
                         <div>
-                            <span className="font-medium">{displayAddress}</span> just committed <span className="text-primary font-bold">{amount} CHA</span> to {tokenSymbol}!
+                            <span className="font-medium">{displayAddress}</span> just committed <span className="text-accent-text font-bold">{amount} CHA</span> to {tokenSymbol}!
                         </div>
                     </>
                 ) : (
                     <>
                         <div className={amount >= 20 ? "font-bold" : ""}>
-                            {amount >= 20 && <span className="text-green-400 font-bold">BIG BUY! </span>}
-                            <span className="font-medium">{displayAddress}</span> committed <span className="text-primary font-bold">{amount} CHA</span> to {tokenSymbol}
+                            {amount >= 20 && <span className="text-success font-bold">BIG BUY! </span>}
+                            <span className="font-medium">{displayAddress}</span> committed <span className="text-accent-text font-bold">{amount} CHA</span> to {tokenSymbol}
                         </div>
                     </>
                 )}
@@ -98,14 +98,14 @@ const showVoteNotification = (amount: number, token: Token, userId: string) => {
     if (amount >= 50) {
         // For large amounts (50+ CHA) - MEGA BUY with shake effect
         toast.success(notificationContent, {
-            icon: <Rocket className="h-5 w-5 text-primary animate-bounce" />,
+            icon: <Rocket className="h-5 w-5 text-accent-text animate-bounce" />,
             duration: 5000,
-            className: "bg-black/90 border-green-500"
+            className: "bg-overlay border-success"
         });
     } else if (amount >= 20) {
         // For medium amounts (20-50 CHA)
         toast.success(notificationContent, {
-            icon: <Rocket className="h-5 w-5 text-primary" />,
+            icon: <Rocket className="h-5 w-5 text-accent-text" />,
             duration: 4000
         });
     } else {

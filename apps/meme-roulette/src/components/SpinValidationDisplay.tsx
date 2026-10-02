@@ -82,11 +82,11 @@ export default function SpinValidationDisplay({
     }, [validUsers, invalidUsers]);
 
     return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
+        <div className="fixed inset-0 bg-overlay backdrop-blur-md flex flex-col items-center justify-center z-[60] p-4">
             <div className="bg-card/95 backdrop-blur-lg border border-border rounded-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-hidden">
                 {/* Header */}
                 <div className="text-center mb-6">
-                    <h2 className="text-2xl md:text-3xl font-bold font-display mb-2 text-primary">
+                    <h2 className="text-2xl md:text-3xl font-bold font-display mb-2 text-accent-text">
                         🔍 Validating User Balances
                     </h2>
                     <p className="text-muted-foreground">
@@ -97,26 +97,26 @@ export default function SpinValidationDisplay({
                 {/* Summary Stats */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-muted/20 border border-border rounded-lg p-4 text-center">
-                        <Users className="h-5 w-5 text-primary mx-auto mb-2" />
+                        <Users className="h-5 w-5 text-accent-text mx-auto mb-2" />
                         <div className="text-2xl font-bold text-foreground">{totalUsers}</div>
                         <div className="text-xs text-muted-foreground">Total Users</div>
                     </div>
 
-                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 text-center">
-                        <CheckCircle className="h-5 w-5 text-green-400 mx-auto mb-2" />
-                        <div className="text-2xl font-bold text-green-400">{validUsers.length}</div>
+                    <div className="bg-success/10 border border-success/20 rounded-lg p-4 text-center">
+                        <CheckCircle className="h-5 w-5 text-success mx-auto mb-2" />
+                        <div className="text-2xl font-bold text-success">{validUsers.length}</div>
                         <div className="text-xs text-muted-foreground">Valid Users</div>
                     </div>
 
-                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-center">
-                        <XCircle className="h-5 w-5 text-red-400 mx-auto mb-2" />
-                        <div className="text-2xl font-bold text-red-400">{invalidUsers.length}</div>
+                    <div className="bg-danger/10 border border-danger/20 rounded-lg p-4 text-center">
+                        <XCircle className="h-5 w-5 text-danger mx-auto mb-2" />
+                        <div className="text-2xl font-bold text-danger">{invalidUsers.length}</div>
                         <div className="text-xs text-muted-foreground">Invalid Users</div>
                     </div>
 
                     <div className="bg-primary/10 border border-primary/20 rounded-lg p-4 text-center">
-                        <DollarSign className="h-5 w-5 text-primary mx-auto mb-2" />
-                        <div className="text-lg font-bold text-primary">
+                        <DollarSign className="h-5 w-5 text-accent-text mx-auto mb-2" />
+                        <div className="text-lg font-bold text-accent-text">
                             {validUserPercentage.toFixed(1)}%
                         </div>
                         <div className="text-xs text-muted-foreground">Valid Rate</div>
@@ -126,18 +126,18 @@ export default function SpinValidationDisplay({
                 {/* CHA Amount Summary */}
                 <div className="bg-muted/20 border border-border rounded-lg p-4 mb-6">
                     <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                        <DollarSign className="h-5 w-5 text-primary" />
+                        <DollarSign className="h-5 w-5 text-accent-text" />
                         CHA Amount Breakdown
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="text-center">
-                            <div className="text-green-400 text-2xl font-bold mb-1">
+                            <div className="text-success text-2xl font-bold mb-1">
                                 <TokenAmountDisplay
                                     amount={totalValidCHA}
                                     decimals={CHA_DECIMALS}
                                     symbol="CHA"
                                     usdPrice={chaPrice}
-                                    className="text-green-400"
+                                    className="text-success"
                                     size="lg"
                                     showUsd={true}
                                 />
@@ -146,13 +146,13 @@ export default function SpinValidationDisplay({
                         </div>
 
                         <div className="text-center">
-                            <div className="text-red-400 text-2xl font-bold mb-1">
+                            <div className="text-danger text-2xl font-bold mb-1">
                                 <TokenAmountDisplay
                                     amount={totalInvalidCHA}
                                     decimals={CHA_DECIMALS}
                                     symbol="CHA"
                                     usdPrice={chaPrice}
-                                    className="text-red-400"
+                                    className="text-danger"
                                     size="lg"
                                     showUsd={true}
                                 />
@@ -165,27 +165,27 @@ export default function SpinValidationDisplay({
                 {/* User Lists */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     {/* Valid Users */}
-                    <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold mb-3 text-green-400 flex items-center gap-2">
+                    <div className="bg-success/5 border border-success/20 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold mb-3 text-success flex items-center gap-2">
                             <CheckCircle className="h-5 w-5" />
                             Valid Users ({validUsers.length})
                         </h3>
                         <ScrollArea className="h-32">
                             <div className="space-y-2">
                                 {validUsers.map((user, index) => (
-                                    <div key={index} className="bg-green-500/10 border border-green-500/20 rounded p-2">
+                                    <div key={index} className="bg-success/10 border border-success/20 rounded p-2">
                                         <div className="flex justify-between items-start text-xs">
-                                            <div className="text-green-400 truncate flex-1 mr-2">
+                                            <div className="text-success truncate flex-1 mr-2">
                                                 <div className="font-semibold">
                                                     {getDisplayName(user.userId)}
                                                 </div>
                                                 {displayNames[user.userId] && displayNames[user.userId] !== truncateAddress(user.userId) && (
-                                                    <div className="font-mono text-xs text-green-400/70">
+                                                    <div className="font-mono text-xs text-success/70">
                                                         {truncateAddress(user.userId)}
                                                     </div>
                                                 )}
                                             </div>
-                                            <Badge variant="outline" className="border-green-500/30 text-green-400 text-xs">
+                                            <Badge variant="outline" className="border-success/30 text-success text-xs">
                                                 ✓ Valid
                                             </Badge>
                                         </div>
@@ -194,7 +194,7 @@ export default function SpinValidationDisplay({
                                                 amount={user.totalCommitted}
                                                 decimals={CHA_DECIMALS}
                                                 symbol="CHA"
-                                                className="text-green-400"
+                                                className="text-success"
                                                 size="sm"
                                             />
                                         </div>
@@ -210,27 +210,27 @@ export default function SpinValidationDisplay({
                     </div>
 
                     {/* Invalid Users */}
-                    <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
-                        <h3 className="text-lg font-semibold mb-3 text-red-400 flex items-center gap-2">
+                    <div className="bg-danger/5 border border-danger/20 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold mb-3 text-danger flex items-center gap-2">
                             <XCircle className="h-5 w-5" />
                             Invalid Users ({invalidUsers.length})
                         </h3>
                         <ScrollArea className="h-32">
                             <div className="space-y-2">
                                 {invalidUsers.map((user, index) => (
-                                    <div key={index} className="bg-red-500/10 border border-red-500/20 rounded p-2">
+                                    <div key={index} className="bg-danger/10 border border-danger/20 rounded p-2">
                                         <div className="flex justify-between items-start text-xs">
-                                            <div className="text-red-400 truncate flex-1 mr-2">
+                                            <div className="text-danger truncate flex-1 mr-2">
                                                 <div className="font-semibold">
                                                     {getDisplayName(user.userId)}
                                                 </div>
                                                 {displayNames[user.userId] && displayNames[user.userId] !== truncateAddress(user.userId) && (
-                                                    <div className="font-mono text-xs text-red-400/70">
+                                                    <div className="font-mono text-xs text-danger/70">
                                                         {truncateAddress(user.userId)}
                                                     </div>
                                                 )}
                                             </div>
-                                            <Badge variant="outline" className="border-red-500/30 text-red-400 text-xs">
+                                            <Badge variant="outline" className="border-danger/30 text-danger text-xs">
                                                 ✗ Invalid
                                             </Badge>
                                         </div>
@@ -239,12 +239,12 @@ export default function SpinValidationDisplay({
                                                 amount={user.totalCommitted}
                                                 decimals={CHA_DECIMALS}
                                                 symbol="CHA"
-                                                className="text-red-400"
+                                                className="text-danger"
                                                 size="sm"
                                             />
                                         </div>
                                         {user.balanceShortfall && user.balanceShortfall > 0 && (
-                                            <div className="text-xs text-red-400 mt-1 flex items-center gap-1">
+                                            <div className="text-xs text-danger mt-1 flex items-center gap-1">
                                                 <AlertTriangle className="h-3 w-3" />
                                                 Short: <TokenAmountDisplay
                                                     amount={user.balanceShortfall}

@@ -166,11 +166,11 @@ export function ReferralAdminPanel() {
                                 <div className="text-2xl font-bold">
                                     {cronStatus ? (
                                         <span className={
-                                            cronStatus.status === 'completed' ? 'text-green-600' :
-                                                cronStatus.status === 'running' ? 'text-blue-600' :
-                                                    cronStatus.status === 'error' ? 'text-red-600' :
-                                                        cronStatus.status === 'Stale' ? 'text-orange-600' :
-                                                            'text-gray-600'
+ cronStatus.status === 'completed' ? 'text-success' :
+                                                cronStatus.status === 'running' ? 'text-accent-text' :
+                                                    cronStatus.status === 'error' ? 'text-danger' :
+                                                        cronStatus.status === 'Stale' ? 'text-accent-text' :
+                                                            'text-ink-body'
                                         }>
                                             {cronStatus.status.toUpperCase()}
                                         </span>

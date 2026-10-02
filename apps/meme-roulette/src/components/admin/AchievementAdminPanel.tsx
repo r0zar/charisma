@@ -236,11 +236,11 @@ export const AchievementAdminPanel = () => {
 
     const getRarityColor = (rarity: string) => {
         switch (rarity) {
-            case 'common': return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
-            case 'rare': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-            case 'epic': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
-            case 'legendary': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
-            default: return 'bg-gray-500/20 text-gray-300 border-gray-500/30';
+            case 'common': return 'bg-surface-hover text-ink-body border-line';
+            case 'rare': return 'bg-accent/20 text-accent-text border-accent/30';
+            case 'epic': return 'bg-blaze/20 text-blaze border-blaze/30';
+            case 'legendary': return 'bg-warning/20 text-warning border-warning/30';
+            default: return 'bg-surface-hover text-ink-body border-line';
         }
     };
 
@@ -250,7 +250,7 @@ export const AchievementAdminPanel = () => {
             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
                 <div>
                     <h2 className="text-xl md:text-2xl font-bold flex items-center gap-2">
-                        <Trophy className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+                        <Trophy className="h-5 w-5 md:h-6 md:w-6 text-accent-text" />
                         Achievement Management
                     </h2>
                     <p className="text-sm text-muted-foreground mt-1">Manage the achievement system and user badges</p>
@@ -272,7 +272,7 @@ export const AchievementAdminPanel = () => {
                                     <p className="text-3xl font-bold text-foreground">{statistics.totalAchievements}</p>
                                 </div>
                                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                                    <Award className="h-6 w-6 text-primary" />
+                                    <Award className="h-6 w-6 text-accent-text" />
                                 </div>
                             </div>
                         </CardContent>
@@ -285,8 +285,8 @@ export const AchievementAdminPanel = () => {
                                     <p className="text-sm font-medium text-muted-foreground">Active Users</p>
                                     <p className="text-3xl font-bold text-foreground">{statistics.usersWithAchievements}</p>
                                 </div>
-                                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-500/10">
-                                    <Users className="h-6 w-6 text-blue-500" />
+                                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10">
+                                    <Users className="h-6 w-6 text-accent-text" />
                                 </div>
                             </div>
                         </CardContent>
@@ -309,8 +309,8 @@ export const AchievementAdminPanel = () => {
                                         ))}
                                     </div>
                                 </div>
-                                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-500/10 ml-3">
-                                    <BarChart3 className="h-6 w-6 text-purple-500" />
+                                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blaze/10 ml-3">
+                                    <BarChart3 className="h-6 w-6 text-blaze" />
                                 </div>
                             </div>
                         </CardContent>
@@ -324,12 +324,12 @@ export const AchievementAdminPanel = () => {
                                     <div className="flex items-center gap-2">
                                         {validationResults?.isHealthy !== undefined ? (
                                             validationResults.isHealthy ? (
-                                                <Badge variant="outline" className="text-green-600 border-green-500/30 bg-green-500/10 text-sm font-medium">
+                                                <Badge variant="outline" className="text-success border-success/30 bg-success/10 text-sm font-medium">
                                                     <CheckCircle className="h-3 w-3 mr-1" />
                                                     Healthy
                                                 </Badge>
                                             ) : (
-                                                <Badge variant="outline" className="text-yellow-600 border-yellow-500/30 bg-yellow-500/10 text-sm font-medium">
+                                                <Badge variant="outline" className="text-warning border-warning/30 bg-warning/10 text-sm font-medium">
                                                     <AlertTriangle className="h-3 w-3 mr-1" />
                                                     Issues
                                                 </Badge>
@@ -341,8 +341,8 @@ export const AchievementAdminPanel = () => {
                                         )}
                                     </div>
                                 </div>
-                                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gray-500/10">
-                                    <Settings className="h-6 w-6 text-gray-500" />
+                                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-surface-hover">
+                                    <Settings className="h-6 w-6 text-ink-muted" />
                                 </div>
                             </div>
                         </CardContent>
@@ -452,7 +452,7 @@ export const AchievementAdminPanel = () => {
                                 id="bulkAwardAchievementId"
                                 value={bulkAwardAchievementId}
                                 onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setBulkAwardAchievementId(e.target.value)}
-                                className="w-full p-2 mt-1 text-sm border border-border rounded-md bg-background"
+                                className="w-full p-2 mt-1 text-sm border border-border rounded-md bg-surface"
                             >
                                 <option value="">Select achievement...</option>
                                 {achievements.map(a => (
@@ -575,9 +575,9 @@ export const AchievementAdminPanel = () => {
                     <CardHeader className="pb-3 md:pb-6">
                         <CardTitle className="flex items-center gap-2 text-base md:text-lg">
                             {validationResults.isHealthy ? (
-                                <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-green-500" />
+                                <CheckCircle className="h-4 w-4 md:h-5 md:w-5 text-success" />
                             ) : (
-                                <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-yellow-500" />
+                                <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-warning" />
                             )}
                             Validation Results
                         </CardTitle>
@@ -599,7 +599,7 @@ export const AchievementAdminPanel = () => {
                                 </div>
                                 <div className="text-center sm:text-left">
                                     <p className="text-xs md:text-sm font-medium">Issues Found</p>
-                                    <p className={`text-base md:text-lg font-bold ${validationResults.issues.length === 0 ? 'text-green-500' : 'text-yellow-500'}`}>
+                                    <p className={`text-base md:text-lg font-bold ${validationResults.issues.length === 0 ? 'text-success' : 'text-warning'}`}>
                                         {validationResults.issues.length}
                                     </p>
                                 </div>
@@ -610,7 +610,7 @@ export const AchievementAdminPanel = () => {
                                     <h4 className="font-medium mb-2 text-sm md:text-base">Issues:</h4>
                                     <ul className="space-y-2">
                                         {validationResults.issues.map((issue: string, index: number) => (
-                                            <li key={index} className="text-xs md:text-sm text-yellow-600 flex items-start gap-2">
+                                            <li key={index} className="text-xs md:text-sm text-warning flex items-start gap-2">
                                                 <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                                                 <span className="break-words">{issue}</span>
                                             </li>

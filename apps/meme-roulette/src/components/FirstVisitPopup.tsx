@@ -42,10 +42,10 @@ export default function FirstVisitPopup() {
         <Dialog open={open} onOpenChange={(isOpen) => {
             if (!isOpen) handleClose();
         }}>
-            <DialogContent className="sm:max-w-[600px] md:max-w-[800px] glass-card p-0 max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[600px] md:max-w-[800px] bg-surface-raised p-0 max-h-[90vh] overflow-y-auto">
                 <DialogHeader className="p-6 pb-2 sticky top-0 z-10 bg-gradient-to-b from-card to-transparent">
                     <DialogTitle className="text-2xl font-display flex items-center gap-2">
-                        <Rocket className="h-5 w-5 text-primary animate-float" aria-hidden="true" />
+                        <Rocket className="h-5 w-5 text-accent-text animate-float" aria-hidden="true" />
                         Welcome to Meme Roulette!
                     </DialogTitle>
                     <DialogDescription>

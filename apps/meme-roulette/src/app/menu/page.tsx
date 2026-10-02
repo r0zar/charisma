@@ -50,9 +50,9 @@ export default function MenuPage() {
         return (
             <div className="w-full max-w-none sm:max-w-2xl mx-auto py-0 sm:py-12">
                 {/* Connect Wallet Section */}
-                <div className="bg-background/50 md:glass-card px-4 py-8 md:p-8 border-b border-border/20 md:border md:rounded-xl text-center">
+                <div className="bg-surface md:glass-card px-4 py-8 md:p-8 border-b border-border/20 md:border md:rounded-xl text-center">
                     <div className="mb-6">
-                        <Wallet className="h-16 w-16 mx-auto text-primary/30 mb-4" />
+                        <Wallet className="h-16 w-16 mx-auto text-accent-text/30 mb-4" />
                         <h1 className="text-2xl sm:text-3xl font-bold mb-4 font-display">Connect Your Wallet</h1>
                         <p className="text-muted-foreground mb-6">
                             Connect your Stacks wallet to start voting and pumping tokens
@@ -71,25 +71,25 @@ export default function MenuPage() {
                 </div>
 
                 {/* Information Section */}
-                <div className="bg-background/30 md:glass-card px-4 py-6 md:p-8 md:border md:rounded-xl">
+                <div className="bg-surface md:glass-card px-4 py-6 md:p-8 md:border md:rounded-xl">
                     <h2 className="text-xl font-semibold mb-4 font-display">What You Can Do</h2>
                     <div className="space-y-4">
                         <div className="flex items-start gap-3">
-                            <Plus className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                            <Plus className="h-5 w-5 text-accent-text mt-0.5 flex-shrink-0" />
                             <div>
                                 <h3 className="font-medium">Deposit CHA</h3>
                                 <p className="text-sm text-muted-foreground">Move CHA from mainnet to subnet for voting</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
-                            <ArrowUpDown className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                            <ArrowUpDown className="h-5 w-5 text-accent-text mt-0.5 flex-shrink-0" />
                             <div>
                                 <h3 className="font-medium">Buy CHA</h3>
                                 <p className="text-sm text-muted-foreground">Swap STX for CHA tokens</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
-                            <Settings className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                            <Settings className="h-5 w-5 text-accent-text mt-0.5 flex-shrink-0" />
                             <div>
                                 <h3 className="font-medium">Manage Account</h3>
                                 <p className="text-sm text-muted-foreground">View balances and transaction history</p>
@@ -104,10 +104,10 @@ export default function MenuPage() {
     return (
         <div className="w-full max-w-none sm:max-w-2xl mx-auto py-0 sm:py-12">
             {/* Account Overview Section */}
-            <div className="bg-background/50 md:glass-card px-4 py-6 md:p-8 border-b border-border/20 md:border md:rounded-xl">
+            <div className="bg-surface md:glass-card px-4 py-6 md:p-8 border-b border-border/20 md:border md:rounded-xl">
                 <div className="flex items-center gap-4 mb-6">
                     <div className="h-12 w-12 bg-primary/10 rounded-full flex items-center justify-center">
-                        <User className="h-6 w-6 text-primary" />
+                        <User className="h-6 w-6 text-accent-text" />
                     </div>
                     <div className="flex-1 min-w-0">
                         <h1 className="text-xl sm:text-2xl font-bold font-display">Your Account</h1>
@@ -121,10 +121,10 @@ export default function MenuPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-muted/20 p-4 rounded-lg border border-border/20">
                         <div className="flex items-center gap-2 mb-2">
-                            <div className="h-2 w-2 bg-blue-500 rounded-full"></div>
+                            <div className="h-2 w-2 bg-accent rounded-full"></div>
                             <span className="text-sm font-medium text-muted-foreground">Mainnet CHA</span>
                         </div>
-                        <p className="text-lg font-bold font-mono text-primary">
+                        <p className="text-lg font-bold font-mono text-accent-text">
                             {balanceLoading ? '...' : formatBalance(mainnetBalance)}
                         </p>
                         <p className="text-xs text-muted-foreground">Available to deposit</p>
@@ -132,10 +132,10 @@ export default function MenuPage() {
 
                     <div className="bg-muted/20 p-4 rounded-lg border border-border/20">
                         <div className="flex items-center gap-2 mb-2">
-                            <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                            <div className="h-2 w-2 bg-success rounded-full"></div>
                             <span className="text-sm font-medium text-muted-foreground">Subnet CHA</span>
                         </div>
-                        <p className="text-lg font-bold font-mono text-primary">
+                        <p className="text-lg font-bold font-mono text-accent-text">
                             {subnetBalanceLoading ? '...' : formatBalance(subnetBalance)}
                         </p>
                         <p className="text-xs text-muted-foreground">Ready to vote</p>
@@ -144,7 +144,7 @@ export default function MenuPage() {
             </div>
 
             {/* Actions Section */}
-            <div className="bg-background/30 md:glass-card px-4 py-6 md:p-8 border-b border-border/20 md:border md:rounded-xl">
+            <div className="bg-surface md:glass-card px-4 py-6 md:p-8 border-b border-border/20 md:border md:rounded-xl">
                 <h2 className="text-lg font-semibold mb-4 font-display">Manage CHA</h2>
                 <div className="space-y-3">
                     <DepositCharismaButton
@@ -171,7 +171,7 @@ export default function MenuPage() {
             </div>
 
             {/* Account Actions Section */}
-            <div className="bg-background/20 md:glass-card px-4 py-6 md:p-8 md:border md:rounded-xl">
+            <div className="bg-surface md:glass-card px-4 py-6 md:p-8 md:border md:rounded-xl">
                 <h2 className="text-lg font-semibold mb-4 font-display">Account</h2>
                 <div className="space-y-3">
                     <div className="bg-muted/20 p-4 rounded-lg border border-border/20">

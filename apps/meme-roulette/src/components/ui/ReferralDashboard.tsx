@@ -281,31 +281,31 @@ export function ReferralDashboard() {
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
                             <div className="p-4 border rounded-lg text-center">
-                                <div className="text-2xl font-bold text-blue-600">
+                                <div className="text-2xl font-bold text-accent-text">
                                     {stats?.totalReferrals || 0}
                                 </div>
                                 <div className="text-sm text-muted-foreground">Total Referrals</div>
                             </div>
                             <div className="p-4 border rounded-lg text-center">
-                                <div className="text-2xl font-bold text-green-600">
+                                <div className="text-2xl font-bold text-success">
                                     {stats?.activeReferrals || 0}
                                 </div>
                                 <div className="text-sm text-muted-foreground">Active Referrals</div>
                             </div>
                             <div className="p-4 border rounded-lg text-center">
-                                <div className="text-2xl font-bold text-orange-600">
+                                <div className="text-2xl font-bold text-accent-text">
                                     {stats?.totalClicks || 0}
                                 </div>
                                 <div className="text-sm text-muted-foreground">Link Clicks</div>
                             </div>
                             <div className="p-4 border rounded-lg text-center">
-                                <div className="text-2xl font-bold text-emerald-600">
+                                <div className="text-2xl font-bold text-success">
                                     {stats?.conversionRate ? `${stats.conversionRate.toFixed(1)}%` : '0%'}
                                 </div>
                                 <div className="text-sm text-muted-foreground">Conversion Rate</div>
                             </div>
                             <div className="p-4 border rounded-lg text-center">
-                                <div className="text-2xl font-bold text-purple-600">
+                                <div className="text-2xl font-bold text-blaze">
                                     {stats?.referralCodes?.length || 0}
                                 </div>
                                 <div className="text-sm text-muted-foreground">Referral Codes</div>
@@ -313,8 +313,8 @@ export function ReferralDashboard() {
                         </div>
 
                         {stats?.referredBy && (
-                            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                                <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                            <div className="mb-6 p-4 bg-accent-soft rounded-lg border border-accent-line ">
+                                <div className="flex items-center gap-2 text-accent-text ">
                                     <Trophy className="h-4 w-4" />
                                     <span className="text-sm font-medium">
                                         You were referred by: {stats.referredBy.referrerId.substring(0, 10)}...

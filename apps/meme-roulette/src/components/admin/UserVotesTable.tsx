@@ -252,7 +252,7 @@ export function UserVotesTable({ status }: UserVotesTableProps) {
                                             </div>
 
                                             <div className="text-right">
-                                                <div className={`font-bold numeric ${isTopUser ? 'text-primary' : 'text-foreground'}`}>
+                                                <div className={`font-bold numeric ${isTopUser ? 'text-accent-text' : 'text-foreground'}`}>
                                                     {formatCHA(user.totalCHA)} CHA
                                                 </div>
                                                 {chaPrice && (
