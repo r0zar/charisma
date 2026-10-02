@@ -2,12 +2,15 @@ import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import React from "react";
 import { Flame } from "lucide-react";
 import { getIpfsUrl } from "@/lib/utils";
+import { knownBlazeVersion, type BlazeVersion } from "blaze-sdk";
 
 interface TokenLogoProps {
     token: TokenCacheData;
     size?: "sm" | "md" | "lg";
     className?: string;
     suppressFlame?: boolean;
+    /** Which Blaze the flame stands for, when the token object can't say (a combined v1 + v2 balance shows as v2) */
+    blazeVersion?: BlazeVersion;
 }
 
 // Subcomponent for the logo container
@@ -32,8 +35,8 @@ function TokenLogoContainer({ isSubnetToken, size, children }: { isSubnetToken: 
     );
 }
 
-// Subcomponent for the flame overlay
-function TokenFlameOverlay({ size }: { size: 'sm' | 'md' | 'lg' }) {
+// Subcomponent for the flame overlay: teal for a Blaze v1 subnet, red for Blaze v2
+function TokenFlameOverlay({ size, version }: { size: 'sm' | 'md' | 'lg'; version: BlazeVersion }) {
     const flameSizeClasses = {
         sm: "w-2 h-2",
         md: "w-2.5 h-2.5",
@@ -45,13 +48,13 @@ function TokenFlameOverlay({ size }: { size: 'sm' | 'md' | 'lg' }) {
         lg: "p-1",
     };
     return (
-        <div className={`absolute -top-1 -right-1 bg-blaze-fill rounded-full ring-2 ring-bg ${flameContainerClasses[size]}`}>
+        <div className={`absolute -top-1 -right-1 ${version === 2 ? 'bg-blaze-v2-fill' : 'bg-blaze-fill'} rounded-full ring-2 ring-bg ${flameContainerClasses[size]}`}>
             <Flame className={`text-on-fill fill-current ${flameSizeClasses[size]}`} />
         </div>
     );
 }
 
-export default function TokenLogo({ token, size = "md", className = "", suppressFlame = false }: TokenLogoProps) {
+export default function TokenLogo({ token, size = "md", className = "", suppressFlame = false, blazeVersion }: TokenLogoProps) {
     const getTokenLogo = (token: TokenCacheData) => {
         const imageUrl = token.image || `https://charisma.rocks/charisma.png`;
         return getIpfsUrl(imageUrl);
@@ -91,7 +94,7 @@ export default function TokenLogo({ token, size = "md", className = "", suppress
                 <div className={`absolute inset-0 rounded-full shadow-highlight pointer-events-none`} />
             </div>
             {/* Flame icon overlay for subnet tokens */}
-            {isSubnetToken && !suppressFlame && <TokenFlameOverlay size={size} />}
+            {isSubnetToken && !suppressFlame && <TokenFlameOverlay size={size} version={blazeVersion ?? knownBlazeVersion(token.contractId) ?? 1} />}
         </div>
     );
 } 

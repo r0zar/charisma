@@ -36,6 +36,8 @@
   --chrome-accent: #ff4d6d;
   --blaze: #2dd4bf;
   --blaze-soft: #2dd4bf1f;
+  --blaze-v2: #f87171;
+  --blaze-v2-soft: #f871711f;
   --success: #4ade80;
   --success-soft: #22c55e26;
   --danger: #f87171;
@@ -43,6 +45,7 @@
   --warning: #fbbf24;
   --warning-soft: #f59e0b26;
   --blaze-fill: #0f766e;
+  --blaze-v2-fill: #dc2626;
   --success-fill: #15803d;
   --danger-fill: #dc2626;
   --on-fill: #ffffff;
@@ -89,6 +92,8 @@
     --chrome-accent: #fc6432;
     --blaze: #0f766e;
     --blaze-soft: #e6f6f4;
+    --blaze-v2: #b91c1c;
+    --blaze-v2-soft: #fdecea;
     --success: #1b7a3a;
     --success-soft: #e8f5ec;
     --danger: #b42318;
@@ -96,6 +101,7 @@
     --warning: #8a5a00;
     --warning-soft: #fdf3e1;
     --blaze-fill: #0f766e;
+    --blaze-v2-fill: #b91c1c;
     --success-fill: #15803d;
     --danger-fill: #b42318;
     --on-fill: #ffffff;
@@ -142,6 +148,8 @@
   --chrome-accent: #fc6432;
   --blaze: #0f766e;
   --blaze-soft: #e6f6f4;
+  --blaze-v2: #b91c1c;
+  --blaze-v2-soft: #fdecea;
   --success: #1b7a3a;
   --success-soft: #e8f5ec;
   --danger: #b42318;
@@ -149,6 +157,7 @@
   --warning: #8a5a00;
   --warning-soft: #fdf3e1;
   --blaze-fill: #0f766e;
+  --blaze-v2-fill: #b91c1c;
   --success-fill: #15803d;
   --danger-fill: #b42318;
   --on-fill: #ffffff;

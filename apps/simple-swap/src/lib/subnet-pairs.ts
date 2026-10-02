@@ -1,4 +1,4 @@
-import { CHARISMA_SUBNET_V2_CONTRACT_ID, SBTC_SUBNET_V2_CONTRACT_ID, SUBNET_V2_OF, WELSH_SUBNET_V2_CONTRACT_ID } from 'blaze-sdk';
+import { CHARISMA_SUBNET_V2_CONTRACT_ID, SBTC_SUBNET_V2_CONTRACT_ID, SUBNET_V2_OF, WELSH_SUBNET_V2_CONTRACT_ID, knownBlazeVersion, type BlazeVersion } from 'blaze-sdk';
 import { fromUnits } from './units';
 
 /**
@@ -32,6 +32,10 @@ export const pairOf = (contractId?: string | null) => SUBNET_PAIRS.find(p => p.v
 
 /** Whether a subnet token should be its own row in pickers and lists: a pair's v2 subnet folds into its v1 row */
 export const isListedSubnet = (contractId: string) => !SUBNET_PAIRS.some(p => p.v2 === contractId);
+
+/** The Blaze a subnet row's flame stands for: a pair's one row is its combined balance, which lands in v2 */
+export const rowBlazeVersion = (contractId?: string | null): BlazeVersion =>
+    !contractId ? 1 : pairOf(contractId) ? 2 : knownBlazeVersion(contractId) ?? 1;
 
 /** Where something paid into `contractId` should land: a pair's v2, else the subnet itself */
 export const landingSubnet = (contractId: string) => pairOf(contractId)?.v2 ?? contractId;

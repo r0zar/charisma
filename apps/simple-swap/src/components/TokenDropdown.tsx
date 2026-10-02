@@ -8,6 +8,7 @@ import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import { useTokenPrices } from '@/contexts/token-price-context';
 import { useSubnetTokens } from '@/contexts/subnet-tokens-context';
 import { ChevronDown, Search, X, ArrowLeft } from 'lucide-react';
+import { rowBlazeVersion } from '@/lib/subnet-pairs';
 
 interface TokenDropdownProps {
     tokens: TokenCacheData[];
@@ -292,9 +293,9 @@ export default function TokenDropdown({
                                                 <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
                                                     {/* Token Logo */}
                                                     <div className="relative flex-shrink-0">
-                                                        <TokenLogo token={token} size="lg" suppressFlame={suppressFlame} />
+                                                        <TokenLogo token={token} size="lg" suppressFlame={suppressFlame} blazeVersion={rowBlazeVersion(token.contractId)} />
                                                         {token.type === 'SUBNET' && (
-                                                            <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-blaze rounded-full border-2 border-line-strong flex items-center justify-center">
+                                                            <div className={`absolute -bottom-1 -right-1 h-4 w-4 ${rowBlazeVersion(token.contractId) === 2 ? 'bg-blaze-v2' : 'bg-blaze'} rounded-full border-2 border-line-strong flex items-center justify-center`}>
                                                                 <div className="h-1.5 w-1.5 bg-ink rounded-full" />
                                                             </div>
                                                         )}
@@ -411,9 +412,9 @@ export default function TokenDropdown({
                 {selected ? (
                     <div className="flex items-center space-x-3 flex-1">
                         <div className="relative">
-                            <TokenLogo token={selected} size="sm" suppressFlame={suppressFlame} />
+                            <TokenLogo token={selected} size="sm" suppressFlame={suppressFlame} blazeVersion={rowBlazeVersion(selected.contractId)} />
                             {selected.type === 'SUBNET' && (
-                                <div className="absolute -bottom-0.5 -right-0.5 h-2 w-2 bg-blaze rounded-full border border-line-strong" />
+                                <div className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 ${rowBlazeVersion(selected.contractId) === 2 ? 'bg-blaze-v2' : 'bg-blaze'} rounded-full border border-line-strong`} />
                             )}
                         </div>
                         <div className="text-left">

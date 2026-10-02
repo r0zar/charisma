@@ -41,5 +41,8 @@ export async function blazeVersionOf(subnet: string): Promise<BlazeVersion> {
     return version;
 }
 
+/** A subnet's Blaze version when it's already known (the table above, or read before), without touching the network */
+export const knownBlazeVersion = (subnet: string): BlazeVersion | undefined => versions.get(subnet);
+
 export const blazeDomain = (version: BlazeVersion) => (version === 2 ? BLAZE_V2_DOMAIN : BLAZE_V1_DOMAIN);
 export const blazeContract = (version: BlazeVersion) => (version === 2 ? BLAZE_V2_CONTRACT_ID : BLAZE_CONTRACT_ID);

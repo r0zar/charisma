@@ -14,6 +14,7 @@ import { useRouterTrading } from '@/hooks/useRouterTrading';
 import { formatTokenAmount, formatCompactNumber } from '@/lib/swap-utils';
 import { useWallet } from '@/contexts/wallet-context';
 import { BalanceTooltip } from '@/components/ui/tooltip';
+import { rowBlazeVersion } from '@/lib/subnet-pairs';
 
 export default function TokenOutputSection() {
     const [showChart, setShowChart] = useState(false);
@@ -158,6 +159,7 @@ export default function TokenOutputSection() {
                                             }}
                                             size="md"
                                             suppressFlame={!isSubnetSelected}
+                                            blazeVersion={rowBlazeVersion(subnetDisplayTokens.find(t => t.base === selectedToToken.contractId)?.contractId)}
                                         />
                                         {/* Subtle toggle indicator */}
                                         <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-line-strong bg-success" />

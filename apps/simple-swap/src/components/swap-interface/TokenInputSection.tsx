@@ -13,7 +13,7 @@ import { useWallet } from '@/contexts/wallet-context';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { BalanceTooltip } from '@/components/ui/tooltip';
 import { formatCompactNumber, formatTokenAmount } from '@/lib/swap-utils';
-import { pairOf } from '@/lib/subnet-pairs';
+import { pairOf, rowBlazeVersion } from '@/lib/subnet-pairs';
 
 export default function TokenInputSection() {
     const [showChart, setShowChart] = useState(false);
@@ -87,7 +87,8 @@ export default function TokenInputSection() {
 
     // A v1/v2 pair's subnet balance (CHA, WELSH, sBTC) is one number across Blaze v1 and v2; while some is still on v1,
     // the tooltip shows where it sits
-    const fromPair = pairOf(subnetDisplayTokens.find(t => t.base === baseContractId)?.contractId);
+    const listedSubnet = subnetDisplayTokens.find(t => t.base === baseContractId)?.contractId;
+    const fromPair = pairOf(listedSubnet);
     const splitParts = address && fromPair && getSubnetBalanceExact(address, fromPair.v1) > 0
         ? [['Blaze v1', fromPair.v1], ['Blaze v2', fromPair.v2]]
             .map(([part, subnet]) => ({ label: part, amount: formatTokenAmount(getSubnetBalanceExact(address, subnet), fromPair.decimals) }))
@@ -205,6 +206,7 @@ export default function TokenInputSection() {
                                             }}
                                             size="lg"
                                             suppressFlame={!isSubnetSelected}
+                                            blazeVersion={rowBlazeVersion(listedSubnet)}
                                         />
                                         {!isToggleDisabled && (
                                             <div className="absolute -bottom-1 -right-1 h-5 w-5 bg-accent text-on-accent rounded-full flex items-center justify-center text-xs">

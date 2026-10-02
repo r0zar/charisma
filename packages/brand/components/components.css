@@ -52,6 +52,7 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 .cx-token-lg { width: 48px; height: 48px; font-size: 15px; }
 .cx-token-blaze { position: absolute; right: -3px; bottom: -3px; width: 45%; height: 45%; min-width: 12px; min-height: 12px; border-radius: var(--radius-pill); background: var(--blaze-fill); color: var(--on-fill); border: 2px solid var(--bg); display: flex; align-items: center; justify-content: center; }
 .cx-token-blaze svg { width: 70%; height: 70%; fill: currentColor; stroke: none; }
+.cx-token-blaze.v2 { background: var(--blaze-v2-fill); }
 .cx-token-pair { display: inline-flex; }
 .cx-token-pair .cx-token + .cx-token { margin-left: -10px; box-shadow: 0 0 0 2px var(--bg); }
 

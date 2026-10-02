@@ -36,6 +36,8 @@
   --color-chrome-accent: var(--chrome-accent);
   --color-blaze: var(--blaze);
   --color-blaze-soft: var(--blaze-soft);
+  --color-blaze-v2: var(--blaze-v2);
+  --color-blaze-v2-soft: var(--blaze-v2-soft);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-danger: var(--danger);
@@ -43,6 +45,7 @@
   --color-warning: var(--warning);
   --color-warning-soft: var(--warning-soft);
   --color-blaze-fill: var(--blaze-fill);
+  --color-blaze-v2-fill: var(--blaze-v2-fill);
   --color-success-fill: var(--success-fill);
   --color-danger-fill: var(--danger-fill);
   --color-on-fill: var(--on-fill);

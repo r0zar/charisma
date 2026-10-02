@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTokenBalanceForContract } from '@/lib/server/subnets';
 import { SublinkMetadataEditForm } from './sublink-metadata-edit-form';
+import { knownBlazeVersion } from 'blaze-sdk';
 
 // Add a simpler CSS animation for the flame
 const flameStyle = `
@@ -224,6 +225,8 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
 
     // Use currentSublink for rendering instead of sublink
     const displaySublink = currentSublink;
+    // The flame badge: teal for a Blaze v1 subnet, red for Blaze v2
+    const flameFill = knownBlazeVersion(displaySublink.tokenB?.contractId ?? '') === 2 ? 'bg-blaze-v2-fill' : 'bg-blaze-fill';
 
     const renderContractInfo = () => {
         if (!contractInfo || Object.keys(contractInfo).length === 0 || !contractInfo.contract_id) return null;
@@ -398,13 +401,13 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                         {/* Layered flame badge - static base with animation */}
                                         <div className="relative">
                                             {/* Base layer - non-animated flame */}
-                                            <div className="absolute -top-1 -right-1 bg-danger rounded-full p-0.5 shadow-md z-20">
-                                                <Flame className="w-3 h-3 text-ink" />
+                                            <div className={`absolute -top-1 -right-1 ${flameFill} rounded-full p-0.5 shadow-md z-20`}>
+                                                <Flame className="w-3 h-3 text-on-fill" />
                                             </div>
 
                                             {/* Animated layer - pulsing ring */}
-                                            <div className="absolute -top-1 -right-1 bg-danger rounded-full p-0.5 z-10 flame-ping">
-                                                <Flame className="w-3 h-3 text-ink opacity-0" />
+                                            <div className={`absolute -top-1 -right-1 ${flameFill} rounded-full p-0.5 z-10 flame-ping`}>
+                                                <Flame className="w-3 h-3 text-on-fill opacity-0" />
                                             </div>
                                         </div>
                                     </div>
@@ -573,13 +576,13 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                                         {/* Layered flame badge - static base with animation */}
                                                         <div className="relative">
                                                             {/* Base layer - non-animated flame */}
-                                                            <div className="absolute -top-1 -right-1 bg-danger rounded-full p-0.5 shadow-md z-20">
-                                                                <Flame className="w-4 h-4 text-ink" />
+                                                            <div className={`absolute -top-1 -right-1 ${flameFill} rounded-full p-0.5 shadow-md z-20`}>
+                                                                <Flame className="w-4 h-4 text-on-fill" />
                                                             </div>
 
                                                             {/* Animated layer - pulsing ring */}
-                                                            <div className="absolute -top-1 -right-1 bg-danger rounded-full p-0.5 z-10 flame-ping">
-                                                                <Flame className="w-4 h-4 text-ink opacity-0" />
+                                                            <div className={`absolute -top-1 -right-1 ${flameFill} rounded-full p-0.5 z-10 flame-ping`}>
+                                                                <Flame className="w-4 h-4 text-on-fill opacity-0" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -591,13 +594,13 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                                         {/* Layered flame badge - static base with animation */}
                                                         <div className="relative">
                                                             {/* Base layer - non-animated flame */}
-                                                            <div className="absolute -top-1 -right-1 bg-danger rounded-full p-0.5 shadow-md z-20">
-                                                                <Flame className="w-4 h-4 text-ink" />
+                                                            <div className={`absolute -top-1 -right-1 ${flameFill} rounded-full p-0.5 shadow-md z-20`}>
+                                                                <Flame className="w-4 h-4 text-on-fill" />
                                                             </div>
 
                                                             {/* Animated layer - pulsing ring */}
-                                                            <div className="absolute -top-1 -right-1 bg-danger rounded-full p-0.5 z-10 flame-ping">
-                                                                <Flame className="w-4 h-4 text-ink opacity-0" />
+                                                            <div className={`absolute -top-1 -right-1 ${flameFill} rounded-full p-0.5 z-10 flame-ping`}>
+                                                                <Flame className="w-4 h-4 text-on-fill opacity-0" />
                                                             </div>
                                                         </div>
                                                     </div>

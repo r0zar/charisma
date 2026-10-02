@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Coins, ExternalLink, Flame, ArrowRightLeft } from 'lucide-react';
+import { knownBlazeVersion } from 'blaze-sdk';
 import Link from 'next/link';
 import { Vault } from '@/lib/pool-service';
 import Image from 'next/image';
@@ -207,8 +208,8 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
                                                     <div className="flex items-center">
                                                         <span>Blaze</span>
                                                         <div className="relative ml-1">
-                                                            <div className="bg-danger rounded-full p-0.5 shadow-sm flame-pulse">
-                                                                <Flame className="w-2.5 h-2.5 text-ink" />
+                                                            <div className={`${knownBlazeVersion(sublink.tokenB?.contractId ?? '') === 2 ? 'bg-blaze-v2-fill' : 'bg-blaze-fill'} rounded-full p-0.5 shadow-sm flame-pulse`}>
+                                                                <Flame className="w-2.5 h-2.5 text-on-fill" />
                                                             </div>
                                                         </div>
                                                     </div>
