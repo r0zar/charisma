@@ -47,6 +47,7 @@ import { getTokenMetadataCached, listTokens, TokenCacheData } from '@repo/tokens
 import Image from 'next/image';
 import { createSubnetMetadataAction } from '@/lib/actions/metadataActions';
 import { generateOnChainMetadataUriWithinLimit } from '@/lib/utils/image-utils';
+import { BlazeV2Notice } from '@/components/blaze-v2-notice';
 
 // Schema for form validation
 const schema = z.object({
@@ -1234,6 +1235,8 @@ export default function SubnetWrapperWizard() {
                 Upgrade an existing token to a subnet token. This contract allows users to peg tokens into and out of a subnet,
                 enabling advanced transaction patterns like off-chain signature-based transfers.
             </p>
+
+            <BlazeV2Notice />
 
             <ContractStepper currentStep={currentStep} />
 

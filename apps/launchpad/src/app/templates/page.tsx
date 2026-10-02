@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ContractType } from '@/components/contracts/contracts-list';
 import { useApp } from '@/lib/context/app-context';
 import { PageHeader } from '@/components/ui/page-header';
+import { BlazeV2Notice } from '@/components/blaze-v2-notice';
 import { useToast } from '@/components/ui/use-toast';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
@@ -168,6 +169,8 @@ const TemplatesPage = () => {
                 title="Contract Templates"
                 description="Choose a template to quickly deploy your contract. We offer various templates for different use cases."
             />
+
+            <BlazeV2Notice className="mt-6" />
 
             <div className="mt-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

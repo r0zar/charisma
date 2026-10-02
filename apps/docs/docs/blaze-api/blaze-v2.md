@@ -16,6 +16,13 @@ and the [design notes](https://github.com/r0zar/charisma/blob/main/packages/clar
 | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v2` | The swap router for subnets on either version. It pays only the signer |
 | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v2` | CHA on Blaze v2 |
 | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-sublink-v2` | Moves CHA in and out of the v2 subnet (`0x05` / `0x06`) |
+| `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v2` | WELSH on Blaze v2 |
+| `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-sublink-v2` | Moves WELSH in and out of the v2 subnet |
+| `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v2` | sBTC on Blaze v2 |
+| `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-sublink-v2` | Moves sBTC in and out of the v2 subnet |
+
+CHA, WELSH and sBTC hold most of the money in subnets, so they moved first. Every other subnet stays on v1 and keeps
+working. Its owner can deploy a v2 subnet and sublink from [Launchpad](https://launchpad.charisma.rocks/templates).
 
 ## What changed
 
@@ -60,7 +67,8 @@ balance can only leave through notes.
 
 ## Moving from v1
 
-Nobody can move your CHA without your signature, so the move can't be automatic. It's built to be effortless instead:
+Nobody can move your tokens without your signature, so the move can't be automatic. It's built to be effortless instead.
+Here's CHA:
 
 ```mermaid
 flowchart LR
@@ -68,8 +76,10 @@ flowchart LR
     cha -->|"0x05: charisma-sublink-v2"| v2["CHA in the v2 subnet"]
 ```
 
+WELSH and sBTC take the same path: `welsh-sublink` → `welsh-sublink-v2`, and `blaze-bitcoin` → `sbtc-sublink-v2`.
+
 1. **New subnets are v2.** Launchpad generates every subnet against `blaze-v2`.
-2. **One balance.** Apps show your v1 and v2 CHA as one number.
+2. **One balance.** Apps show your v1 and v2 balance of each token as one number.
 3. **Old first, new in.** Spending uses your v1 balance first, and deposits land in v2, so v1 drains through normal use.
 4. **One-tap upgrade.** The diagram above is an ordinary swap through `x-multihop-v2`: one free signature, and the solver
    pays the fee.

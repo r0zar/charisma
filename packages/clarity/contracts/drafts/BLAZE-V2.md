@@ -10,6 +10,8 @@ player's pace.
 | `x-multihop-v2` | The swap router for subnets on **either** version; it always pays the signer |
 | `charisma-token-subnet-v2` | CHA on Blaze v2 |
 | `charisma-sublink-v2` | The vault that moves CHA in and out of the v2 subnet (`0x05` / `0x06`) |
+| `welsh-token-subnet-v2`, `welsh-sublink-v2` | WELSH on Blaze v2, and its sublink |
+| `sbtc-token-subnet-v2`, `sbtc-sublink-v2` | sBTC on Blaze v2, and its sublink |
 
 Sources: `contracts/blaze-v2.clar`, `contracts/routers/x-multihop-v2.clar`, `contracts/subnets/`. The Launchpad's
 `subnet-wrapper-v2.template.clar` is what new subnets are made from. `tests/blaze-v2.test.ts` runs all of it end to end
@@ -80,5 +82,5 @@ checks it again under that subnet's version, so a v2 signature can never move a 
 - `blaze-sdk`: sign for the v2 domain, recover v2 signers, know which subnets are v2, and default swaps to
   `x-multihop-v2`.
 - Swap, Meme Roulette and the wallet: the combined balance, old-first spending, v2 deposits and the upgrade button.
-- v2 subnets for the other tokens with subnets today (sBTC, WELSH, …), each with its sublink.
+- WELSH and sBTC are on v2 too (2026-10-02). The other subnets stay on v1; their owners can redeploy from Launchpad.
 - An audit before balances grow large on v2.
