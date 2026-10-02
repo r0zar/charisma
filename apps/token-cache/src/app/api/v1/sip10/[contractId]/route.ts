@@ -88,7 +88,8 @@ export async function GET(
             data: tokenData
         }, {
             status: 200,
-            headers
+            // a refresh must reach the origin every time, so it is never cached at the edge
+            headers: refresh ? { ...headers, 'Cache-Control': 'no-store', 'CDN-Cache-Control': 'no-store', 'Vercel-CDN-Cache-Control': 'no-store' } : headers
         });
 
     } catch (error: any) {

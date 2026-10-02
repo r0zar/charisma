@@ -206,6 +206,10 @@ export async function verifySignatureAndGetSignerWithTimestamp(
     if ((now - timestamp) > maxAge) {
         return { ok: false, status: 401, error: 'Message expired', signer: '' };
     }
+    // A future date would stretch the window past ttl; allow one minute of clock skew
+    if ((timestamp - now) > 60 * 1000) {
+        return { ok: false, status: 401, error: 'Timestamp is in the future', signer: '' };
+    }
 
     // Reconstruct the timestamped message that was signed
     const timestampedMessage = JSON.stringify({ message, timestamp });
