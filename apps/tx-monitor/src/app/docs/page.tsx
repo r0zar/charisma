@@ -4,7 +4,9 @@ import { Code, Database, Zap, Clock, CheckCircle, XCircle, Activity, ExternalLin
 import Link from 'next/link';
 import { ApiTester } from '@/components/ApiTester';
 
-export default function HomePage() {
+export const metadata = { title: 'Docs · Transaction Monitor' };
+
+export default function DocsPage() {
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-4xl">
         {/* Hero Section */}
@@ -28,7 +30,7 @@ export default function HomePage() {
               </Button>
             </Link>
             <Button variant="outline" size="lg" asChild className="w-full sm:w-auto">
-              <a href="https://github.com/charisma-ai/tx-monitor" target="_blank" rel="noopener noreferrer">
+              <a href="https://github.com/r0zar/charisma/tree/main/apps/tx-monitor" target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="w-4 h-4 mr-2" />
                 GitHub
               </a>
@@ -290,6 +292,16 @@ X-Cache-Status: HIT`}</code></pre>
               </div>
               <p className="text-muted-foreground">
                 Transaction failed due to post-condition check failure
+              </p>
+            </div>
+
+            <div className="border rounded-lg p-6">
+              <div className="flex items-center gap-3 mb-3">
+                <XCircle className="w-5 h-5 text-danger" />
+                <code className="text-sm bg-muted px-2 py-1 rounded">dropped</code>
+              </div>
+              <p className="text-muted-foreground">
+                The network removed the transaction from the mempool (replaced by fee, expired, too expensive). It never ran
               </p>
             </div>
             

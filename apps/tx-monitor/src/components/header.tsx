@@ -5,6 +5,7 @@ import { WalletDropdown } from "@/components/wallet-dropdown"
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/docs", label: "Docs" },
   { href: "/settings", label: "Settings" },
 ]
 
