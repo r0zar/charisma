@@ -17,9 +17,7 @@ import {
     stringAsciiCV,
     ClarityValue,
     PostCondition,
-    TxBroadcastResult,
-} from '@stacks/transactions';
-import { bufferFromHex } from '@stacks/transactions/dist/cl';
+    TxBroadcastResult, Cl } from '@stacks/transactions';
 import { STACKS_MAINNET } from '@stacks/network';
 import { DEFAULT_ROUTER_CONFIG, MAX_SOLVER_FEE_USTX, MULTIHOP_CONTRACT_ID, MULTIHOP_CONTRACT_IDS, STX_CONTRACT_ID, WRAPPED_STX_CONTRACT_ID } from '../../constants';
 import { recoverSigner } from '../../core';
@@ -104,7 +102,7 @@ export function buildInputTuple(
     return tupleCV({
         token: contractPrincipalCV(addr, name),
         amount: uintCV(BigInt(amountIn)),
-        signature: bufferFromHex(signature),
+        signature: Cl.bufferFromHex(signature),
         uuid: stringAsciiCV(uuid)
     });
 }
@@ -142,7 +140,7 @@ function buildHopTuple(hop: Hop): ClarityValue {
     const opcodeHex = hop.opcode.toString(16).padStart(2, '0');
     return tupleCV({
         vault: contractPrincipalCV(addr, name),
-        opcode: bufferFromHex(opcodeHex),
+        opcode: Cl.bufferFromHex(opcodeHex),
     });
 }
 

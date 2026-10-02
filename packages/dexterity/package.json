@@ -1,10 +1,28 @@
 {
   "name": "dexterity-sdk",
-  "version": "0.0.0",
+  "version": "0.9.0",
+  "description": "Dexterity: quote and route swaps across Charisma and wrapped Bitflow, ALEX, Arkadiko and Velar pools on Stacks.",
+  "license": "MIT",
+  "author": "rozar",
+  "homepage": "https://docs.charisma.rocks",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/r0zar/charisma.git",
+    "directory": "packages/dexterity"
+  },
+  "keywords": [
+    "stacks",
+    "dexterity",
+    "amm",
+    "router",
+    "swap",
+    "charisma",
+    "defi"
+  ],
   "type": "module",
-  "private": true,
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "main": "./dist/es/index.js",
   "module": "./dist/es/index.js",
@@ -21,6 +39,9 @@
       }
     }
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "bunchee",
     "dev": "bunchee --watch",
@@ -32,15 +53,19 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@modules/discovery": "workspace:*",
-    "@repo/polyglot": "workspace:*",
-    "@repo/tokens": "workspace:*",
-    "@stacks/encryption": "latest",
-    "@stacks/network": "latest",
-    "@stacks/transactions": "latest"
+    "@stacks/blockchain-api-client": "^8.11.5",
+    "@stacks/connect": "^8.2.7",
+    "@stacks/encryption": "^7.6.0",
+    "@stacks/network": "^7.6.0",
+    "@stacks/stacks-blockchain-api-types": "^7.14.1",
+    "@stacks/transactions": "^7.6.0",
+    "@swc/helpers": "^0.5.17"
   },
   "devDependencies": {
+    "@modules/discovery": "workspace:*",
     "@repo/eslint-config": "workspace:*",
+    "@repo/polyglot": "workspace:*",
+    "@repo/tokens": "workspace:*",
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^24.0.14",
     "bunchee": "^6.5.4",

@@ -3,11 +3,9 @@ import {
     stringAsciiCV,
     principalCV,
     validateStacksAddress,
-    PostConditionMode,
-} from "@stacks/transactions";
+    PostConditionMode, Cl } from "@stacks/transactions";
 import { STACKS_MAINNET } from "@stacks/network";
 import { ContractCallTxOptions, TransferTokensLTEInput } from "./types";
-import { bufferFromHex } from "@stacks/transactions/dist/cl";
 
 export function createBoundedTransfer(input: TransferTokensLTEInput): ContractCallTxOptions {
     const {
@@ -35,7 +33,7 @@ export function createBoundedTransfer(input: TransferTokensLTEInput): ContractCa
     const [contractAddress, contractName] = contractId.split('.');
 
     const functionArgs = [
-        bufferFromHex(signature),
+        Cl.bufferFromHex(signature),
         uintCV(bound),
         uintCV(amount),
         stringAsciiCV(uuid),

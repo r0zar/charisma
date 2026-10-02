@@ -2,11 +2,9 @@ import {
     uintCV,
     stringAsciiCV,
     PostConditionMode,
-    principalCV,
-} from "@stacks/transactions";
+    principalCV, Cl } from "@stacks/transactions";
 import { STACKS_MAINNET } from "@stacks/network";
 import { ContractCallTxOptions, RedeemBearerInput } from "./types";
-import { bufferFromHex } from "@stacks/transactions/dist/cl";
 
 export function createRedeem(input: RedeemBearerInput): ContractCallTxOptions {
     const {
@@ -30,7 +28,7 @@ export function createRedeem(input: RedeemBearerInput): ContractCallTxOptions {
     const [contractAddress, contractName] = contractId.split('.');
 
     const functionArgs = [
-        bufferFromHex(signature),
+        Cl.bufferFromHex(signature),
         uintCV(amount),
         stringAsciiCV(uuid),
         principalCV(recipient),

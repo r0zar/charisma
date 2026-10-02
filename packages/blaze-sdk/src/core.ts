@@ -13,9 +13,7 @@ import {
     principalCV,
     uintCV,
     optionalCVOf,
-    noneCV,
-} from "@stacks/transactions";
-import { bufferFromHex } from "@stacks/transactions/dist/cl";
+    noneCV, Cl } from "@stacks/transactions";
 import { callReadOnlyFunction } from "@repo/polyglot";
 import { BLAZE_CONTRACT_ID } from "./constants";
 
@@ -61,7 +59,7 @@ export async function generateHash(
 ): Promise<string> {
     // Prepare optional arguments
     const opcodeArg = options.opcode
-        ? optionalCVOf(bufferFromHex(options.opcode))
+        ? optionalCVOf(Cl.bufferFromHex(options.opcode))
         : noneCV();
 
     const amountArg = options.amount
@@ -118,8 +116,8 @@ export async function verifySignature(
         contractName,
         "verify",
         [
-            bufferFromHex(cleanMessageHash),
-            bufferFromHex(cleanSignature),
+            Cl.bufferFromHex(cleanMessageHash),
+            Cl.bufferFromHex(cleanSignature),
         ],
     );
 
@@ -160,7 +158,7 @@ export async function recoverSigner(
 ): Promise<string> {
 
     // Prepare optional arguments
-    const opcodeArg = options.opcode ? optionalCVOf(bufferFromHex(options.opcode)) : noneCV();
+    const opcodeArg = options.opcode ? optionalCVOf(Cl.bufferFromHex(options.opcode)) : noneCV();
     const amountArg = options.amount ? optionalCVOf(uintCV(options.amount)) : noneCV();
     const targetArg = options.target ? optionalCVOf(principalCV(options.target)) : noneCV();
 
@@ -170,7 +168,7 @@ export async function recoverSigner(
         contractName,
         "recover",
         [
-            bufferFromHex(signature),
+            Cl.bufferFromHex(signature),
             principalCV(contract),
             stringAsciiCV(intent),
             opcodeArg,
@@ -231,7 +229,7 @@ export async function submitSignature(
 
     // Prepare optional arguments
     const opcodeArg = options.opcode
-        ? optionalCVOf(bufferFromHex(options.opcode))
+        ? optionalCVOf(Cl.bufferFromHex(options.opcode))
         : noneCV();
 
     const amountArg = options.amount
@@ -247,7 +245,7 @@ export async function submitSignature(
         contract: `${contractAddress}.${contractName}` as `${string}.${string}`,
         functionName: "execute",
         functionArgs: [
-            bufferFromHex(cleanSignature),
+            Cl.bufferFromHex(cleanSignature),
             stringAsciiCV(intent),
             opcodeArg,
             amountArg,

@@ -3,11 +3,9 @@ import {
     stringAsciiCV,
     principalCV,
     validateStacksAddress,
-    PostConditionMode,
-} from "@stacks/transactions";
+    PostConditionMode, Cl } from "@stacks/transactions";
 import { STACKS_MAINNET } from "@stacks/network";
 import { ContractCallTxOptions, TransferTokensInput } from "./types";
-import { bufferFromHex } from "@stacks/transactions/dist/cl";
 import { recoverSigner } from "../core";
 
 export function createTransfer(input: TransferTokensInput): ContractCallTxOptions {
@@ -35,7 +33,7 @@ export function createTransfer(input: TransferTokensInput): ContractCallTxOption
     const [contractAddress, contractName] = contractId.split('.');
 
     const functionArgs = [
-        bufferFromHex(signature),
+        Cl.bufferFromHex(signature),
         uintCV(amount),
         stringAsciiCV(uuid),
         principalCV(recipient),

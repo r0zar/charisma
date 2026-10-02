@@ -1,6 +1,5 @@
 import { Cl, optionalCVOf, privateKeyToPublic, signStructuredData, TupleCV } from "@stacks/transactions";
 import { noneCV, principalCV, someCV, stringAsciiCV, tupleCV, uintCV } from "@stacks/transactions";
-import { bufferFromHex } from "@stacks/transactions/dist/cl";
 import { BLAZE_V1_DOMAIN, MULTIHOP_CONTRACT_ID } from "./constants";
 import { getSelectedProviderId, request } from "@stacks/connect";
 
@@ -29,7 +28,7 @@ export async function signIntentWithPrivateKey(input: SecureIntentInput): Promis
     const message = tupleCV({
         contract: principalCV(input.contract),
         intent: stringAsciiCV(input.intent),
-        opcode: input.opcode ? someCV(bufferFromHex(input.opcode)) : noneCV(),
+        opcode: input.opcode ? someCV(Cl.bufferFromHex(input.opcode)) : noneCV(),
         amount: input.amount ? someCV(uintCV(input.amount)) : noneCV(),
         target: input.target ? someCV(principalCV(input.target)) : noneCV(),
         uuid: stringAsciiCV(uuid),
@@ -56,7 +55,7 @@ export async function signIntentWithWallet(input: IntentInput): Promise<SignedIn
     const message = tupleCV({
         contract: principalCV(input.contract),
         intent: stringAsciiCV(input.intent),
-        opcode: input.opcode ? someCV(bufferFromHex(input.opcode)) : noneCV(),
+        opcode: input.opcode ? someCV(Cl.bufferFromHex(input.opcode)) : noneCV(),
         amount: input.amount ? someCV(uintCV(input.amount)) : noneCV(),
         target: input.target ? someCV(principalCV(input.target)) : noneCV(),
         uuid: stringAsciiCV(uuid),
