@@ -99,7 +99,7 @@ export const defaultConfig: RouterConfig = {
   defaultSlippage: 0.01,
   routerContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop',
   quoteCacheTTL: 30000, // 30 seconds
-  maxPathsToEvaluate: 3, // evaluate top 10 paths only
+  maxPathsToEvaluate: 3, // real-quote only the 3 best estimated paths
 };
 
 export interface Hop {
@@ -520,83 +520,79 @@ export class Router {
    * Evaluate concrete path by greedily picking best pool at each hop.
    * Now uses cached quotes.
    */
-  private async evaluatePath(path: Token[], amount: number): Promise<Route | Error> {
-    try {
-      let cur = amount;
-      const hops: Hop[] = [];
+  private async evaluatePath(path: Token[], amount: number): Promise<Route> {
+    let cur = amount;
+    const hops: Hop[] = [];
 
-      for (let i = 0; i < path.length - 1; i++) {
-        const a = path[i];
-        const b = path[i + 1];
-        const node = this.nodes.get(a.contractId);
-        if (!node) throw new Error('node miss');
+    for (let i = 0; i < path.length - 1; i++) {
+      const a = path[i];
+      const b = path[i + 1];
+      const node = this.nodes.get(a.contractId);
+      if (!node) throw new Error('node miss');
 
-        // All pools connecting a → b, never reusing a pool earlier in this route (out and back through one pool only loses)
-        const edges = Array.from(node.edges.values()).filter(
-          e => e.target.contractId === b.contractId && !hops.some(h => h.vault.contractId === e.vault.contractId),
-        );
-        if (!edges.length) throw new Error('edge miss');
+      // All pools connecting a → b, never reusing a pool earlier in this route (out and back through one pool only loses)
+      const edges = Array.from(node.edges.values()).filter(
+        e => e.target.contractId === b.contractId && !hops.some(h => h.vault.contractId === e.vault.contractId),
+      );
+      if (!edges.length) throw new Error('edge miss');
 
-        /** best quoted delta amongst parallel pools */
-        let best: { q: Quote; e: GraphEdge } | null = null;
+      /** best quoted delta amongst parallel pools */
+      let best: { q: Quote; e: GraphEdge } | null = null;
 
-        for (const e of edges) {
-          // Determine opcode based on token types and vault order
-          const isInSubnet = a.type === 'SUBNET';
-          const isOutSubnet = b.type === 'SUBNET';
-          let op: number;
+      for (const e of edges) {
+        // Determine opcode based on token types and vault order
+        const isInSubnet = a.type === 'SUBNET';
+        const isOutSubnet = b.type === 'SUBNET';
+        let op: number;
 
-          if (!isInSubnet && isOutSubnet) {
-            op = OPCODES.OP_DEPOSIT;
-          } else if (isInSubnet && !isOutSubnet) {
-            op = OPCODES.OP_WITHDRAW;
-          } else {
-            // Standard swap (both subnet or both not subnet, or type is undefined/not SUBNET)
-            op = a.contractId === e.vault.tokenA.contractId
-              ? OPCODES.SWAP_A_TO_B
-              : OPCODES.SWAP_B_TO_A;
-          }
-
-          // Use cached quote
-          const delta = await this.getCachedQuote(e.vault, cur, op);
-          if (!delta) continue;
-          const q: Quote = {
-            amountIn: delta.dx,
-            amountOut: delta.dy,
-            expectedPrice: delta.dy / cur,
-            minimumReceived: Math.floor(delta.dy * (1 - this.config.defaultSlippage)),
-            fee: e.vault.fee,
-            opcode: op,
-          };
-          if (!best || q.amountOut > best.q.amountOut) best = { q, e };
+        if (!isInSubnet && isOutSubnet) {
+          op = OPCODES.OP_DEPOSIT;
+        } else if (isInSubnet && !isOutSubnet) {
+          op = OPCODES.OP_WITHDRAW;
+        } else {
+          // Standard swap (both subnet or both not subnet, or type is undefined/not SUBNET)
+          op = a.contractId === e.vault.tokenA.contractId
+            ? OPCODES.SWAP_A_TO_B
+            : OPCODES.SWAP_B_TO_A;
         }
-        if (!best) throw new Error('quoting failed');
 
-        hops.push({
-          vault: best.e.vault,
-          tokenIn: a,
-          tokenOut: b,
-          opcode: best.q.opcode,
-          quote: { amountIn: cur, amountOut: best.q.amountOut },
-        });
-        cur = best.q.amountOut;
+        // Use cached quote
+        const delta = await this.getCachedQuote(e.vault, cur, op);
+        if (!delta) continue;
+        const q: Quote = {
+          amountIn: delta.dx,
+          amountOut: delta.dy,
+          expectedPrice: delta.dy / cur,
+          minimumReceived: Math.floor(delta.dy * (1 - this.config.defaultSlippage)),
+          fee: e.vault.fee,
+          opcode: op,
+        };
+        if (!best || q.amountOut > best.q.amountOut) best = { q, e };
       }
+      if (!best) throw new Error('quoting failed');
 
-      return { path, hops, amountIn: amount, amountOut: cur };
-    } catch (err) {
-      return err instanceof Error ? err : new Error(String(err));
+      hops.push({
+        vault: best.e.vault,
+        tokenIn: a,
+        tokenOut: b,
+        opcode: best.q.opcode,
+        quote: { amountIn: cur, amountOut: best.q.amountOut },
+      });
+      cur = best.q.amountOut;
     }
+
+    return { path, hops, amountIn: amount, amountOut: cur };
   }
 
   /**
-   * Public: find best route (highest output) between two tokens.
-   * Now with estimation-based pruning.
+   * Best route (highest output) between two tokens, pruned by estimates first.
+   * No path between the tokens → an empty route (amountOut 0). Paths exist but none can be quoted → throws, saying why.
    */
   async findBestRoute(
     from: string,
     to: string,
     amount: number,
-  ): Promise<Route | Error> {
+  ): Promise<Route> {
     // Clear stale cache entries periodically
     this.clearStaleCache();
 
@@ -642,21 +638,21 @@ export class Router {
     }
 
     // Evaluate selected paths with actual quotes
-    const routes = await Promise.all(
-      pathsToEvaluate.map(p => this.evaluatePath(p, amount))
-    );
+    const settled = await Promise.allSettled(pathsToEvaluate.map(p => this.evaluatePath(p, amount)));
 
     // A pool that would refuse the trade quotes 0, so a zero-output route isn't a route
-    const ok = routes.filter((r): r is Route => !(r instanceof Error) && r.amountOut > 0);
+    const ok = settled.flatMap(r => (r.status === 'fulfilled' && r.value.amountOut > 0 ? [r.value] : []));
 
     if (this.config.debug) {
       console.log(`[router] ${ok.length} valid routes found`);
       console.log(`[router] cache size: ${this.quoteCache.size} entries`);
     }
 
-    return ok.length
-      ? ok.sort((a, b) => b.amountOut - a.amountOut)[0]
-      : new Error('all routes failed');
+    if (!ok.length) {
+      const reasons = settled.flatMap(r => (r.status === 'rejected' ? [r.reason instanceof Error ? r.reason.message : String(r.reason)] : []));
+      throw new Error(`No usable route from ${from} to ${to} (${pathsToEvaluate.length} paths tried): ${reasons.length ? [...new Set(reasons)].join('; ') : 'every route quoted 0'}`);
+    }
+    return ok.sort((a, b) => b.amountOut - a.amountOut)[0];
   }
 
   /** quick health snapshot */

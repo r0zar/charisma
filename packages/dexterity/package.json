@@ -1,6 +1,6 @@
 {
   "name": "dexterity-sdk",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "description": "Dexterity: quote and route swaps across Charisma and wrapped Bitflow, ALEX, Arkadiko and Velar pools on Stacks.",
   "license": "MIT",
   "author": "rozar",

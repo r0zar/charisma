@@ -8,14 +8,13 @@ import {
   Token,
 } from "../index";
 
-// Mock external dependencies
-vi.mock('@repo/polyglot');
-vi.mock('@repo/tokens');
-
-const polyglotMock = await vi.importMock('@repo/polyglot') as any;
-const tokensMock = await vi.importMock('@repo/tokens') as any;
-const mockCallReadOnly = polyglotMock.callReadOnly;
-const mockGetTokenMetadataCached = tokensMock.getTokenMetadataCached;
+// Mock external dependencies explicitly, so the router under test gets these exact functions
+const { mockCallReadOnly, mockGetTokenMetadataCached } = vi.hoisted(() => ({
+  mockCallReadOnly: vi.fn(),
+  mockGetTokenMetadataCached: vi.fn(),
+}));
+vi.mock('@repo/polyglot', () => ({ callReadOnly: mockCallReadOnly }));
+vi.mock('@repo/tokens', () => ({ getTokenMetadataCached: mockGetTokenMetadataCached }));
 
 // Mock fetch for API calls
 global.fetch = vi.fn();
@@ -172,9 +171,6 @@ describe("dexterity-sdk (mocked)", () => {
     const best = await router.findBestRoute(from, to, 1_000_000);
     console.log("Best route →", best);
 
-    expect(!(best instanceof Error)).toBe(true);
-    if (best instanceof Error) return;
-
     expect(best.hops.length).toBeGreaterThan(0);
     expect(best.amountOut).toBeGreaterThan(0);
     expect(best.hops[0].vault.contractId).toBe(mockVault.contractId);
@@ -194,12 +190,6 @@ describe("dexterity-sdk (mocked)", () => {
       mockTokenB.contractId,
       500_000,
     );
-
-    if (route instanceof Error) {
-      console.warn("Route search failed:", route);
-      expect(false).toBe(true);
-      return;
-    }
 
     const txCfg = await buildSwapTransaction(router, route, "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop");
     console.log("Tx config →", {
@@ -257,14 +247,9 @@ describe("dexterity-sdk (mocked)", () => {
     const router = new Router({ ...defaultConfig, debug: true });
     router.loadVaults([emptyVault]);
 
-    const route = await router.findBestRoute(
-      mockTokenA.contractId,
-      mockTokenB.contractId,
-      1000000
-    );
-
-    // Should handle gracefully (either return error or empty route)
-    expect(route instanceof Error || route.amountOut === 0).toBe(true);
+    // A path exists but its only pool can't fill the trade, so there is no usable route: findBestRoute throws why
+    await expect(router.findBestRoute(mockTokenA.contractId, mockTokenB.contractId, 1000000))
+      .rejects.toThrow(/No usable route/);
   });
 
   it("handles mocked network errors gracefully", async () => {

@@ -28,8 +28,11 @@ const best = await router.findBestRoute('.stx', 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCK
 `buildSwapTransaction` and `buildSwapPostConditions` build the contract call with deny-mode post-conditions for a
 route. Bin (DLMM) and stableswap pools are priced with an on-chain spot-price probe (`withSpotPrices`).
 
-## 0.9
+`findBestRoute` returns an empty route (`amountOut: 0`) when no path connects the tokens, and throws, saying why,
+when paths exist but none can be quoted.
 
-0.9 is a rewrite of 0.8: the CLI is gone, and the router covers external pools.
+## 1.0
+
+1.0 is a rewrite of 0.8: the CLI is gone, the router covers external pools, and from here the API follows semver.
 
 MIT licensed.

@@ -130,13 +130,8 @@ export async function getQuote(
     }
     
     try {
+        // throws when paths exist but none can be quoted; the catch below reports why
         const route = await router.findBestRoute(fromTokenId, toTokenId, Number(amount));
-        console.log(`[Server] Route result:`, { route, isError: route instanceof Error });
-
-        if (route instanceof Error) {
-            console.error(`[Server] Route error:`, route.message);
-            return { success: false, error: route.message };
-        }
 
         if (!route) {
             console.error(`[Server] No route found for ${fromTokenId} -> ${toTokenId}`);
