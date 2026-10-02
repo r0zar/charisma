@@ -20,7 +20,7 @@ import RangeControls, { type RangeForm } from './RangeControls';
 import RangePreview from './RangePreview';
 import RangeSchedule, { type LegStatus } from './RangeSchedule';
 import { useSubnetFundedTokens } from './SubnetPairSelector';
-import { CHA_SUBNET_V1, CHA_SUBNET_V2, isChaSubnet } from '@/lib/cha-subnets';
+import { pairOf } from '@/lib/subnet-pairs';
 
 const ConditionTokenChart = dynamic(() => import('@/components/condition-token-chart'), { ssr: false });
 
@@ -110,11 +110,13 @@ export default function RangePage() {
     // Rounded to the token's decimals so display, runway and the quote request all describe the same amount.
     const amountA = prices ? Number((form.perSwapUsd / prices.a).toFixed(decA)) : 0;
     const amountB = prices ? Number((form.perSwapUsd / prices.b).toFixed(decB)) : 0;
-    // A range keeps its CHA in one subnet so its buys refill what its sells spend: v1 while it pays a swap, else v2
+    // A range keeps a v1/v2 pair's token (CHA, WELSH, sBTC) in one subnet so its buys refill what its sells spend:
+    // v1 while it pays a swap, else v2
     const legSubnet = (token: TokenCacheData | null, perSwap: number, dec: number) => {
         const listed = token ? getSubnetContractId(token.contractId) : null;
-        if (!isChaSubnet(listed)) return listed;
-        return address && getSubnetBalanceExact(address, CHA_SUBNET_V1) >= perSwap * 10 ** dec ? CHA_SUBNET_V1 : CHA_SUBNET_V2;
+        const pair = pairOf(listed);
+        if (!pair) return listed;
+        return address && getSubnetBalanceExact(address, pair.v1) >= perSwap * 10 ** dec ? pair.v1 : pair.v2;
     };
     const subnetA = legSubnet(tokenA, amountA, decA);
     const subnetB = legSubnet(tokenB, amountB, decB);

@@ -10,8 +10,8 @@ import { useWallet } from '@/contexts/wallet-context';
 import { toast } from 'sonner';
 import { shouldShowErrorToast, getErrorMessage } from '@/lib/error-utils';
 import { useBalances } from '@/contexts/wallet-balance-context';
-import { chaDestination, isChaSubnet } from '@/lib/cha-subnets';
-import { payingSubnet } from '@/lib/cha-commitments';
+import { landingSubnet } from '@/lib/subnet-pairs';
+import { payingSubnet } from '@/lib/subnet-commitments';
 
 export default function OrderButton() {
     const { createOrder, isCreatingOrder, isValidTriggers } = useOrderConditions();
@@ -123,10 +123,10 @@ export default function OrderButton() {
                 className: "bg-surface-sunken border-line text-ink backdrop-blur-sm"
             });
 
-            // CHA spends from Blaze v1 first and lands in v2
+            // CHA, WELSH and sBTC spend from Blaze v1 first and land in v2
             await createOrder({
                 fromToken: await payingSubnet(fromContractId, walletAddress, BigInt(microAmount), subnet => getSubnetBalanceExact(walletAddress, subnet)),
-                toToken: isChaSubnet(toContractId) ? chaDestination() : toContractId,
+                toToken: landingSubnet(toContractId),
                 amountIn: microAmount,
                 walletAddress
             });

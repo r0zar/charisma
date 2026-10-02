@@ -13,7 +13,7 @@ import { useWallet } from '@/contexts/wallet-context';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { BalanceTooltip } from '@/components/ui/tooltip';
 import { formatCompactNumber, formatTokenAmount } from '@/lib/swap-utils';
-import { CHA_SUBNET_V1, CHA_SUBNET_V2, isChaSubnet } from '@/lib/cha-subnets';
+import { pairOf } from '@/lib/subnet-pairs';
 
 export default function TokenInputSection() {
     const [showChart, setShowChart] = useState(false);
@@ -85,10 +85,11 @@ export default function TokenInputSection() {
         };
     }, [address, baseContractId, getTokenBalance, getSubnetBalance, getFormattedMainnetBalance, getFormattedSubnetBalance, subnetDisplayTokens, useSubnetFrom]);
 
-    // Subnet CHA is one balance across Blaze v1 and v2; the tooltip shows where it sits
-    const chaParts = address && isChaSubnet(subnetDisplayTokens.find(t => t.base === baseContractId)?.contractId)
-        ? [['Blaze v1', CHA_SUBNET_V1], ['Blaze v2', CHA_SUBNET_V2]]
-            .map(([part, subnet]) => ({ label: part, amount: formatTokenAmount(getSubnetBalanceExact(address, subnet), 6) }))
+    // A v1/v2 pair's subnet balance (CHA, WELSH, sBTC) is one number across Blaze v1 and v2; the tooltip shows where it sits
+    const fromPair = pairOf(subnetDisplayTokens.find(t => t.base === baseContractId)?.contractId);
+    const chaParts = address && fromPair
+        ? [['Blaze v1', fromPair.v1], ['Blaze v2', fromPair.v2]]
+            .map(([part, subnet]) => ({ label: part, amount: formatTokenAmount(getSubnetBalanceExact(address, subnet), fromPair.decimals) }))
         : undefined;
 
     // Determine which tokens to show and other props based on mode

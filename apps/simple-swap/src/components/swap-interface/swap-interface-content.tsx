@@ -15,7 +15,7 @@ import { useSwapTokens } from "../../contexts/swap-tokens-context";
 import { useRouterTrading } from "../../hooks/useRouterTrading";
 import { useOrderConditions } from "../../contexts/order-conditions-context";
 import { toast } from '@/components/ui/sonner';
-import ChaUpgrade from '@/components/cha-upgrade/ChaUpgrade';
+import V2Upgrade from '@/components/v2-upgrade/V2Upgrade';
 
 interface SwapInterfaceContentProps {
   initialTokens?: TokenCacheData[];
@@ -105,7 +105,7 @@ function SwapInterfaceContentInner() {
 
   return (
     <div className="space-y-6">
-      <ChaUpgrade className="max-w-2xl mx-auto" />
+      <V2Upgrade className="max-w-2xl mx-auto" />
 
       {/* Main Trading Interface - Adaptive Layout */}
       {mode === 'order' ? (

@@ -17,8 +17,8 @@ import { useSwapTokens } from '../contexts/swap-tokens-context';
 import { useOrderConditions } from '../contexts/order-conditions-context';
 import { usePrices } from '@/contexts/token-price-context';
 import { useBalances } from '@/contexts/wallet-balance-context';
-import { CHA_SUBNET_V1, CHA_SUBNET_V2, chaDestination, isChaSubnet } from '@/lib/cha-subnets';
-import { payingSubnet } from '@/lib/cha-commitments';
+import { landingSubnet, pairOf, type SubnetPair } from '@/lib/subnet-pairs';
+import { payingSubnet } from '@/lib/subnet-commitments';
 import { useWallet } from '@/contexts/wallet-context';
 import { TxMonitorClient } from '@repo/tx-monitor-client';
 import { registerTransactionForMonitoring } from '@/lib/activity/tx-monitor-client';
@@ -112,17 +112,17 @@ export function useRouterTrading() {
     routerName: process.env.NEXT_PUBLIC_ROUTER_NAME || 'multihop'
   }), []);
 
-  // Which CHA subnet a route starts from, for quoting: the old-first pick from on-chain balances (the source is
-  // settled again, open orders included, right before anything is signed). Both price the same.
-  const chaQuoteSource = (micro: string): string => {
-    if (!walletAddress || !micro) return CHA_SUBNET_V1;
-    const v1 = BigInt(Math.floor(getSubnetBalanceExact(walletAddress, CHA_SUBNET_V1)));
-    const v2 = BigInt(Math.floor(getSubnetBalanceExact(walletAddress, CHA_SUBNET_V2)));
+  // Which of a pair's subnets a route starts from, for quoting: the old-first pick from on-chain balances (the source
+  // is settled again, open orders included, right before anything is signed). Both price the same.
+  const quoteSource = (pair: SubnetPair, micro: string): string => {
+    if (!walletAddress || !micro) return pair.v1;
+    const v1 = BigInt(Math.floor(getSubnetBalanceExact(walletAddress, pair.v1)));
+    const v2 = BigInt(Math.floor(getSubnetBalanceExact(walletAddress, pair.v2)));
     const amount = BigInt(micro);
-    return v1 >= amount || v2 < amount ? CHA_SUBNET_V1 : CHA_SUBNET_V2;
+    return v1 >= amount || v2 < amount ? pair.v1 : pair.v2;
   };
 
-  /** The CHA subnet that pays `micro` right now: old first, after what open orders already commit (throws if split) */
+  /** The subnet that pays `micro` right now: for a v1/v2 pair, old first, after what open orders already commit (throws if split) */
   const resolveSpendSubnetNow = async (contractId: string, micro: string): Promise<string> => {
     if (!walletAddress) throw new Error('Connect wallet');
     return payingSubnet(contractId, walletAddress, BigInt(micro), subnet => getSubnetBalanceExact(walletAddress, subnet));
@@ -135,7 +135,7 @@ export function useRouterTrading() {
   const microAmountRef = useRef('');
 
   // Helper function to get the contract ID to use for a token based on subnet toggle.
-  // CHA paid into the subnet lands in Blaze v2; CHA spent from it comes from v1 first.
+  // CHA, WELSH and sBTC paid into the subnet land in Blaze v2; spent from it, they come from v1 first.
   const getContractIdForToken = useCallback((token: TokenCacheData | null, useSubnet: boolean, side: 'from' | 'to' = 'from'): string | null => {
     if (!token) return null;
 
@@ -143,7 +143,8 @@ export function useRouterTrading() {
     const id = useSubnet && token.type !== 'SUBNET'
       ? subnetDisplayTokens.find(t => t.base === token.contractId)?.contractId || token.contractId
       : token.contractId;
-    if (isChaSubnet(id)) return side === 'to' ? chaDestination() : chaQuoteSource(microAmountRef.current);
+    const pair = pairOf(id);
+    if (pair) return side === 'to' ? pair.v2 : quoteSource(pair, microAmountRef.current);
     return id;
   }, [subnetDisplayTokens, walletAddress, getSubnetBalanceExact]);
 
@@ -546,7 +547,7 @@ export function useRouterTrading() {
     try {
       let route = quote;
       const first = quote.path[0]?.contractId;
-      if (isChaSubnet(first)) {
+      if (pairOf(first)) {
         const source = await resolveSpendSubnet(first, String(quote.amountIn));
         if (source !== first) {
           const requote = await getQuote(source, quote.path[quote.path.length - 1].contractId, String(quote.amountIn));
@@ -1042,8 +1043,8 @@ export function useRouterTrading() {
     try {
       const microAmount = convertToMicroUnits(amount, mainnetToken.decimals || 6);
 
-      // CHA deposits land in Blaze v2
-      const into = isChaSubnet(subnetToken.contractId) ? chaDestination() : subnetToken.contractId;
+      // CHA, WELSH and sBTC deposits land in Blaze v2
+      const into = landingSubnet(subnetToken.contractId);
       const params = {
         contract: into as `${string}.${string}`,
         functionName: 'deposit',

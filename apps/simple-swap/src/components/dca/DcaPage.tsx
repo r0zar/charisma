@@ -14,9 +14,9 @@ import BlazeWalletPitch from './BlazeWalletPitch';
 import { waitForConfirmation } from '@/lib/zesty/subnet';
 import { fromUnits, toUnits } from '@/lib/units';
 import { listTokens } from '@/app/actions';
-import { CHA_SUBNET_V1, CHA_SUBNET_V2, chaPlan, isChaSubnet } from '@/lib/cha-subnets';
-import { chaPlanNow } from '@/lib/cha-commitments';
-import ChaUpgrade from '@/components/cha-upgrade/ChaUpgrade';
+import { pairOf, planSpend } from '@/lib/subnet-pairs';
+import { planSpendNow } from '@/lib/subnet-commitments';
+import V2Upgrade from '@/components/v2-upgrade/V2Upgrade';
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -111,14 +111,15 @@ export default function DcaPage() {
     const decimals = from?.decimals;
     const amountRaw = decimals !== undefined ? toUnits(amountText, decimals) : 0n;
     let toMove = amountRaw > fromHeld.subnet ? amountRaw - fromHeld.subnet : 0n;
-    // CHA sits in two subnets: the buys spend one of them (old first), and wallet CHA tops up v2
-    const chaHeld = (subnet: string) => address ? getSubnetBalanceExact(address, subnet) : 0;
-    let chaSplit: string | null = null;
-    if (isChaSubnet(fromSubnet) && amountRaw > 0n && amountRaw <= balance) {
+    // CHA, WELSH and sBTC sit in two subnets: the buys spend one of them (old first), and wallet funds top up v2
+    const exactHeld = (subnet: string) => address ? getSubnetBalanceExact(address, subnet) : 0;
+    const fromPair = pairOf(fromSubnet);
+    let pairSplit: string | null = null;
+    if (fromPair && amountRaw > 0n && amountRaw <= balance) {
         try {
-            toMove = chaPlan(amountRaw, BigInt(Math.floor(chaHeld(CHA_SUBNET_V1))), BigInt(Math.floor(chaHeld(CHA_SUBNET_V2))), fromHeld.wallet).deposit;
+            toMove = planSpend(fromPair, amountRaw, BigInt(Math.floor(exactHeld(fromPair.v1))), BigInt(Math.floor(exactHeld(fromPair.v2))), fromHeld.wallet).deposit;
         } catch (err) {
-            chaSplit = (err as Error).message;
+            pairSplit = (err as Error).message;
         }
     }
     const shareRaw = (s: number) => balance * BigInt(Math.round(s * 100)) / 100n;
@@ -138,8 +139,8 @@ export default function DcaPage() {
         ? `${from.symbol} has no decimals in the token list, so amounts can't be read safely`
         : amountRaw > balance
             ? `That's more ${from?.symbol} than you hold`
-            : chaSplit
-                ? chaSplit
+            : pairSplit
+                ? pairSplit
             : buys < 2
                 ? 'Pick a longer time or buy more often, so there are at least 2 buys'
                 : buys > MAX_BUYS && !bulk
@@ -155,9 +156,9 @@ export default function DcaPage() {
         setError(null);
         setPhase('signing');
         try {
-            // Settle which CHA subnet pays now, counting what open orders already spend
-            const { source, deposit } = isChaSubnet(fromSubnet)
-                ? await chaPlanNow(address!, amountRaw, chaHeld(CHA_SUBNET_V1), chaHeld(CHA_SUBNET_V2), fromHeld.wallet)
+            // Settle which of a pair's subnets pays now, counting what open orders already spend
+            const { source, deposit } = fromPair
+                ? await planSpendNow(fromPair, address!, amountRaw, exactHeld(fromPair.v1), exactHeld(fromPair.v2), fromHeld.wallet)
                 : { source: fromSubnet, deposit: toMove };
             if (deposit > 0n) {
                 setProgress('Approve moving funds in your wallet…');
@@ -195,7 +196,7 @@ export default function DcaPage() {
                 <p className="text-sm text-ink-muted">Buy a little at a time, on a schedule. Set it once and walk away.</p>
             </div>
 
-            <ChaUpgrade />
+            <V2Upgrade />
 
             <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_260px] items-start">
             <div className="rounded-xl border border-line bg-surface p-4 space-y-5">
