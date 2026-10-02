@@ -1,25 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeIntegratedSystem, getComprehensiveLeaderboard } from '@/lib/leaderboard-integration';
 import { getBnsNameForUser } from '@/lib/leaderboard-kv';
-import { getAllUserVotes } from '@/lib/state';
-import { verifySignatureAndGetSigner } from 'blaze-sdk';
+import { requireAdmin } from '@/lib/roulette/admin-auth';
 
 /**
  * Admin endpoint for leaderboard management and testing
  */
 export async function POST(request: NextRequest) {
     try {
-        // Verify admin access
-        const verificationResult = await verifySignatureAndGetSigner(request, {
-            message: 'Admin leaderboard action',
-        });
-
-        if (verificationResult.signer !== 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS') {
-            return NextResponse.json(
-                { error: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
+        const denied = await requireAdmin(request);
+        if (denied) return denied;
 
         const body = await request.json();
         const { action } = body;
@@ -51,29 +41,9 @@ export async function POST(request: NextRequest) {
                     }
                 });
 
-            case 'migrate_votes':
-                // Migrate existing votes to leaderboard system
-                const allVotes = await getAllUserVotes();
-                const userCount = Object.keys(allVotes).length;
-                const totalVotes = Object.values(allVotes).reduce((sum, votes) => sum + votes.length, 0);
-
-                return NextResponse.json({
-                    success: true,
-                    message: 'Vote migration analysis complete',
-                    data: {
-                        userCount,
-                        totalVotes,
-                        sample: Object.entries(allVotes).slice(0, 3).map(([userId, votes]) => ({
-                            userId,
-                            voteCount: votes.length,
-                            totalCHA: votes.reduce((sum, vote) => sum + vote.voteAmountCHA, 0)
-                        }))
-                    }
-                });
-
             default:
                 return NextResponse.json(
-                    { error: 'Invalid action. Supported: initialize, test_bns, migrate_votes' },
+                    { error: 'Invalid action. Supported: initialize, test_bns' },
                     { status: 400 }
                 );
         }
@@ -138,24 +108,9 @@ export async function GET(request: NextRequest) {
                     }
                 });
 
-            case 'stats':
-                const allVotes = await getAllUserVotes();
-                const userStats = Object.keys(allVotes).length;
-                const totalVoteCount = Object.values(allVotes).reduce((sum, votes) => sum + votes.length, 0);
-
-                return NextResponse.json({
-                    success: true,
-                    data: {
-                        totalUsers: userStats,
-                        totalVotes: totalVoteCount,
-                        systemStatus: 'operational',
-                        timestamp: Date.now()
-                    }
-                });
-
             default:
                 return NextResponse.json(
-                    { error: 'Invalid action. Supported: overview, stats' },
+                    { error: 'Invalid action. Supported: overview' },
                     { status: 400 }
                 );
         }

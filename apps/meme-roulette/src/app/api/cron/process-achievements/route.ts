@@ -5,9 +5,10 @@ import {
     checkReferralAchievements
 } from '@/lib/leaderboard-kv';
 import { getReferralStats } from '@/lib/referrals-kv';
+import { requireAdmin } from '@/lib/roulette/admin-auth';
 
-// Cron job to automatically process achievements every 10 minutes
-export async function GET(request: NextRequest) {
+// Award achievements to everyone on the leaderboards
+async function processAchievements() {
     try {
         console.log('[CRON] Starting automatic achievement processing...');
         const startTime = Date.now();
@@ -147,29 +148,17 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// Allow POST for manual triggering (admin only)
-export async function POST(request: NextRequest) {
-    try {
-        // Verify admin access (you might want to add proper admin verification here)
-        const body = await request.json();
-        if (body.adminKey !== process.env.ADMIN_SECRET) {
-            return NextResponse.json(
-                { success: false, error: 'Unauthorized' },
-                { status: 401 }
-            );
-        }
+/** Vercel cron, every 10 minutes */
+export async function GET(request: NextRequest) {
+    const secret = process.env.CRON_SECRET;
+    if (!secret) return NextResponse.json({ error: 'CRON_SECRET is not set' }, { status: 500 });
+    if (request.headers.get('authorization') !== `Bearer ${secret}`) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return processAchievements();
+}
 
-        // Trigger the same process as GET
-        return await GET(request);
-    } catch (error) {
-        console.error('[CRON] Manual trigger failed:', error);
-        return NextResponse.json(
-            {
-                success: false,
-                error: 'Manual trigger failed',
-                message: error instanceof Error ? error.message : String(error)
-            },
-            { status: 500 }
-        );
-    }
-} 
+/** Manual run from the admin page */
+export async function POST(request: NextRequest) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+    return processAchievements();
+}

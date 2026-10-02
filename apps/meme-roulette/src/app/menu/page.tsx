@@ -55,7 +55,7 @@ export default function MenuPage() {
                         <Wallet className="h-16 w-16 mx-auto text-accent-text/30 mb-4" />
                         <h1 className="text-2xl sm:text-3xl font-bold mb-4 font-display">Connect Your Wallet</h1>
                         <p className="text-muted-foreground mb-6">
-                            Connect your Stacks wallet to start voting and pumping tokens
+                            Connect your Stacks wallet to back a meme
                         </p>
                     </div>
 
@@ -78,7 +78,7 @@ export default function MenuPage() {
                             <Plus className="h-5 w-5 text-accent-text mt-0.5 flex-shrink-0" />
                             <div>
                                 <h3 className="font-medium">Deposit CHA</h3>
-                                <p className="text-sm text-muted-foreground">Move CHA from mainnet to subnet for voting</p>
+                                <p className="text-sm text-muted-foreground">Move CHA into the subnet to play</p>
                             </div>
                         </div>
                         <div className="flex items-start gap-3">
@@ -138,7 +138,7 @@ export default function MenuPage() {
                         <p className="text-lg font-bold font-mono text-accent-text">
                             {subnetBalanceLoading ? '...' : formatBalance(subnetBalance)}
                         </p>
-                        <p className="text-xs text-muted-foreground">Ready to vote</p>
+                        <p className="text-xs text-muted-foreground">Ready to play</p>
                     </div>
                 </div>
             </div>
@@ -155,7 +155,7 @@ export default function MenuPage() {
                         <Plus className="h-5 w-5" />
                         <div className="text-left">
                             <div className="font-medium">Deposit CHA to Subnet</div>
-                            <div className="text-xs text-muted-foreground">Move CHA from mainnet for voting</div>
+                            <div className="text-xs text-muted-foreground">Move CHA into the subnet to play</div>
                         </div>
                     </DepositCharismaButton>
 

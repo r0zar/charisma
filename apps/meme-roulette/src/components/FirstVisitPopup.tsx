@@ -1,17 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { InstructionsOverlayContent } from './InstructionsOverlay';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogFooter
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Rocket } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { HowItWorks } from './HowItWorks';
 
 const FIRST_VISIT_KEY = 'meme-roulette-first-visit-seen';
 
@@ -19,50 +11,31 @@ export default function FirstVisitPopup() {
     const [open, setOpen] = useState(false);
 
     useEffect(() => {
-        // Check if this is the first visit
-        const hasSeenIntro = localStorage.getItem(FIRST_VISIT_KEY);
-
-        if (!hasSeenIntro) {
-            // Show popup after a short delay to allow the page to load
-            const timer = setTimeout(() => {
-                setOpen(true);
-            }, 1000);
-
-            return () => clearTimeout(timer);
-        }
+        try {
+            if (!localStorage.getItem(FIRST_VISIT_KEY)) {
+                const timer = setTimeout(() => setOpen(true), 1000);
+                return () => clearTimeout(timer);
+            }
+        } catch { /* storage blocked: skip the intro */ }
     }, []);
 
-    const handleClose = () => {
-        // Mark that user has seen the intro
-        localStorage.setItem(FIRST_VISIT_KEY, 'true');
+    const close = () => {
+        try { localStorage.setItem(FIRST_VISIT_KEY, 'true'); } catch { /* storage blocked */ }
         setOpen(false);
     };
 
     return (
-        <Dialog open={open} onOpenChange={(isOpen) => {
-            if (!isOpen) handleClose();
-        }}>
-            <DialogContent className="sm:max-w-[600px] md:max-w-[800px] bg-surface-raised p-0 max-h-[90vh] overflow-y-auto">
-                <DialogHeader className="p-6 pb-2 sticky top-0 z-10 bg-gradient-to-b from-card to-transparent">
-                    <DialogTitle className="text-2xl font-display flex items-center gap-2">
-                        <Rocket className="h-5 w-5 text-accent-text animate-float" aria-hidden="true" />
-                        Welcome to Meme Roulette!
-                    </DialogTitle>
-                    <DialogDescription>
-                        Let's get you started with how everything works
-                    </DialogDescription>
+        <Dialog open={open} onOpenChange={isOpen => { if (!isOpen) close(); }}>
+            <DialogContent className="border-line bg-surface-raised sm:max-w-[720px]">
+                <DialogHeader>
+                    <DialogTitle className="text-2xl">Welcome to Meme Roulette</DialogTitle>
+                    <DialogDescription>A group buy with a wheel. Here's the whole game:</DialogDescription>
                 </DialogHeader>
-
-                <div className="px-6 py-4">
-                    <InstructionsOverlayContent />
-                </div>
-
-                <DialogFooter className="p-6 pt-2 sticky bottom-0 z-10 bg-gradient-to-t from-card to-transparent">
-                    <Button onClick={handleClose} className="button-primary w-full sm:w-auto">
-                        Got it, let's go!
-                    </Button>
+                <HowItWorks />
+                <DialogFooter>
+                    <Button onClick={close}>Let's play</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
     );
-} 
+}

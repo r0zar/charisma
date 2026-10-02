@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeIntegratedSystem } from '@/lib/leaderboard-integration';
+import { requireAdmin } from '@/lib/roulette/admin-auth';
 
 /**
  * Initialize the leaderboard system with achievements and settings
  */
 export async function POST(request: NextRequest) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
     try {
         await initializeIntegratedSystem();
 

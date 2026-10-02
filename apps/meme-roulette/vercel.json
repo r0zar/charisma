@@ -1,7 +1,7 @@
 {
     "crons": [
         {
-            "path": "/api/cron/process-queue",
+            "path": "/api/cron/advance",
             "schedule": "* * * * *"
         },
         {

@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/components/ui/sonner';
+import { achievementAction } from '@/lib/admin-api';
 import {
     Trophy,
     RefreshCw,
@@ -66,26 +67,9 @@ export const AchievementAdminPanel = () => {
     }, []);
 
     const callAchievementAPI = async (action: string, params: any = {}) => {
-        try {
-            const response = await fetch('/api/admin/achievements', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ action, ...params }),
-            });
-
-            const result = await response.json();
-
-            if (!result.success) {
-                throw new Error(result.error || 'Unknown error');
-            }
-
-            return result;
-        } catch (error) {
-            console.error(`[ADMIN] ${action} failed:`, error);
-            throw error;
-        }
+        const result = await achievementAction(action, params);
+        if (!result.success) throw new Error(result.error || `${action} failed`);
+        return result;
     };
 
     const loadStatistics = async () => {

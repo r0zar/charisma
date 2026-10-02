@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Search, Trophy, Sparkles, Clock, Users, RefreshCw, HandCoins, TrendingUp, Zap, History } from 'lucide-react';
-import { useSpin } from '@/contexts/SpinContext';
+import { useWallet } from '@/contexts/wallet-context';
 import { useTokenPrices } from '@/hooks/useTokenPrices';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
 import TokenAmountDisplay from '@/components/TokenAmountDisplay';
@@ -28,7 +28,7 @@ const LeaderboardComponent = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortType, setSortType] = useState<'total_cha' | 'total_votes' | 'current_round'>('total_cha');
 
-  const { state: { feedData, myBets, isFeedLoading } } = useSpin();
+  const { address: currentUser } = useWallet();
   const { chaPrice } = useTokenPrices();
 
   // Use the real leaderboard system
@@ -66,7 +66,7 @@ const LeaderboardComponent = () => {
     }
   };
 
-  const isLoading = isLeaderboardLoading || isFeedLoading;
+  const isLoading = isLeaderboardLoading;
 
   return (
     <div className="flex flex-col gap-0 md:gap-6 mb-0 md:mb-8">
@@ -218,7 +218,6 @@ const LeaderboardComponent = () => {
                         </TableRow>
                       ))
                     ) : filteredData.length > 0 ? filteredData.map((entry) => {
-                      const currentUser = feedData?.currentUserBets?.[0]?.userId;
                       const isCurrentUser = entry.userId === currentUser;
                       const winRate = entry.stats.totalRoundsParticipated > 0
                         ? (entry.stats.winCount / entry.stats.totalRoundsParticipated) * 100

@@ -44,7 +44,7 @@ const Footer = () => (
                         </span>
                     </Link>
                     <p className="mb-6 max-w-sm text-sm leading-relaxed">
-                        Everyone commits CHA to the meme they want pumped. When the timer ends, one token wins and the whole pot buys it.
+                        Everyone backs the meme they want pumped with CHA. When the timer ends, the wheel picks one and the whole pot buys it.
                     </p>
                     <div className="flex items-center gap-3">
                         {SOCIALS.map(({ href, label, icon: Icon }) => (

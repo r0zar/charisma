@@ -16,7 +16,7 @@ v2:     one round record, one engine that moves it forward, every screen just dr
 | Everyone sees the same spin | The wheel's slices, landing angle and timing all come from the round record and the server clock |
 | No double payouts, no lost bets | Bets keyed by their signed UUID; each bet carries its own settlement status; a crash just resumes |
 | Odds can't be faked | Only signed, funded bets count. The unauthenticated vote and tally endpoints are gone |
-| Group buys can't be skimmed | Every swap keeps its post-conditions with a fresh quote and a slippage bound |
+| You get what the pump gives you | No price protection on purpose (Ross): the group buy is meant to pump the winner, and traders racing it is part of the game. Payouts still only go to the bettor |
 | Easy to play | Connect first, one transaction to get playable CHA, one sheet to back a meme, a personal result |
 | Local dev can't touch production | The engine only runs where `ROULETTE_ENGINE=on` (production sets it) |
 
@@ -27,7 +27,7 @@ v2:     one round record, one engine that moves it forward, every screen just dr
 | 1 | Several winner picks per spin: overlapping 2 s stream ticks, every server instance and the cron all pick with `Math.random()`; the winner `kv.set` has no only-if-unset guard; each pick starts its own swap processor | `stream/route.ts`, `cron/process-queue`, `state.ts` |
 | 2 | Anyone can add votes for any address (`POST /api/place-bet`) or overwrite the tally (`POST /api/token-bet`) | both routes |
 | 3 | Re-posting one signed intent counts it again (no uuid de-duplication) | `multihop/queue` |
-| 4 | Swaps run with post-conditions switched off, so group buys can be sandwiched | `multihop/process` |
+| 4 | Swaps run without price protection | `multihop/process`. Kept on purpose in v2: the pump is the point |
 | 5 | Failed swaps are popped and lost; bets after the lock are accepted and roll into the next round's winner | `multihop/process`, `multihop/queue` |
 | 6 | The reset needs a viewer; history has one round in total | `stream/route.ts` |
 | 7 | Concurrent votes overwrite each other (one JSON blob, read-modify-write) | `state.ts` `recordUserVote` |
@@ -41,7 +41,7 @@ One JSON document per round. The engine is the only writer.
 
 ```ts
 interface Round {
-  id: string;                 // "r_<opensAt>"
+  id: string;                 // "round_<n>", numbered so leaderboard streaks can follow consecutive rounds
   status: 'live' | 'drawn' | 'settled' | 'void';
   opensAt: number;            // ms, server clock: bets accepted from here
   locksAt: number;            // = endsAt - lockMs: bets refused from here
@@ -55,6 +55,7 @@ interface Round {
     slices: { tokenId: string; stake: string }[];          // frozen, sorted by tokenId
     winner: string | null;    // token contract id; null when nobody played
     drawnAt: number;          // ms, server clock; the reveal animation starts here
+    turns: number;            // 6–9 whole turns before landing, from the same hash
   };
   settledAt?: number;
   version: number;            // bumped on every write; writes compare it
@@ -77,6 +78,7 @@ interface Bet {
   amountOut?: string;         // winning-token units received, read from the transaction result
   error?: string;
   attempts?: number;
+  sentAt?: number;
 }
 ```
 
@@ -84,7 +86,7 @@ interface Bet {
 
 | Key | Holds |
 |---|---|
-| `roulette:v2:config` | `{ roundMs, lockMs, intermissionMs, slippage }` |
+| `roulette:v2:config` | `{ roundMs, lockMs, intermissionMs }`; until it is saved, the v1 round and lock lengths apply |
 | `roulette:v2:current` | the newest round id |
 | `roulette:v2:round:<id>` | the `Round` document |
 | `roulette:v2:round:<id>:bets` | hash: uuid → `Bet` |
@@ -162,19 +164,21 @@ const ticket = H % total;   // then walk the slices
 
 ### Settlement
 
-For each `placed` bet of a drawn round, oldest first, while the time budget lasts:
+Each call first checks the swaps in flight, then broadcasts the rest of a drawn round's `placed` bets, oldest first,
+while the time budget lasts:
 
 1. Mark it `sending` (with `attempts + 1`) and save before broadcasting.
 2. Quote CHA (subnet) → winner fresh with `dexterity-sdk`.
-3. `buildXSwapTransaction(quote, { amountIn, signature, uuid, recipient: user, slippage }, routerConfigFor(router))`,
-   which keeps its deny-mode post-conditions with the slippage bound (default 5%).
+3. `buildXSwapTransaction(quote, { amountIn, signature, uuid, recipient: user }, routerConfigFor(router))` with
+   post-conditions in allow mode and none set. There is no price protection by design: every swap after the first
+   lands on a price the earlier ones pumped, and traders who race the pump are part of the fun.
 4. Broadcast with the solver's next nonce. Nonce conflicts refetch the nonce and retry the same bet.
 5. Mark it `sent` with the txid.
 
-On later calls, `sent` bets are checked on Hiro: `success` → `confirmed` with `amountOut` read from the router's result
-(the last `dy`), aborted → `failed` with the reason. A bet stuck in `sending` after a crash is broadcast again: if the
-first broadcast did land, the intent's uuid is already spent on-chain, so the repeat can only fail, never pay twice.
-After 3 attempts a bet is `failed`.
+`sent` bets are checked on Hiro: `success` → `confirmed` with `amountOut` read from the router's result (the last `dy`).
+An abort rolls the swap back, so its uuid is unspent and the bet goes again on a later pass, up to 3 attempts, then it is
+`failed`. Before any retry, `blaze-v1` `check(uuid)` is read: a spent uuid means an earlier attempt landed (a crash
+mid-broadcast, a mempool we gave up on), so it is marked confirmed instead of sent again.
 
 When every bet is final, the round becomes `settled`, real earnings go to the leaderboard
 (`updateUserStatsWithRealEarnings`), and `roulette:v2:stats` updates the all-time high and the previous total.
@@ -190,15 +194,17 @@ fails for balance and only they miss out; the odds were already fixed by then.
 | `GET /api/rounds/<id>` | anyone | A drawn round with its seed, block, slices and per-bet results: everything needed to verify it |
 | `POST /api/bets` | a signed intent | Recovers the signer for a known router (`findSignedRouter`); checks the token is listed and the round is open (`opensAt <= now < locksAt`, server clock); checks the user's subnet balance covers all their bets this round; stores with `HSETNX` (a repeat uuid answers 200 for the same signature, 409 otherwise); updates leaderboard stats |
 | `GET /api/cron/advance` | Vercel cron | `advanceRound(50_000)` |
-| `GET /api/admin/round` and `POST /api/admin/round` | Ross (timestamped signature) | Read config and full state; set durations, intermission, slippage; reschedule the live round's `endsAt`; void the live round |
+| `GET /api/admin/round` and `POST /api/admin/round` | Ross (timestamped signature) | Read config and full state; set the round, lock and intermission lengths; reschedule the live round's `endsAt`; void the live round |
 
 Removed: `place-bet`, `token-bet`, `stream`, `multihop/queue`, `multihop/process`, `cron/process-queue`, `ath-test`,
 `test/earnings`, `admin/winner`, `admin/spin-time`, `admin/reset`, `admin/token-bet`, `admin/validate-balances`,
 `admin/round-duration`, `admin/lock-duration`, `admin/user-votes`, `admin/status`, `admin/cron-status`, and the
 unauthenticated POST actions on `leaderboard` and `leaderboard/init`.
 
-Every remaining admin mutation uses `verifySignedRequestWithTimestamp` (blaze-sdk): the signed message includes a
-timestamp and expires after five minutes, so a captured signature can't be replayed.
+Every remaining admin route (`admin/round`, `admin/achievements`, `admin/referrals`, `admin/leaderboard` POST,
+`leaderboard/init`, a manual `cron/process-achievements` run) uses `verifySignedRequestWithTimestamp` (blaze-sdk) with
+the message `charisma-roulette-admin`: the signature covers a timestamp and expires after five minutes. Both crons check
+`CRON_SECRET`.
 
 ## The client
 
@@ -242,7 +248,8 @@ Deterministic, so it can't glitch apart between devices:
 - The angle at time `t` is `θ(t) = θ_end · easeOutQuint(clamp((t - drawnAt) / 9000, 0, 1))`, a pure function of
   server time. No physics, no randomness on the device.
 
-It's drawn with **react-three-fiber**: a lacquered 3D wheel with token logos on the slices, a pointer, a soft light
+It's drawn with **react-three-fiber** (`@react-three/fiber` 9.2 on `three` 0.178, both already in the lockfile through
+`react-spring`): a lacquered 3D wheel with token logos on the slices, a pointer, a soft light
 rig, and a burst of confetti on landing. The 3D scene is loaded lazily (`next/dynamic`, `ssr: false`), caps its frame
 rate, pauses when the tab is hidden, and falls back to a 2D SVG wheel driven by the same `θ(t)` when WebGL is missing,
 the context is lost, or the user prefers reduced motion. Both wheels read colours from the realm tokens, so they work
@@ -258,7 +265,6 @@ by day and by night.
 | Bets idempotent by uuid | `HSETNX` |
 | Bets only while open, by server clock | `POST /api/bets` |
 | Signer recovered, never taken from the body | `findSignedRouter` |
-| Swaps keep post-conditions and a slippage bound | settlement |
 | Payout locked to the signer | bets are signed for `x-multihop-v1` |
 | Cron and admin authenticated | `CRON_SECRET`; timestamped signatures |
 
@@ -290,5 +296,4 @@ dedicated `PRIVATE_KEY` with a little STX for fees removes the overlap entirely.
 | Round length | kept from the current config |
 | Lock before the draw | kept from the current config |
 | Time between rounds | 60 s |
-| Slippage per swap | 5% |
 | Manual "set winner" | removed (it can't coexist with a provably fair draw) |

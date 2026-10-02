@@ -1,18 +1,15 @@
 'use client'; // Mark as client component
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Footer from './Footer';
 import MobileNav from './MobileNav';
-import { useSpinFeed } from '@/hooks/useSpinFeed';
+import { useRound } from '@/hooks/useRound';
 import { useWallet } from '@/contexts/wallet-context';
-import VoteModal from '@/components/VoteModal';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import Link from 'next/link';
 import FirstVisitPopup from '@/components/FirstVisitPopup';
 import { PendingReferralIndicator } from '@/components/ui/PendingReferralIndicator';
-import { listTokens } from 'dexterity-sdk'; // Import server action
-import type { Token as SpinToken } from '@/types/spin'; // Import the type expected by VoteModal
 import { DepositCharismaButton } from '@/components/DepositCharismaButton';
 import {
     Tooltip,
@@ -24,8 +21,8 @@ import { SwapStxToChaButton } from '@/components/SwapStxToChaButton';
 import { ThemeToggle } from '@repo/brand/react';
 
 const NAV = [
-    { href: '/', label: 'Home' },
-    { href: '/about', label: 'About' },
+    { href: '/', label: 'Play' },
+    { href: '/about', label: 'How it works' },
     { href: '/leaderboard', label: 'Leaderboard' },
     { href: '/referrals', label: 'Referrals' },
 ];
@@ -62,7 +59,7 @@ const formatBalance = (balance: string, decimals: number = 6) => {
 };
 
 const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const spinFeed = useSpinFeed();
+    const { error: roundError, payload } = useRound();
     const {
         address,
         connected,
@@ -74,57 +71,7 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         balanceLoading,
         subnetBalanceLoading,
     } = useWallet();
-
-    // State for token list fetched from server action
-    const [dexTokens, setDexTokens] = useState<SpinToken[]>([]);
-    const [loadingTokens, setLoadingTokens] = useState(true);
-
-    // State for managing the modal
-    const [isBetModalOpen, setIsBetModalOpen] = useState(false);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-    const handleOpenBetModal = () => {
-        setIsBetModalOpen(true);
-    };
-
-    // Fetch tokens on mount
-    useEffect(() => {
-        async function loadTokens() {
-            console.log("[AppShell] Fetching token list from server action...");
-            setLoadingTokens(true);
-            try {
-                const result = await listTokens();
-                if (result) {
-                    console.log(`[AppShell] Received ${result.length} tokens from action.`);
-
-                    // Map dexterity-sdk Token to SpinToken
-                    const mappedTokens: SpinToken[] = result.map((token: any) => ({
-                        type: token.type,
-                        base: token.base,
-                        id: token.contractId, // Use contractId as id
-                        contractId: token.contractId,
-                        name: token.name,
-                        symbol: token.symbol,
-                        decimals: token.decimals,
-                        imageUrl: token.image || '/placeholder-token.png', // Use image or fallback
-                        userBalance: 0, // Default userBalance, needs separate fetching logic if required
-                    }));
-
-                    setDexTokens(mappedTokens);
-                    console.log("[AppShell] Mapped tokens set in state:", mappedTokens);
-                } else {
-                    console.error("[AppShell] Failed to list tokens:", result);
-                    setDexTokens([]); // Set empty on error
-                }
-            } catch (err) {
-                console.error("[AppShell] Error calling listTokens action:", err);
-                setDexTokens([]); // Set empty on error
-            } finally {
-                setLoadingTokens(false);
-            }
-        }
-        loadTokens();
-    }, []); // Run once on mount
+    const online = !!payload && !roundError;
 
     return (
         <div className="flex min-h-screen flex-col">
@@ -145,9 +92,9 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                         <span
                             className={
                                 `ml-2 h-2.5 w-2.5 rounded-full ` +
-                                (spinFeed.isConnected ? 'bg-success' : 'bg-danger animate-pulse')
+                                (online ? 'bg-success' : 'bg-danger animate-pulse')
                             }
-                            title={spinFeed.isConnected ? 'Connected' : 'Disconnected'}
+                            title={online ? 'Live' : 'Reconnecting to the game'}
                         />
                     </div>
 
@@ -231,13 +178,11 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                             </div>
                         ) : null}
 
-                        {/* Desktop-only Connect Button when not connected */}
                         {!connected && (
                             <Button
                                 onClick={connectWallet}
                                 disabled={isConnecting}
                                 size="sm"
-                                className="hidden sm:block"
                             >
                                 {isConnecting ? 'Connecting...' : 'Connect wallet'}
                             </Button>
@@ -256,12 +201,6 @@ const AppShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <MobileNav />
 
             {/* Modals and popups */}
-            <VoteModal
-                isOpen={isBetModalOpen}
-                onClose={() => setIsBetModalOpen(false)}
-                tokens={dexTokens}
-            />
-
             <FirstVisitPopup />
 
             {/* Referral code indicator */}

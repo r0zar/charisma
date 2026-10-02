@@ -8,9 +8,12 @@ import {
     getUserStats
 } from '@/lib/leaderboard-kv';
 import { kv } from '@vercel/kv';
+import { requireAdmin } from '@/lib/roulette/admin-auth';
 
 // Admin-only achievement management endpoints
 export async function POST(request: NextRequest) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
     try {
         const body = await request.json();
         const { action, ...params } = body;

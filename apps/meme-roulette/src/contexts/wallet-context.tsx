@@ -7,11 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { signIntentWithWallet, MULTIHOP_CONTRACT_ID, getUserTokenBalance } from "blaze-sdk"; // Reverting to relative path
 import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
 import { fetchQuote, Router, loadVaults, buildSwapTransaction, Route } from 'dexterity-sdk';
-
-// Default Charisma token contract (mainnet) – override in env if necessary
-const CHARISMA_TOKEN_CONTRACT_ID =
-    process.env.NEXT_PUBLIC_CHARISMA_CONTRACT_ID ||
-    'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1';
+import type { PublicBet } from '@/lib/roulette/types';
 
 // Define the mainnet CHA contract ID separately
 const MAINNET_CHA_CONTRACT_ID =
@@ -30,7 +26,9 @@ interface WalletContextType {
     stxBalanceLoading: boolean;
     connectWallet: () => Promise<void>;
     disconnectWallet: () => void;
-    placeBet: (amount: number, tokenId: string) => Promise<{ success: boolean; uuid?: string; error?: string }>;
+    /** sign a bet for `tokenId` with `amount` micro-CHA and hand it to the game; throws the server's reason */
+    placeBet: (amount: bigint, tokenId: string) => Promise<PublicBet>;
+    refreshBalances: () => void;
     getQuote: (from: string, to: string, amount: number) => Promise<{ success: boolean; quote?: any; error?: string }>;
     swapTokens: (route: Route) => Promise<any>;
 }
@@ -47,7 +45,8 @@ const WalletContext = createContext<WalletContextType>({
     stxBalanceLoading: false,
     connectWallet: async () => { },
     disconnectWallet: () => { },
-    placeBet: async () => ({ success: false, error: 'Wallet not connected' }),
+    placeBet: async () => { throw new Error('Wallet not connected'); },
+    refreshBalances: () => { },
     getQuote: async () => ({ success: false, error: 'Failed to get quote' }),
     swapTokens: async () => ({ success: false, error: 'Wallet not connected' })
 });
@@ -149,25 +148,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    // helper to fetch subnet balance (now uses the new API endpoint)
+    // subnet CHA, read on-chain: what the game checks bets against
     const fetchSubnetBalance = async (userAddress: string) => {
         if (!userAddress) return;
         setSubnetBalanceLoading(true);
         try {
-            const response = await fetch(`/api/balance/effective-cha?userAddress=${encodeURIComponent(userAddress)}`);
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Failed to fetch effective subnet balance' }));
-                throw new Error(errorData.error || `API Error: ${response.statusText}`);
-            }
-            const result = await response.json();
-            if (result.success && result.data) {
-                setSubnetBalance(result.data.effectiveSpendableBalance);
-            } else {
-                throw new Error(result.error || 'Invalid API response structure');
-            }
-        } catch (err: any) {
-            console.error('Failed to fetch effective Subnet Charisma balance:', err.message || String(err));
-            setSubnetBalance('0'); // Optionally reset or keep stale balance on error
+            const data = await getUserTokenBalance(CHARISMA_SUBNET_CONTRACT, userAddress);
+            setSubnetBalance(data.preconfirmationBalance);
+        } catch (err) {
+            console.error('Subnet CHA balance unavailable:', err);
         } finally {
             setSubnetBalanceLoading(false);
         }
@@ -202,58 +191,33 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }
     }, [connected, address]);
 
-    // New: placeBet implements off-chain signing and intent queuing
-    const placeBet = async (amount: number, tokenId: string): Promise<{ success: boolean; uuid?: string; error?: string }> => {
-        if (!connected || !address) {
-            return { success: false, error: 'Wallet not connected' };
-        }
-        try {
-            const uuid = uuidv4();
+    // a bet is a signed TRANSFER_TOKENS intent for subnet CHA, targeted at the multihop router
+    const placeBet = async (amount: bigint, tokenId: string): Promise<PublicBet> => {
+        if (!connected || !address) throw new Error('Connect your wallet first');
+        const uuid = uuidv4();
+        const signed = await signIntentWithWallet({
+            contract: CHARISMA_SUBNET_CONTRACT,
+            intent: 'TRANSFER_TOKENS',
+            amount: Number(amount),
+            target: MULTIHOP_CONTRACT_ID,
+            uuid,
+        });
+        const response = await fetch('/api/bets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ signature: signed.signature.replace(/^0x/, ''), uuid, user: address, tokenId, amount: amount.toString() }),
+        });
+        const payload = await response.json().catch(() => ({ error: `The game answered ${response.status}` }));
+        if (!response.ok) throw new Error(payload.error ?? `The game answered ${response.status}`);
+        fetchSubnetBalance(address);
+        return payload.bet as PublicBet;
+    };
 
-            const intentPayload = {
-                contract: CHARISMA_SUBNET_CONTRACT, // Source CHA for the multi-hop (asset to be spent)
-                intent: "TRANSFER_TOKENS",       // Describes the action (ensure backend expects this)
-                amount: amount,                       // Amount of source CHA to use
-                target: MULTIHOP_CONTRACT_ID,                      // Destination contract (the multihop contract)
-                uuid: uuid,
-                // opcode is optional in IntentInput, defaults to noneCV() if not provided in signIntentWithWallet
-            };
-
-            // signIntentWithWallet uses BLAZE_V1_DOMAIN internally
-            const signedIntent = await signIntentWithWallet(intentPayload);
-
-            const apiRequestBody = {
-                signature: signedIntent.signature,
-                publicKey: signedIntent.publicKey,
-                uuid: uuid,
-                recipient: address,
-                sourceContract: CHARISMA_SUBNET_CONTRACT,
-                destinationContract: tokenId,
-                betAmount: amount.toString(),
-                intentAction: "TRANSFER_TOKENS",
-            };
-
-            // Queue the signed intent on server
-            const response = await fetch('/api/multihop/queue', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(apiRequestBody),
-            });
-            const payload = await response.json();
-            if (!response.ok || !payload.success) {
-                throw new Error(payload.error || 'Failed to queue intent');
-            }
-
-            // Successfully placed bet, now refresh the effective subnet balance
-            if (address) { // Ensure address is still available
-                fetchSubnetBalance(address);
-            }
-
-            return { success: true, uuid };
-        } catch (error: any) {
-            console.error('placeBet error:', error);
-            return { success: false, error: error.message || String(error) };
-        }
+    const refreshBalances = () => {
+        if (!address) return;
+        fetchMainnetBalance(address);
+        fetchSubnetBalance(address);
+        fetchStxBalance(address);
     };
 
     const getQuote = async (from: string, to: string, amount: number) => {
@@ -295,6 +259,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 connectWallet,
                 disconnectWallet,
                 placeBet,
+                refreshBalances,
                 getQuote,
                 swapTokens
             }}

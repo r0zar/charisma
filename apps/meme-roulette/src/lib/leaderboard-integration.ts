@@ -11,12 +11,6 @@ import {
     type LeaderboardEntry,
     type UserStats
 } from './leaderboard-kv';
-import {
-    recordUserVote,
-    incrementKVTokenBet,
-    setKVWinningToken,
-    getKVSpinStatus
-} from './state';
 import type { Vote } from '@/types/spin';
 import { kv } from '@vercel/kv';
 
@@ -34,144 +28,7 @@ const ROUND_META_KEY = (roundId: string) => `round:${roundId}:meta`;
 // INTEGRATION FUNCTIONS
 // ========================================
 
-/**
- * Enhanced vote recording that updates both voting state and leaderboard
- */
-export async function recordVoteWithLeaderboard(
-    userId: string,
-    tokenId: string,
-    amount: number
-): Promise<{ vote: Vote | null; achievements: any[] }> {
-    try {
-        // Get current round ID or generate one if none exists
-        let currentRoundId = await getCurrentRoundId();
-        if (!currentRoundId) {
-            const spinStatus = await getKVSpinStatus();
-            currentRoundId = `round_${Date.now()}`;
 
-            // Initialize round with spin timing
-            const roundDuration = spinStatus.roundDuration;
-            const startTime = spinStatus.spinScheduledAt - roundDuration;
-            const endTime = spinStatus.spinScheduledAt;
-
-            await initializeRound(currentRoundId, startTime, endTime);
-        }
-
-        // Record vote in existing system
-        const vote = await recordUserVote(userId, tokenId, amount);
-        if (!vote) {
-            return { vote: null, achievements: [] };
-        }
-
-        // Update token bets
-        await incrementKVTokenBet(tokenId, amount);
-
-        // Update leaderboard data
-        await Promise.all([
-            updateUserStatsAfterVote(userId, amount, currentRoundId),
-            recordRoundActivity(userId, currentRoundId, tokenId, amount)
-        ]);
-
-        // Check for new achievements
-        const newAchievements = await checkAndAwardAchievements(userId);
-
-        console.log(`Vote recorded with leaderboard update: ${userId} -> ${tokenId} (${amount} CHA)`);
-
-        return { vote, achievements: newAchievements };
-    } catch (error) {
-        console.error('Failed to record vote with leaderboard:', error);
-        throw error;
-    }
-}
-
-/**
- * Enhanced round completion that updates leaderboard stats
- */
-export async function completeRoundWithLeaderboard(
-    winningTokenId: string,
-    winnerRewards?: Record<string, number>
-): Promise<void> {
-    try {
-        const currentRoundId = await getCurrentRoundId();
-        if (!currentRoundId) {
-            console.warn('No current round ID found for completion');
-            return;
-        }
-
-        // Set winning token in existing system
-        await setKVWinningToken(winningTokenId);
-
-        // --- Update round metadata with winner and stats ---
-        const roundMetaKey = `round:${currentRoundId}:meta`;
-        const roundMetaObj = await kv.get(roundMetaKey);
-        if (roundMetaObj) {
-            (roundMetaObj as any).winningTokenId = winningTokenId;
-
-            // Gather all user participation for this round
-            const participantIds = await kv.smembers(ROUND_PARTICIPANTS_KEY(currentRoundId));
-            let totalCHACommitted = 0;
-            let totalVotes = 0;
-            for (const userId of participantIds) {
-                const participation = await kv.get(`${'round:' + currentRoundId + ':user_activity'}:${userId}`);
-                if (participation) {
-                    totalCHACommitted += (participation as any).chaCommitted || 0;
-                    totalVotes += (participation as any).voteCount || 0;
-                }
-            }
-            (roundMetaObj as any).totalCHACommitted = totalCHACommitted;
-            (roundMetaObj as any).totalParticipants = participantIds.length;
-            (roundMetaObj as any).totalVotes = totalVotes;
-
-            // Get top tokens by bet amount
-            const tokenBets = await kv.hgetall('spin:token_bets');
-            if (tokenBets) {
-                // Remove dummy _init field if present
-                delete tokenBets._init;
-                const sortedTokens = Object.entries(tokenBets)
-                    .map(([token, amount]) => ({ token, amount: Number(amount) }))
-                    .sort((a, b) => b.amount - a.amount)
-                    .slice(0, 5);
-                (roundMetaObj as any).topTokens = sortedTokens;
-            }
-
-            await kv.set(roundMetaKey, roundMetaObj);
-        }
-
-        // Process all participants for round completion stats
-        if (winnerRewards) {
-            const updatePromises = Object.entries(winnerRewards).map(([userId, earnings]) =>
-                updateUserStatsAfterRound(userId, currentRoundId, true, earnings)
-            );
-
-            await Promise.all(updatePromises);
-        }
-
-        // Process non-winners (users who participated but didn't win)
-        const allParticipants = await kv.smembers(ROUND_PARTICIPANTS_KEY(currentRoundId));
-        const winnerUserIds = new Set(Object.keys(winnerRewards || {}));
-
-        const nonWinnerPromises = allParticipants
-            .filter(userId => !winnerUserIds.has(userId))
-            .map(userId => updateUserStatsAfterRound(userId, currentRoundId, false, 0));
-
-        await Promise.all(nonWinnerPromises);
-
-        // --- Add round to historic:rounds sorted set ---
-        // Fetch round metadata to get endTime
-        const roundMeta = await kv.get(ROUND_META_KEY(currentRoundId));
-        if (roundMeta && (roundMeta as any).endTime) {
-            await kv.zadd('historic:rounds', { score: (roundMeta as any).endTime, member: currentRoundId });
-        }
-
-        // Reset current round leaderboard for next round
-        await kv.del(LEADERBOARD_CURRENT_ROUND);
-
-        console.log(`Round ${currentRoundId} completed with leaderboard updates`);
-    } catch (error) {
-        console.error('Failed to complete round with leaderboard:', error);
-        throw error;
-    }
-}
 
 /**
  * Get comprehensive user profile including stats and achievements
@@ -259,22 +116,12 @@ export async function updateUserStatsWithRealEarnings(
     try {
         const stats = await getUserStats(userId);
 
-        // Update earnings with real calculated amount
-        stats.totalEarnings = realEarnings;
+        // Earnings accumulate across rounds; wins are counted when the round is drawn
+        stats.totalEarnings += realEarnings;
         stats.updatedAt = Date.now();
 
-        // If user made a profit, increment win count
-        if (realEarnings > 0) {
-            stats.winCount += 1;
-        }
-
-        // Save updated stats
         await kv.set(USER_STATS_KEY(userId), stats);
-
-        // Update earnings leaderboard
-        if (realEarnings > 0) {
-            await kv.zadd(LEADERBOARD_EARNINGS, { score: realEarnings, member: userId });
-        }
+        await kv.zadd(LEADERBOARD_EARNINGS, { score: stats.totalEarnings, member: userId });
 
         console.log(`Updated real earnings for ${userId}: ${realEarnings.toFixed(4)} CHA equivalent`);
     } catch (error) {
