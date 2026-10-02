@@ -5,7 +5,7 @@ import ClientPage from "@/components/ClientPage";
 
 // Update metadata if needed
 export const metadata: Metadata = {
-  title: 'Cached Metadata | Charisma Cache', // Specific title
+  title: 'Charisma Tokens', // Specific title
   description: 'Browse the list of cached metadata on the Stacks blockchain.',
 };
 
@@ -42,7 +42,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   return (
     <main className="container py-8">
       <div className="flex items-center gap-3 mb-6">
-        <List className="h-6 w-6 text-primary" />
+        <List className="h-6 w-6 text-accent-text" />
         <h1 className="text-2xl font-bold">All Metadata</h1>
       </div>
       <p className="text-muted-foreground mb-6 max-w-2xl">

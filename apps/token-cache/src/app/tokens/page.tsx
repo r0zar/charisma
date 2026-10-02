@@ -5,7 +5,7 @@ import ClientPage from "@/components/ClientPage";
 
 // Update metadata if needed
 export const metadata: Metadata = {
-    title: 'Cached Tokens | Charisma Token Cache', // Specific title
+    title: 'Tokens | Charisma Tokens', // Specific title
     description: 'Browse the list of cached SIP-10 fungible tokens on the Stacks blockchain.',
 };
 
@@ -16,7 +16,7 @@ export default async function HomePage() {
     return (
         <main className="container py-8">
             <div className="flex items-center gap-3 mb-6">
-                <List className="h-6 w-6 text-primary" />
+                <List className="h-6 w-6 text-accent-text" />
                 <h1 className="text-2xl font-bold">Tokens</h1>
             </div>
             <p className="text-muted-foreground mb-6 max-w-2xl">

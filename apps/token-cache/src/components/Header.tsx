@@ -1,72 +1,36 @@
 import Link from "next/link";
-import { DatabaseZap } from 'lucide-react'; // Example icons
+import { ThemeToggle } from "@repo/brand/react";
+import { navigationLinks } from "@/lib/nav-links";
 
 export default function Header() {
     return (
-        <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/90 backdrop-blur supports-[backdrop-blur]:bg-background/60">
-            <div className="container flex h-16 items-center justify-between py-4">
-                <div className="flex items-center gap-6 md:gap-10">
-                    {/* Branding */}
-                    <Link
-                        href="/"
-                        className="flex items-center space-x-2 transition-opacity hover:opacity-80"
-                    >
-                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-500 via-blue-600 to-blue-700">
-                            {/* Placeholder Icon */}
-                            <DatabaseZap className="h-4 w-4 text-primary-foreground" />
-                        </div>
-                        <span className="hidden tracking-tight text-foreground sm:inline-block text-lg">
-                            {/* Adjusted Branding */}
-                            <span className="font-bold">Charisma</span> Cache
+        <header className="sticky top-0 z-40 w-full border-b border-line bg-chrome text-on-chrome">
+            <div className="container flex h-16 items-center justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-8">
+                    <Link href="/" className="flex shrink-0 items-center gap-2.5">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/charisma.png" alt="" className="h-7 w-7 rounded-full" />
+                        <span className="hidden text-[18px] font-bold tracking-tight sm:inline-block">
+                            Charisma <span className="text-chrome-accent">Tokens</span>
                         </span>
                     </Link>
 
-                    {/* Navigation Links */}
-                    <nav className="flex items-center space-x-6 text-sm font-medium">
-                        <Link
-                            href="/"
-                            className="transition-colors hover:text-foreground/80 text-foreground/60"
-                        >
-                            All Metadata
-                        </Link>
-                        <Link
-                            href="/subnets"
-                            className="transition-colors hover:text-foreground/80 text-foreground/60"
-                        >
-                            Subnets
-                        </Link>
-                        <Link
-                            href="/vaults"
-                            className="transition-colors hover:text-foreground/80 text-foreground/60"
-                        >
-                            Vaults
-                        </Link>
-                        <Link
-                            href="/inspect"
-                            className="transition-colors hover:text-foreground/80 text-foreground/60"
-                        >
-                            Inspect
-                        </Link>
-                        <Link
-                            href="/admin/bulk-import"
-                            className="transition-colors hover:text-foreground/80 text-foreground/60"
-                        >
-                            Bulk Import
-                        </Link>
-                        <Link
-                            href="/stats"
-                            className="transition-colors hover:text-foreground/80 text-foreground/60"
-                        >
-                            Stats
-                        </Link>
+                    {/* scrolls sideways on small screens rather than hiding sections */}
+                    <nav className="flex min-w-0 items-center gap-1 overflow-x-auto [scrollbar-width:none]">
+                        {navigationLinks.map((link) => (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className="shrink-0 whitespace-nowrap rounded-xl px-3 py-2 text-sm font-semibold text-on-chrome-muted transition-all duration-200 hover:bg-on-chrome/10 hover:text-on-chrome md:px-4"
+                            >
+                                {link.label}
+                            </Link>
+                        ))}
                     </nav>
                 </div>
 
-                {/* Right side - could add WalletConnector if needed later */}
-                <div className="relative flex items-center gap-4">
-                    {/* Placeholder for future elements like WalletConnector */}
-                </div>
+                <ThemeToggle className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-on-chrome-muted transition-all duration-200 hover:bg-on-chrome/10 hover:text-on-chrome" />
             </div>
         </header>
     );
-} 
+}

@@ -145,8 +145,8 @@ export default function TokenInspector({ initialContractId }: TokenInspectorProp
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Search className="w-5 h-5 text-primary" />
-                        Inspect Token Cache
+                        <Search className="w-5 h-5 text-accent-text" />
+                        Inspect a token
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col sm:flex-row gap-3">
@@ -172,7 +172,7 @@ export default function TokenInspector({ initialContractId }: TokenInspectorProp
             {/* Results Section */}
             {inspectionResult && (
                 <div className="space-y-4 animate-fadeIn">
-                    <h2 className="text-xl font-semibold border-b pb-2">Inspection Results for: <code className='text-primary bg-muted px-1 rounded-sm'>{inspectionResult.contractId}</code></h2>
+                    <h2 className="text-xl font-semibold border-b pb-2">Inspection Results for: <code className='text-accent-text bg-muted px-1 rounded-sm'>{inspectionResult.contractId}</code></h2>
 
                     {/* Action Buttons (Refresh Cache, Save Changes) */}
                     <div className="flex justify-end gap-2">
@@ -182,7 +182,7 @@ export default function TokenInspector({ initialContractId }: TokenInspectorProp
                                 size="sm"
                                 onClick={handleSaveChanges}
                                 disabled={isSaving || isLoading || isRefreshing || !hasChanges}
-                                className="bg-green-600 hover:bg-green-700"
+                                className="bg-success hover:bg-success"
                             >
                                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                                 {isSaving ? 'Saving...' : 'Save Changes'}
@@ -203,7 +203,7 @@ export default function TokenInspector({ initialContractId }: TokenInspectorProp
                         {/* Raw Fetched Data Card */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2 text-blue-500">
+                                <CardTitle className="flex items-center gap-2 text-accent-text">
                                     <Server className="w-5 h-5" />
                                     Raw Data (Direct Fetch)
                                 </CardTitle>
@@ -231,7 +231,7 @@ export default function TokenInspector({ initialContractId }: TokenInspectorProp
                         {/* Cached Data Card (Now Editable) */}
                         <Card>
                             <CardHeader>
-                                <CardTitle className="flex items-center justify-between gap-2 text-green-500">
+                                <CardTitle className="flex items-center justify-between gap-2 text-success">
                                     <div className="flex items-center gap-2">
                                         <Database className="w-5 h-5" />
                                         Cached Data (Vercel KV)

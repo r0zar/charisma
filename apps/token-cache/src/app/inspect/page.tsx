@@ -5,7 +5,7 @@ import { Search } from 'lucide-react';
 
 // Basic metadata for the page
 export const metadata: Metadata = {
-    title: 'Inspect Token Cache | Charisma',
+    title: 'Inspect | Charisma Tokens',
     description: 'Inspect raw and cached token metadata.',
 };
 
@@ -15,8 +15,8 @@ export default function InspectPage({ searchParams }: { searchParams?: { tokenId
     return (
         <main className="container py-8">
             <div className="flex items-center gap-3 mb-6">
-                <Search className="h-6 w-6 text-primary" />
-                <h1 className="text-2xl font-bold">Token Cache Inspector</h1>
+                <Search className="h-6 w-6 text-accent-text" />
+                <h1 className="text-2xl font-bold">Token Inspector</h1>
             </div>
             <p className="text-muted-foreground mb-6 max-w-2xl">
                 Use this tool to inspect the raw data fetched directly from the Stacks blockchain

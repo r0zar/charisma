@@ -413,7 +413,7 @@ export default function TokenList({
                                                 alt={`${token.name} logo`}
                                                 width={40}
                                                 height={40}
-                                                className={`rounded-md object-cover border bg-background transition-all duration-300 ${isExpanded ? 'ring-2 ring-primary/30 scale-110' : 'hover:scale-105'}`}
+                                                className={`rounded-md object-cover border bg-surface transition-all duration-300 ${isExpanded ? 'ring-2 ring-primary/30 scale-110' : 'hover:scale-105'}`}
                                                 onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder-icon.svg'; }} // Fallback placeholder
                                             />
                                         ) : (
@@ -490,7 +490,7 @@ export default function TokenList({
                                             disabled={isLoading}
                                             aria-label={`Refresh ${token.symbol}`}
                                             title="Refresh Token Data"
-                                            className="text-primary hover:bg-primary/10 disabled:opacity-50"
+                                            className="text-accent-text hover:bg-primary/10 disabled:opacity-50"
                                         >
                                             {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                                         </Button>
@@ -502,7 +502,7 @@ export default function TokenList({
                                                 disabled={isLoading}
                                                 aria-label={`Blacklist ${token.symbol}`}
                                                 title="Add to Blacklist (Dev Only)"
-                                                className="text-orange-600 hover:bg-orange-600/10 disabled:opacity-50"
+                                                className="text-accent-text hover:bg-accent/10 disabled:opacity-50"
                                             >
                                                 {isBlacklisting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Ban className="h-4 w-4" />}
                                             </Button>
@@ -525,7 +525,7 @@ export default function TokenList({
                                             <Link href={`/inspect?tokenId=${encodeURIComponent(token.contractId)}`} >
                                                 <div
                                                     title={`Inspect ${token.name || token.contractId}`}
-                                                    className="inline-flex items-center justify-center h-9 w-9 rounded-md text-primary hover:bg-primary/10 disabled:opacity-50"
+                                                    className="inline-flex items-center justify-center h-9 w-9 rounded-md text-accent-text hover:bg-primary/10 disabled:opacity-50"
                                                     onClick={(e) => e.stopPropagation()} // Prevent card from toggling
                                                 >
                                                     <Pencil className="h-4 w-4" />
@@ -536,10 +536,10 @@ export default function TokenList({
                                             variant="ghost"
                                             size="icon"
                                             aria-label={isExpanded ? 'Collapse' : 'Expand'}
-                                            className="text-muted-foreground hover:bg-accent"
+                                            className="text-muted-foreground hover:bg-surface-hover"
                                         // onClick={(e) => { e.stopPropagation(); toggleExpand(token.contractId || ''); }} // Already handled by parent div click
                                         >
-                                            <ChevronDown className={`h-4 w-4 transform transition-all duration-300 ease-out ${isExpanded ? 'rotate-180 text-primary' : 'text-muted-foreground'}`} />
+                                            <ChevronDown className={`h-4 w-4 transform transition-all duration-300 ease-out ${isExpanded ? 'rotate-180 text-accent-text' : 'text-muted-foreground'}`} />
                                         </Button>
                                     </div>
                                 </div>

@@ -96,20 +96,20 @@ export default function BulkImportPage() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                    <label htmlFor="contractList" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label htmlFor="contractList" className="block text-sm font-medium text-ink-body mb-1">
                         Comma-separated Contract IDs:
                     </label>
                     <textarea
                         id="contractList"
                         name="contractList"
                         rows={6}
-                        className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        className="block w-full p-2 border border-line rounded-md shadow-sm focus:ring-accent focus:border-accent sm:text-sm"
                         value={contractList}
                         onChange={(e) => setContractList(e.target.value)}
                         placeholder="SP...ADDR.contract1, SP...ADDR.contract2, ..."
                         disabled={isLoading}
                     />
-                    <p className="mt-1 text-xs text-gray-500">
+                    <p className="mt-1 text-xs text-ink-muted">
                         Paste a list of Stacks contract identifiers (e.g., SP...ADDR.my-contract).
                     </p>
                 </div>
@@ -118,7 +118,7 @@ export default function BulkImportPage() {
                     <button
                         type="submit"
                         disabled={isLoading}
-                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-on-accent bg-accent hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent disabled:opacity-50"
                     >
                         {isLoading ? 'Processing...' : 'Import Contracts'}
                     </button>
@@ -126,7 +126,7 @@ export default function BulkImportPage() {
             </form>
 
             {summary && (
-                <div className="mt-8 p-4 bg-gray-50 rounded-md">
+                <div className="mt-8 p-4 bg-surface-hover rounded-md">
                     <h2 className="text-lg font-semibold mb-2">Summary</h2>
                     <p>{summary}</p>
                 </div>
@@ -135,13 +135,13 @@ export default function BulkImportPage() {
             {results.length > 0 && (
                 <div className="mt-6">
                     <h2 className="text-lg font-semibold mb-2">Detailed Results:</h2>
-                    <ul className="space-y-2 max-h-96 overflow-y-auto border border-gray-200 rounded-md p-3">
+                    <ul className="space-y-2 max-h-96 overflow-y-auto border border-line rounded-md p-3">
                         {results.map((result, index) => (
                             <li key={index}
                                 className={`p-2 rounded-md text-sm 
-                    ${result.status === 'success' ? 'bg-green-100 text-green-700' : ''}
-                    ${result.status === 'error' ? 'bg-red-100 text-red-700' : ''}
-                    ${result.status === 'skipped' ? 'bg-yellow-100 text-yellow-700' : ''}
+                    ${result.status === 'success' ? 'bg-success-soft text-success' : ''}
+                    ${result.status === 'error' ? 'bg-danger-soft text-danger' : ''}
+                    ${result.status === 'skipped' ? 'bg-warning-soft text-warning' : ''}
                   `}
                             >
                                 <strong>{result.contractId}:</strong> {result.message}
