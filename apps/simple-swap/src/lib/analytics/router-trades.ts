@@ -10,6 +10,7 @@ import { Cl, encodeStructuredDataBytes, getAddressFromPublicKey, publicKeyFromSi
 
 /** The routers every Charisma swap goes through: subnet orders (current and legacy), then wallet swaps (the big one, last) */
 export const ROUTERS = [
+  'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v2',
   'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1',
   'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9',
   'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop',

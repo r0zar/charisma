@@ -16,7 +16,8 @@ export async function generateSubnetWrapper(params: SubnetWrapperParams) {
         throw new Error(`Token cache has no asset identifier for ${params.tokenContract}; cannot build the withdraw allowance`);
     }
 
-    const templateUrl = `https://launchpad.charisma.rocks/clarity-templates/subnet-wrapper.template.clar`;
+    // Blaze v2: per-signer replay protection, cancel-for-good, and bearer notes that can't be front-run
+    const templateUrl = `https://launchpad.charisma.rocks/clarity-templates/subnet-wrapper-v2.template.clar`;
 
     const response = await fetch(templateUrl);
     if (!response.ok) {

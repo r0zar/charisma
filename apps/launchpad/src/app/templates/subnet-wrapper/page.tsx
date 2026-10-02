@@ -548,7 +548,7 @@ const FeatureConfigStep = ({
                             </div>
                             <div className="flex-1">
                                 <div className="flex justify-between items-center">
-                                    <CardTitle className="text-base">Bearer Redemption</CardTitle>
+                                    <CardTitle className="text-base">Bearer Notes</CardTitle>
                                     <div
                                         className={`w-5 h-5 rounded-full flex items-center justify-center border ${state.enableBearer ? 'bg-primary border-primary' : 'border-muted'}`}
                                         onClick={(e) => {
@@ -564,7 +564,7 @@ const FeatureConfigStep = ({
                     </CardHeader>
                     <CardContent className="pt-0 pb-4 flex-grow">
                         <p className="text-sm text-muted-foreground mb-3">
-                            Tokens redeemed via signed bearer notes without specified recipients, for off-chain transfers.
+                            Paper cash: whoever holds a note's key redeems it to any address, and a copy from the mempool can't be redirected (Blaze v2).
                         </p>
                         <ul className="space-y-1 text-xs">
                             <li className="flex items-center">
@@ -855,7 +855,7 @@ export default function SubnetWrapperWizard() {
                 tokenContract: state.tokenContract,
                 tokenIdentifier: baseToken?.identifier,
                 tokenName: deriveName(state.tokenContract),
-                blazeContract: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v1',
+                blazeContract: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-v2',
                 enableBearer: state.enableBearer,
                 enableLTE: state.enableLTE,
             });

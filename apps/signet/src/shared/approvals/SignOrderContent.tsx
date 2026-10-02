@@ -7,12 +7,13 @@ import { Cl, type ClarityValue, type TupleCV } from "@stacks/transactions"
 import { OriginBanner, PermissionLevelIndicator } from "./parts/UIComponents"
 import { BannerType, PermissionLevel } from "./parts/types"
 import { commonStyles } from "./parts/styles"
-import { BLAZE_V1_DOMAIN, LEGACY_MULTIHOP_CONTRACT_ID, MULTIHOP_CONTRACT_ID } from "blaze-sdk"
+import { BLAZE_V1_DOMAIN, LEGACY_MULTIHOP_CONTRACT_ID, MULTIHOP_CONTRACT_ID, MULTIHOP_V1_CONTRACT_ID } from "blaze-sdk"
 import { colors } from "~shared/styles/theme"
 
 /** Routers and what they allow once they hold a signed order */
 const ROUTERS: Record<string, { text: string; color: string }> = {
   [MULTIHOP_CONTRACT_ID]: { text: "Only to you", color: colors.neonGreen },
+  [MULTIHOP_V1_CONTRACT_ID]: { text: "Only to you", color: colors.neonGreen },
   [LEGACY_MULTIHOP_CONTRACT_ID]: { text: "Wherever the submitter chooses", color: colors.neonRed },
 }
 

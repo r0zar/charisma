@@ -1,6 +1,7 @@
 import { Cl, optionalCVOf, privateKeyToPublic, signStructuredData, TupleCV } from "@stacks/transactions";
 import { noneCV, principalCV, someCV, stringAsciiCV, tupleCV, uintCV } from "@stacks/transactions";
-import { BLAZE_V1_DOMAIN, MULTIHOP_CONTRACT_ID } from "./constants";
+import { MULTIHOP_CONTRACT_ID } from "./constants";
+import { blazeDomain, blazeVersionOf } from "./version";
 import { getSelectedProviderId, request } from "@stacks/connect";
 
 export interface IntentInput {
@@ -35,7 +36,7 @@ export async function signIntentWithPrivateKey(input: SecureIntentInput): Promis
     });
 
     const signature = signStructuredData({
-        domain: BLAZE_V1_DOMAIN,
+        domain: blazeDomain(await blazeVersionOf(input.contract)),
         message,
         privateKey: input.senderKey,
     });
@@ -62,7 +63,8 @@ export async function signIntentWithWallet(input: IntentInput): Promise<SignedIn
     });
 
     const { request } = await import('@stacks/connect');
-    const { signature, publicKey } = await request('stx_signStructuredMessage', { domain: BLAZE_V1_DOMAIN, message });
+    const domain = blazeDomain(await blazeVersionOf(input.contract));
+    const { signature, publicKey } = await request('stx_signStructuredMessage', { domain, message });
 
     return {
         message,
@@ -93,7 +95,8 @@ function triggeredSwapMessage({ subnet, uuid, amount, multihopContractId = MULTI
 
 export async function signTriggeredSwap(input: TriggeredSwapInput): Promise<string> {
     // @ts-ignore – upstream types don't include method yet
-    const res = await request('stx_signStructuredMessage', { domain: BLAZE_V1_DOMAIN, message: triggeredSwapMessage(input) });
+    const domain = blazeDomain(await blazeVersionOf(input.subnet));
+    const res = await request('stx_signStructuredMessage', { domain, message: triggeredSwapMessage(input) });
     if (!res?.signature) throw new Error('User cancelled the signature');
     return res.signature as string; // raw 65-byte hex
 }
@@ -110,10 +113,13 @@ export const canSignInBulk = () => getSelectedProviderId() === BLAZE_WALLET_PROV
  */
 export async function signTriggeredSwaps(inputs: TriggeredSwapInput[]): Promise<string[]> {
     if (!canSignInBulk()) throw new Error('Signing many orders at once needs Blaze Wallet');
+    const versions = new Set(await Promise.all(inputs.map(i => blazeVersionOf(i.subnet))));
+    if (versions.size > 1) throw new Error('Orders on v1 and v2 subnets need separate approvals');
+    const domain = blazeDomain([...versions][0] ?? 1);
     const res = await request(
         // @ts-ignore – a Blaze wallet method, not in @stacks/connect's list
         'blaze_signStructuredMessages',
-        { domain: Cl.serialize(BLAZE_V1_DOMAIN), messages: inputs.map(input => Cl.serialize(triggeredSwapMessage(input))) },
+        { domain: Cl.serialize(domain), messages: inputs.map(input => Cl.serialize(triggeredSwapMessage(input))) },
     ) as { signatures?: string[] };
     if (!res?.signatures || res.signatures.length !== inputs.length) throw new Error('The wallet did not sign every order');
     return res.signatures;

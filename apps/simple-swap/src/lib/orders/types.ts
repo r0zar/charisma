@@ -20,7 +20,7 @@ export interface LimitOrder {
     recipient: string;
     /**
      * Router contract the signature was made for (its signed `target`). Absent on older orders = x-multihop-rc9.
-     * x-multihop-v1 only pays out to the signer.
+     * x-multihop-v2 and x-multihop-v1 only pay out to the signer.
      */
     router?: string;
     signature: string; // 65-byte hex without 0x
@@ -111,6 +111,9 @@ export type NewOrderRequest = Omit<LimitOrder, 'status' | 'createdAt' | 'txid' |
 export type PublicOrder = Omit<LimitOrder, 'signature'>;
 
 export const LEGACY_ROUTER = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9';
-/** Pays out only to whoever signed the order */
-export const SIGNER_PAYOUT_ROUTER = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1';
-export const ORDER_ROUTERS = [LEGACY_ROUTER, SIGNER_PAYOUT_ROUTER];
+/** Pays out only to whoever signed the order, for subnets on Blaze v1 or v2: what new orders sign for */
+export const SIGNER_PAYOUT_ROUTER = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v2';
+/** The v1 router, which also pays only the signer (v1 subnets). Orders signed for it still execute on it. */
+export const SIGNER_PAYOUT_ROUTER_V1 = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1';
+export const SIGNER_ONLY_ROUTERS = [SIGNER_PAYOUT_ROUTER, SIGNER_PAYOUT_ROUTER_V1];
+export const ORDER_ROUTERS = [LEGACY_ROUTER, ...SIGNER_ONLY_ROUTERS];

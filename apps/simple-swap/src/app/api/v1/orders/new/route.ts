@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { ORDER_ROUTERS, SIGNER_PAYOUT_ROUTER } from '@/lib/orders/types';
+import { ORDER_ROUTERS, SIGNER_ONLY_ROUTERS } from '@/lib/orders/types';
 import { toPublicOrder } from '@/lib/orders/public';
 import { findSignedRouter } from 'blaze-sdk';
 import { z } from 'zod';
@@ -122,9 +122,9 @@ export async function POST(req: Request) {
         }
         parsed.router = router;
 
-        // x-multihop-v1 sends the output only to whoever signed; any other recipient would abort on every attempt
-        if (router === SIGNER_PAYOUT_ROUTER && parsed.recipient !== parsed.owner) {
-            return NextResponse.json({ error: `recipient must equal owner: ${SIGNER_PAYOUT_ROUTER} pays out only to the signer` }, { status: 400 });
+        // x-multihop-v2 and -v1 send the output only to whoever signed; any other recipient would abort on every attempt
+        if (SIGNER_ONLY_ROUTERS.includes(router) && parsed.recipient !== parsed.owner) {
+            return NextResponse.json({ error: `recipient must equal owner: ${router} pays out only to the signer` }, { status: 400 });
         }
 
         // Orders spend a Blaze subnet balance; the executor would cancel anything else, so refuse it now

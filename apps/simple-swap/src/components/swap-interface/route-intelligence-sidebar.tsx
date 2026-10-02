@@ -48,7 +48,7 @@ export function RouteIntelligenceSidebar() {
                             <span className="text-xs font-mono text-ink-body bg-surface px-2 py-1 rounded">
                                 {mode === 'swap' 
                                     ? 'SP2ZNG...Z55KS.multihop'
-                                    : 'SP2ZNG...Z55KS.x-multihop-v1'
+                                    : 'SP2ZNG...Z55KS.x-multihop-v2'
                                 }
                             </span>
                             <div className="flex items-center space-x-1">
@@ -56,7 +56,7 @@ export function RouteIntelligenceSidebar() {
                                     onClick={() => navigator.clipboard.writeText(
                                         mode === 'swap' 
                                             ? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop'
-                                            : 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1'
+                                            : 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v2'
                                     )}
                                     className="h-6 w-6 rounded bg-surface hover:bg-surface-selected text-ink-muted hover:text-ink transition-all duration-200 flex items-center justify-center"
                                     title="Copy contract address"
@@ -70,7 +70,7 @@ export function RouteIntelligenceSidebar() {
                                     onClick={() => window.open(
                                         `https://explorer.stacks.co/address/${mode === 'swap' 
                                             ? 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop'
-                                            : 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1'
+                                            : 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v2'
                                         }?chain=mainnet`, '_blank'
                                     )}
                                     className="h-6 w-6 rounded bg-surface hover:bg-surface-selected text-ink-muted hover:text-ink transition-all duration-200 flex items-center justify-center"

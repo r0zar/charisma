@@ -26,7 +26,7 @@ const CONTRACTS = [
   ['blaze-v1', `${D}.blaze-v1`, 'Verifies SIP-018 signatures and marks each order id as used'],
   ['sbtc-token-subnet-v1', `${D}.sbtc-token-subnet-v1`, 'Holds deposited sBTC 1:1; ledger of balances'],
   ['zest-token-subnet', `${D}.zest-token-subnet`, 'Holds deposited ZEST 1:1; ledger of balances'],
-  ['x-multihop-v1', `${D}.x-multihop-v1`, 'Executes the swap route; pays out only to the signer'],
+  ['x-multihop-v2', `${D}.x-multihop-v2`, 'Executes the swap route; pays out only to the signer'],
   ['feeling-zesty', `${D}.feeling-zesty`, "Adapter for Bitflow's ZEST-STX pool"],
   ['nakamoto-flow', `${D}.nakamoto-flow`, "Adapter for Bitflow's sBTC-STX pool"],
 ];
@@ -135,8 +135,8 @@ function ExecutionDiagram() {
   const steps = [
     ['Executor', 'Price condition met; builds x-swap with route and post-conditions'],
     ['blaze-v1', 'Recovers signer, rejects a used order id'],
-    ['Subnet token', 'Moves exactly the signed amount to x-multihop-v1'],
-    ['x-multihop-v1', 'Checks payout address = signer, then runs the route'],
+    ['Subnet token', 'Moves exactly the signed amount to x-multihop-v2'],
+    ['x-multihop-v2', 'Checks payout address = signer, then runs the route'],
     ['Pools', 'Swap through Bitflow pools via Charisma adapters'],
     ['Subnet token', 'Output credited to the signer in Zesty'],
   ];
@@ -194,7 +194,7 @@ export default function HowItWorksPage() {
             ['Subnet tokens', 'Hold deposited sBTC and ZEST 1:1 and track balances'],
             [<Code key="b">blaze-v1</Code>, 'Verifies order signatures and enforces single use'],
             ['Executor (solver)', 'Watches prices and submits orders when their condition is met; pays network fees'],
-            [<Code key="r">x-multihop-v1</Code>, 'Runs the swap route and pays the result to the signer'],
+            [<Code key="r">x-multihop-v2</Code>, 'Runs the swap route and pays the result to the signer'],
             ['Pools', "Bitflow's ZEST-STX and sBTC-STX pools, via Charisma adapters"],
           ]} />
 
@@ -212,7 +212,7 @@ export default function HowItWorksPage() {
             [<Code key="2">intent</Code>, <Code key="2v">TRANSFER_TOKENS</Code>, 'A transfer to a named target'],
             [<Code key="3">opcode</Code>, 'none', 'Unused'],
             [<Code key="4">amount</Code>, 'exact amount', 'Only this amount can be moved'],
-            [<Code key="5">target</Code>, <Code key="5v">x-multihop-v1</Code>, 'Only the router can receive it'],
+            [<Code key="5">target</Code>, <Code key="5v">x-multihop-v2</Code>, 'Only the router can receive it'],
             [<Code key="6">uuid</Code>, 'unique id', 'Recorded on first use; cannot be replayed'],
           ]} />
           <P>The signing domain is <Code>BLAZE_PROTOCOL</Code> version <Code>v1.0</Code> on Stacks mainnet. The price condition and the swap route are not part of the signature; the executor chooses them at execution time.</P>
@@ -225,7 +225,7 @@ export default function HowItWorksPage() {
           <P>The executor pays the network fee for each execution from the solver account. If the solver runs out of STX, orders stop executing until it is refilled; your funds stay in Zesty.</P>
 
           <H2 id="payout" n={number('payout')}>Payout guarantee</H2>
-          <P>Before running a route, <Code>x-multihop-v1</Code> recovers the signer from the order signature using <Code>blaze-v1</Code> and requires the payout address to equal that signer. If they differ, the transaction fails and nothing moves. Anyone can submit a signed order, but the output can only go to the wallet that signed it.</P>
+          <P>Before running a route, <Code>x-multihop-v2</Code> recovers the signer from the order signature with the verifier the subnet uses (<Code>blaze-v1</Code> for Zesty&apos;s subnets) and requires the payout address to equal that signer. If they differ, the transaction fails and nothing moves. Anyone can submit a signed order, but the output can only go to the wallet that signed it.</P>
           <P>A target and its safety net spend the same funds. When one executes, the other is cancelled so it cannot run later.</P>
 
           <H2 id="pricing" n={number('pricing')}>Prices and triggers</H2>

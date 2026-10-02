@@ -16,6 +16,7 @@ import {
     noneCV, Cl } from "@stacks/transactions";
 import { callReadOnlyFunction } from "@repo/polyglot";
 import { BLAZE_CONTRACT_ID } from "./constants";
+import { blazeContract, blazeVersionOf } from "./version";
 
 const [contractAddress, contractName] = parseContract(BLAZE_CONTRACT_ID);
 
@@ -70,10 +71,11 @@ export async function generateHash(
         ? optionalCVOf(principalCV(options.target))
         : noneCV();
 
-    // Call the 'hash' function
+    // Call the 'hash' function of the verifier this subnet uses
+    const [blazeAddress, blazeName] = parseContract(blazeContract(await blazeVersionOf(coreContract)));
     const result: any = await callReadOnlyFunction(
-        contractAddress,
-        contractName,
+        blazeAddress,
+        blazeName,
         "hash",
         [
             principalCV(coreContract),
@@ -162,10 +164,11 @@ export async function recoverSigner(
     const amountArg = options.amount ? optionalCVOf(uintCV(options.amount)) : noneCV();
     const targetArg = options.target ? optionalCVOf(principalCV(options.target)) : noneCV();
 
-    // Call the 'recover' function
+    // Call the 'recover' function of the verifier this subnet uses
+    const [blazeAddress, blazeName] = parseContract(blazeContract(await blazeVersionOf(contract)));
     const result: any = await callReadOnlyFunction(
-        contractAddress,
-        contractName,
+        blazeAddress,
+        blazeName,
         "recover",
         [
             Cl.bufferFromHex(signature),
@@ -207,6 +210,15 @@ export async function checkUUID(uuid: string): Promise<boolean> {
     } else {
         throw new Error("Unexpected result type checking UUID status");
     }
+}
+
+/** Blaze v2: whether this signer has used (or revoked) this uuid. v2 keys replay protection by signer. */
+export async function checkUUIDV2(signer: string, uuid: string): Promise<boolean> {
+    const [address, name] = parseContract(blazeContract(2));
+    const result: any = await callReadOnlyFunction(address, name, "check", [principalCV(signer), stringAsciiCV(uuid)]);
+    if (result.type === ClarityType.BoolTrue) return true;
+    if (result.type === ClarityType.BoolFalse) return false;
+    throw new Error("Unexpected result type checking a Blaze v2 uuid");
 }
 
 /**

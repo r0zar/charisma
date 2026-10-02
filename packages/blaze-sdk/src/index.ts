@@ -1,6 +1,7 @@
 export * from './intent';
 export * from './balances';
 export * from './constants';
+export * from './version';
 export * from './solvers';
 export * from './sip10';
 export * from './core';
