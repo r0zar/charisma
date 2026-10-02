@@ -23,8 +23,8 @@ export interface ZestyOrderSpec {
 
 const ROLE_POSITION: Record<ZestyRole, number> = { convert: 1, target: 2, safety: 3 };
 
-/** Sign one Zesty order in the wallet and submit it to the executor. */
-export async function placeZestyOrder(spec: ZestyOrderSpec): Promise<LimitOrder> {
+/** Sign one Zesty order in the wallet. Nothing is live until it's submitted with the rest of its trade. */
+export async function signZestyOrder(spec: ZestyOrderSpec): Promise<NewOrderRequest> {
   const from = ZESTY_TOKENS[spec.from];
   const to = ZESTY_TOKENS[spec.to];
   const uuid = crypto.randomUUID();
@@ -35,7 +35,7 @@ export async function placeZestyOrder(spec: ZestyOrderSpec): Promise<LimitOrder>
     ? { conditionToken: ZESTY_TOKENS.zest.mainnet, baseAsset: ZESTY_TOKENS.sbtc.mainnet, targetPrice: (spec.exit.sats / 1e8).toFixed(14), direction: spec.exit.direction }
     : { conditionToken: '*', targetPrice: '0', direction: 'gt' as const };
 
-  const payload: NewOrderRequest = {
+  return {
     owner: spec.wallet,
     inputToken: from.subnet,
     outputToken: to.subnet,
@@ -51,17 +51,28 @@ export async function placeZestyOrder(spec: ZestyOrderSpec): Promise<LimitOrder>
     strategyPosition: ROLE_POSITION[spec.role],
     metadata: { zesty: { role: spec.role, side: spec.side, entrySats: spec.entrySats, amountUsd: spec.amountUsd } },
   };
+}
 
-  const res = await fetch('/api/v1/orders/new', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
-    throw new Error(`Zesty ${spec.role} order was not accepted: ${body.error ?? res.status}`);
+/**
+ * Submit a trade's signed orders to the executor, once every one is signed: a declined signature leaves nothing live.
+ * If the executor turns one down, the error names the orders already live so the trade can be cancelled.
+ */
+export async function submitZestyOrders(orders: NewOrderRequest[]): Promise<LimitOrder[]> {
+  const saved: LimitOrder[] = [];
+  for (const order of orders) {
+    const res = await fetch('/api/v1/orders/new', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+      const live = saved.map(o => o.metadata?.zesty?.role).join(' and ');
+      throw new Error(`Zesty ${order.metadata?.zesty?.role} order was not accepted: ${body.error ?? res.status}${live ? `. The ${live} order is already live: cancel this trade in Trades.` : ''}`);
+    }
+    saved.push(((await res.json()) as { data: LimitOrder }).data);
   }
-  return ((await res.json()) as { data: LimitOrder }).data;
+  return saved;
 }
 
 /**

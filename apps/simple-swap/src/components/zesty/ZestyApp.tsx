@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { ZESTY_TOKENS } from '@/lib/zesty/config';
 import { exitsFor, planFunding, toUsd, type Side } from '@/lib/zesty/plan';
-import { cancelOrders, convertedAmount, placeZestyOrder, runNow } from '@/lib/zesty/orders';
+import { cancelOrders, convertedAmount, runNow, signZestyOrder, submitZestyOrders } from '@/lib/zesty/orders';
+import type { NewOrderRequest } from '@/lib/orders/types';
 import { addToZesty, waitForConfirmation } from '@/lib/zesty/subnet';
 import { MoneyHeader, type ZestyView } from './MoneyHeader';
 import { MarketPanel } from './MarketPanel';
@@ -74,20 +75,23 @@ export function ZestyApp() {
         setStatus(`add-${add.token}`, 'done');
       }
       let exitMicro = plan.heldMicro;
+      const orders: NewOrderRequest[] = [];
       if (plan.convertMicro > 0n) {
         setStatus('convert', 'active');
         exitMicro += await convertedAmount(plan.other, plan.held, plan.convertMicro);
-        await placeZestyOrder({ ...common, role: 'convert', from: plan.other, to: plan.held, micro: plan.convertMicro });
+        orders.push(await signZestyOrder({ ...common, role: 'convert', from: plan.other, to: plan.held, micro: plan.convertMicro }));
         setStatus('convert', 'done');
       }
       setStatus('target', 'active');
-      await placeZestyOrder({ ...common, role: 'target', from: plan.held, to: plan.other, micro: exitMicro, exit: exits.target });
+      orders.push(await signZestyOrder({ ...common, role: 'target', from: plan.held, to: plan.other, micro: exitMicro, exit: exits.target }));
       setStatus('target', 'done');
       if (exits.safety) {
         setStatus('safety', 'active');
-        await placeZestyOrder({ ...common, role: 'safety', from: plan.held, to: plan.other, micro: exitMicro, exit: exits.safety });
+        orders.push(await signZestyOrder({ ...common, role: 'safety', from: plan.held, to: plan.other, micro: exitMicro, exit: exits.safety }));
         setStatus('safety', 'done');
       }
+      // Every leg is signed; only now does the trade go live, all of it together
+      await submitZestyOrders(orders);
       await money.refresh();
       reload();
       setScreen('side');
