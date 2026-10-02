@@ -1,4 +1,4 @@
-import { getOrder } from '@/lib/orders/store';
+import { findOrder } from '@/lib/orders/store';
 import { exitSats, type Side } from './plan';
 
 /** What a shared trade shows: the call, never amounts or the address. */
@@ -15,7 +15,7 @@ const RAN = new Set(['broadcasted', 'confirmed', 'filled']);
 
 /** A Zesty trade by its target order id, or null when it isn't a shareable Zesty trade. */
 export async function getSharedTrade(uuid: string): Promise<SharedTrade | null> {
-  const order = await getOrder(uuid);
+  const order = await findOrder(uuid);
   const zesty = order?.metadata?.zesty;
   if (!order || order.strategyType !== 'zesty' || zesty?.role !== 'target' || !zesty.entrySats || !order.targetPrice) return null;
   const targetSats = exitSats(order.targetPrice);

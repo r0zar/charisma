@@ -1,6 +1,7 @@
 'use server';
 
 import { LimitOrder, NewOrderRequest } from './types';
+import { orderHandle } from './public';
 // @ts-ignore: vercel/kv runtime import without types
 import { kv } from '@vercel/kv';
 
@@ -32,6 +33,13 @@ export async function addOrder(req: NewOrderRequest): Promise<LimitOrder> {
     };
     await kv.hset(HASH_KEY, { [order.uuid]: JSON.stringify(order) });
     return order;
+}
+
+/** An order by its uuid or its public handle (the id public APIs show) */
+export async function findOrder(id: string): Promise<LimitOrder | undefined> {
+    const byUuid = await getOrder(id);
+    if (byUuid) return byUuid;
+    return (await listOrders()).find((o) => orderHandle(o.uuid) === id);
 }
 
 export async function getOrder(uuid: string): Promise<LimitOrder | undefined> {
@@ -89,7 +97,8 @@ export async function listOrdersPaginated(
         const query = searchQuery.toLowerCase().trim();
         filtered = filtered.filter((o) => {
             return (
-                o.uuid.toLowerCase().includes(query) ||
+                // match the public handle: matching the secret uuid would let a search spell it out
+                orderHandle(o.uuid).includes(query) ||
                 o.owner.toLowerCase().includes(query) ||
                 o.inputToken.toLowerCase().includes(query) ||
                 o.outputToken.toLowerCase().includes(query) ||

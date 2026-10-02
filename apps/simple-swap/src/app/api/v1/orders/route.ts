@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { toPublicOrder } from '@/lib/orders/types';
+import { toPublicOrder } from '@/lib/orders/public';
 import { listOrders, listOrdersPaginated } from '@/lib/orders/store';
 
 export async function GET(req: Request) {

@@ -1,3 +1,4 @@
+import { orderHandle } from '@/lib/orders/public';
 import { requireAdmin } from '@/lib/admin-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTwitterTriggerWithStats, updateTwitterTrigger, deleteTwitterTrigger } from '@/lib/twitter-triggers/store';
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
         return NextResponse.json({
             success: true,
-            data: (({ signature: _signature, ...rest }) => rest)(trigger)
+            data: (({ signature: _signature, orderIds, ...rest }) => ({ ...rest, orderIds: orderIds?.map(orderHandle) }))(trigger)
         });
 
     } catch (error) {

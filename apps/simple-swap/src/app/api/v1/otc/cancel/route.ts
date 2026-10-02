@@ -1,3 +1,4 @@
+import { toPublicOffer } from '@/lib/otc/schema';
 // unlist an offer
 // only the creator can unlist an offer
 
@@ -28,5 +29,5 @@ export async function DELETE(req: NextRequest) {
     offer.status = 'cancelled';
     await saveOffer(offer);
 
-    return NextResponse.json({ success: true, offer });
+    return NextResponse.json({ success: true, offer: toPublicOffer(offer) });
 }

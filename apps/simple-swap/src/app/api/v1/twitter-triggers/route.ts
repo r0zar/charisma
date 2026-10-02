@@ -1,3 +1,4 @@
+import { orderHandle } from '@/lib/orders/public';
 import { ADMIN_ADDRESS } from '@/lib/constants';
 import { requireAdmin } from '@/lib/admin-auth';
 import { NextRequest, NextResponse } from 'next/server';
@@ -21,7 +22,8 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            data: triggers.map(({ signature: _signature, ...trigger }) => trigger),
+            // pre-signed order uuids are bearer secrets until they run: show their public handles
+            data: triggers.map(({ signature: _signature, orderIds, ...trigger }) => ({ ...trigger, orderIds: orderIds?.map(orderHandle) })),
             meta: {
                 total: triggers.length,
                 activeOnly,

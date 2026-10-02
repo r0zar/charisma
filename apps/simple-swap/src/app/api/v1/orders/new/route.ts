@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { ORDER_ROUTERS, SIGNER_PAYOUT_ROUTER, toPublicOrder } from '@/lib/orders/types';
+import { ORDER_ROUTERS, SIGNER_PAYOUT_ROUTER } from '@/lib/orders/types';
+import { toPublicOrder } from '@/lib/orders/public';
 import { findSignedRouter } from 'blaze-sdk';
 import { z } from 'zod';
 import { NewOrderRequest } from '@/lib/orders/types';

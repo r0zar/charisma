@@ -1,5 +1,5 @@
 import { kv } from '@vercel/kv';
-import { getOrder } from '@/lib/orders/store';
+import { findOrder } from '@/lib/orders/store';
 import { tokenOfSubnet, toUnits } from './config';
 import { inOther, type Side } from './plan';
 
@@ -46,7 +46,7 @@ export async function createWin(uuid: string): Promise<ZestyWin> {
   const existing = await getWin(uuid);
   if (existing) return existing;
 
-  const order = await getOrder(uuid);
+  const order = await findOrder(uuid);
   const zesty = order?.metadata?.zesty;
   if (!order || order.strategyType !== 'zesty' || zesty?.role !== 'target') throw new Error('Only a Zesty trade that hit its target can be shared');
   if (!order.txid) throw new Error('This trade has not run yet');

@@ -66,3 +66,16 @@ export const acceptBidSchema = z.object({
     offerIntentUuid: z.string().uuid(),
 });
 export type AcceptBidPayload = z.infer<typeof acceptBidSchema>;
+
+/**
+ * An offer as public APIs return it. Every signature stays on the server: an offer asset's REDEEM_BEARER signature pays
+ * whoever submits it (it is cash), and a bid's signature would let anyone run the bidder's side without the offer's.
+ */
+export const toPublicOffer = (offer: Offer) => ({
+    ...offer,
+    offerAssets: offer.offerAssets.map(({ signature: _signature, ...asset }) => asset),
+    bids: offer.bids.map(({ bidSignature: _bidSignature, acceptanceDetails, ...bid }) => ({
+        ...bid,
+        ...(acceptanceDetails && { acceptanceDetails: (({ acceptanceSignature: _acceptanceSignature, ...rest }) => rest)(acceptanceDetails) }),
+    })),
+});

@@ -1,7 +1,7 @@
 import { ApiKeyErrorCode } from '@/lib/api-keys/types';
 import { type NextRequest, NextResponse } from 'next/server';
-import { toPublicOrder } from '@/lib/orders/types';
-import { cancelOrder, getOrder } from '@/lib/orders/store';
+import { toPublicOrder } from '@/lib/orders/public';
+import { cancelOrder, findOrder } from '@/lib/orders/store';
 import {
     authenticateOrderOperation,
     createErrorResponse
@@ -11,7 +11,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { uuid: stri
     const { uuid } = await params;
 
     // First fetch order (needed to validate signer matches owner)
-    const order = await getOrder(uuid);
+    const order = await findOrder(uuid); // a uuid or its public handle; the owner signs whichever they sent
     if (!order) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
     /* ────────────────── Authorization ────────────────── */
@@ -41,6 +41,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { uuid: stri
     if (order.status === 'broadcasted') {
         return NextResponse.json({ error: `Order already broadcast (txid ${order.txid}); it can no longer be cancelled` }, { status: 409 });
     }
-    const cancelled = await cancelOrder(uuid);
+    const cancelled = await cancelOrder(order.uuid);
     return NextResponse.json({ status: 'success', data: cancelled && toPublicOrder(cancelled) });
 } 

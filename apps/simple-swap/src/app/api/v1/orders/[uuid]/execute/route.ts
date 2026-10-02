@@ -1,6 +1,6 @@
 import { ApiKeyErrorCode } from '@/lib/api-keys/types';
 import { type NextRequest, NextResponse } from 'next/server';
-import { getOrder, fillOrder } from '@/lib/orders/store';
+import { findOrder, fillOrder } from '@/lib/orders/store';
 import { executeTrade, cancelOtherExits } from '@/lib/orders/executor';
 import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
 import { 
@@ -12,7 +12,7 @@ export async function POST(req: NextRequest, { params }: { params: { uuid: strin
     try {
         const { uuid } = await params;
 
-        const order = await getOrder(uuid);
+        const order = await findOrder(uuid); // a uuid or its public handle; the owner signs whichever they sent
         if (!order) return NextResponse.json({ error: 'Not found' }, { status: 404 });
         if (order.status !== 'open') return NextResponse.json({ error: 'Order not open' }, { status: 400 });
 

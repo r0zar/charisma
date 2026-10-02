@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { Offer, Bid, acceptBidSchema } from "@/lib/otc/schema";
+import { Offer, Bid, acceptBidSchema, toPublicOffer } from "@/lib/otc/schema";
 import { getOffer, saveOffer } from "@/lib/otc/kv";
 import { verifySignatureAndGetSigner } from 'blaze-sdk';
 import { createRedeem, createTransfer, fetchTokenBalance } from "blaze-sdk";
@@ -308,7 +308,7 @@ export async function POST(req: NextRequest) {
             success: true,
             message: "Bid accepted successfully. Offer and bids have been updated.",
             offerId: data.offerIntentUuid,
-            updatedOffer: offer,
+            updatedOffer: toPublicOffer(offer),
             balanceValidation, // Include balance validation in response for transparency
             transactionDetails: {
                 transferAmount: acceptedBidNumericAmount,

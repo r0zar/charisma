@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
 
         console.log("[BidForm] Offer after bid:", offer);
 
-        return NextResponse.json({ success: true, bid: newBid }, { status: 201 });
+        return NextResponse.json({ success: true, bid: (({ bidSignature: _bidSignature, ...bid }) => bid)(newBid) }, { status: 201 });
     } catch (err: any) {
         const msg = err.message ?? "bad request";
         const code = msg === "offer not found" ? 404 : 400;

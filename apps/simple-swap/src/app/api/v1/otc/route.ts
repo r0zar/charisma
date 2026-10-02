@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { offerCreateSchema, Offer } from "@/lib/otc/schema";
+import { offerCreateSchema, Offer, toPublicOffer } from "@/lib/otc/schema";
 import { getOffer, saveOffer } from "@/lib/otc/kv";
 import { recoverSigner } from "blaze-sdk";
 import { revalidatePath } from "next/cache";
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         // Invalidate the shop page cache so new offers appear immediately
         revalidatePath('/shop');
 
-        return NextResponse.json({ success: true, offer: offerToSave }, { status: 201 });
+        return NextResponse.json({ success: true, offer: toPublicOffer(offerToSave) }, { status: 201 });
     } catch (err: any) {
         console.error("Error processing POST /api/v1/otc:", err);
         if (err instanceof z.ZodError) {
@@ -92,7 +92,7 @@ export async function GET(req: NextRequest) {
             { status: 404 }
         );
 
-    return NextResponse.json({ success: true, offer }, {
+    return NextResponse.json({ success: true, offer: toPublicOffer(offer) }, {
         headers: {
             'Cache-Control': 'public, max-age=120, stale-while-revalidate=300'
         }

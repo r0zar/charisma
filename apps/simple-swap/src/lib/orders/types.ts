@@ -107,13 +107,8 @@ export interface LimitOrder {
 }
 
 export type NewOrderRequest = Omit<LimitOrder, 'status' | 'createdAt' | 'txid' | 'id'>; 
-/**
- * An order as returned by public APIs. The signature is left out: the swap router lets whoever submits it
- * choose where the output goes, so a signature must never leave the server.
- */
+/** An order as public APIs return it: no signature, and a handle in place of the uuid (see lib/orders/public.ts) */
 export type PublicOrder = Omit<LimitOrder, 'signature'>;
-
-export const toPublicOrder = ({ signature: _signature, ...order }: LimitOrder): PublicOrder => order;
 
 export const LEGACY_ROUTER = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-rc9';
 /** Pays out only to whoever signed the order */
