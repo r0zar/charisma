@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, Copy, LogOut, Wallet } from 'lucide-react';
+import { ChevronDown, Copy, LogOut, Sparkles, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { toast } from '@/components/ui/sonner';
@@ -9,11 +9,16 @@ import { DepositCharismaButton } from '@/components/DepositCharismaButton';
 import { SwapStxToChaButton } from '@/components/SwapStxToChaButton';
 import { useWallet } from '@/contexts/wallet-context';
 import { formatUnits, shortAddress } from '@/lib/format';
+import { useRound } from '@/hooks/useRound';
+import { CHA_SUBNET_V1, subnetOf } from '@/lib/roulette/subnets';
 
 /** The header's one wallet control: Connect, or your playable CHA. Everything else lives in its side panel. */
 export function WalletMenu() {
-    const { address, connected, connectWallet, disconnectWallet, isConnecting, mainnetBalance, subnetBalance, balanceLoading, subnetBalanceLoading } = useWallet();
+    const { address, connected, connectWallet, disconnectWallet, isConnecting, mainnetBalance, subnetBalance, subnetBalances, balanceLoading, subnetBalanceLoading, upgradeToV2, refreshBalances } = useWallet();
+    const { payload } = useRound();
     const [open, setOpen] = useState(false);
+    const [upgrading, setUpgrading] = useState(false);
+    const [upgradeTx, setUpgradeTx] = useState<string | null>(null);
 
     if (!connected || !address) {
         return (
@@ -24,6 +29,25 @@ export function WalletMenu() {
     }
 
     const playable = subnetBalanceLoading ? '…' : formatUnits(subnetBalance, 6, true);
+    // Blaze v1 CHA not riding on a bet that still has to execute can move to v2
+    const pendingV1 = [...(payload?.myBets ?? [])].filter(b => subnetOf(b) === CHA_SUBNET_V1 && ['placed', 'sending', 'sent'].includes(b.status))
+        .reduce((sum, b) => sum + BigInt(b.amount), 0n);
+    const v1 = BigInt(subnetBalances.v1 || '0');
+    const upgradable = v1 > pendingV1 ? v1 - pendingV1 : 0n;
+
+    async function upgrade() {
+        setUpgrading(true);
+        try {
+            const txid = await upgradeToV2(upgradable);
+            setUpgradeTx(txid);
+            toast.success('Upgrade on its way', { description: `${formatUnits(upgradable)} CHA is moving to Blaze v2.` });
+            setTimeout(refreshBalances, 15_000);
+        } catch (e) {
+            toast.error('Upgrade failed', { description: e instanceof Error ? e.message : String(e) });
+        } finally {
+            setUpgrading(false);
+        }
+    }
     return (
         <>
             <button
@@ -48,10 +72,33 @@ export function WalletMenu() {
                     <div className="rounded-xl border border-line bg-surface p-4">
                         <p className="text-xs uppercase tracking-[0.1em] text-ink-muted">Ready to play</p>
                         <p className="mt-1 font-mono text-2xl font-bold">{playable} <span className="text-sm text-ink-muted">CHA</span></p>
+                        {BigInt(subnetBalances.v1 || '0') > 0n && (
+                            <p className="mt-1 text-xs text-ink-muted">
+                                <span className="font-mono">{formatUnits(subnetBalances.v2, 6, true)}</span> on Blaze v2 · <span className="font-mono">{formatUnits(subnetBalances.v1, 6, true)}</span> on Blaze v1
+                            </p>
+                        )}
                         <p className="mt-2 text-xs text-ink-muted">
                             In your wallet, not in the game yet: <span className="font-mono">{balanceLoading ? '…' : formatUnits(mainnetBalance, 6, true)} CHA</span>
                         </p>
                     </div>
+
+                    {upgradable >= 1_000_000n && (
+                        <div className="rounded-xl border border-accent-line bg-accent-soft p-4">
+                            <p className="flex items-center gap-2 font-semibold"><Sparkles className="h-4 w-4 text-accent-text" /> Upgrade to Blaze v2</p>
+                            <p className="mt-1 text-sm text-ink-muted">
+                                Move {formatUnits(upgradable)} CHA to the new version. Free: one signature, and the game pays the fee.
+                                {pendingV1 > 0n && ` ${formatUnits(pendingV1)} CHA stays on v1 for your bets.`}
+                            </p>
+                            <Button className="mt-3 w-full" onClick={upgrade} disabled={upgrading}>
+                                {upgrading ? 'Waiting for your signature…' : `Upgrade ${formatUnits(upgradable)} CHA`}
+                            </Button>
+                            {upgradeTx && (
+                                <a className="mt-2 block text-center text-xs text-accent-text underline" href={`https://explorer.hiro.so/txid/${upgradeTx}?chain=mainnet`} target="_blank" rel="noreferrer">
+                                    View the upgrade
+                                </a>
+                            )}
+                        </div>
+                    )}
 
                     <div className="flex flex-col gap-2">
                         <SwapStxToChaButton buttonLabel="Get CHA with STX" className="w-full" />

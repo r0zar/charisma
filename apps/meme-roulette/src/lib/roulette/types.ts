@@ -45,6 +45,8 @@ export interface Bet {
     uuid: string;
     user: string;
     tokenId: string;
+    /** the CHA subnet the bet spends; absent on bets placed before Blaze v2, which all spent v1 */
+    subnet?: string;
     /** micro-CHA */
     amount: string;
     signature: string;

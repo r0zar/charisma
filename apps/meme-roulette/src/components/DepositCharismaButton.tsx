@@ -19,6 +19,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Rocket } from 'lucide-react';
+import { CHA_SUBNET_V2 } from '@/lib/roulette/subnets';
 
 // Helper to format balance
 const formatBalance = (balance: string, decimals: number = 6) => {
@@ -45,10 +46,8 @@ const MAINNET_CHA_CONTRACT_ID =
     process.env.NEXT_PUBLIC_MAINNET_CHA_CONTRACT_ID ||
     'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token';
 
-// TODO: Replace with the actual contract principal that receives deposits
-const CHARISMA_SUBNET_CONTRACT =
-    process.env.NEXT_PUBLIC_CHARISMA_SUBNET_CONTRACT ||
-    'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1'; // Replace this placeholder!
+// deposits land in Blaze v2: the old v1 balance drains through play, new CHA never joins it
+const CHARISMA_SUBNET_CONTRACT = CHA_SUBNET_V2;
 
 // --- Form Validation Schema ---
 const formSchema = z.object({
@@ -96,10 +95,6 @@ export function DepositCharismaButton({
     const onSubmit = async (values: FormValues) => {
         if (!connected || !address) {
             toast.error('Wallet not connected', { description: 'Please connect your wallet first.' });
-            return;
-        }
-        if (CHARISMA_SUBNET_CONTRACT.includes('...placeholder')) {
-            toast.error('Configuration Error', { description: 'Deposit target contract not configured.' });
             return;
         }
 
@@ -188,7 +183,7 @@ export function DepositCharismaButton({
                     </DialogTitle>
                     <DialogDescription>
                         Enter the amount of mainnet CHA you want to deposit.
-                        This will call the `{CHARISMA_SUBNET_CONTRACT.split('.')[1]}` function.
+                        It moves into the game's CHA balance (Blaze v2), ready to back a meme.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">

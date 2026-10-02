@@ -24,6 +24,8 @@ export interface Store {
     /** a token to release with, or null when someone else holds it */
     lock(ttlMs: number): Promise<string | null>;
     unlock(token: string): Promise<void>;
+    /** true the first time a key is claimed, false ever after (for one-shot actions like an upgrade) */
+    once(key: string): Promise<boolean>;
 }
 
 export const DEFAULT_CONFIG: RouletteConfig = {
@@ -98,6 +100,7 @@ export const kvStore: Store = {
         return (await kv.set(K.lock, token, { nx: true, px: ttlMs })) === 'OK' ? token : null;
     },
     async unlock(token) { await kv.eval(UNLOCK, [K.lock], [token]); },
+    async once(key) { return (await kv.set(`roulette:v2:once:${key}`, Date.now(), { nx: true })) === 'OK'; },
 };
 
 /** In-memory store with the same semantics, for tests. */
@@ -109,6 +112,7 @@ export function memoryStore(): Store & { rounds: Map<string, Round>; bets: Map<s
     let stats: RouletteStats = { athTotal: '0', previousTotal: '0' };
     let current: string | null = null;
     let lockToken: string | null = null;
+    const claimed = new Set<string>();
     const betsOf = (id: string) => bets.get(id) ?? bets.set(id, new Map()).get(id)!;
     const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
     return {
@@ -142,5 +146,6 @@ export function memoryStore(): Store & { rounds: Map<string, Round>; bets: Map<s
             return lockToken;
         },
         unlock: async token => { if (lockToken === token) lockToken = null; },
+        once: async key => { if (claimed.has(key)) return false; claimed.add(key); return true; },
     };
 }

@@ -9,6 +9,7 @@ const Body = z.object({
     user: z.string().regex(/^S[PM][0-9A-Z]{38,40}$/, 'user must be a mainnet address'),
     tokenId: z.string().min(3),
     amount: z.string(),
+    subnet: z.string(),
 });
 
 /** Back a meme: a TRANSFER_TOKENS intent for subnet CHA, signed for a multihop router. */

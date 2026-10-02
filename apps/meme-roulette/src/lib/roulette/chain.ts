@@ -1,16 +1,16 @@
 /** Everything the engine needs from the blockchain, behind one interface so the engine can be tested without it. */
-import { getUserTokenBalance, buildXSwapTransaction, broadcastMultihopTransaction, routerConfigFor, BLAZE_CONTRACT_ID } from 'blaze-sdk';
+import { getUserTokenBalance, buildXSwapTransaction, broadcastMultihopTransaction, routerConfigFor, BLAZE_CONTRACT_ID, MULTIHOP_V2_CONTRACT_ID } from 'blaze-sdk';
 import { fetchQuote } from 'dexterity-sdk';
 import { Cl, cvToValue, deserializeCV, getAddressFromPrivateKey, PostConditionMode, serializeCV } from '@stacks/transactions';
-import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
 import type { Bet } from './types';
+import { CHA_SUBNET_V1, CHA_SUBNET_V2, subnetOf } from './subnets';
 
 export interface Block { height: number; hash: string; time: number }
 export interface TxOutcome { status: 'pending' | 'success' | 'failed'; amountOut?: string; reason?: string }
 
 export interface Chain {
-    /** subnet CHA, micro units, read on-chain */
-    balance(user: string): Promise<bigint>;
+    /** a CHA subnet balance (v1 or v2), micro units, read on-chain */
+    balance(user: string, subnet: string): Promise<bigint>;
     /** the earliest Stacks block mined at or after `ms`, or null if none yet */
     firstBlockAtOrAfter(ms: number): Promise<Block | null>;
     /**
@@ -19,6 +19,8 @@ export interface Chain {
      */
     swap(bet: Bet, winner: string): Promise<{ txid: string }>;
     txOutcome(txid: string): Promise<TxOutcome>;
+    /** move a player's v1 CHA to v2 on their signed v1 intent for x-multihop-v2: v1 sublink out, v2 sublink in */
+    upgrade(input: { signature: string; uuid: string; user: string; amount: string }): Promise<{ txid: string }>;
     /** whether blaze-v1 has already seen this intent uuid */
     uuidSpent(uuid: string): Promise<boolean>;
 }
@@ -47,9 +49,24 @@ async function nextNonce(address: string): Promise<number> {
 
 const isNonceConflict = (e: unknown) => /nonce/i.test(e instanceof Error ? e.message : String(e));
 
+/** broadcast from the solver with its next nonce, retrying nonce conflicts */
+async function broadcastFromSolver(config: Parameters<typeof broadcastMultihopTransaction>[0]): Promise<{ txid: string }> {
+    const { key, address } = solver();
+    for (let attempt = 0; ; attempt++) {
+        try {
+            const result = await broadcastMultihopTransaction({ ...config, nonce: await nextNonce(address) }, key);
+            if (!result.txid || 'error' in result) throw new Error(`Broadcast rejected: ${JSON.stringify(result).slice(0, 300)}`);
+            return { txid: result.txid };
+        } catch (e) {
+            if (attempt < 2 && isNonceConflict(e)) continue;
+            throw e;
+        }
+    }
+}
+
 export const stacksChain: Chain = {
-    async balance(user) {
-        const { preconfirmationBalance } = await getUserTokenBalance(CHARISMA_SUBNET_CONTRACT, user);
+    async balance(user, subnet) {
+        const { preconfirmationBalance } = await getUserTokenBalance(subnet, user);
         return BigInt(preconfirmationBalance);
     },
 
@@ -70,24 +87,22 @@ export const stacksChain: Chain = {
     },
 
     async swap(bet, winner) {
-        const { key, address } = solver();
-        const quote = await fetchQuote(CHARISMA_SUBNET_CONTRACT, winner, Number(bet.amount));
-        if (!quote?.hops?.length) throw new Error(`No route from subnet CHA to ${winner}`);
-        const config = {
+        const quote = await fetchQuote(subnetOf(bet), winner, Number(bet.amount));
+        if (!quote?.hops?.length) throw new Error(`No route from ${subnetOf(bet)} to ${winner}`);
+        // no price protection on purpose: the group buy pumps the winner (DESIGN.md)
+        return broadcastFromSolver({
             ...buildXSwapTransaction(quote as any, { amountIn: bet.amount, signature: bet.signature, uuid: bet.uuid, recipient: bet.user }, routerConfigFor(bet.router)),
             postConditionMode: PostConditionMode.Allow,
             postConditions: [],
-        };
-        for (let attempt = 0; ; attempt++) {
-            try {
-                const result = await broadcastMultihopTransaction({ ...config, nonce: await nextNonce(address) }, key);
-                if (!result.txid || 'error' in result) throw new Error(`Broadcast rejected: ${JSON.stringify(result).slice(0, 300)}`);
-                return { txid: result.txid };
-            } catch (e) {
-                if (attempt < 2 && isNonceConflict(e)) continue;
-                throw e;
-            }
-        }
+        });
+    },
+
+    async upgrade({ signature, uuid, user, amount }) {
+        const quote = await fetchQuote(CHA_SUBNET_V1, CHA_SUBNET_V2, Number(amount));
+        if (!quote?.hops?.length) throw new Error('No route from Blaze v1 CHA to Blaze v2 CHA yet');
+        if (BigInt(Math.floor(quote.amountOut)) !== BigInt(amount)) throw new Error(`The upgrade route would deliver ${quote.amountOut}, not ${amount}`);
+        // 1:1 through two sublinks, so the default deny-mode post-conditions hold exactly
+        return broadcastFromSolver(buildXSwapTransaction(quote as any, { amountIn: amount, signature, uuid, recipient: user }, routerConfigFor(MULTIHOP_V2_CONTRACT_ID)));
     },
 
     async txOutcome(txid) {

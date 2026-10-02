@@ -4,6 +4,7 @@ import type { Hooks } from './hooks';
 import type { Store } from './store';
 import type { Bet, PublicBet } from './types';
 import { toPublicBet } from './public';
+import { isChaSubnet, subnetOf } from './subnets';
 
 export interface BetInput {
     signature: string;
@@ -13,6 +14,8 @@ export interface BetInput {
     tokenId: string;
     /** micro-CHA */
     amount: string;
+    /** the CHA subnet it spends (v1 or v2) */
+    subnet: string;
 }
 
 export interface BetDeps {
@@ -37,6 +40,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export async function placeBet(deps: BetDeps, input: BetInput): Promise<{ bet: PublicBet; repeated: boolean; achievements: unknown[] }> {
     if (!UUID.test(input.uuid)) throw new BetError('The bet needs a uuid', 400);
     if (!/^\d+$/.test(input.amount) || BigInt(input.amount) < MIN_BET) throw new BetError('The smallest bet is 1 CHA', 400);
+    if (!isChaSubnet(input.subnet)) throw new BetError('Bets spend CHA from a CHA subnet (Blaze v1 or v2)', 400);
 
     const roundId = await deps.store.getCurrentId();
     const round = roundId ? await deps.store.getRound(roundId) : null;
@@ -60,17 +64,18 @@ export async function placeBet(deps: BetDeps, input: BetInput): Promise<{ bet: P
         throw new BetError('The signature does not match this bet', 401);
     }
 
-    const mine = (await deps.store.getBets(round.id)).filter(b => b.user === input.user && b.status !== 'excluded');
+    const mine = (await deps.store.getBets(round.id)).filter(b => b.user === input.user && b.status !== 'excluded' && subnetOf(b) === input.subnet);
     const committed = mine.reduce((sum, b) => sum + BigInt(b.amount), 0n) + BigInt(input.amount);
-    const balance = await deps.chain.balance(input.user);
+    const balance = await deps.chain.balance(input.user, input.subnet);
     if (balance < committed) {
-        throw new BetError(`Your subnet balance covers ${balance / 1_000_000n} CHA, and this round's bets would need ${committed / 1_000_000n} CHA`, 402);
+        throw new BetError(`That CHA balance covers ${balance / 1_000_000n} CHA, and this round's bets from it would need ${committed / 1_000_000n} CHA`, 402);
     }
 
     const bet: Bet = {
         uuid: input.uuid,
         user: input.user,
         tokenId: input.tokenId,
+        subnet: input.subnet,
         amount: input.amount,
         signature: input.signature,
         router,

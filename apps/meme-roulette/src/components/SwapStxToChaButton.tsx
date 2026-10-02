@@ -16,13 +16,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/sonner';
 import { useWallet } from '@/contexts/wallet-context';
-import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { VariantProps } from 'class-variance-authority';
 import { Coins, RefreshCw, Repeat } from 'lucide-react';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { CHA_SUBNET_V2 } from '@/lib/roulette/subnets';
 
 // --- Constants ---
 const STX_DECIMALS = 6;
@@ -148,7 +148,8 @@ export function SwapStxToChaButton({
                     setQuoteState((prev) => ({ ...prev, error: "Amount too low", loading: false }));
                     return;
                 }
-                const response = await getQuote('.stx', CHARISMA_SUBNET_CONTRACT, amountInMicroStx);
+                // one swap straight into Blaze v2 CHA, where new CHA lands
+                const response = await getQuote('.stx', CHA_SUBNET_V2, amountInMicroStx);
 
                 if (response.success && response.quote) {
                     setQuoteState({ data: response.quote, loading: false, error: null });

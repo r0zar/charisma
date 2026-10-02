@@ -1,6 +1,7 @@
 /** The provably fair draw: a committed seed mixed with a Stacks block hash nobody knew while bets were open. */
 import { createHash, randomBytes } from 'node:crypto';
 import type { Bet, Slice } from './types';
+import { subnetOf } from './subnets';
 
 const strip0x = (hex: string) => hex.replace(/^0x/, '');
 
@@ -46,17 +47,20 @@ export function drawWinner(seed: string, blockHash: string, slices: Slice[]): Dr
     throw new Error('drawWinner: ticket fell outside the slices');
 }
 
+/** the key for one user's balance in one subnet */
+export const purseKey = (user: string, subnet: string) => `${user}|${subnet}`;
+
 /**
- * Freeze the bets that count: per user, oldest first, while their running total fits their subnet balance.
- * Returns the bets to keep and the ones to exclude.
+ * Freeze the bets that count: per user and subnet, oldest first, while the running total fits that subnet balance
+ * (keyed by purseKey). Returns the bets to keep and the ones to exclude.
  */
 export function fundedBets(bets: Bet[], balances: Map<string, bigint>): { valid: Bet[]; excluded: Bet[] } {
     const valid: Bet[] = [], excluded: Bet[] = [];
     const spent = new Map<string, bigint>();
     for (const b of [...bets].sort((x, y) => x.placedAt - y.placedAt || (x.uuid < y.uuid ? -1 : 1))) {
-        const used = spent.get(b.user) ?? 0n;
-        const next = used + BigInt(b.amount);
-        if (next <= (balances.get(b.user) ?? 0n)) { valid.push(b); spent.set(b.user, next); }
+        const k = purseKey(b.user, subnetOf(b));
+        const next = (spent.get(k) ?? 0n) + BigInt(b.amount);
+        if (next <= (balances.get(k) ?? 0n)) { valid.push(b); spent.set(k, next); }
         else excluded.push(b);
     }
     return { valid, excluded };

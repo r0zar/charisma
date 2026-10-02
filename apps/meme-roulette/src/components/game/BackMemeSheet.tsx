@@ -15,6 +15,7 @@ import { TokenLogo } from './TokenLogo';
 import { betsIn, potOf } from './screen';
 import type { PublicRound } from '@/lib/roulette/types';
 import { SharePickButton } from './SharePickButton';
+import { CHA_SUBNET_V1, CHA_SUBNET_V2, subnetOf, type ChaSubnet } from '@/lib/roulette/subnets';
 
 const PRESETS = [10, 25, 50, 100];
 const ONE_CHA = 1_000_000n;
@@ -27,7 +28,7 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
     now: number;
     initialToken?: string;
 }) {
-    const { connected, address, connectWallet, isConnecting, subnetBalance, subnetBalanceLoading, placeBet, refreshBalances } = useWallet();
+    const { connected, address, connectWallet, isConnecting, subnetBalance, subnetBalances, subnetBalanceLoading, placeBet, refreshBalances } = useWallet();
     const { tokens, byId, loading: tokensLoading, error: tokensError } = useTokens();
     const { payload, refresh } = useRound();
     const [query, setQuery] = useState('');
@@ -48,9 +49,16 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
     }, [topUpTx]);
 
     const isOpen = !!round && round.status === 'live' && now >= round.opensAt && now < round.locksAt;
-    const committed = round ? betsIn(round, payload?.myBets).filter(b => b.status !== 'excluded').reduce((s, b) => s + BigInt(b.amount), 0n) : 0n;
-    const balance = BigInt(subnetBalance || '0');
-    const free = balance > committed ? balance - committed : 0n;
+    // two CHA subnets, one balance: each bet spends one of them, old (v1) first
+    const mine = round ? betsIn(round, payload?.myBets).filter(b => b.status !== 'excluded') : [];
+    const freeIn = (subnet: ChaSubnet, held: string) => {
+        const used = mine.filter(b => subnetOf(b) === subnet).reduce((s, b) => s + BigInt(b.amount), 0n);
+        const bal = BigInt(held || '0');
+        return bal > used ? bal - used : 0n;
+    };
+    const freeV1 = freeIn(CHA_SUBNET_V1, subnetBalances.v1), freeV2 = freeIn(CHA_SUBNET_V2, subnetBalances.v2);
+    const free = freeV1 + freeV2;
+    const committed = mine.reduce((s, b) => s + BigInt(b.amount), 0n);
     const amount = toMicro(amountText);
     const selected = tokenId ? byId[tokenId] : undefined;
     const tally = round?.tally ?? {};
@@ -67,6 +75,7 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
                 : amount === null ? 'Enter an amount of CHA.'
                     : amount < ONE_CHA ? 'The smallest bet is 1 CHA.'
                         : amount > free ? `You have ${formatUnits(free)} CHA free to bet.`
+                            : amount > freeV1 && amount > freeV2 ? `One bet spends one balance: upgrade your Blaze v1 CHA in the wallet panel to bet ${formatUnits(amount)} CHA at once.`
                             : null;
 
     async function submit() {
@@ -74,7 +83,7 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
         setSubmitting(true);
         setError(null);
         try {
-            await placeBet(amount, selected.contractId);
+            await placeBet(amount, selected.contractId, amount <= freeV1 ? CHA_SUBNET_V1 : CHA_SUBNET_V2);
             refresh();
             setBacked({ symbol: selected.symbol, amount });
         } catch (e) {
@@ -120,7 +129,7 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
                         <div className="rounded-lg border border-line bg-surface p-3 text-sm">
                             <div className="flex items-center justify-between">
                                 <span className="text-ink-muted">Your subnet CHA</span>
-                                <span className="font-mono font-semibold">{subnetBalanceLoading ? '…' : `${formatUnits(balance)} CHA`}</span>
+                                <span className="font-mono font-semibold">{subnetBalanceLoading ? "…" : `${formatUnits(subnetBalance)} CHA`}</span>
                             </div>
                             {committed > 0n && (
                                 <div className="mt-1 flex items-center justify-between text-ink-muted">

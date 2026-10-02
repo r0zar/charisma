@@ -2,13 +2,13 @@
 import { kv } from '@vercel/kv';
 import { findSignedRouter } from 'blaze-sdk';
 import { listTokens } from 'dexterity-sdk';
-import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
 import { kvStore } from './store';
 import { stacksChain } from './chain';
 import { leaderboardHooks } from './hooks';
 import { isPlayableToken } from './playable';
 import type { EngineDeps } from './engine';
 import type { BetDeps } from './bets';
+import type { UpgradeDeps } from './upgrade';
 
 export const engineDeps: EngineDeps = {
     store: kvStore,
@@ -33,6 +33,12 @@ export const betDeps: BetDeps = {
     chain: stacksChain,
     hooks: leaderboardHooks,
     now: () => Date.now(),
-    signedRouter: i => findSignedRouter(i.signature, i.uuid, CHARISMA_SUBNET_CONTRACT, i.amount, i.user),
+    signedRouter: i => findSignedRouter(i.signature, i.uuid, i.subnet, i.amount, i.user),
     isPlayable,
+};
+
+export const upgradeDeps: UpgradeDeps = {
+    store: kvStore,
+    chain: stacksChain,
+    signedRouter: i => findSignedRouter(i.signature, i.uuid, i.subnet, i.amount, i.user),
 };

@@ -8,6 +8,9 @@ import { placeBet, BetError, type BetDeps } from './bets';
 import { toPublicRound } from './public';
 import type { Chain } from './chain';
 import type { Bet } from './types';
+import { CHA_SUBNET_V1, CHA_SUBNET_V2 } from './subnets';
+import { upgradeToV2, type UpgradeDeps } from './upgrade';
+import { MULTIHOP_V2_CONTRACT_ID } from 'blaze-sdk';
 
 const W = 'SP1.welsh', P = 'SP2.pepe', R = 'SP3.roo';
 const bet = (uuid: string, user: string, tokenId: string, amount: number, placedAt = 0): Bet =>
@@ -50,9 +53,16 @@ describe('draw', () => {
         expect(drawWinner('22'.repeat(32), '0x02', []).winner).toBeNull();
     });
 
+    it('funds each subnet on its own', () => {
+        const bets = [{ ...bet('a', 'u1', W, 40, 1), subnet: CHA_SUBNET_V2 }, bet('b', 'u1', P, 40, 2)];
+        const { valid, excluded } = fundedBets(bets, new Map([[`u1|${CHA_SUBNET_V2}`, 50n], [`u1|${CHA_SUBNET_V1}`, 10n]]));
+        expect(valid.map(b => b.uuid)).toEqual(['a']);
+        expect(excluded.map(b => b.uuid)).toEqual(['b']);
+    });
+
     it('keeps each user\'s oldest bets while they fit the balance', () => {
         const bets = [bet('a', 'u1', W, 40, 1), bet('b', 'u1', P, 40, 2), bet('c', 'u1', R, 40, 3), bet('d', 'u2', W, 10, 1)];
-        const { valid, excluded } = fundedBets(bets, new Map([['u1', 90n], ['u2', 5n]]));
+        const { valid, excluded } = fundedBets(bets, new Map([[`u1|${CHA_SUBNET_V1}`, 90n], [`u2|${CHA_SUBNET_V1}`, 5n]]));
         expect(valid.map(b => b.uuid)).toEqual(['a', 'b']);
         expect(excluded.map(b => b.uuid).sort()).toEqual(['c', 'd']);
     });
@@ -93,7 +103,8 @@ describe('wheel', () => {
 function fakeChain(balances: Record<string, bigint>, opts: { fail?: Set<string>; pending?: boolean } = {}) {
     const sent: string[] = [];
     const chain: Chain = {
-        balance: async u => balances[u] ?? 0n,
+        // tests fund v1 by user, and v2 under `${user}|v2`
+        balance: async (u, subnet) => (subnet === CHA_SUBNET_V2 ? balances[`${u}|v2`] : balances[u]) ?? 0n,
         firstBlockAtOrAfter: async ms => ({ height: 100, hash: '0x' + 'ab'.repeat(32), time: Math.ceil(ms / 1000) + 5 }),
         swap: async b => {
             if (opts.fail?.has(b.uuid)) throw new Error('route failed');
@@ -102,6 +113,7 @@ function fakeChain(balances: Record<string, bigint>, opts: { fail?: Set<string>;
         },
         txOutcome: async () => (opts.pending ? { status: 'pending' } : { status: 'success', amountOut: '777' }),
         uuidSpent: async () => false,
+        upgrade: async () => ({ txid: '0xupgrade' }),
     };
     return { chain, sent };
 }
@@ -246,8 +258,8 @@ describe('bets', () => {
         };
         return { ...s, round, bdeps: deps };
     }
-    const input = (uuid: string, amount = '10000000', signature = 'good') =>
-        ({ uuid, user: 'u1', tokenId: W, amount, signature });
+    const input = (uuid: string, amount = '10000000', signature = 'good', subnet: string = CHA_SUBNET_V1) =>
+        ({ uuid, user: 'u1', tokenId: W, amount, signature, subnet });
     const U1 = '00000000-0000-4000-8000-000000000001', U2 = '00000000-0000-4000-8000-000000000002';
 
     it('stores a signed, funded bet once per uuid', async () => {
@@ -267,9 +279,40 @@ describe('bets', () => {
         await expect(placeBet(bdeps, input(U2))).rejects.toMatchObject({ status: 402 });
     });
 
+    it('checks a bet against the subnet it spends', async () => {
+        const { bdeps } = await betSetup();
+        const deps = { ...bdeps, chain: { balance: async (_u: string, subnet: string) => (subnet === CHA_SUBNET_V2 ? 50_000_000n : 0n) } };
+        await expect(placeBet(deps, input(U1))).rejects.toMatchObject({ status: 402 });                       // v1 is empty
+        expect((await placeBet(deps, input(U2, '10000000', 'good', CHA_SUBNET_V2))).bet.subnet).toBe(CHA_SUBNET_V2);
+        await expect(placeBet(deps, input('00000000-0000-4000-8000-000000000003', '10000000', 'good', 'SP.other-subnet'))).rejects.toMatchObject({ status: 400 });
+    });
+
     it('refuses bets once the round locks', async () => {
         const { bdeps, round, tick, now } = await betSetup();
         tick(round.locksAt - now());
         await expect(placeBet(bdeps, input(U1))).rejects.toBeInstanceOf(BetError);
+    });
+});
+
+describe('upgrade', () => {
+    const UP = '00000000-0000-4000-8000-0000000000aa';
+    function upSetup(v1: bigint, router = MULTIHOP_V2_CONTRACT_ID) {
+        const s = setup({ u1: v1 });
+        const deps: UpgradeDeps = { store: s.store, chain: s.deps.chain, signedRouter: async () => router };
+        return { ...s, deps };
+    }
+    it('moves free v1 CHA, keeping what live bets still need', async () => {
+        const { store, deps, now } = upSetup(100_000_000n);
+        const round = await createRound(setup().deps, 1, now(), await store.getConfig());
+        await store.saveRound({ ...round }); // the same round in this store
+        await store.setCurrentId(round.id);
+        await store.addBet(round.id, bet('a', 'u1', W, 60_000_000));
+        await expect(upgradeToV2(deps, { signature: 's', uuid: UP, user: 'u1', amount: '50000000' })).rejects.toMatchObject({ status: 402 });
+        expect(await upgradeToV2(deps, { signature: 's', uuid: UP, user: 'u1', amount: '40000000' })).toEqual({ txid: '0xupgrade' });
+        await expect(upgradeToV2(deps, { signature: 's', uuid: UP, user: 'u1', amount: '40000000' })).rejects.toMatchObject({ status: 409 });
+    });
+    it('only takes intents signed for x-multihop-v2', async () => {
+        const { deps } = upSetup(100_000_000n, 'SP.x-multihop-v1');
+        await expect(upgradeToV2(deps, { signature: 's', uuid: UP, user: 'u1', amount: '1000000' })).rejects.toMatchObject({ status: 400 });
     });
 });

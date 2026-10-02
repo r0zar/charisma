@@ -4,8 +4,8 @@ import React, { createContext, useState, useContext, useEffect, ReactNode, useRe
 import { connect, request } from "@stacks/connect";
 import type { AddressEntry } from "@stacks/connect/dist/types/methods";
 import { v4 as uuidv4 } from 'uuid';
-import { signIntentWithWallet, MULTIHOP_CONTRACT_ID, getUserTokenBalance } from "blaze-sdk"; // Reverting to relative path
-import { CHARISMA_SUBNET_CONTRACT } from '@repo/tokens';
+import { signIntentWithWallet, MULTIHOP_CONTRACT_ID, MULTIHOP_V2_CONTRACT_ID, getUserTokenBalance } from "blaze-sdk";
+import { CHA_SUBNET_V1, CHA_SUBNET_V2, type ChaSubnet } from '@/lib/roulette/subnets';
 import { fetchQuote, Router, loadVaults, buildSwapTransaction, Route } from 'dexterity-sdk';
 import type { PublicBet } from '@/lib/roulette/types';
 
@@ -20,14 +20,19 @@ interface WalletContextType {
     isConnecting: boolean;
     stxBalance: string; // Native STX balance in micro-STX
     mainnetBalance: string; // Mainnet CHA pre-confirmation balance
-    subnetBalance: string; // Subnet CHA pre-confirmation balance
+    /** playable CHA: Blaze v1 and v2 subnet balances together */
+    subnetBalance: string;
+    /** the two subnet balances behind it (micro-CHA) */
+    subnetBalances: { v1: string; v2: string };
     balanceLoading: boolean;
     subnetBalanceLoading: boolean;
     stxBalanceLoading: boolean;
     connectWallet: () => Promise<void>;
     disconnectWallet: () => void;
     /** sign a bet for `tokenId` with `amount` micro-CHA and hand it to the game; throws the server's reason */
-    placeBet: (amount: bigint, tokenId: string) => Promise<PublicBet>;
+    placeBet: (amount: bigint, tokenId: string, subnet: ChaSubnet) => Promise<PublicBet>;
+    /** move `amount` micro-CHA from Blaze v1 to v2: one signature, the game pays the fee; returns the txid */
+    upgradeToV2: (amount: bigint) => Promise<string>;
     refreshBalances: () => void;
     getQuote: (from: string, to: string, amount: number) => Promise<{ success: boolean; quote?: any; error?: string }>;
     swapTokens: (route: Route) => Promise<any>;
@@ -40,12 +45,14 @@ const WalletContext = createContext<WalletContextType>({
     stxBalance: '0',
     mainnetBalance: '0',
     subnetBalance: '0',
+    subnetBalances: { v1: '0', v2: '0' },
     balanceLoading: false,
     subnetBalanceLoading: false,
     stxBalanceLoading: false,
     connectWallet: async () => { },
     disconnectWallet: () => { },
     placeBet: async () => { throw new Error('Wallet not connected'); },
+    upgradeToV2: async () => { throw new Error('Wallet not connected'); },
     refreshBalances: () => { },
     getQuote: async () => ({ success: false, error: 'Failed to get quote' }),
     swapTokens: async () => ({ success: false, error: 'Wallet not connected' })
@@ -59,7 +66,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const [isConnecting, setIsConnecting] = useState(false);
     const [stxBalance, setStxBalance] = useState('0');
     const [mainnetBalance, setMainnetBalance] = useState('0');
-    const [subnetBalance, setSubnetBalance] = useState('0');
+    const [subnetBalances, setSubnetBalances] = useState({ v1: '0', v2: '0' });
+    const subnetBalance = (BigInt(subnetBalances.v1) + BigInt(subnetBalances.v2)).toString();
     const [balanceLoading, setBalanceLoading] = useState(false);
     const [subnetBalanceLoading, setSubnetBalanceLoading] = useState(false);
     const [stxBalanceLoading, setStxBalanceLoading] = useState(false);
@@ -129,7 +137,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setAddress('');
         setConnected(false);
         setMainnetBalance('0');
-        setSubnetBalance('0');
+        setSubnetBalances({ v1: '0', v2: '0' });
         setStxBalance('0');
     };
 
@@ -148,13 +156,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    // subnet CHA, read on-chain: what the game checks bets against
+    // both CHA subnets, read on-chain: what the game checks bets against
     const fetchSubnetBalance = async (userAddress: string) => {
         if (!userAddress) return;
         setSubnetBalanceLoading(true);
         try {
-            const data = await getUserTokenBalance(CHARISMA_SUBNET_CONTRACT, userAddress);
-            setSubnetBalance(data.preconfirmationBalance);
+            const [v1, v2] = await Promise.all([CHA_SUBNET_V1, CHA_SUBNET_V2].map(subnet => getUserTokenBalance(subnet, userAddress)));
+            setSubnetBalances({ v1: v1.preconfirmationBalance, v2: v2.preconfirmationBalance });
         } catch (err) {
             console.error('Subnet CHA balance unavailable:', err);
         } finally {
@@ -191,12 +199,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         }
     }, [connected, address]);
 
-    // a bet is a signed TRANSFER_TOKENS intent for subnet CHA, targeted at the multihop router
-    const placeBet = async (amount: bigint, tokenId: string): Promise<PublicBet> => {
+    // a bet is a signed TRANSFER_TOKENS intent for one CHA subnet, targeted at the multihop router
+    const placeBet = async (amount: bigint, tokenId: string, subnet: ChaSubnet): Promise<PublicBet> => {
         if (!connected || !address) throw new Error('Connect your wallet first');
         const uuid = uuidv4();
         const signed = await signIntentWithWallet({
-            contract: CHARISMA_SUBNET_CONTRACT,
+            contract: subnet,
             intent: 'TRANSFER_TOKENS',
             amount: Number(amount),
             target: MULTIHOP_CONTRACT_ID,
@@ -205,12 +213,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const response = await fetch('/api/bets', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ signature: signed.signature.replace(/^0x/, ''), uuid, user: address, tokenId, amount: amount.toString() }),
+            body: JSON.stringify({ signature: signed.signature.replace(/^0x/, ''), uuid, user: address, tokenId, amount: amount.toString(), subnet }),
         });
         const payload = await response.json().catch(() => ({ error: `The game answered ${response.status}` }));
         if (!response.ok) throw new Error(payload.error ?? `The game answered ${response.status}`);
         fetchSubnetBalance(address);
         return payload.bet as PublicBet;
+    };
+
+    // the upgrade is a v1 TRANSFER_TOKENS intent for x-multihop-v2; the game routes it v1 → v2 and pays the fee
+    const upgradeToV2 = async (amount: bigint): Promise<string> => {
+        if (!connected || !address) throw new Error('Connect your wallet first');
+        const uuid = uuidv4();
+        const signed = await signIntentWithWallet({ contract: CHA_SUBNET_V1, intent: 'TRANSFER_TOKENS', amount: Number(amount), target: MULTIHOP_V2_CONTRACT_ID, uuid });
+        const response = await fetch('/api/upgrade', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ signature: signed.signature.replace(/^0x/, ''), uuid, user: address, amount: amount.toString() }),
+        });
+        const payload = await response.json().catch(() => ({ error: `The game answered ${response.status}` }));
+        if (!response.ok) throw new Error(payload.error ?? `The game answered ${response.status}`);
+        return payload.txid as string;
     };
 
     const refreshBalances = () => {
@@ -253,12 +276,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 stxBalance,
                 mainnetBalance,
                 subnetBalance,
+                subnetBalances,
                 balanceLoading,
                 subnetBalanceLoading,
                 stxBalanceLoading,
                 connectWallet,
                 disconnectWallet,
                 placeBet,
+                upgradeToV2,
                 refreshBalances,
                 getQuote,
                 swapTokens

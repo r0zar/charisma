@@ -2,7 +2,8 @@
  * The only code that writes round state. Safe to call from anywhere, any number of times, at once:
  * it takes a lock, does whatever is due, and every write compares the round's version. See DESIGN.md.
  */
-import { drawWinner, fundedBets, newSeed, slicesOf } from './draw';
+import { drawWinner, fundedBets, newSeed, purseKey, slicesOf } from './draw';
+import { subnetOf } from './subnets';
 import type { Chain } from './chain';
 import type { Hooks } from './hooks';
 import type { Store } from './store';
@@ -109,8 +110,8 @@ async function drawRound(deps: EngineDeps, round: Round, config: RouletteConfig)
     if (!block) return null; // not mined yet: the next call draws
 
     const placed = (await deps.store.getBets(round.id)).filter(b => b.status === 'placed');
-    const users = [...new Set(placed.map(b => b.user))];
-    const balances = new Map(await Promise.all(users.map(async u => [u, await deps.chain.balance(u)] as const)));
+    const purses = [...new Map(placed.map(b => [purseKey(b.user, subnetOf(b)), [b.user, subnetOf(b)] as const])).entries()];
+    const balances = new Map(await Promise.all(purses.map(async ([k, [u, s]]) => [k, await deps.chain.balance(u, s)] as const)));
     const { valid, excluded } = fundedBets(placed, balances);
     for (const b of excluded) await deps.store.putBet(round.id, { ...b, status: 'excluded', error: 'Not enough subnet CHA at the draw' });
 
