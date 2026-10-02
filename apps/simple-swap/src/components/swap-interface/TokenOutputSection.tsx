@@ -14,6 +14,7 @@ import { useRouterTrading } from '@/hooks/useRouterTrading';
 import { formatTokenAmount, formatCompactNumber } from '@/lib/swap-utils';
 import { useWallet } from '@/contexts/wallet-context';
 import { BalanceTooltip } from '@/components/ui/tooltip';
+import BalanceSourceSwitch from './BalanceSourceSwitch';
 import { rowBlazeVersion } from '@/lib/subnet-pairs';
 
 export default function TokenOutputSection() {
@@ -54,6 +55,9 @@ export default function TokenOutputSection() {
     const tokensToShow = displayTokens;
     const isSubnetSelected = useSubnetTo;
     const hasBothVersionsForToken = hasBothVersions(selectedToToken);
+    // The Stacks / Blaze switch shows when the token has a subnet to choose
+    const hasSubnetChoice = !!selectedToToken && hasBothVersionsForToken;
+    const listedSubnet = subnetDisplayTokens.find(t => t.base === selectedToToken?.contractId)?.contractId;
 
     // Calculate compact balance display and tooltip content
     const { compactBalance, tooltipData } = React.useMemo(() => {
@@ -96,14 +100,6 @@ export default function TokenOutputSection() {
         }
     };
 
-    const handleToggleSubnet = () => {
-        if (selectedToToken && hasBothVersionsForToken) {
-            // Simply toggle the subnet flag - no need to change tokens
-            // The enhanced balance feed handles both mainnet and subnet balances
-            setUseSubnetTo(!useSubnetTo);
-        }
-    };
-
     const handleSectionClick = () => {
         setForceTokenDropdownOpen(true);
     };
@@ -142,32 +138,12 @@ export default function TokenOutputSection() {
                     <div className="flex items-center justify-between mb-3 gap-3">
                         <div className="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-1">
                             <div className="relative flex-shrink-0">
-                                {hasBothVersionsForToken && selectedToToken && (
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); handleToggleSubnet(); }}
-                                        className="relative transition-all duration-200 cursor-pointer hover:scale-105"
-                                        title={
-                                            isSubnetSelected
-                                                ? "Using Subnet Token - Click to use Mainnet"
-                                                : "Using Mainnet Token - Click to use Subnet"
-                                        }
-                                    >
-                                        <TokenLogo
-                                            token={{
-                                                ...selectedToToken,
-                                                type: isSubnetSelected ? 'SUBNET' : selectedToToken.type
-                                            }}
-                                            size="md"
-                                            suppressFlame={!isSubnetSelected}
-                                            blazeVersion={rowBlazeVersion(subnetDisplayTokens.find(t => t.base === selectedToToken.contractId)?.contractId)}
-                                        />
-                                        {/* Subtle toggle indicator */}
-                                        <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-line-strong bg-success" />
-                                    </button>
-                                )}
-                                {!hasBothVersionsForToken && selectedToToken && (
-                                    <TokenLogo token={selectedToToken} size="md" />
-                                )}
+                                <TokenLogo
+                                    token={{ ...selectedToToken, type: hasSubnetChoice && isSubnetSelected ? 'SUBNET' : selectedToToken.type }}
+                                    size="md"
+                                    suppressFlame={hasSubnetChoice && !isSubnetSelected}
+                                    blazeVersion={hasSubnetChoice ? rowBlazeVersion(listedSubnet) : undefined}
+                                />
                             </div>
                             
                             <div className="min-w-0">
@@ -182,23 +158,27 @@ export default function TokenOutputSection() {
                                     <div className="text-sm font-semibold text-ink">
                                         {compactBalance} {selectedToToken.symbol}
                                     </div>
-                                    <div className="text-xs text-ink-muted">
-                                        {isSubnetSelected ? 'Subnet' : 'Mainnet'}
-                                    </div>
                                 </div>
                             </BalanceTooltip>
                         </div>
                     </div>
 
-                    {/* Network Status Indicator */}
-                    <div className="flex items-center justify-between pt-3 border-t border-line gap-3">
-                        <div className="flex items-center space-x-2 min-w-0 flex-1">
-                            <div className="h-2 w-2 rounded-full bg-success flex-shrink-0"></div>
-                            <span className="text-xs text-ink-body truncate">
-                                Connected to {isSubnetSelected ? 'Subnet' : 'Mainnet'} • {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Price loading...'}
-                            </span>
-                        </div>
-                        
+                    {/* Where it lands, the token's price, and the price impact */}
+                    <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-line">
+                        {hasSubnetChoice && (
+                            <BalanceSourceSwitch
+                                label="Receive to"
+                                subnet={isSubnetSelected}
+                                onChange={setUseSubnetTo}
+                                wallet={address ? tooltipData.mainnet : undefined}
+                                subnetBalance={address ? tooltipData.subnet : undefined}
+                                blazeVersion={rowBlazeVersion(listedSubnet)}
+                            />
+                        )}
+                        <span className="ml-auto text-xs text-ink-muted">
+                            {hasValidPrice(price) ? formatPriceUSD(price.price) : 'Price loading…'}
+                        </span>
+
                         {/* Price Impact Display */}
                         {totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingQuote && (
                             <div className={`px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${
@@ -252,6 +232,7 @@ export default function TokenOutputSection() {
                             <TokenDropdown
                                 tokens={tokensToShow}
                                 selected={displayedToken}
+                                selectedBlazeVersion={hasSubnetChoice ? rowBlazeVersion(listedSubnet) : undefined}
                                 onSelect={handleSelectToken}
                                 label=""
                                 showBalances={true}

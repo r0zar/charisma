@@ -9,6 +9,7 @@ import { useTokenPrices } from '@/contexts/token-price-context';
 import { useSubnetTokens } from '@/contexts/subnet-tokens-context';
 import { ChevronDown, Search, X, ArrowLeft } from 'lucide-react';
 import { rowBlazeVersion } from '@/lib/subnet-pairs';
+import type { BlazeVersion } from 'blaze-sdk';
 
 interface TokenDropdownProps {
     tokens: TokenCacheData[];
@@ -16,6 +17,8 @@ interface TokenDropdownProps {
     onSelect: (t: TokenCacheData) => void;
     label?: string;
     suppressFlame?: boolean;
+    /** Which Blaze the selected token's flame stands for, when the token object can't say (a mainnet token shown as its subnet) */
+    selectedBlazeVersion?: BlazeVersion;
     showBalances?: boolean;
     forceOpen?: boolean;
     onForceOpenChange?: (open: boolean) => void;
@@ -31,6 +34,7 @@ export default function TokenDropdown({
     onSelect,
     label,
     suppressFlame = false,
+    selectedBlazeVersion,
     showBalances = false,
     forceOpen = false,
     onForceOpenChange,
@@ -294,11 +298,6 @@ export default function TokenDropdown({
                                                     {/* Token Logo */}
                                                     <div className="relative flex-shrink-0">
                                                         <TokenLogo token={token} size="lg" suppressFlame={suppressFlame} blazeVersion={rowBlazeVersion(token.contractId)} />
-                                                        {token.type === 'SUBNET' && (
-                                                            <div className={`absolute -bottom-1 -right-1 h-4 w-4 ${rowBlazeVersion(token.contractId) === 2 ? 'bg-blaze-v2' : 'bg-blaze'} rounded-full border-2 border-line-strong flex items-center justify-center`}>
-                                                                <div className="h-1.5 w-1.5 bg-ink rounded-full" />
-                                                            </div>
-                                                        )}
                                                     </div>
                                                     
                                                     {/* Token Info */}
@@ -412,10 +411,7 @@ export default function TokenDropdown({
                 {selected ? (
                     <div className="flex items-center space-x-3 flex-1">
                         <div className="relative">
-                            <TokenLogo token={selected} size="sm" suppressFlame={suppressFlame} blazeVersion={rowBlazeVersion(selected.contractId)} />
-                            {selected.type === 'SUBNET' && (
-                                <div className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 ${rowBlazeVersion(selected.contractId) === 2 ? 'bg-blaze-v2' : 'bg-blaze'} rounded-full border border-line-strong`} />
-                            )}
+                            <TokenLogo token={selected} size="sm" suppressFlame={suppressFlame} blazeVersion={selectedBlazeVersion ?? rowBlazeVersion(selected.contractId)} />
                         </div>
                         <div className="text-left">
                             <div className="font-semibold text-ink text-sm">{selected.symbol}</div>
