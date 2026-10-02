@@ -3,15 +3,17 @@ sidebar_position: 3
 title: Vault kinds
 ---
 
-Three kinds of vault route swaps today: Charisma pools, sublinks to Blaze subnets, and wrappers around other DEXes' pools.
+Five kinds of vault are on-chain. Three route swaps: Charisma pools, sublinks to Blaze subnets, and wrappers around other DEXes' pools. Two pay rewards: energy vaults and reward vaults.
 
 | Kind | Registry `type` / `protocol` | Example | Tokens sit in | Opcodes (`execute` / `quote`) |
 |---|---|---|---|---|
 | Charisma pool | `POOL` / `CHARISMA` | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-usdh-amm-lp-v1` | The pool contract | `00` to `03` / `00` to `04` |
 | Sublink | `SUBLINK` / `CHARISMA` | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-bitcoin` | The subnet token, `sbtc-token-subnet-v1` | `05`, `06` / `05`, `06` |
 | External wrapper | `POOL` / `BITFLOW`, `ALEX`, `ARKADIKO`, `VELAR` | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitflow-welsh-stx` | The external pool | `00`, `01` / `00`, `01`, `04` |
+| Energy vault | `ENERGY` / `CHARISMA` | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energize-v1` | Nothing: energy is minted | `07` / `07` |
+| Reward vault | Not registered | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-farm-rewards` | The farm, `hooter-farm` | `00`, `01` / `00`, `01`, `04` |
 
-The registry also lists `ENERGY` vaults such as `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energize-v1` (opcode `07`). The [Invest API](../data-apis/invest-api.md#get-vaults) serves the full list.
+The [Invest API](../data-apis/invest-api.md#get-vaults) serves the registry.
 
 ```mermaid
 flowchart LR
@@ -77,5 +79,61 @@ A wrapper normalises another DEX's pool behind the trait. It holds no tokens. `e
 | `quote` replays the pool's own math, to the unit | Routes, prices and slippage bounds all come from quotes |
 | No `as-contract` | It would change the sender, and the post-conditions would fail |
 | Token A and B in the registry follow the pool's order | `0x00` means A to B |
-| Swaps only | Wrappers skip `0x02` and `0x03`. Bitflow DLMM shares aren't SIP-010 tokens |
+| Swaps only, by choice | A wrapper could add and remove liquidity with `0x02` and `0x03`. Charisma's don't: Charisma doesn't put liquidity in other DEXes' pools, and each protocol's liquidity flow is its own work to build and maintain (Bitflow DLMM shares, for one, aren't SIP-010 tokens) |
 | Unusual token moves are declared | Arkadiko's STX pairs set `stxWrapper` (wSTX is minted and burned mid-swap). Velar vaults set `forwardsInputFee` (the pool sends part of the input to a fee contract) |
+
+## Energy vaults: harvest Hold-to-Earn
+
+An energy vault puts a [Hold-to-Earn](../tokenomics/hold-to-earn.md) engine behind the vault interface. `energize-v1` is the one on-chain. `0x07` calls its engine's `tap`, which measures how many DEX LP tokens (`dexterity-pool-v1`) the caller held since their last harvest, and the rulebook mints them that much energy. `amount` is ignored.
+
+```clarity
+(define-public (execute (amount uint) (opcode (optional (buff 16))))
+    (let ((operation (get-byte opcode u0)))
+        (if (is-eq operation OP_HARVEST_ENERGY) (harvest-energy)
+        ERR_INVALID_OPERATION)))
+
+(define-public (harvest-energy)
+    (contract-call? 'SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dexterity-hold-to-earn tap))
+```
+
+- `execute` returns the engine's result: `dx` blocks since the last harvest, `dy` the balance over that time, `dk` the energy minted.
+- `quote` returns only `dk`, the blocks since the caller's last harvest.
+- In the registry, `engineContractId` names the engine and `tokenA` and `tokenB` are empty.
+
+## Reward vaults: spend energy, get tokens
+
+A reward vault turns a farm into a swap. `hooter-farm-rewards` wraps the Hooter Farm: `0x00` burns 100 of the caller's energy, and the farm sends them 100 HOOT from its own balance. The amount is fixed. Any `amount` of 100 energy or more quotes 100 for 100; less quotes 0.
+
+```clarity
+(define-private (spend-energy (amount uint))
+    (begin
+        (asserts! (>= amount BURN-AMOUNT) ERR_INVALID_AMOUNT)
+        (match (contract-call? .hooter-farm execute .charisma-rulebook-v0 "CLAIM_TOKENS")
+            success true
+            error false)
+        (ok {dx: BURN-AMOUNT, dy: BURN-AMOUNT, dk: u0})))
+```
+
+| Opcode | What it does |
+|---|---|
+| `00` | Burns 100 energy and pays 100 HOOT |
+| `01` | Nothing. Returns zeros |
+| `04`, `quote` only | `dx` is energy's total supply, `dy` the HOOT left in the farm |
+
+:::caution A failed claim still returns `ok`
+`spend-energy` discards the farm's result. With too little energy, or an empty farm, `execute` still reports 100 for 100. Check the HOOT that arrived, or set post-conditions.
+:::
+
+Because it is a vault, routers can call it. `hooter-farm-x10` claims ten times in one transaction by calling `multihop` `swap-1` with `hooter-farm-rewards` ten times. The vault isn't in the registry, so `dexterity-sdk` routes and the Invest API don't include it.
+
+```mermaid
+flowchart LR
+    caller["Caller"] -->|"07"| energize["energize-v1"]
+    energize -->|"tap"| engine["dexterity-hold-to-earn"]
+    engine -->|"energize"| rulebook["Rulebook"]
+    rulebook -->|"mints energy"| caller
+    caller -->|"00"| rewards["hooter-farm-rewards"]
+    rewards -->|"CLAIM_TOKENS"| farm["hooter-farm, holds the HOOT"]
+    farm -->|"burns 100 energy"| caller
+    farm -->|"sends 100 HOOT"| caller
+```

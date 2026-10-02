@@ -55,6 +55,7 @@ Contracts prefix every constant with `OP_` (`OP_SWAP_A_TO_B`, `OP_HARVEST_ENERGY
 | Sublink | `05`, `06` | `05`, `06` | `err u4002` |
 | External DEX wrapper | `00`, `01` | `00`, `01`, `04` | `err u400` |
 | `energize-v1` | `07` | `07` | `err u4002` |
+| `hooter-farm-rewards` | `00`, `01` | `00`, `01`, `04` | `err u400` |
 
 | Caller | Sends |
 |---|---|

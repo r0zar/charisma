@@ -64,7 +64,8 @@ flowchart LR
         pools["Charisma pools"]
         sublinks["Sublinks to Blaze subnets"]
         wrappers["Bitflow, ALEX, Arkadiko and Velar wrappers"]
-        energy["energize-v1"]
+        energy["Energy vault: energize-v1"]
+        rewards["Reward vault: hooter-farm-rewards"]
         future["Future vaults"]
     end
 ```
@@ -74,5 +75,5 @@ flowchart LR
 ## Where this is going
 
 :::info Direction, not built yet
-`execute` can do anything a contract can do. Today vaults swap, add and remove liquidity, report reserves, move tokens in and out of subnets, and harvest Hold-to-Earn energy. The same two functions could front lending, staking or any other DeFi operation on Stacks, each behind a new opcode. Every router could call such a vault as it is; an app would only need to know the new opcode. That makes the vault a candidate building block for all of DeFi on Stacks. No vault beyond the kinds above exists yet.
+`execute` can do anything a contract can do. Today vaults swap, add and remove liquidity, report reserves, move tokens in and out of subnets, harvest Hold-to-Earn energy, and pay out farm rewards for energy. The same two functions could front lending, staking or any other DeFi operation on Stacks, each behind a new opcode. Every router could call such a vault as it is; an app would only need to know the new opcode. That makes the vault a candidate building block for all of DeFi on Stacks. No vault beyond the kinds above exists yet.
 :::
