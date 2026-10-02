@@ -84,7 +84,7 @@ curl -X POST \
                         <li key={id}>
                             <a
                                 href={`#${id}`}
-                                className="block rounded px-2 py-1 hover:bg-accent transition-colors"
+                                className="block rounded px-2 py-1 hover:bg-surface-hover transition-colors"
                             >
                                 {label}
                             </a>
@@ -94,7 +94,7 @@ curl -X POST \
             </aside>
 
             {/* content */}
-            <article className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-semibold prose-p:leading-relaxed prose-li:my-1">
+            <article className="prose prose-lg max-w-none prose-headings:font-semibold prose-p:leading-relaxed prose-li:my-1">
                 <h1 className="text-4xl font-bold mb-6">Charisma Metadata</h1>
                 <p className="lead text-xl mb-8 text-muted-foreground">
                     A dead-simple JSON host for fungible-token and NFT metadata on the
@@ -106,19 +106,19 @@ curl -X POST \
                 <H2 id="why">Why Charisma Metadata?</H2>
                 <ul className="space-y-2 my-6">
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Flat-file speed</strong>
+                        <strong className="text-accent-text">Flat-file speed</strong>
                         <span className="text-muted-foreground">→ served straight from edge storage.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Wallet-signed writes</strong>
+                        <strong className="text-accent-text">Wallet-signed writes</strong>
                         <span className="text-muted-foreground">→ only the contract owner can mutate records.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Schema-light</strong>
+                        <strong className="text-accent-text">Schema-light</strong>
                         <span className="text-muted-foreground">→ any JSON keys are accepted; we surface common ones in UI.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">No gas</strong>
+                        <strong className="text-accent-text">No gas</strong>
                         <span className="text-muted-foreground">→ metadata lives off-chain; your on-chain contract stores only a URL.</span>
                     </li>
                 </ul>
@@ -128,7 +128,7 @@ curl -X POST \
                 <ol className="list-decimal pl-5 space-y-2 my-6">
                     <li className="text-base leading-relaxed">
                         Connect your wallet in the{" "}
-                        <Link href="/tokens" className="text-primary hover:underline">
+                        <Link href="/tokens" className="text-accent-text hover:underline">
                             Token Dashboard
                         </Link>
                         .

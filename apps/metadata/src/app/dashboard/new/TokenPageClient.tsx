@@ -27,7 +27,7 @@ export default function TokenPageClient({
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center py-12 bg-gradient-to-b from-background to-muted/20 rounded-xl">
                 <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-                    <Layers className="w-10 h-10 text-primary/60" />
+                    <Layers className="w-10 h-10 text-accent-text/60" />
                 </div>
                 <h2 className="text-2xl font-semibold mb-2">Connect your wallet</h2>
                 <p className="text-muted-foreground max-w-md">
@@ -40,7 +40,7 @@ export default function TokenPageClient({
     // If authenticated, show a loading message while redirecting
     return (
         <div className="flex flex-col items-center justify-center min-h-[calc(100vh-200px)] text-center py-12">
-            <Layers className="w-12 h-12 text-primary animate-pulse mb-6" />
+            <Layers className="w-12 h-12 text-accent-text animate-pulse mb-6" />
             <h2 className="text-xl font-semibold mb-2">Preparing Your Metadata</h2>
             <p className="text-muted-foreground max-w-md">
                 Generating a unique token identifier and redirecting you to the next step...

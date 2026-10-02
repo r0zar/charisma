@@ -72,7 +72,7 @@ export function MetadataList({ limit, filterType = 'all' }: MetadataListProps) {
         return (
             <div className="flex items-center justify-center w-full py-12">
                 <svg
-                    className="w-8 h-8 text-primary animate-spin mr-3"
+                    className="w-8 h-8 text-accent-text animate-spin mr-3"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -111,7 +111,7 @@ export function MetadataList({ limit, filterType = 'all' }: MetadataListProps) {
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="w-8 h-8 text-primary/60"
+                        className="w-8 h-8 text-accent-text/60"
                     >
                         <circle cx="12" cy="12" r="10" />
                         <line x1="12" y1="16" x2="12" y2="12" />
@@ -161,7 +161,7 @@ export function MetadataList({ limit, filterType = 'all' }: MetadataListProps) {
             {loading && !firstLoad && (
                 <div className="flex items-center justify-center w-full py-4">
                     <svg
-                        className="w-6 h-6 text-primary animate-spin mr-2"
+                        className="w-6 h-6 text-accent-text animate-spin mr-2"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -272,7 +272,7 @@ function TokenCard({ token, index }: TokenCardProps) {
                                 strokeWidth="2"
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                className="w-8 h-8 text-primary/60"
+                                className="w-8 h-8 text-accent-text/60"
                             >
                                 <circle cx="12" cy="12" r="10" />
                                 <line x1="12" y1="16" x2="12" y2="12" />

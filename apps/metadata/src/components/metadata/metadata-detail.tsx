@@ -665,7 +665,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                 <div className="relative w-16 h-16">
                     <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <Layers className="w-8 h-8 text-primary/60" />
+                        <Layers className="w-8 h-8 text-accent-text/60" />
                     </div>
                 </div>
                 <p className="mt-4 text-muted-foreground">Initializing...</p>
@@ -677,7 +677,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] text-center py-12 bg-gradient-to-b from-background to-muted/20 rounded-xl">
                 <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-                    <Layers className="w-10 h-10 text-primary/60" />
+                    <Layers className="w-10 h-10 text-accent-text/60" />
                 </div>
                 <h2 className="text-2xl font-semibold mb-2">Connect your wallet</h2>
                 <p className="text-muted-foreground max-w-md">
@@ -693,7 +693,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                 <div className="relative w-16 h-16">
                     <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <Layers className="w-8 h-8 text-primary/60" />
+                        <Layers className="w-8 h-8 text-accent-text/60" />
                     </div>
                 </div>
                 <p className="mt-4 text-muted-foreground">Loading token metadata...</p>
@@ -735,7 +735,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                             {!editingContractId ? (
                                 <button
                                     onClick={startEditingContractId}
-                                    className="text-xs text-primary hover:text-primary/80 transition-colors"
+                                    className="text-xs text-accent-text hover:text-accent-text/80 transition-colors"
                                     title="Edit token identifier"
                                 >
                                     <PencilLine className="h-3 w-3" />
@@ -744,14 +744,14 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                 <div className="flex items-center space-x-1">
                                     <button
                                         onClick={saveEditedContractId}
-                                        className="text-xs text-green-500 hover:text-green-600 transition-colors"
+                                        className="text-xs text-success hover:text-success transition-colors"
                                         title="Save changes"
                                     >
                                         <Check className="h-3 w-3" />
                                     </button>
                                     <button
                                         onClick={cancelEditingContractId}
-                                        className="text-xs text-red-500 hover:text-red-600 transition-colors"
+                                        className="text-xs text-danger hover:text-danger transition-colors"
                                         title="Cancel"
                                     >
                                         <X className="h-3 w-3" />
@@ -814,9 +814,9 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="bg-green-50 border border-green-200 text-green-800 p-4 rounded-lg mb-6 flex items-start"
+                        className="bg-success-soft border border-success/30 text-success p-4 rounded-lg mb-6 flex items-start"
                     >
-                        <div className="mr-2 flex-shrink-0 h-5 w-5 text-green-500 mt-0.5">
+                        <div className="mr-2 flex-shrink-0 h-5 w-5 text-success mt-0.5">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                             </svg>
@@ -824,7 +824,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                         <div className="flex-1 flex items-center gap-4">
                             <span>{success}</span>
                         </div>
-                        <button onClick={() => setSuccess('')} className="ml-2 text-green-800/70 hover:text-green-800">✕</button>
+                        <button onClick={() => setSuccess('')} className="ml-2 text-success/70 hover:text-success">✕</button>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -834,7 +834,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                     <div className="sticky top-24 space-y-6">
                         <div className="bg-gradient-to-br from-background to-muted/30 border border-border/50 rounded-xl p-6 overflow-hidden">
                             <h3 className="text-lg font-medium mb-4 flex items-center">
-                                <Layers className="inline mr-2 h-5 w-5 text-primary/70" />
+                                <Layers className="inline mr-2 h-5 w-5 text-accent-text/70" />
                                 Metadata Image
                             </h3>
 
@@ -855,7 +855,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                     </div>
                                 )}
                                 {unsavedImageUrl && (
-                                    <div className="absolute bottom-2 right-2 bg-yellow-500/80 text-white text-xs px-2 py-1 rounded-full">
+                                    <div className="absolute bottom-2 right-2 bg-warning/80 text-ink text-xs px-2 py-1 rounded-full">
                                         Unsaved changes
                                     </div>
                                 )}
@@ -865,7 +865,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                 <div className="flex">
                                     <button
                                         className={`py-2 px-3 text-sm font-medium border-b-2 transition-colors ${activeImageTab === 'random'
-                                            ? 'border-primary text-primary'
+                                            ? 'border-primary text-accent-text'
                                             : 'border-transparent text-muted-foreground hover:text-foreground'
                                             }`}
                                         onClick={() => setActiveImageTab('random')}
@@ -874,7 +874,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                     </button>
                                     <button
                                         className={`py-2 px-3 text-sm font-medium border-b-2 transition-colors ${activeImageTab === 'generate'
-                                            ? 'border-primary text-primary'
+                                            ? 'border-primary text-accent-text'
                                             : 'border-transparent text-muted-foreground hover:text-foreground'
                                             }`}
                                         onClick={() => setActiveImageTab('generate')}
@@ -883,7 +883,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                     </button>
                                     <button
                                         className={`py-2 px-3 text-sm font-medium border-b-2 transition-colors ${activeImageTab === 'upload'
-                                            ? 'border-primary text-primary'
+                                            ? 'border-primary text-accent-text'
                                             : 'border-transparent text-muted-foreground hover:text-foreground'
                                             }`}
                                         onClick={() => setActiveImageTab('upload')}
@@ -955,7 +955,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                             <textarea
                                                 id="imagePrompt"
                                                 name="imagePrompt"
-                                                className="w-full pl-3 pr-10 py-2 border border-border bg-background/50 rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all text-xs"
+                                                className="w-full pl-3 pr-10 py-2 border border-border bg-surface rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all text-xs"
                                                 value={formData.imagePrompt}
                                                 onChange={handleChange}
                                                 placeholder="Describe token's appearance..."
@@ -1063,13 +1063,13 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                         <label htmlFor="dataUriProgressBar" className="text-sm font-medium text-foreground/80 block mb-1">
                                             Data URI Size (DMT)
                                         </label>
-                                        <div className="w-full bg-muted rounded-full h-2.5 dark:bg-neutral-700/50 border border-border/50">
+                                        <div className="w-full bg-muted rounded-full h-2.5 border border-border/50">
                                             <div
                                                 className={`h-full rounded-full transition-all duration-300 ease-in-out ${{
-                                                    idle: 'bg-gray-300',
-                                                    ok: 'bg-green-500',
-                                                    warning: 'bg-yellow-400',
-                                                    error: 'bg-red-500'
+                                                    idle: 'bg-surface-hover',
+                                                    ok: 'bg-success',
+                                                    warning: 'bg-warning',
+                                                    error: 'bg-danger'
                                                 }[dataUriStats.status]
                                                     }`}
                                                 style={{ width: `${dataUriStats.percentage}%` }}
@@ -1077,7 +1077,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                         </div>
                                         <p className={`text-xs mt-1.5 
                                             ${dataUriStats.status === 'error' ? 'text-destructive' :
-                                                dataUriStats.status === 'warning' ? 'text-yellow-600 dark:text-yellow-400' :
+                                                dataUriStats.status === 'warning' ? 'text-warning ' :
                                                     'text-muted-foreground'}`}>
                                             {dataUriStats.message || '\u00A0'}
                                         </p>
@@ -1106,7 +1106,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                         <textarea
                                             value={editedJsonString}
                                             onChange={handleJsonChange}
-                                            className={`w-full p-3 font-mono text-xs border rounded-md bg-background/80 h-96 resize-y focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all ${jsonEditError ? 'border-destructive' : 'border-border'}`}
+                                            className={`w-full p-3 font-mono text-xs border rounded-md bg-surface h-96 resize-y focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all ${jsonEditError ? 'border-destructive' : 'border-border'}`}
                                             spellCheck="false"
                                         />
                                         {jsonEditError && (
@@ -1132,7 +1132,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="p-3 border border-border/50 rounded-md bg-background/50 max-h-[500px] overflow-auto">
+                                    <div className="p-3 border border-border/50 rounded-md bg-surface-sunken max-h-[500px] overflow-auto">
                                         {Object.keys(metadataForJsonView).length > 0 ? (
                                             <ReactJson
                                                 src={metadataForJsonView}

@@ -11,7 +11,7 @@ export default function HomePage() {
         <div className="container relative z-10">
           <div className="mx-auto max-w-3xl text-center">
             <div className="inline-flex items-center justify-center px-4 py-1.5 mb-6 text-sm rounded-full border border-border bg-muted/50 text-foreground/80 gap-x-2">
-              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <Sparkles className="h-3.5 w-3.5 text-accent-text" />
               <span>Simplified metadata management</span>
             </div>
 
@@ -58,9 +58,9 @@ export default function HomePage() {
 
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {/* Feature 1 */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <Zap className="h-6 w-6 text-primary" />
+                <Zap className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Quick Creation</h3>
               <p className="text-muted-foreground">
@@ -69,9 +69,9 @@ export default function HomePage() {
             </div>
 
             {/* Feature 2 */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <Sparkles className="h-6 w-6 text-primary" />
+                <Sparkles className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">AI Image Generation</h3>
               <p className="text-muted-foreground">
@@ -80,9 +80,9 @@ export default function HomePage() {
             </div>
 
             {/* Feature 3 */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <Layers className="h-6 w-6 text-primary" />
+                <Layers className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Multi-Token Support</h3>
               <p className="text-muted-foreground">
@@ -91,9 +91,9 @@ export default function HomePage() {
             </div>
 
             {/* Feature 4 */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <Shield className="h-6 w-6 text-primary" />
+                <Shield className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Secure Authentication</h3>
               <p className="text-muted-foreground">
@@ -102,9 +102,9 @@ export default function HomePage() {
             </div>
 
             {/* Feature 5 */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <Database className="h-6 w-6 text-primary" />
+                <Database className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Blockchain Integration</h3>
               <p className="text-muted-foreground">
@@ -113,9 +113,9 @@ export default function HomePage() {
             </div>
 
             {/* Feature 6 */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-accent-text">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="2" y1="12" x2="22" y2="12" />
                   <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
