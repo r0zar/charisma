@@ -42,9 +42,15 @@ export interface TransactionAnalysis {
   };
 }
 
+/** A token or STX transfer: STX events carry no asset id, so '.stx' (the token list's id for STX) stands for them */
+const isTransfer = (event: any) =>
+  (event.event_type === 'fungible_token_asset' || event.event_type === 'stx_asset') && event.asset?.asset_event_type === 'transfer';
+const assetOf = (event: any): string => (event.event_type === 'stx_asset' ? '.stx' : String(event.asset?.asset_id ?? '').split('::')[0]);
+const sameAsset = (a: string, b: string) => (a === 'stx' ? '.stx' : a) === (b === 'stx' ? '.stx' : b);
+
 /**
  * Extracts the actual output amount received by a user from transaction events
- * Looks for the final fungible_token_asset transfer event to the user address
+ * Looks for the final transfer of that token (or STX) to the user address
  * 
  * @param txid Transaction ID to analyze
  * @param userAddress User's Stacks address
@@ -64,22 +70,11 @@ export async function extractActualOutputAmount(
     }
 
     // Filter for fungible token events that transfer to the user
-    const userTransfers = txDetails.events
-      .filter(event => 
-        event.event_type === 'fungible_token_asset' &&
-        event.asset?.recipient === userAddress &&
-        event.asset?.asset_event_type === 'transfer'
-      );
+    const userTransfers = txDetails.events.filter(event => isTransfer(event) && event.asset?.recipient === userAddress);
 
     // Look for transfers of the expected output token
-    const outputTokenTransfers = userTransfers.filter(event => {
-      const assetId = event.asset?.asset_id;
-      // Asset identifier format: "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token::charisma"
-      // We need to match the contract part before "::"
-      if (!assetId) return false;
-      const contractPart = assetId.split('::')[0];
-      return contractPart === expectedOutputTokenContractId;
-    });
+    // Asset identifier format: "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token::charisma"; the contract part names the token
+    const outputTokenTransfers = userTransfers.filter(event => sameAsset(assetOf(event), expectedOutputTokenContractId));
 
     // Return the amount from the last (final) transfer
     if (outputTokenTransfers.length > 0) {
@@ -119,13 +114,9 @@ export async function extractUserTransfers(
     }
 
     return txDetails.events
-      .filter(event => 
-        event.event_type === 'fungible_token_asset' &&
-        event.asset?.recipient === userAddress &&
-        event.asset?.asset_event_type === 'transfer'
-      )
+      .filter(event => isTransfer(event) && event.asset?.recipient === userAddress)
       .map(event => ({
-        assetIdentifier: event.asset?.asset_id || '',
+        assetIdentifier: event.asset?.asset_id || assetOf(event),
         amount: event.asset?.amount || '0',
         sender: event.asset?.sender || '',
         eventIndex: event.event_index || 0
@@ -160,17 +151,15 @@ export async function analyzeTransaction(
     }
 
     // Get all token transfers involving the user
-    const allTokenEvents = txDetails.events.filter(event => 
-      event.event_type === 'fungible_token_asset' &&
-      event.asset?.asset_event_type === 'transfer' &&
-      (event.asset?.sender === userAddress || event.asset?.recipient === userAddress)
+    const allTokenEvents = txDetails.events.filter(event =>
+      isTransfer(event) && (event.asset?.sender === userAddress || event.asset?.recipient === userAddress)
     );
 
     // Separate input (from user) and output (to user) transfers
     const inputTokens = allTokenEvents
       .filter(event => event.asset?.sender === userAddress)
       .map(event => ({
-        assetId: event.asset?.asset_id || '',
+        assetId: event.asset?.asset_id || assetOf(event),
         amount: event.asset?.amount || '0',
         sender: event.asset?.sender || '',
         eventIndex: event.event_index || 0
@@ -179,7 +168,7 @@ export async function analyzeTransaction(
     const outputTokens = allTokenEvents
       .filter(event => event.asset?.recipient === userAddress)
       .map(event => ({
-        assetId: event.asset?.asset_id || '',
+        assetId: event.asset?.asset_id || assetOf(event),
         amount: event.asset?.amount || '0',
         sender: event.asset?.sender || '',
         eventIndex: event.event_index || 0

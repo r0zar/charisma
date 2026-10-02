@@ -1,769 +1,155 @@
-"use client"
+import { AlertTriangle, Ban, CheckCircle, Clock, ExternalLink, Trash2, XCircle, type LucideIcon } from 'lucide-react';
+import { getLastCronRun, getQueuedTransactions } from '@/lib/transaction-monitor';
+import { getActivityTimeline } from '@/lib/activity-storage';
+import type { ActivityItem, ActivityType, TokenInfo } from '@/lib/activity-types';
+import { TransactionLookup } from '@/components/TransactionLookup';
+import { RefreshButton } from './refresh-button';
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  Activity, 
-  TrendingUp, 
-  CheckCircle,
-  XCircle,
-  RefreshCw,
-  BarChart3,
-  Clock,
-  Zap,
-  Database,
-  AlertCircle
-} from "lucide-react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from "recharts"
-import { TransactionQueue } from '@/components/TransactionQueue'
-import type { QueueStatsResponse, MetricsHistoryResponse, HealthCheckResponse } from '@/lib/types'
+export const metadata = { title: 'Dashboard · Transaction Monitor' };
+export const revalidate = 30;
 
-// Custom tooltip component that uses theme styles
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-surface border border-border rounded-lg shadow-lg p-3 min-w-[200px]">
-        <p className="text-sm font-medium text-foreground mb-2">{label}</p>
-        <div className="space-y-1">
-          {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                <div 
-                  className="w-3 h-3 rounded-full" 
-                  style={{ backgroundColor: entry.color }}
-                />
-                <span className="text-muted-foreground">{entry.name || entry.dataKey}:</span>
-              </div>
-              <span className="font-medium text-foreground">{entry.value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    )
-  }
-  return null
+const DAY = 24 * 60 * 60 * 1000;
+/** The cron runs every minute; three quiet minutes means something's wrong */
+const STALE_MS = 3 * 60 * 1000;
+
+type Outcome = 'Confirmed' | 'Failed' | 'Dropped' | 'Cancelled' | 'Waiting';
+const LOOK: Record<Outcome, { icon: LucideIcon; tone: string }> = {
+    Confirmed: { icon: CheckCircle, tone: 'text-success' },
+    Failed: { icon: XCircle, tone: 'text-danger' },
+    Dropped: { icon: Trash2, tone: 'text-danger' },
+    Cancelled: { icon: Ban, tone: 'text-ink-muted' },
+    Waiting: { icon: Clock, tone: 'text-warning' },
+};
+const KIND: Record<ActivityType, string> = {
+    instant_swap: 'Swap', order_filled: 'Order', order_cancelled: 'Order', dca_update: 'DCA', twitter_trigger: 'Tweet trigger',
+};
+
+/** Where a transaction ended up, and why, in plain words */
+function outcomeOf(a: ActivityItem): { outcome: Outcome; why?: string } {
+    const tx = a.metadata?.txStatus as string | undefined;
+    if (a.status === 'completed') return { outcome: 'Confirmed' };
+    if (a.status === 'cancelled') return { outcome: 'Cancelled', why: 'Cancelled by its owner' };
+    if (a.status === 'failed') {
+        if (tx === 'dropped') return { outcome: 'Dropped', why: 'The network dropped it before it ran. Nothing moved, no fee' };
+        if (tx === 'abort_by_post_condition') return { outcome: 'Failed', why: 'A safety check stopped it, usually because the price moved' };
+        if (tx === 'abort_by_response') return { outcome: 'Failed', why: 'The contract refused it' };
+        return { outcome: 'Failed' };
+    }
+    return { outcome: 'Waiting' };
 }
 
-// Custom legend component
-const CustomLegend = ({ payload }: any) => {
-  if (payload && payload.length) {
-    return (
-      <div className="flex flex-wrap gap-2 sm:gap-4 justify-center mt-4">
-        {payload.map((entry: any, index: number) => (
-          <div key={index} className="flex items-center gap-1 sm:gap-2">
-            <div 
-              className="w-2 h-2 sm:w-3 sm:h-3 rounded-full" 
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-xs sm:text-sm text-muted-foreground">{entry.value}</span>
-          </div>
-        ))}
-      </div>
-    )
-  }
-  return null
-}
+const ago = (ms: number) => {
+    const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+    if (s < 60) return `${s}s ago`;
+    if (s < 3600) return `${Math.round(s / 60)} min ago`;
+    if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+    return `${Math.round(s / 86400)} d ago`;
+};
+const amount = (t: TokenInfo, raw = t.amount) =>
+    `${(Number(raw) / 10 ** (t.decimals ?? 6)).toLocaleString('en-US', { maximumFractionDigits: 4 })} ${t.symbol}`;
+/** What came out: the recorded amount, or just the token when none was recorded (older swaps paid in STX) or it didn't run */
+const received = (a: ActivityItem, outcome: Outcome) => {
+    const raw = [a.toToken.amount, a.metadata?.actualOutputAmount as string | undefined].find(v => Number(v) > 0);
+    return outcome === 'Confirmed' && raw ? amount(a.toToken, raw) : a.toToken.symbol;
+};
+const short = (s: string) => `${s.slice(0, 6)}…${s.slice(-4)}`;
+const explorer = (txid: string) => `https://explorer.hiro.so/txid/0x${txid.replace(/^0x/, '')}?chain=mainnet`;
 
-// Transform metrics data for charts
-const transformMetricsForCharts = (metrics: MetricsHistoryResponse) => {
-  return metrics.metrics.map(metric => {
-    const date = new Date(metric.timestamp);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    
-    // Show more detailed time formatting
-    const timeFormat = isToday 
-      ? date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      : date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit' });
-    
-    return {
-      time: timeFormat,
-      // Transaction metrics
-      queueSize: metric.queueSize,
-      processed: metric.processed,
-      successful: metric.successful,
-      failed: metric.failed,
-      // Activity metrics
-      activityCompleted: metric.activities?.completed || 0,
-      activityPending: metric.activities?.pending || 0,
-      activityFailed: metric.activities?.failed || 0,
-      activityCancelled: metric.activities?.cancelled || 0,
-      activityProcessing: metric.activities?.processing || 0
+export default async function DashboardPage() {
+    const [lastRun, watching, timeline] = await Promise.all([getLastCronRun(), getQueuedTransactions(), getActivityTimeline({ limit: 200 })]);
+    const activities = timeline.activities.map(a => ({ a, ...outcomeOf(a) }));
+    const healthy = !!lastRun && Date.now() - lastRun < STALE_MS;
+
+    const tally = (days: number) => {
+        const since = Date.now() - days * DAY;
+        const count = (o: Outcome) => activities.filter(x => x.a.timestamp >= since && x.outcome === o).length;
+        const confirmed = count('Confirmed'), failed = count('Failed'), dropped = count('Dropped');
+        const settled = confirmed + failed + dropped;
+        return { confirmed, failed, dropped, rate: settled ? Math.round((confirmed / settled) * 100) : null };
     };
-  });
-}
+    const windows = [{ label: 'Last 7 days', ...tally(7) }, { label: 'Last 30 days', ...tally(30) }];
 
-async function fetchQueueStats(): Promise<QueueStatsResponse> {
-  try {
-    const response = await fetch('/api/v1/queue/stats');
-    const data = await response.json();
-    
-    if (data.success) {
-      return data.data;
-    }
-    
-    throw new Error('Failed to fetch queue stats');
-  } catch (error) {
-    console.error('Failed to fetch queue stats:', error);
-    throw error;
-  }
-}
-
-async function fetchMetricsHistory(hours: number = 24): Promise<MetricsHistoryResponse> {
-  try {
-    const response = await fetch(`/api/v1/metrics/history?hours=${hours}`);
-    const data = await response.json();
-    
-    if (data.success) {
-      return data.data;
-    }
-    
-    throw new Error('Failed to fetch metrics history');
-  } catch (error) {
-    console.error('Failed to fetch metrics history:', error);
-    throw error;
-  }
-}
-
-// Calculate appropriate time range based on oldest transaction and activity data
-function calculateTimeRange(oldestTransactionAge?: number, oldestActivityAge?: number): number {
-  // Find the oldest data point between transactions and activities
-  const ages = [oldestTransactionAge, oldestActivityAge].filter((age): age is number => age !== undefined);
-  
-  if (ages.length === 0) return 24; // Default to 24 hours
-  
-  const oldestAge = Math.max(...ages);
-  const ageInHours = Math.ceil(oldestAge / (60 * 60 * 1000));
-  
-  // Add some buffer and cap at 7 days max
-  const bufferedHours = Math.min(ageInHours + 2, 168);
-  
-  // More responsive minimum - use actual age if over 1 hour, otherwise 24 hours
-  const minHours = ageInHours > 1 ? Math.max(ageInHours + 2, 6) : 24;
-  
-  const finalHours = Math.max(bufferedHours, minHours);
-  
-  // Debug logging
-  console.log('[DASHBOARD] Time range calculation:', {
-    oldestTransactionAge,
-    oldestActivityAge,
-    oldestAge,
-    ageInHours,
-    bufferedHours,
-    minHours,
-    finalHours
-  });
-  
-  return finalHours;
-}
-
-async function fetchHealthCheck(): Promise<HealthCheckResponse> {
-  try {
-    const response = await fetch('/api/v1/health');
-    const data = await response.json();
-    
-    if (data.success) {
-      return data.data;
-    }
-    
-    throw new Error('Failed to fetch health check');
-  } catch (error) {
-    console.error('Failed to fetch health check:', error);
-    throw error;
-  }
-}
-
-async function fetchActivityStats(): Promise<any> {
-  try {
-    const response = await fetch('/api/v1/activities/stats');
-    const data = await response.json();
-    
-    if (data.success) {
-      return data.data;
-    }
-    
-    throw new Error('Failed to fetch activity stats');
-  } catch (error) {
-    console.error('Failed to fetch activity stats:', error);
-    throw error;
-  }
-}
-
-async function processQueue(): Promise<void> {
-  const response = await fetch('/api/v1/admin/trigger', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
-  
-  if (!response.ok) {
-    throw new Error('Failed to process queue');
-  }
-}
-
-export default function DashboardPage() {
-  const [mounted, setMounted] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
-  const [stats, setStats] = useState<QueueStatsResponse | null>(null)
-  const [metrics, setMetrics] = useState<MetricsHistoryResponse | null>(null)
-  const [health, setHealth] = useState<HealthCheckResponse | null>(null)
-  const [activityStats, setActivityStats] = useState<any>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [chartsLoading, setChartsLoading] = useState(true)
-
-  useEffect(() => {
-    setMounted(true)
-    loadStats()
-    
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(loadStats, 30000)
-    return () => clearInterval(interval)
-  }, [])
-
-  const loadStats = async () => {
-    try {
-      setError(null)
-      setChartsLoading(true)
-      
-      // First fetch queue stats and activity stats to determine appropriate time range
-      const [statsData, activityData] = await Promise.all([
-        fetchQueueStats(),
-        fetchActivityStats().catch(() => null) // Don't fail if activity stats fail
-      ])
-      
-      const timeRange = calculateTimeRange(
-        statsData.oldestTransactionAge,
-        activityData?.oldestActivityAge
-      )
-      
-      console.log('[DASHBOARD] Calculated time range:', timeRange, 'hours')
-      
-      // Fetch remaining data in parallel with dynamic time range
-      const [metricsData, healthData] = await Promise.all([
-        fetchMetricsHistory(timeRange),
-        fetchHealthCheck().catch(() => null), // Don't fail if health check fails
-      ])
-      
-      setStats(statsData)
-      setMetrics(metricsData)
-      setHealth(healthData)
-      setActivityStats(activityData)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
-    } finally {
-      setChartsLoading(false)
-    }
-  }
-
-  const handleRefresh = async () => {
-    setRefreshing(true)
-    await loadStats()
-    setRefreshing(false)
-  }
-
-  const handleProcessQueue = async () => {
-    try {
-      await processQueue()
-      await loadStats()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process queue')
-    }
-  }
-
-  if (!mounted) {
-    return <div className="p-8">Loading...</div>
-  }
-
-  return (
-    <div className="container mx-auto p-6 space-y-8">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-        <div>
-          <h1 className="text-3xl font-bold">Transaction Monitor Dashboard</h1>
-          <p className="text-muted-foreground">
-            Monitor queue status, processing metrics, and system health
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={handleRefresh} disabled={refreshing} variant="outline">
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button onClick={handleProcessQueue} variant="outline">
-            <Zap className="h-4 w-4 mr-2" />
-            Process Queue
-          </Button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="p-4 bg-danger-soft border border-danger/30 rounded-md">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-danger" />
-            <p className="text-danger text-sm">{error}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Activity Creation Rate */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Activity Rate</CardTitle>
-            <Zap className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold mb-3">
-              {activityStats?.pipeline?.activityCreationRate || 0}
+    return (
+        <div className="container mx-auto max-w-5xl space-y-6 px-4 py-10 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between gap-4">
+                <h1 className="text-2xl font-bold sm:text-3xl">Dashboard</h1>
+                <RefreshButton />
             </div>
-            <p className="text-xs text-muted-foreground">
-              Activities per hour
-            </p>
-          </CardContent>
-        </Card>
 
-        {/* Pipeline Health Score */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Pipeline Health</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className={`text-2xl font-bold mb-2 ${
-              (activityStats?.pipeline?.healthScore || 0) >= 80 ? 'text-success' : 
-              (activityStats?.pipeline?.healthScore || 0) >= 60 ? 'text-warning' : 'text-danger'
-            }`}>
-              {Math.round(activityStats?.pipeline?.healthScore || 0)}%
+            {/* Is it working? */}
+            <div className={`flex items-center gap-3 rounded-2xl border p-4 ${healthy ? 'border-success/30 bg-success-soft' : 'border-warning/40 bg-warning-soft'}`}>
+                {healthy ? <CheckCircle className="h-5 w-5 shrink-0 text-success" /> : <AlertTriangle className="h-5 w-5 shrink-0 text-warning" />}
+                <p className="text-sm">
+                    {healthy
+                        ? <><span className="font-semibold">All good.</span> Checked {ago(lastRun!)}, watching {watching.length} transaction{watching.length === 1 ? '' : 's'} right now.</>
+                        : <><span className="font-semibold">The monitor hasn&apos;t checked in {lastRun ? `since ${ago(lastRun)}` : 'yet'}.</span> Transactions sent meanwhile will update once it runs again.</>}
+                </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Overall health score
-            </p>
-          </CardContent>
-        </Card>
 
-        {/* Activity Success Rate */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold mb-2">
-              {activityStats?.pipeline?.successRate !== undefined
-                ? `${activityStats.pipeline.successRate.toFixed(1)}%`
-                : '0%'
-              }
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Activities completed successfully
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Active Users */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold mb-2">
-              {activityStats?.pipeline?.activeUsers || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Users active in 24h
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Additional Pipeline Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Processing Lag */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Processing Lag</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold mb-2">
-              {activityStats?.pipeline?.processingLag 
-                ? `${Math.round(activityStats.pipeline.processingLag / (60 * 1000))}m`
-                : '0m'
-              }
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Avg time to completion
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Error Rate */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
-            <XCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className={`text-2xl font-bold mb-2 ${
-              (activityStats?.pipeline?.errorRate || 0) < 5 ? 'text-success' : 
-              (activityStats?.pipeline?.errorRate || 0) < 15 ? 'text-warning' : 'text-danger'
-            }`}>
-              {activityStats?.pipeline?.errorRate !== undefined
-                ? `${activityStats.pipeline.errorRate.toFixed(1)}%`
-                : '0%'
-              }
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Failed/cancelled activities
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Total Activities */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <CardTitle className="text-sm font-medium">Total Activities</CardTitle>
-            <Database className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="text-2xl font-bold mb-2">
-              {activityStats?.total || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Activities in system
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Charts */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Queue Trends Chart */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2">
-                <BarChart3 className="h-5 w-5" />
-                <span>Queue Trends</span>
-              </CardTitle>
-              <CardDescription>
-                Transaction and activity processing metrics over the last {metrics?.period || '24h'}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <Tabs defaultValue="transactions" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="transactions">Transactions</TabsTrigger>
-                  <TabsTrigger value="activities">Activities</TabsTrigger>
-                </TabsList>
-                <TabsContent value="transactions" className="space-y-4">
-                  <div className="h-[250px] sm:h-[300px]">
-                    {chartsLoading ? (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-muted-foreground">Loading chart data...</div>
-                      </div>
-                    ) : (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={metrics ? transformMetricsForCharts(metrics) : []}>
-                          <CartesianGrid 
-                            strokeDasharray="3 3" 
-                            className="opacity-30"
-                          />
-                          <XAxis 
-                            dataKey="time" 
-                            fontSize={12}
-                            className="text-muted-foreground"
-                          />
-                          <YAxis 
-                            fontSize={12}
-                            className="text-muted-foreground"
-                          />
-                          <Tooltip content={<CustomTooltip />} />
-                          <Legend content={<CustomLegend />} />
-                          {/* Queue Size - Blue solid line */}
-                          <Line 
-                            type="monotone" 
-                            dataKey="queueSize" 
-                            stroke="#3b82f6" 
-                            strokeWidth={3}
-                            dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
-                            name="Queue Size"
-                          />
-                          {/* Successful Transactions - Green solid line */}
-                          <Line 
-                            type="monotone" 
-                            dataKey="successful" 
-                            stroke="#10b981" 
-                            strokeWidth={3}
-                            dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
-                            name="Successful"
-                          />
-                          {/* Failed Transactions - Red solid line */}
-                          <Line 
-                            type="monotone" 
-                            dataKey="failed" 
-                            stroke="#ef4444" 
-                            strokeWidth={3}
-                            dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
-                            name="Failed"
-                          />
-                          {/* Total Processed - Purple dashed line */}
-                          <Line 
-                            type="monotone" 
-                            dataKey="processed" 
-                            stroke="#8b5cf6" 
-                            strokeWidth={2}
-                            strokeDasharray="5 5"
-                            dot={{ fill: "#8b5cf6", strokeWidth: 2, r: 3 }}
-                            name="Total Processed"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    )}
-                  </div>
-                </TabsContent>
-                <TabsContent value="activities" className="space-y-4">
-                  <div className="h-[250px] sm:h-[300px]">
-                    {chartsLoading ? (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-muted-foreground">Loading chart data...</div>
-                      </div>
-                    ) : (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={metrics ? transformMetricsForCharts(metrics) : []}>
-                          <CartesianGrid 
-                            strokeDasharray="3 3" 
-                            className="opacity-30"
-                          />
-                          <XAxis 
-                            dataKey="time" 
-                            fontSize={12}
-                            className="text-muted-foreground"
-                          />
-                          <YAxis 
-                            fontSize={12}
-                            className="text-muted-foreground"
-                          />
-                          <Tooltip content={<CustomTooltip />} />
-                          <Legend content={<CustomLegend />} />
-                          {/* Completed Activities - Green solid line */}
-                          <Line 
-                            type="monotone" 
-                            dataKey="activityCompleted" 
-                            stroke="#10b981" 
-                            strokeWidth={3}
-                            dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
-                            name="Completed"
-                          />
-                          {/* Pending Activities - Yellow/Orange solid line */}
-                          <Line 
-                            type="monotone" 
-                            dataKey="activityPending" 
-                            stroke="#f59e0b" 
-                            strokeWidth={3}
-                            dot={{ fill: "#f59e0b", strokeWidth: 2, r: 4 }}
-                            name="Pending"
-                          />
-                          {/* Failed Activities - Red solid line */}
-                          <Line 
-                            type="monotone" 
-                            dataKey="activityFailed" 
-                            stroke="#ef4444" 
-                            strokeWidth={3}
-                            dot={{ fill: "#ef4444", strokeWidth: 2, r: 4 }}
-                            name="Failed"
-                          />
-                          {/* Processing Activities - Blue solid line */}
-                          <Line 
-                            type="monotone" 
-                            dataKey="activityProcessing" 
-                            stroke="#3b82f6" 
-                            strokeWidth={3}
-                            dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
-                            name="Processing"
-                          />
-                          {/* Cancelled Activities - Brown dashed line */}
-                          <Line 
-                            type="monotone" 
-                            dataKey="activityCancelled" 
-                            stroke="#8b5a2b" 
-                            strokeWidth={2}
-                            strokeDasharray="5 5"
-                            dot={{ fill: "#8b5a2b", strokeWidth: 2, r: 3 }}
-                            name="Cancelled"
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-
-          {/* Transaction Queue Component */}
-          <TransactionQueue />
-        </div>
-
-        {/* Right Column - Sidebar */}
-        <div className="space-y-8">
-          {/* Activity Integration */}
-          {activityStats && (
-            <Card>
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center space-x-2">
-                  <Activity className="h-5 w-5" />
-                  <span>Activity Timeline</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Total Activities</span>
-                  <span className="text-sm font-mono">{activityStats.total || 0}</span>
-                </div>
-                {activityStats.byType && Object.entries(activityStats.byType).map(([type, count]) => (
-                  <div key={type} className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground capitalize">{type.replace('_', ' ')}</span>
-                    <span className="text-sm font-mono">{count as number}</span>
-                  </div>
+            {/* How have transactions been turning out? */}
+            <div className="grid gap-4 sm:grid-cols-2">
+                {windows.map(w => (
+                    <div key={w.label} className="rounded-2xl border border-line bg-surface p-5">
+                        <div className="flex items-baseline justify-between">
+                            <p className="text-xs uppercase tracking-[0.1em] text-ink-muted">{w.label}</p>
+                            {w.rate !== null && <p className="text-sm text-ink-muted"><span className="font-mono font-semibold text-ink">{w.rate}%</span> went through</p>}
+                        </div>
+                        <div className="mt-3 flex gap-6 font-mono text-lg">
+                            <span><span className="text-success">{w.confirmed}</span> <span className="font-sans text-xs text-ink-muted">confirmed</span></span>
+                            <span><span className="text-danger">{w.failed}</span> <span className="font-sans text-xs text-ink-muted">failed</span></span>
+                            <span><span className="text-danger">{w.dropped}</span> <span className="font-sans text-xs text-ink-muted">dropped</span></span>
+                        </div>
+                    </div>
                 ))}
-                <Separator />
-                {activityStats.byStatus && Object.entries(activityStats.byStatus).map(([status, count]) => (
-                  <div key={status} className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground capitalize">{status}</span>
-                    <span className={`text-sm font-mono ${
-                      status === 'completed' ? 'text-success' : 
-                      status === 'failed' ? 'text-danger' : 
-                      status === 'pending' ? 'text-warning' : ''
-                    }`}>
-                      {count as number}
-                    </span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+            </div>
 
-          {/* System Status */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2">
-                <Activity className="h-5 w-5" />
-                <span>System Status</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Cron Job</span>
-                <Badge variant={
-                  health?.cron === 'healthy' ? 'default' : 
-                  health?.cron === 'warning' ? 'secondary' : 'destructive'
-                }>
-                  {health?.cron === 'healthy' ? 
-                    <CheckCircle className="w-3 h-3 mr-1" /> : 
-                    <XCircle className="w-3 h-3 mr-1" />
-                  }
-                  {health?.cron || 'Unknown'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">API Health</span>
-                <Badge variant={
-                  health?.api === 'healthy' ? 'default' : 
-                  health?.api === 'warning' ? 'secondary' : 'destructive'
-                }>
-                  {health?.api === 'healthy' ? 
-                    <CheckCircle className="w-3 h-3 mr-1" /> : 
-                    <XCircle className="w-3 h-3 mr-1" />
-                  }
-                  {health?.api || 'Unknown'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Queue Processing</span>
-                <Badge variant={
-                  health?.queue === 'healthy' ? 'default' : 
-                  health?.queue === 'warning' ? 'secondary' : 'destructive'
-                }>
-                  {health?.queue === 'healthy' ? 
-                    <CheckCircle className="w-3 h-3 mr-1" /> : 
-                    <XCircle className="w-3 h-3 mr-1" />
-                  }
-                  {health?.queue || 'Unknown'}
-                </Badge>
-              </div>
-              {health?.lastCronRun && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Last Cron Run</span>
-                  <span className="text-sm font-mono text-muted-foreground">
-                    {Math.round((Date.now() - health.lastCronRun) / 60000)}m ago
-                  </span>
-                </div>
-              )}
-              <Separator />
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Total Processed</span>
-                  <span className="text-sm font-mono">{stats?.totalProcessed || 0}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Successful</span>
-                  <span className="text-sm font-mono text-success">{stats?.totalSuccessful || 0}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Failed</span>
-                  <span className="text-sm font-mono text-danger">{stats?.totalFailed || 0}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            {/* Being watched right now */}
+            {watching.length > 0 && (
+                <section className="rounded-2xl border border-line bg-surface p-5">
+                    <h2 className="font-semibold">Watching now</h2>
+                    <ul className="mt-3 space-y-2">
+                        {watching.slice(0, 10).map(txid => (
+                            <li key={txid} className="flex items-center gap-2 text-sm">
+                                <Clock className="h-4 w-4 text-warning" />
+                                <a href={explorer(txid)} target="_blank" rel="noreferrer" className="font-mono text-ink-body hover:text-ink">{short(txid)}</a>
+                            </li>
+                        ))}
+                    </ul>
+                </section>
+            )}
 
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader className="pb-4">
-              <CardTitle className="flex items-center space-x-2">
-                <Zap className="h-5 w-5" />
-                <span>Quick Actions</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-0 space-y-3">
-              <Button 
-                onClick={handleProcessQueue}
-                variant="outline" 
-                className="w-full justify-start"
-              >
-                <Zap className="mr-2 h-4 w-4" />
-                Process Queue
-              </Button>
-              <Button 
-                onClick={handleRefresh}
-                variant="outline" 
-                className="w-full justify-start"
-                disabled={refreshing}
-              >
-                <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                Refresh Data
-              </Button>
-              <Button 
-                onClick={() => window.location.href = '/'}
-                variant="outline" 
-                className="w-full justify-start"
-              >
-                <Database className="mr-2 h-4 w-4" />
-                View Queue
-              </Button>
-            </CardContent>
-          </Card>
+            {/* Recent transactions */}
+            <section className="rounded-2xl border border-line bg-surface">
+                <h2 className="border-b border-line p-5 font-semibold">Recent transactions</h2>
+                {activities.length === 0 && <p className="p-5 text-sm text-ink-muted">Nothing recorded yet.</p>}
+                <ul className="divide-y divide-line">
+                    {activities.slice(0, 25).map(({ a, outcome, why }) => {
+                        const { icon: Icon, tone } = LOOK[outcome];
+                        return (
+                            <li key={a.id} className="flex items-start gap-3 p-4 sm:px-5">
+                                <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${tone}`} />
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm">
+                                        <span className="font-medium">{amount(a.fromToken)} → {received(a, outcome)}</span>
+                                        <span className="ml-2 text-xs text-ink-muted">{KIND[a.type]} · {short(a.owner)}</span>
+                                    </p>
+                                    <p className={`mt-0.5 text-xs ${outcome === 'Confirmed' ? 'text-ink-muted' : tone}`}>{outcome}{why ? `: ${why}` : ''}</p>
+                                </div>
+                                <div className="flex shrink-0 items-center gap-2 text-xs text-ink-muted">
+                                    <span>{ago(a.timestamp)}</span>
+                                    {a.txid && <a href={explorer(a.txid)} target="_blank" rel="noreferrer" aria-label="View on the explorer" className="hover:text-ink"><ExternalLink className="h-3.5 w-3.5" /></a>}
+                                </div>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </section>
+
+            {/* One transaction */}
+            <section>
+                <h2 className="mb-3 font-semibold">Look up a transaction</h2>
+                <TransactionLookup />
+            </section>
         </div>
-      </div>
-    </div>
-  )
+    );
 }
