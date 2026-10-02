@@ -104,10 +104,10 @@ export default function ContactPageClient({ initialService, initialName }: Conta
                 transition={{ duration: 0.3 }}
                 className="container px-4 py-8 mx-auto max-w-3xl"
             >
-                <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20">
+                <Card className="border-success/30 bg-success-soft ">
                     <CardHeader className="text-center">
-                        <div className="mx-auto w-16 h-16 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center mb-4">
-                            <CheckCircle2 className="h-8 w-8 text-green-600 dark:text-green-400" />
+                        <div className="mx-auto w-16 h-16 rounded-full bg-success-soft flex items-center justify-center mb-4">
+                            <CheckCircle2 className="h-8 w-8 text-success " />
                         </div>
                         <h2 className="text-2xl font-bold">Request Submitted Successfully!</h2>
                         <p className="text-muted-foreground">
@@ -269,7 +269,7 @@ export default function ContactPageClient({ initialService, initialName }: Conta
                         >
                             {isSubmitting ? (
                                 <>
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-ink mr-2" />
                                     Submitting Request...
                                 </>
                             ) : (
@@ -318,7 +318,7 @@ export default function ContactPageClient({ initialService, initialName }: Conta
                         <div className="space-y-3 text-sm">
                             <div className="flex items-start gap-3">
                                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                    <span className="text-xs font-medium text-primary">1</span>
+                                    <span className="text-xs font-medium text-accent-text">1</span>
                                 </div>
                                 <div>
                                     <p className="font-medium">Requirements Analysis</p>
@@ -327,7 +327,7 @@ export default function ContactPageClient({ initialService, initialName }: Conta
                             </div>
                             <div className="flex items-start gap-3">
                                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                    <span className="text-xs font-medium text-primary">2</span>
+                                    <span className="text-xs font-medium text-accent-text">2</span>
                                 </div>
                                 <div>
                                     <p className="font-medium">Proposal & Timeline</p>
@@ -336,7 +336,7 @@ export default function ContactPageClient({ initialService, initialName }: Conta
                             </div>
                             <div className="flex items-start gap-3">
                                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                    <span className="text-xs font-medium text-primary">3</span>
+                                    <span className="text-xs font-medium text-accent-text">3</span>
                                 </div>
                                 <div>
                                     <p className="font-medium">Development & Testing</p>
@@ -345,7 +345,7 @@ export default function ContactPageClient({ initialService, initialName }: Conta
                             </div>
                             <div className="flex items-start gap-3">
                                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                    <span className="text-xs font-medium text-primary">4</span>
+                                    <span className="text-xs font-medium text-accent-text">4</span>
                                 </div>
                                 <div>
                                     <p className="font-medium">Delivery & Support</p>

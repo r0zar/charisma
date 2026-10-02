@@ -353,7 +353,7 @@ export default function SublinkWizard() {
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="w-8 h-8 text-primary/60"
+                            className="w-8 h-8 text-accent-text/60"
                         >
                             <circle cx="12" cy="12" r="10" />
                             <line x1="12" y1="16" x2="12" y2="12" />
@@ -383,7 +383,7 @@ export default function SublinkWizard() {
                 {/* Main Form */}
                 <div className="flex-1">
                     <h1 className="text-3xl font-bold mb-6 flex items-center">
-                        <Globe className="h-6 w-6 mr-2 text-primary" />
+                        <Globe className="h-6 w-6 mr-2 text-accent-text" />
                         Deploy Subnet Link
                     </h1>
                     <p className="text-muted-foreground mb-8">
@@ -480,7 +480,7 @@ export default function SublinkWizard() {
                                         href="https://docs.charisma.rocks/subnet"
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-sm flex items-center text-primary hover:underline"
+                                        className="text-sm flex items-center text-accent-text hover:underline"
                                     >
                                         <ExternalLink className="h-3.5 w-3.5 mr-2" /> Subnet Documentation
                                     </a>
@@ -490,7 +490,7 @@ export default function SublinkWizard() {
                                         href="https://discord.gg/charisma"
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-sm flex items-center text-primary hover:underline"
+                                        className="text-sm flex items-center text-accent-text hover:underline"
                                     >
                                         <ExternalLink className="h-3.5 w-3.5 mr-2" /> Community Support
                                     </a>

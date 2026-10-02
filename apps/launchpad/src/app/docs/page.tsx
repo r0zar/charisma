@@ -151,7 +151,7 @@ curl -X POST \\
                         <li key={id}>
                             <a
                                 href={`#${id}`}
-                                className="block rounded px-2 py-1 hover:bg-accent transition-colors"
+                                className="block rounded px-2 py-1 hover:bg-surface-hover transition-colors"
                             >
                                 {label}
                             </a>
@@ -161,7 +161,7 @@ curl -X POST \\
             </aside>
 
             {/* content */}
-            <article className="prose prose-lg max-w-none dark:prose-invert prose-headings:font-semibold prose-p:leading-relaxed prose-li:my-1">
+            <article className="prose prose-lg max-w-none prose-headings:font-semibold prose-p:leading-relaxed prose-li:my-1">
                 <h1 className="text-4xl font-bold mb-6">Charisma Launchpad</h1>
                 <p className="lead text-xl mb-8 text-muted-foreground">
                     A powerful platform for deploying and managing Clarity smart contracts on the Stacks blockchain. Create, deploy, and interact with fungible tokens, NFTs, and AMM pools with just a few clicks.
@@ -171,19 +171,19 @@ curl -X POST \\
                 <H2 id="why">Why Charisma Launchpad?</H2>
                 <ul className="space-y-2 my-6">
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">No-code deployment</strong>
+                        <strong className="text-accent-text">No-code deployment</strong>
                         <span className="text-muted-foreground">→ deploy smart contracts without writing any code.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Pre-built templates</strong>
+                        <strong className="text-accent-text">Pre-built templates</strong>
                         <span className="text-muted-foreground">→ standardized contracts for tokens, NFTs, and AMM pools.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Contract management</strong>
+                        <strong className="text-accent-text">Contract management</strong>
                         <span className="text-muted-foreground">→ easily interact with your deployed contracts through a simple UI.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Gas optimization</strong>
+                        <strong className="text-accent-text">Gas optimization</strong>
                         <span className="text-muted-foreground">→ our templates are optimized for minimal gas consumption.</span>
                     </li>
                 </ul>
@@ -193,7 +193,7 @@ curl -X POST \\
                 <ol className="list-decimal pl-5 space-y-2 my-6">
                     <li className="text-base leading-relaxed">
                         Connect your wallet in the{" "}
-                        <Link href="/contracts" className="text-primary hover:underline">
+                        <Link href="/contracts" className="text-accent-text hover:underline">
                             Contracts Dashboard
                         </Link>
                         .
@@ -257,19 +257,19 @@ curl -X POST \\
                 </p>
                 <ul className="space-y-2 my-6">
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Call read-only functions</strong>
+                        <strong className="text-accent-text">Call read-only functions</strong>
                         <span className="text-muted-foreground">→ check balances, token info, pool statistics.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Execute public functions</strong>
+                        <strong className="text-accent-text">Execute public functions</strong>
                         <span className="text-muted-foreground">→ transfer tokens, add liquidity, swap tokens.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Monitor transactions</strong>
+                        <strong className="text-accent-text">Monitor transactions</strong>
                         <span className="text-muted-foreground">→ view transaction history and status.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">View contract details</strong>
+                        <strong className="text-accent-text">View contract details</strong>
                         <span className="text-muted-foreground">→ see contract interface, source code, and deployment info.</span>
                     </li>
                 </ul>
@@ -278,19 +278,19 @@ curl -X POST \\
                 <H2 id="tips">Tips & Best Practices</H2>
                 <ul className="space-y-2 my-6">
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Test on Testnet First</strong>
+                        <strong className="text-accent-text">Test on Testnet First</strong>
                         <span className="text-muted-foreground">→ Always deploy to testnet before mainnet to verify functionality.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Secure Owner Keys</strong>
+                        <strong className="text-accent-text">Secure Owner Keys</strong>
                         <span className="text-muted-foreground">→ Contract owner privileges are tied to the deploying wallet.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Check Gas Requirements</strong>
+                        <strong className="text-accent-text">Check Gas Requirements</strong>
                         <span className="text-muted-foreground">→ Ensure you have enough STX to cover deployment costs.</span>
                     </li>
                     <li className="flex items-baseline gap-2">
-                        <strong className="text-primary">Set Appropriate Access Controls</strong>
+                        <strong className="text-accent-text">Set Appropriate Access Controls</strong>
                         <span className="text-muted-foreground">→ Carefully configure who can mint, burn, or modify your tokens.</span>
                     </li>
                 </ul>

@@ -410,13 +410,13 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
             <h1 className="text-2xl font-bold mb-6">{isNew ? 'Create New Token' : 'Edit Token Metadata'}</h1>
 
             {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                <div className="bg-danger-soft border border-danger text-danger px-4 py-3 rounded mb-4">
                     {error}
                 </div>
             )}
 
             {success && (
-                <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+                <div className="bg-success-soft border border-success text-success px-4 py-3 rounded mb-4">
                     {success}
                 </div>
             )}
@@ -425,7 +425,7 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                         <div>
-                            <label htmlFor="tokenNamePart" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="tokenNamePart" className="block text-sm font-medium text-ink-muted mb-1">
                                 Token Identifier *
                             </label>
                             <div className="flex">
@@ -439,11 +439,11 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                     value={tokenNamePart}
                                     onChange={(e) => setTokenNamePart(e.target.value)}
                                     placeholder="token-name"
-                                    className="flex-1 min-w-0 block w-full px-1 py-2 rounded-none rounded-r-md focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm border-gray-300"
+                                    className="flex-1 min-w-0 block w-full px-1 py-2 rounded-none rounded-r-md focus:ring-accent focus:border-accent sm:text-sm border-line"
                                     required
                                 />
                             </div>
-                            <p className="mt-1 text-xs text-gray-500">
+                            <p className="mt-1 text-xs text-ink-muted">
                                 {isNew
                                     ? "Choose a unique identifier for your token"
                                     : "You can update the token identifier as long as it's not already in use"}
@@ -451,7 +451,7 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                         </div>
 
                         <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="name" className="block text-sm font-medium text-ink-muted mb-1">
                                 Name *
                             </label>
                             <input
@@ -460,13 +460,13 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                 name="name"
                                 value={formData.name}
                                 onChange={handleInputChange}
-                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                className="shadow-sm focus:ring-accent focus:border-accent block w-full sm:text-sm border-line rounded-md"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="symbol" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="symbol" className="block text-sm font-medium text-ink-muted mb-1">
                                 Symbol
                             </label>
                             <input
@@ -475,12 +475,12 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                 name="symbol"
                                 value={formData.symbol}
                                 onChange={handleInputChange}
-                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                className="shadow-sm focus:ring-accent focus:border-accent block w-full sm:text-sm border-line rounded-md"
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="decimals" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="decimals" className="block text-sm font-medium text-ink-muted mb-1">
                                 Decimals
                             </label>
                             <input
@@ -491,12 +491,12 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                 max="18"
                                 value={formData.decimals}
                                 onChange={handleInputChange}
-                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                className="shadow-sm focus:ring-accent focus:border-accent block w-full sm:text-sm border-line rounded-md"
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="description" className="block text-sm font-medium text-ink-muted mb-1">
                                 Description *
                             </label>
                             <textarea
@@ -505,14 +505,14 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                 rows={3}
                                 value={formData.description}
                                 onChange={handleInputChange}
-                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                className="shadow-sm focus:ring-accent focus:border-accent block w-full sm:text-sm border-line rounded-md"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 mb-1">
-                                Image Generation Prompt <span className="text-gray-400">(optional)</span>
+                            <label htmlFor="prompt" className="block text-sm font-medium text-ink-muted mb-1">
+                                Image Generation Prompt <span className="text-ink-muted">(optional)</span>
                             </label>
                             <textarea
                                 id="prompt"
@@ -520,7 +520,7 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                 rows={3}
                                 value={formData.prompt as string}
                                 onChange={handleInputChange}
-                                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                                className="shadow-sm focus:ring-accent focus:border-accent block w-full sm:text-sm border-line rounded-md"
                             />
                         </div>
 
@@ -566,7 +566,7 @@ export function TokenDetailClient({ contractId, initialMetadata, isNew = false }
                                     />
                                 </div>
                             ) : (
-                                <p className="text-gray-400">Upload or generate an image for your token</p>
+                                <p className="text-ink-muted">Upload or generate an image for your token</p>
                             )}
                         </div>
                     </div>

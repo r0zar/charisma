@@ -142,7 +142,7 @@ const PreviewStep = ({
             <Card className="mb-6">
                 <CardHeader>
                     <CardTitle className="flex items-center">
-                        <Globe className="mr-2 h-5 w-5 text-primary" />
+                        <Globe className="mr-2 h-5 w-5 text-accent-text" />
                         Metadata Preview
                     </CardTitle>
                 </CardHeader>
@@ -206,14 +206,14 @@ const PreviewStep = ({
                                 </div>
                                 {state.metadataUri.startsWith('data:application/json;base64,') && (
                                     <div className={state.metadataUri.length <= ONCHAIN_METADATA_URI_LIMIT
-                                        ? "bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-700 rounded-lg p-3 mt-2"
-                                        : "bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-700 rounded-lg p-3 mt-2"}>
+ ? "bg-success-soft  border border-success/30  rounded-lg p-3 mt-2"
+                                        : "bg-danger-soft  border border-danger/30  rounded-lg p-3 mt-2"}>
                                         {state.metadataUri.length <= ONCHAIN_METADATA_URI_LIMIT ? (
-                                            <p className="text-xs text-emerald-700 dark:text-emerald-300 font-medium">
+                                            <p className="text-xs text-success font-medium">
                                                 ✓ On-chain metadata is {state.metadataUri.length} characters ({ONCHAIN_METADATA_URI_LIMIT - state.metadataUri.length} under the {ONCHAIN_METADATA_URI_LIMIT} limit)
                                             </p>
                                         ) : (
-                                            <p className="text-xs text-red-700 dark:text-red-300 font-medium">
+                                            <p className="text-xs text-danger font-medium">
                                                 Metadata is {state.metadataUri.length} characters, {state.metadataUri.length - ONCHAIN_METADATA_URI_LIMIT} over the {ONCHAIN_METADATA_URI_LIMIT} limit. Deployment is blocked until it fits.
                                             </p>
                                         )}
@@ -231,16 +231,16 @@ const PreviewStep = ({
                     )}
 
                     {metaError && (
-                        <div className="bg-destructive/10 dark:bg-destructive/20 border border-destructive/20 dark:border-destructive/30 rounded-lg p-3">
-                            <p className="text-sm text-destructive dark:text-destructive">⚠️ {metaError}</p>
+                        <div className="bg-destructive/10 border border-destructive/20  rounded-lg p-3">
+                            <p className="text-sm text-destructive ">⚠️ {metaError}</p>
                         </div>
                     )}
 
                     {metaPreview && (
-                        <div className="bg-primary/5 dark:bg-primary/10 border border-primary/20 dark:border-primary/30 rounded-lg p-4 mt-4">
-                            <h4 className="text-sm font-semibold text-primary dark:text-primary mb-3">📋 Metadata Preview</h4>
+                        <div className="bg-primary/5 border border-primary/20  rounded-lg p-4 mt-4">
+                            <h4 className="text-sm font-semibold text-accent-text mb-3">📋 Metadata Preview</h4>
                             <div className="flex items-center gap-4">
-                                <div className="w-20 h-20 rounded-lg border-2 border-primary/30 dark:border-primary/40 flex items-center justify-center overflow-hidden bg-background shadow-sm">
+                                <div className="w-20 h-20 rounded-lg border-2 border-primary/30 flex items-center justify-center overflow-hidden bg-surface shadow-sm">
                                     {metaPreview.image ? (
                                         <img
                                             src={metaPreview.image}
@@ -251,12 +251,12 @@ const PreviewStep = ({
                                                 target.style.display = 'none';
                                                 const parent = target.parentElement;
                                                 if (parent) {
-                                                    parent.innerHTML = '<span class="text-xs text-primary font-medium">1x1 pixel</span>';
+                                                    parent.innerHTML = '<span class="text-xs text-accent-text font-medium">1x1 pixel</span>';
                                                 }
                                             }}
                                         />
                                     ) : (
-                                        <div className="text-xl font-bold text-primary/60">?</div>
+                                        <div className="text-xl font-bold text-accent-text/60">?</div>
                                     )}
                                 </div>
                                 <div className="flex-1">
@@ -274,7 +274,7 @@ const PreviewStep = ({
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center">
-                        <Globe className="mr-2 h-5 w-5 text-primary" />
+                        <Globe className="mr-2 h-5 w-5 text-accent-text" />
                         Contract Details
                     </CardTitle>
                 </CardHeader>

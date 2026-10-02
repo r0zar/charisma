@@ -471,7 +471,7 @@ export default function SIP10DeployPage() {
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="w-8 h-8 text-primary/60"
+                            className="w-8 h-8 text-accent-text/60"
                         >
                             <circle cx="12" cy="12" r="10" />
                             <line x1="12" y1="16" x2="12" y2="12" />
@@ -501,7 +501,7 @@ export default function SIP10DeployPage() {
                 {/* Main Form */}
                 <div className="flex-1">
                     <h1 className="text-3xl font-bold mb-6 flex items-center">
-                        <Layers className="h-6 w-6 mr-2 text-primary" />
+                        <Layers className="h-6 w-6 mr-2 text-accent-text" />
                         Deploy SIP-10 Token
                     </h1>
                     <p className="text-muted-foreground mb-8">
@@ -556,10 +556,10 @@ export default function SIP10DeployPage() {
                                         placeholder="e.g. CHA"
                                         value={tokenSymbol}
                                         onChange={(e) => setTokenSymbol(e.target.value.toUpperCase())}
-                                        className={errors.tokenSymbol ? "border-red-500" : ""}
+                                        className={errors.tokenSymbol ? "border-danger" : ""}
                                     />
                                     {errors.tokenSymbol && (
-                                        <p className="text-red-500 text-sm">{errors.tokenSymbol}</p>
+                                        <p className="text-danger text-sm">{errors.tokenSymbol}</p>
                                     )}
                                 </div>
 
@@ -590,10 +590,10 @@ export default function SIP10DeployPage() {
                                         value={decimals}
                                         onValueChange={setDecimals}
                                     >
-                                        <SelectTrigger className={errors.decimals ? "border-red-500" : ""}>
+                                        <SelectTrigger className={errors.decimals ? "border-danger" : ""}>
                                             <SelectValue placeholder="Select decimals" />
                                         </SelectTrigger>
-                                        <SelectContent className="bg-background">
+                                        <SelectContent className="bg-surface-raised">
                                             <SelectItem value="0">0 (No decimals)</SelectItem>
                                             <SelectItem value="6">6 (Like STX)</SelectItem>
                                             <SelectItem value="8">8 (Like BTC)</SelectItem>
@@ -601,7 +601,7 @@ export default function SIP10DeployPage() {
                                         </SelectContent>
                                     </Select>
                                     {errors.decimals && (
-                                        <p className="text-red-500 text-sm">{errors.decimals}</p>
+                                        <p className="text-danger text-sm">{errors.decimals}</p>
                                     )}
                                 </div>
 
@@ -637,10 +637,10 @@ export default function SIP10DeployPage() {
                                             const value = e.target.value.replace(/[^0-9.]/g, '');
                                             setInitialSupply(value);
                                         }}
-                                        className={errors.initialSupply ? "border-red-500" : ""}
+                                        className={errors.initialSupply ? "border-danger" : ""}
                                     />
                                     {errors.initialSupply ? (
-                                        <p className="text-red-500 text-sm">{errors.initialSupply}</p>
+                                        <p className="text-danger text-sm">{errors.initialSupply}</p>
                                     ) : (
                                         <p className="text-xs text-muted-foreground">
                                             This will create {calculateAtomicSupply(initialSupply, decimals)} atomic units of your token
@@ -758,7 +758,7 @@ export default function SIP10DeployPage() {
                                 <div className="space-y-2 p-4 border rounded-md bg-muted/20">
                                     <Label htmlFor="tokenUriInput" className="flex items-center">Token URI (Optional)
                                         {isDMT && (
-                                            <Badge variant="outline" className="ml-2 border-green-500 text-green-600 bg-green-50">DMT / On-chain</Badge>
+                                            <Badge variant="outline" className="ml-2 border-success text-success bg-success-soft">DMT / On-chain</Badge>
                                         )}
                                     </Label>
                                     <div className="flex items-center gap-2">
@@ -794,33 +794,33 @@ export default function SIP10DeployPage() {
                                             rel="noopener noreferrer"
                                             className="group"
                                         >
-                                            <div className={`border ${hasMetadata ? 'border-green-500' : isCorsError ? 'border-amber-500' : metadataApiError ? 'border-destructive' : 'border-dashed'} rounded-md aspect-square w-32 h-32 flex items-center justify-center ${hasMetadata ? 'bg-green-50/20' : isCorsError ? 'bg-amber-50/20' : metadataApiError ? 'bg-destructive/5' : 'bg-muted/30 group-hover:bg-muted/50'} transition-colors relative overflow-hidden`}>
+                                            <div className={`border ${hasMetadata ? 'border-success' : isCorsError ? 'border-warning' : metadataApiError ? 'border-destructive' : 'border-dashed'} rounded-md aspect-square w-32 h-32 flex items-center justify-center ${hasMetadata ? 'bg-success-soft' : isCorsError ? 'bg-warning-soft' : metadataApiError ? 'bg-destructive/5' : 'bg-muted/30 group-hover:bg-muted/50'} transition-colors relative overflow-hidden`}>
                                                 {hasMetadata ? (
                                                     <>
                                                         {metadata?.image ? (
                                                             <img src={metadata.image} alt={metadata.name || 'Token'} className="w-full h-full object-cover rounded-md" onError={(e) => (e.target as HTMLImageElement).style.display = 'none'} />
                                                         ) : (
                                                             // Fallback icon if image exists but fails or no image
-                                                            <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                                                            <div className="w-16 h-16 rounded-full bg-success-soft flex items-center justify-center">
                                                                 {metadata?.symbol ? (
-                                                                    <span className="text-2xl font-bold text-green-600">{metadata.symbol.charAt(0)}</span>
+                                                                    <span className="text-2xl font-bold text-success">{metadata.symbol.charAt(0)}</span>
                                                                 ) : (
-                                                                    <Check className="w-8 h-8 text-green-600" />
+                                                                    <Check className="w-8 h-8 text-success" />
                                                                 )}
                                                             </div>
                                                         )}
-                                                        <div className="z-10 bg-green-500 rounded-full p-1 absolute bottom-2 right-2 shadow-sm">
-                                                            <Check className="w-3 h-3 text-white" strokeWidth={3} />
+                                                        <div className="z-10 bg-success rounded-full p-1 absolute bottom-2 right-2 shadow-sm">
+                                                            <Check className="w-3 h-3 text-ink" strokeWidth={3} />
                                                         </div>
                                                     </>
                                                 ) : isCheckingMetadata ? (
-                                                    <svg className="animate-spin h-8 w-8 text-primary/60" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                    <svg className="animate-spin h-8 w-8 text-accent-text/60" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                                 ) : isCorsError ? (
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500 h-8 w-8"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-warning h-8 w-8"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                                                 ) : metadataApiError ? (
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-destructive h-8 w-8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
                                                 ) : (
-                                                    <ExternalLink className="h-8 w-8 text-muted-foreground group-hover:text-primary transition-colors" />
+                                                    <ExternalLink className="h-8 w-8 text-muted-foreground group-hover:text-accent-text transition-colors" />
                                                 )}
                                             </div>
                                         </a>
@@ -888,7 +888,7 @@ export default function SIP10DeployPage() {
                                                     className="mb-2"
                                                 >
                                                     {/* Metadata Image/Icon Box */}
-                                                    <div className={`border ${hasMetadata ? 'border-solid border-green-500' : isCorsError ? 'border-solid border-amber-500' : metadataApiError ? 'border-solid border-destructive' : 'border-dashed'} rounded-md aspect-square w-32 h-32 flex items-center justify-center ${hasMetadata ? 'bg-green-50/20' : isCorsError ? 'bg-amber-50/20' : metadataApiError ? 'bg-destructive/5' : 'bg-muted/30 group-hover:bg-muted/50'} transition-colors mx-auto relative overflow-hidden`}>
+                                                    <div className={`border ${hasMetadata ? 'border-solid border-success' : isCorsError ? 'border-solid border-warning' : metadataApiError ? 'border-solid border-destructive' : 'border-dashed'} rounded-md aspect-square w-32 h-32 flex items-center justify-center ${hasMetadata ? 'bg-success-soft' : isCorsError ? 'bg-warning-soft' : metadataApiError ? 'bg-destructive/5' : 'bg-muted/30 group-hover:bg-muted/50'} transition-colors mx-auto relative overflow-hidden`}>
                                                         {hasMetadata ? (
                                                             <>
                                                                 {metadata?.image ? (
@@ -917,25 +917,25 @@ export default function SIP10DeployPage() {
                                                                     </div>
                                                                 ) : (
                                                                     <div className="flex flex-col items-center justify-center">
-                                                                        <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
+                                                                        <div className="w-16 h-16 rounded-full bg-success-soft flex items-center justify-center">
                                                                             {metadata?.symbol ? (
-                                                                                <span className="text-2xl font-bold text-green-500">
+                                                                                <span className="text-2xl font-bold text-success">
                                                                                     {metadata.symbol.charAt(0)}
                                                                                 </span>
                                                                             ) : (
-                                                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-success"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
                                                                             )}
                                                                         </div>
                                                                     </div>
                                                                 )}
-                                                                <div className="z-10 bg-green-500 rounded-full p-1 absolute bottom-2 right-2 shadow-sm">
+                                                                <div className="z-10 bg-success rounded-full p-1 absolute bottom-2 right-2 shadow-sm">
                                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                                                                 </div>
                                                             </>
                                                         ) : isCheckingMetadata ? (
-                                                            <svg className="animate-spin h-8 w-8 text-primary/60" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                            <svg className="animate-spin h-8 w-8 text-accent-text/60" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                                         ) : isCorsError ? (
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-amber-500 h-8 w-8"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-warning h-8 w-8"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
                                                         ) : metadataApiError ? (
                                                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-destructive h-8 w-8"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
                                                         ) : (
@@ -956,13 +956,13 @@ export default function SIP10DeployPage() {
                                                 Token Details
                                                 {/* Metadata Required Badge */}
                                                 {!hasMetadata && !metadataApiError && (
-                                                    <span className="ml-2 text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full flex items-center">
+                                                    <span className="ml-2 text-xs bg-warning-soft text-warning px-2 py-0.5 rounded-full flex items-center">
                                                         Metadata Required
                                                         <TooltipProvider>
                                                             <Tooltip>
                                                                 <TooltipTrigger asChild>
                                                                     <Button variant="ghost" className="h-4 w-4 p-0 ml-1">
-                                                                        <HelpCircle className="h-3 w-3 text-amber-800" />
+                                                                        <HelpCircle className="h-3 w-3 text-warning" />
                                                                         <span className="sr-only">Info</span>
                                                                     </Button>
                                                                 </TooltipTrigger>
@@ -1032,7 +1032,7 @@ export default function SIP10DeployPage() {
                                                                 {isBurnable ? "Burnable" : "Not Burnable"} (Pro)
                                                             </span>
                                                             {hasMetadata && (
-                                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-soft text-success">
                                                                     Metadata Ready
                                                                 </span>
                                                             )}
@@ -1060,7 +1060,7 @@ export default function SIP10DeployPage() {
                                                             On-chain (Data URI): {truncateAddress(finalTokenUriForContract, 30)}
                                                         </div>
                                                     ) : finalTokenUriForContract ? (
-                                                        <a href={finalTokenUriForContract} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-primary hover:underline break-all">
+                                                        <a href={finalTokenUriForContract} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-accent-text hover:underline break-all">
                                                             {finalTokenUriForContract}
                                                         </a>
                                                     ) : (
@@ -1086,7 +1086,7 @@ export default function SIP10DeployPage() {
                                 {/* Overlay */}
                                 <div className="absolute inset-0 bg-background/80 backdrop-blur-[1px] z-10 flex flex-col items-center justify-center rounded-lg">
                                     <div className="bg-primary/10 rounded-full p-3 mb-3">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary h-6 w-6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /></svg>
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-text h-6 w-6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" /></svg>
                                     </div>
                                     <h3 className="font-medium text-lg mb-1">Pro Feature</h3>
                                     <p className="text-muted-foreground text-center max-w-[250px] text-sm">Advanced token features are available for Pro tier users</p>
@@ -1171,7 +1171,7 @@ export default function SIP10DeployPage() {
                                 >
                                     {isDeploying ? (
                                         <>
-                                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-ink" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>

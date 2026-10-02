@@ -1,7 +1,6 @@
 "use client"
 
-import React, { useEffect } from "react"
-import { Button } from "@/components/ui/button"
+import React from "react"
 import { cn } from "@/lib/utils"
 import { useApp } from "@/lib/context/app-context"
 
@@ -17,46 +16,30 @@ export interface SignatureResponse {
     publicKey: string
 }
 
+/** Header wallet button: the accent CTA to connect; once connected, a quiet outline on chrome with the address */
 export function WalletConnector({ className }: { className?: string }) {
     const { walletState, connectWallet, disconnectWallet } = useApp();
     const { connected, address } = walletState;
 
-    // Debug the wallet state
-    useEffect(() => {
-        console.log("WalletConnector state:", { connected, address });
-    }, [connected, address]);
-
     return (
-        <div className={cn("flex items-center relative z-50", className)}>
+        <div className={cn("flex items-center", className)}>
             {!connected ? (
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        console.log("Connect button clicked");
-                        connectWallet();
-                    }}
-                    className="text-xs relative z-50 cursor-pointer"
+                <button
+                    onClick={() => connectWallet()}
+                    className="h-9 px-4 sm:min-w-[140px] sm:px-5 rounded-xl bg-accent text-on-accent text-sm font-semibold shadow-[var(--shadow-cta)] hover:bg-accent-hover active:scale-[0.98] transition-all duration-200"
                 >
-                    Connect Wallet
-                </Button>
+                    Connect wallet
+                </button>
             ) : (
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        console.log("Disconnect button clicked");
-                        disconnectWallet();
-                    }}
-                    className="text-xs bg-muted/50 relative z-50 cursor-pointer"
+                <button
+                    onClick={() => disconnectWallet()}
+                    title="Disconnect"
+                    className="h-9 px-3 sm:min-w-[140px] sm:px-4 rounded-xl border border-on-chrome-muted/40 text-on-chrome hover:border-on-chrome transition-all duration-200 flex items-center justify-center gap-2 font-mono text-[13px]"
                 >
-                    {address ? `${address.substring(0, 6)}...${address.substring(address.length - 4)}` : "Connected"}
-                </Button>
+                    <span className="h-2 w-2 rounded-full bg-success" aria-hidden />
+                    {address ? `${address.substring(0, 5)}…${address.substring(address.length - 4)}` : "Connected"}
+                </button>
             )}
         </div>
     )
-} 
+}

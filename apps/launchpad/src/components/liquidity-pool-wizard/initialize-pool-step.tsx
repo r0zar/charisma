@@ -163,8 +163,8 @@ export const InitializePoolStep = ({
                             </div>
                         </div>
 
-                        <div className="flex items-center p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800/30 rounded-lg">
-                            <AlertTriangle className="h-5 w-5 text-orange-500 mr-2" />
+                        <div className="flex items-center p-4 bg-accent-soft border border-accent-line  rounded-lg">
+                            <AlertTriangle className="h-5 w-5 text-accent-text mr-2" />
                             <p className="text-sm text-muted-foreground">
                                 The contract will automatically transfer these token amounts from your wallet
                                 during deployment. Make sure you have sufficient balance.

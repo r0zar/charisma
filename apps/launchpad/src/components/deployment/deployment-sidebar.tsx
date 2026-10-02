@@ -63,7 +63,7 @@ export const DeploymentSidebar = ({
                             href={standardLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm flex items-center text-primary hover:underline"
+                            className="text-sm flex items-center text-accent-text hover:underline"
                         >
                             <ExternalLink className="h-3.5 w-3.5 mr-2" /> {standardName} Standard
                         </a>
@@ -73,7 +73,7 @@ export const DeploymentSidebar = ({
                             href={documentationLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm flex items-center text-primary hover:underline"
+                            className="text-sm flex items-center text-accent-text hover:underline"
                         >
                             <ExternalLink className="h-3.5 w-3.5 mr-2" /> Token Documentation
                         </a>
@@ -83,7 +83,7 @@ export const DeploymentSidebar = ({
                             href="https://discord.gg/charisma" // Consider making this a prop if it varies
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-sm flex items-center text-primary hover:underline"
+                            className="text-sm flex items-center text-accent-text hover:underline"
                         >
                             <ExternalLink className="h-3.5 w-3.5 mr-2" /> Community Support
                         </a>

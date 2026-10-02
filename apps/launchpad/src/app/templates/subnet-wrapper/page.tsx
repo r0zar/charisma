@@ -245,7 +245,7 @@ const TokenSelectionStep = ({
                 <h2 className="text-2xl font-bold mb-2">Select Token to Wrap</h2>
                 <p className="text-muted-foreground">Choose the SIP-10 token to be wrapped from the subnet</p>
                 <div className="mt-2 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                    <p className="text-sm text-primary">
+                    <p className="text-sm text-accent-text">
                         <strong>Select base/original tokens only.</strong> Do NOT select tokens with "-subnet" in their contract name or those marked as type "SUBNET". You cannot create a subnet from an existing subnet.
                     </p>
                 </div>
@@ -319,11 +319,11 @@ const TokenSelectionStep = ({
                                                 className="w-full h-full object-cover"
                                                 onError={(e) => {
                                                     (e.target as HTMLImageElement).src = '';
-                                                    (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="text-sm font-bold text-primary/60">${fetchedToken.symbol?.charAt(0)}</div>`;
+                                                    (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="text-sm font-bold text-accent-text/60">${fetchedToken.symbol?.charAt(0)}</div>`;
                                                 }}
                                             />
                                         ) : (
-                                            <div className="text-sm font-bold text-primary/60">{fetchedToken.symbol?.charAt(0)}</div>
+                                            <div className="text-sm font-bold text-accent-text/60">{fetchedToken.symbol?.charAt(0)}</div>
                                         )}
                                     </div>
                                     <div>
@@ -360,7 +360,7 @@ const TokenSelectionStep = ({
                     {isLoading ? (
                         <div className="flex justify-center py-12">
                             <div className="flex flex-col items-center">
-                                <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                                <Loader2 className="h-8 w-8 animate-spin text-accent-text mb-4" />
                                 <p className="text-muted-foreground">Loading tokens...</p>
                             </div>
                         </div>
@@ -380,7 +380,7 @@ const TokenSelectionStep = ({
                             {filteredTokens.map((token: any) => (
                                 <div
                                     key={token.type + "-" + token.contractId}
-                                    className="group cursor-pointer bg-background border border-border hover:border-primary/50 hover:bg-accent/20 transition-all duration-200 rounded-lg p-4"
+                                    className="group cursor-pointer bg-surface border border-border hover:border-primary/50 hover:bg-surface-hover transition-all duration-200 rounded-lg p-4"
                                     onClick={() => onSelect(token.contractId || "")}
                                 >
                                     <div className="flex items-center justify-between w-full">
@@ -398,11 +398,11 @@ const TokenSelectionStep = ({
                                                             className="w-full h-full object-cover"
                                                             onError={(e) => {
                                                                 (e.target as HTMLImageElement).src = '';
-                                                                (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-7 h-7 font-bold text-primary flex items-center justify-center">${token.symbol?.charAt(0) || '?'}</div>`;
+                                                                (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-7 h-7 font-bold text-accent-text flex items-center justify-center">${token.symbol?.charAt(0) || '?'}</div>`;
                                                             }}
                                                         />
                                                     ) : (
-                                                        <div className="w-7 h-7 font-bold text-primary flex items-center justify-center">
+                                                        <div className="w-7 h-7 font-bold text-accent-text flex items-center justify-center">
                                                             {token.symbol?.charAt(0) || '?'}
                                                         </div>
                                                     )}
@@ -412,7 +412,7 @@ const TokenSelectionStep = ({
                                             {/* Token Info */}
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center space-x-3 mb-2">
-                                                    <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                                                    <h3 className="text-lg font-semibold text-foreground group-hover:text-accent-text transition-colors">
                                                         {token.symbol}
                                                     </h3>
                                                     <span className="text-sm text-muted-foreground">
@@ -431,7 +431,7 @@ const TokenSelectionStep = ({
                                         {/* Right section: Arrow */}
                                         <div className="flex-shrink-0 ml-4">
                                             <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                                <ArrowRight className="h-5 w-5 text-primary" />
+                                                <ArrowRight className="h-5 w-5 text-accent-text" />
                                             </div>
                                         </div>
                                     </div>
@@ -440,18 +440,18 @@ const TokenSelectionStep = ({
 
                             {/* Custom Token Option */}
                             <div
-                                className="group cursor-pointer bg-background border-2 border-dashed border-border hover:border-primary/50 hover:bg-accent/20 transition-all duration-200 rounded-lg p-4"
+                                className="group cursor-pointer bg-surface border-2 border-dashed border-border hover:border-primary/50 hover:bg-surface-hover transition-all duration-200 rounded-lg p-4"
                                 onClick={() => setShowCustomInput(true)}
                             >
                                 <div className="flex items-center justify-between w-full">
                                     <div className="flex items-center space-x-4">
                                         <div className="flex-shrink-0">
                                             <div className="w-14 h-14 rounded-full bg-muted flex items-center justify-center ring-2 ring-border">
-                                                <HelpCircle className="w-7 h-7 text-primary/60" />
+                                                <HelpCircle className="w-7 h-7 text-accent-text/60" />
                                             </div>
                                         </div>
                                         <div className="flex-1">
-                                            <h3 className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                                            <h3 className="text-lg font-semibold text-foreground group-hover:text-accent-text transition-colors">
                                                 Custom Token
                                             </h3>
                                             <p className="text-sm text-muted-foreground">
@@ -461,7 +461,7 @@ const TokenSelectionStep = ({
                                     </div>
                                     <div className="flex-shrink-0 ml-4">
                                         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                            <ArrowRight className="h-5 w-5 text-primary" />
+                                            <ArrowRight className="h-5 w-5 text-accent-text" />
                                         </div>
                                     </div>
                                 </div>
@@ -504,12 +504,12 @@ const FeatureConfigStep = ({
                 <Card className="border-2 border-primary/30 bg-primary/5 flex flex-col h-full">
                     <CardHeader className="pb-2">
                         <div className="flex items-start gap-2">
-                            <div className="p-2 rounded-full bg-primary/10 text-primary mt-0.5">
+                            <div className="p-2 rounded-full bg-primary/10 text-accent-text mt-0.5">
                                 <Network className="h-4 w-4" />
                             </div>
                             <div>
                                 <CardTitle className="text-base">Default Transfer</CardTitle>
-                                <div className="mt-1 w-fit px-2 py-0.5 text-xs rounded-full bg-primary/10 text-primary">
+                                <div className="mt-1 w-fit px-2 py-0.5 text-xs rounded-full bg-primary/10 text-accent-text">
                                     Always Included
                                 </div>
                             </div>
@@ -521,15 +521,15 @@ const FeatureConfigStep = ({
                         </p>
                         <ul className="space-y-1 text-xs">
                             <li className="flex items-center">
-                                <Check className="h-3 w-3 mr-1.5 text-primary" />
+                                <Check className="h-3 w-3 mr-1.5 text-accent-text" />
                                 Direct account transfers
                             </li>
                             <li className="flex items-center">
-                                <Check className="h-3 w-3 mr-1.5 text-primary" />
+                                <Check className="h-3 w-3 mr-1.5 text-accent-text" />
                                 Wallet compatibility
                             </li>
                             <li className="flex items-center">
-                                <Check className="h-3 w-3 mr-1.5 text-primary" />
+                                <Check className="h-3 w-3 mr-1.5 text-accent-text" />
                                 Contract-to-contract calls
                             </li>
                         </ul>
@@ -543,7 +543,7 @@ const FeatureConfigStep = ({
                 >
                     <CardHeader className="pb-2">
                         <div className="flex items-start gap-2">
-                            <div className={`p-2 rounded-full mt-0.5 ${state.enableBearer ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                            <div className={`p-2 rounded-full mt-0.5 ${state.enableBearer ? 'bg-primary/10 text-accent-text' : 'bg-muted text-muted-foreground'}`}>
                                 <FileSignature className="h-4 w-4" />
                             </div>
                             <div className="flex-1">
@@ -556,7 +556,7 @@ const FeatureConfigStep = ({
                                             toggleFeature('enableBearer');
                                         }}
                                     >
-                                        {state.enableBearer && <Check className="w-2.5 h-2.5 text-white" />}
+                                        {state.enableBearer && <Check className="w-2.5 h-2.5 text-ink" />}
                                     </div>
                                 </div>
                             </div>
@@ -568,15 +568,15 @@ const FeatureConfigStep = ({
                         </p>
                         <ul className="space-y-1 text-xs">
                             <li className="flex items-center">
-                                <Check className="h-3 w-3 mr-1.5 text-primary" />
+                                <Check className="h-3 w-3 mr-1.5 text-accent-text" />
                                 Physical vouchers
                             </li>
                             <li className="flex items-center">
-                                <Check className="h-3 w-3 mr-1.5 text-primary" />
+                                <Check className="h-3 w-3 mr-1.5 text-accent-text" />
                                 Paper wallet support
                             </li>
                             <li className="flex items-center">
-                                <Check className="h-3 w-3 mr-1.5 text-primary" />
+                                <Check className="h-3 w-3 mr-1.5 text-accent-text" />
                                 Gift card redemption
                             </li>
                         </ul>
@@ -590,7 +590,7 @@ const FeatureConfigStep = ({
                 >
                     <CardHeader className="pb-2">
                         <div className="flex items-start gap-2">
-                            <div className={`p-2 rounded-full mt-0.5 ${state.enableLTE ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                            <div className={`p-2 rounded-full mt-0.5 ${state.enableLTE ? 'bg-primary/10 text-accent-text' : 'bg-muted text-muted-foreground'}`}>
                                 <Zap className="h-4 w-4" />
                             </div>
                             <div className="flex-1">
@@ -603,7 +603,7 @@ const FeatureConfigStep = ({
                                             toggleFeature('enableLTE');
                                         }}
                                     >
-                                        {state.enableLTE && <Check className="w-2.5 h-2.5 text-white" />}
+                                        {state.enableLTE && <Check className="w-2.5 h-2.5 text-ink" />}
                                     </div>
                                 </div>
                             </div>
@@ -615,15 +615,15 @@ const FeatureConfigStep = ({
                         </p>
                         <ul className="space-y-1 text-xs">
                             <li className="flex items-center">
-                                <Check className="h-3 w-3 mr-1.5 text-primary" />
+                                <Check className="h-3 w-3 mr-1.5 text-accent-text" />
                                 Multi-hop DEX routes
                             </li>
                             <li className="flex items-center">
-                                <Check className="h-3 w-3 mr-1.5 text-primary" />
+                                <Check className="h-3 w-3 mr-1.5 text-accent-text" />
                                 Slippage-tolerant swaps
                             </li>
                             <li className="flex items-center">
-                                <Check className="h-3 w-3 mr-1.5 text-primary" />
+                                <Check className="h-3 w-3 mr-1.5 text-accent-text" />
                                 Conditional execution
                             </li>
                         </ul>
@@ -963,7 +963,7 @@ export default function SubnetWrapperWizard() {
                         <Card>
                             <CardHeader>
                                 <CardTitle className="flex items-center">
-                                    <Globe className="mr-2 h-5 w-5 text-primary" />
+                                    <Globe className="mr-2 h-5 w-5 text-accent-text" />
                                     Contract Details
                                 </CardTitle>
                             </CardHeader>
@@ -973,16 +973,16 @@ export default function SubnetWrapperWizard() {
                                         <div className="flex items-center space-x-2 mb-2">
                                             <span className="font-semibold">Features enabled:</span>
                                             <div className="flex gap-2">
-                                                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                                <span className="text-xs bg-primary/10 text-accent-text px-2 py-1 rounded-full">
                                                     Signed Transfers
                                                 </span>
                                                 {state.enableBearer && (
-                                                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                                    <span className="text-xs bg-primary/10 text-accent-text px-2 py-1 rounded-full">
                                                         Bearer Notes
                                                     </span>
                                                 )}
                                                 {state.enableLTE && (
-                                                    <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                                                    <span className="text-xs bg-primary/10 text-accent-text px-2 py-1 rounded-full">
                                                         Upper-bound (≤)
                                                     </span>
                                                 )}
@@ -1040,8 +1040,8 @@ export default function SubnetWrapperWizard() {
 
                         <Card>
                             <CardContent className="flex flex-col items-center py-12">
-                                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                                    <Check className="h-8 w-8 text-green-600" />
+                                <div className="w-16 h-16 rounded-full bg-success-soft flex items-center justify-center mb-4">
+                                    <Check className="h-8 w-8 text-success" />
                                 </div>
                                 <h3 className="text-xl font-semibold mb-2">Transaction Submitted</h3>
                                 <p className="text-center text-muted-foreground max-w-md mb-6">
@@ -1052,7 +1052,7 @@ export default function SubnetWrapperWizard() {
                                         href={`https://explorer.hiro.so/txid/${finalDeploymentTxId}?chain=mainnet`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 mb-6"
+                                        className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-on-accent bg-accent hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent mb-6"
                                     >
                                         View Transaction on Explorer <ExternalLinkIcon className="ml-2 h-4 w-4" />
                                     </a>
@@ -1064,7 +1064,7 @@ export default function SubnetWrapperWizard() {
                                         <div className="bg-gradient-to-br from-primary/5 to-secondary/5 border border-primary/20 rounded-lg p-6 space-y-4">
                                             <div className="flex items-center justify-center">
                                                 <div className="p-2 bg-primary/10 rounded-full mr-3">
-                                                    <Vault className="h-6 w-6 text-primary" />
+                                                    <Vault className="h-6 w-6 text-accent-text" />
                                                 </div>
                                                 <div className="text-center">
                                                     <h4 className="font-semibold text-foreground">Unlock DeFi Integration</h4>
@@ -1077,16 +1077,16 @@ export default function SubnetWrapperWizard() {
                                                     Integrate your subnet into Charisma's DeFi ecosystem with one click!
                                                 </p>
                                                 <div className="flex flex-wrap justify-center gap-1 text-xs">
-                                                    <span className="bg-primary/10 text-primary px-2 py-1 rounded-full">Limit Orders</span>
-                                                    <span className="bg-primary/10 text-primary px-2 py-1 rounded-full">DCA</span>
-                                                    <span className="bg-primary/10 text-primary px-2 py-1 rounded-full">OTC Trading</span>
-                                                    <span className="bg-primary/10 text-primary px-2 py-1 rounded-full">Swapping</span>
+                                                    <span className="bg-primary/10 text-accent-text px-2 py-1 rounded-full">Limit Orders</span>
+                                                    <span className="bg-primary/10 text-accent-text px-2 py-1 rounded-full">DCA</span>
+                                                    <span className="bg-primary/10 text-accent-text px-2 py-1 rounded-full">OTC Trading</span>
+                                                    <span className="bg-primary/10 text-accent-text px-2 py-1 rounded-full">Swapping</span>
                                                 </div>
                                             </div>
 
                                             {vaultWrapperTxId ? (
                                                 <div className="text-center space-y-3">
-                                                    <div className="flex items-center justify-center text-green-600 dark:text-green-400">
+                                                    <div className="flex items-center justify-center text-success ">
                                                         <Check className="h-5 w-5 mr-2" />
                                                         <span className="font-medium">Vault Wrapper Deployed!</span>
                                                     </div>
@@ -1094,7 +1094,7 @@ export default function SubnetWrapperWizard() {
                                                         href={`https://explorer.hiro.so/txid/${vaultWrapperTxId}?chain=mainnet`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="inline-flex items-center text-sm text-primary hover:text-primary/80"
+                                                        className="inline-flex items-center text-sm text-accent-text hover:text-accent-text/80"
                                                     >
                                                         View Vault Transaction <ArrowUpRight className="ml-1 h-3 w-3" />
                                                     </a>
@@ -1124,7 +1124,7 @@ export default function SubnetWrapperWizard() {
 
                                 {/* Metadata Verification Section */}
                                 <div className="w-full max-w-md mb-6">
-                                    <div className="bg-accent border border-border rounded-lg p-4 space-y-3">
+                                    <div className="bg-surface-hover border border-border rounded-lg p-4 space-y-3">
                                         <div className="flex items-center justify-between">
                                             <h4 className="font-medium text-accent-foreground">Verify Subnet Metadata</h4>
                                             <Button
@@ -1146,14 +1146,14 @@ export default function SubnetWrapperWizard() {
 
                                         {metadataVerificationResult && (
                                             <div className={`p-3 rounded text-sm border ${metadataVerificationResult.success
-                                                ? 'bg-green-50 dark:bg-green-950/20 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800'
-                                                : 'bg-yellow-50 dark:bg-yellow-950/20 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800'
+                                                ? 'bg-success-soft  text-success  border-success/30 '
+                                                : 'bg-warning-soft  text-warning  border-warning/30 '
                                                 }`}>
                                                 <p>{metadataVerificationResult.message}</p>
                                                 {metadataVerificationResult.data && (
                                                     <details className="mt-2">
                                                         <summary className="cursor-pointer font-medium">View metadata details</summary>
-                                                        <pre className="mt-2 text-xs overflow-auto bg-background/50 p-2 rounded">
+                                                        <pre className="mt-2 text-xs overflow-auto bg-surface-sunken p-2 rounded">
                                                             {JSON.stringify(metadataVerificationResult.data, null, 2)}
                                                         </pre>
                                                     </details>
@@ -1197,7 +1197,7 @@ export default function SubnetWrapperWizard() {
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="w-8 h-8 text-primary/60"
+                            className="w-8 h-8 text-accent-text/60"
                         >
                             <circle cx="12" cy="12" r="10" />
                             <line x1="12" y1="16" x2="12" y2="12" />
@@ -1227,7 +1227,7 @@ export default function SubnetWrapperWizard() {
             </div>
 
             <h1 className="text-3xl font-bold flex items-center">
-                <Globe className="mr-2 h-7 w-7 text-primary" />
+                <Globe className="mr-2 h-7 w-7 text-accent-text" />
                 Blaze SIP-10 Subnet
             </h1>
             <p className="text-muted-foreground">

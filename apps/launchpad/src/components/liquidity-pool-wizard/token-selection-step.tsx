@@ -264,12 +264,12 @@ export const TokenSelectionStep = ({
                                                             );
                                                         } else {
                                                             return (
-                                                                <div className="text-sm font-bold text-primary/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
+                                                                <div className="text-sm font-bold text-accent-text/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
                                                             );
                                                         }
                                                     })()
                                                 ) : (
-                                                    <div className="text-sm font-bold text-primary/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
+                                                    <div className="text-sm font-bold text-accent-text/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
                                                 )}
                                             </div>
                                             <div>
@@ -305,7 +305,7 @@ export const TokenSelectionStep = ({
                         <div>
                             {isLoadingTokens ? (
                                 <div className="flex justify-center py-8">
-                                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                    <Loader2 className="w-8 h-8 animate-spin text-accent-text" />
                                 </div>
                             ) : tokenLoadError ? (
                                 <div className="text-center text-destructive mb-4">
@@ -357,12 +357,12 @@ export const TokenSelectionStep = ({
                                             }}
                                         >
                                             {token.tokenAContract && token.tokenBContract && (
-                                                <span className="absolute top-2 left-2 bg-gray-800 text-gray-200 border border-gray-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
+                                                <span className="absolute top-2 left-2 bg-surface-raised text-ink-body border border-line text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
                                                     LP Token
                                                 </span>
                                             )}
                                             {token.type === 'SUBNET' && (
-                                                <span className="absolute top-2 right-2 bg-gray-800 text-gray-200 border border-gray-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
+                                                <span className="absolute top-2 right-2 bg-surface-raised text-ink-body border border-line text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
                                                     Subnet
                                                 </span>
                                             )}
@@ -397,21 +397,21 @@ export const TokenSelectionStep = ({
                                                                 );
                                                             } else {
                                                                 return (
-                                                                    <div className="w-full h-full font-bold text-primary/60 flex items-center justify-center text-xl">
+                                                                    <div className="w-full h-full font-bold text-accent-text/60 flex items-center justify-center text-xl">
                                                                         {(token.symbol || token.name || 'T').charAt(0).toUpperCase()}
                                                                     </div>
                                                                 );
                                                             }
                                                         })()
                                                     ) : (
-                                                        <div className="w-full h-full font-bold text-primary/60 flex items-center justify-center text-xl">
+                                                        <div className="w-full h-full font-bold text-accent-text/60 flex items-center justify-center text-xl">
                                                             {(token.symbol || token.name || 'T').charAt(0).toUpperCase()}
                                                         </div>
                                                     )}
                                                 </div>
                                                 <h3 className="font-medium truncate max-w-full">{token.symbol || 'N/A'}</h3>
                                                 <p className="text-sm text-muted-foreground truncate max-w-full">{token.name || 'Unknown Name'}</p>
-                                                <p className="text-xs text-muted-foreground font-mono group-hover:text-primary/80 transition-colors">
+                                                <p className="text-xs text-muted-foreground font-mono group-hover:text-accent-text/80 transition-colors">
                                                     {truncateAddress(token.contractId)}
                                                 </p>
                                             </div>
@@ -422,7 +422,7 @@ export const TokenSelectionStep = ({
                                     >
                                         <div className="p-6 flex flex-col items-center">
                                             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                                                <HelpCircle className="w-8 h-8 text-primary/60" />
+                                                <HelpCircle className="w-8 h-8 text-accent-text/60" />
                                             </div>
                                             <h3 className="font-medium">Custom Token</h3>
                                             <p className="text-sm text-muted-foreground">Enter contract ID manually</p>
@@ -530,12 +530,12 @@ export const TokenSelectionStep = ({
                                                             );
                                                         } else {
                                                             return (
-                                                                <div className="text-sm font-bold text-primary/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
+                                                                <div className="text-sm font-bold text-accent-text/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
                                                             );
                                                         }
                                                     })()
                                                 ) : (
-                                                    <div className="text-sm font-bold text-primary/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
+                                                    <div className="text-sm font-bold text-accent-text/60">{(fetchedToken.symbol || 'T').charAt(0).toUpperCase()}</div>
                                                 )}
                                             </div>
                                             <div>
@@ -571,7 +571,7 @@ export const TokenSelectionStep = ({
                         <div>
                             {isLoadingTokens ? (
                                 <div className="flex justify-center py-8">
-                                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                    <Loader2 className="w-8 h-8 animate-spin text-accent-text" />
                                 </div>
                             ) : tokenLoadError ? (
                                 <div className="text-center text-destructive mb-4">
@@ -623,12 +623,12 @@ export const TokenSelectionStep = ({
                                             }}
                                         >
                                             {token.tokenAContract && token.tokenBContract && (
-                                                <span className="absolute top-2 left-2 bg-gray-800 text-gray-200 border border-gray-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
+                                                <span className="absolute top-2 left-2 bg-surface-raised text-ink-body border border-line text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
                                                     LP Token
                                                 </span>
                                             )}
                                             {token.type === 'SUBNET' && (
-                                                <span className="absolute top-2 right-2 bg-gray-800 text-gray-200 border border-gray-600 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
+                                                <span className="absolute top-2 right-2 bg-surface-raised text-ink-body border border-line text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
                                                     Subnet
                                                 </span>
                                             )}
@@ -663,21 +663,21 @@ export const TokenSelectionStep = ({
                                                                 );
                                                             } else {
                                                                 return (
-                                                                    <div className="w-full h-full font-bold text-primary/60 flex items-center justify-center text-xl">
+                                                                    <div className="w-full h-full font-bold text-accent-text/60 flex items-center justify-center text-xl">
                                                                         {(token.symbol || token.name || 'T').charAt(0).toUpperCase()}
                                                                     </div>
                                                                 );
                                                             }
                                                         })()
                                                     ) : (
-                                                        <div className="w-full h-full font-bold text-primary/60 flex items-center justify-center text-xl">
+                                                        <div className="w-full h-full font-bold text-accent-text/60 flex items-center justify-center text-xl">
                                                             {(token.symbol || token.name || 'T').charAt(0).toUpperCase()}
                                                         </div>
                                                     )}
                                                 </div>
                                                 <h3 className="font-medium truncate max-w-full">{token.symbol || 'N/A'}</h3>
                                                 <p className="text-sm text-muted-foreground truncate max-w-full">{token.name || 'Unknown Name'}</p>
-                                                <p className="text-xs text-muted-foreground font-mono group-hover:text-primary/80 transition-colors">
+                                                <p className="text-xs text-muted-foreground font-mono group-hover:text-accent-text/80 transition-colors">
                                                     {truncateAddress(token.contractId)}
                                                 </p>
                                             </div>
@@ -688,7 +688,7 @@ export const TokenSelectionStep = ({
                                     >
                                         <div className="p-6 flex flex-col items-center">
                                             <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                                                <HelpCircle className="w-8 h-8 text-primary/60" />
+                                                <HelpCircle className="w-8 h-8 text-accent-text/60" />
                                             </div>
                                             <h3 className="font-medium">Custom Token</h3>
                                             <p className="text-sm text-muted-foreground">Enter contract ID manually</p>

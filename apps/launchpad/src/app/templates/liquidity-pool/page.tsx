@@ -857,7 +857,7 @@ function LiquidityPoolWizard() {
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="w-8 h-8 text-primary/60"
+                            className="w-8 h-8 text-accent-text/60"
                         >
                             <circle cx="12" cy="12" r="10" />
                             <line x1="12" y1="16" x2="12" y2="12" />
@@ -887,7 +887,7 @@ function LiquidityPoolWizard() {
                 {/* Main Form */}
                 <div className="flex-1">
                     <h1 className="text-3xl font-bold mb-6 flex items-center">
-                        <Layers className="h-6 w-6 mr-2 text-primary" />
+                        <Layers className="h-6 w-6 mr-2 text-accent-text" />
                         Deploy Liquidity Pool
                     </h1>
                     <p className="text-muted-foreground mb-8">
@@ -1003,7 +1003,7 @@ function LiquidityPoolWizard() {
                                         href="https://book.stacks.tools/defi/liquidity-pools"
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-sm flex items-center text-primary hover:underline"
+                                        className="text-sm flex items-center text-accent-text hover:underline"
                                     >
                                         <ExternalLink className="h-3.5 w-3.5 mr-2" /> Liquidity Pool Documentation
                                     </a>
@@ -1013,7 +1013,7 @@ function LiquidityPoolWizard() {
                                         href="https://discord.gg/charisma"
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-sm flex items-center text-primary hover:underline"
+                                        className="text-sm flex items-center text-accent-text hover:underline"
                                     >
                                         <ExternalLink className="h-3.5 w-3.5 mr-2" /> Community Support
                                     </a>

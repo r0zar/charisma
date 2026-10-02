@@ -367,7 +367,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                 <div className="relative w-16 h-16">
                     <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <Layers className="w-8 h-8 text-primary/60" />
+                        <Layers className="w-8 h-8 text-accent-text/60" />
                     </div>
                 </div>
                 <p className="mt-4 text-muted-foreground">Initializing...</p>
@@ -379,7 +379,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] text-center py-12 bg-gradient-to-b from-background to-muted/20 rounded-xl">
                 <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-                    <Layers className="w-10 h-10 text-primary/60" />
+                    <Layers className="w-10 h-10 text-accent-text/60" />
                 </div>
                 <h2 className="text-2xl font-semibold mb-2">Connect your wallet</h2>
                 <p className="text-muted-foreground max-w-md">
@@ -396,7 +396,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                 <div className="relative w-16 h-16">
                     <div className="absolute inset-0 rounded-full border-t-2 border-primary animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                        <Layers className="w-8 h-8 text-primary/60" />
+                        <Layers className="w-8 h-8 text-accent-text/60" />
                     </div>
                 </div>
                 <p className="mt-4 text-muted-foreground">Loading token metadata...</p>
@@ -451,7 +451,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                             {!editingContractId ? (
                                 <button
                                     onClick={startEditingContractId}
-                                    className="text-xs text-primary hover:text-primary/80 transition-colors"
+                                    className="text-xs text-accent-text hover:text-accent-text/80 transition-colors"
                                     title="Edit token identifier"
                                 >
                                     <PencilLine className="h-3 w-3" />
@@ -460,14 +460,14 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                 <div className="flex items-center space-x-1">
                                     <button
                                         onClick={saveEditedContractId}
-                                        className="text-xs text-green-500 hover:text-green-600 transition-colors"
+                                        className="text-xs text-success hover:text-success transition-colors"
                                         title="Save changes"
                                     >
                                         <Check className="h-3 w-3" />
                                     </button>
                                     <button
                                         onClick={cancelEditingContractId}
-                                        className="text-xs text-red-500 hover:text-red-600 transition-colors"
+                                        className="text-xs text-danger hover:text-danger transition-colors"
                                         title="Cancel"
                                     >
                                         <X className="h-3 w-3" />
@@ -530,9 +530,9 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="bg-green-50 border border-green-200 text-green-800 p-4 rounded-lg mb-6 flex items-center"
+                        className="bg-success-soft border border-success/30 text-success p-4 rounded-lg mb-6 flex items-center"
                     >
-                        <div className="mr-2 flex-shrink-0 h-5 w-5 text-green-500">
+                        <div className="mr-2 flex-shrink-0 h-5 w-5 text-success">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
                             </svg>
@@ -548,7 +548,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                     <div className="sticky top-24 space-y-6">
                         <div className="bg-gradient-to-br from-background to-muted/30 border border-border/50 rounded-xl p-6 overflow-hidden">
                             <h3 className="text-lg font-medium mb-4 flex items-center">
-                                <Layers className="inline mr-2 h-5 w-5 text-primary/70" />
+                                <Layers className="inline mr-2 h-5 w-5 text-accent-text/70" />
                                 Token Image
                             </h3>
 
@@ -575,7 +575,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                 <div className="flex">
                                     <button
                                         className={`py-2 px-3 text-sm font-medium border-b-2 transition-colors ${activeImageTab === 'generate'
-                                            ? 'border-primary text-primary'
+                                            ? 'border-primary text-accent-text'
                                             : 'border-transparent text-muted-foreground hover:text-foreground'
                                             }`}
                                         onClick={() => setActiveImageTab('generate')}
@@ -584,7 +584,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                     </button>
                                     <button
                                         className={`py-2 px-3 text-sm font-medium border-b-2 transition-colors ${activeImageTab === 'upload'
-                                            ? 'border-primary text-primary'
+                                            ? 'border-primary text-accent-text'
                                             : 'border-transparent text-muted-foreground hover:text-foreground'
                                             }`}
                                         onClick={() => setActiveImageTab('upload')}
@@ -605,7 +605,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                                 type="text"
                                                 id="imagePrompt"
                                                 name="imagePrompt"
-                                                className="w-full pl-3 pr-10 py-2 border border-border bg-background/50 rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all"
+                                                className="w-full pl-3 pr-10 py-2 border border-border bg-surface rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all"
                                                 value={formData.imagePrompt}
                                                 onChange={handleChange}
                                                 placeholder="Describe token's appearance..."
@@ -678,13 +678,13 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                         {/* Tab Navigation */}
                         <div className="flex border-b border-border/50">
                             <button
-                                className={`flex-1 py-3 px-4 text-center text-sm font-medium ${activeTab === 'basic' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground/80'}`}
+                                className={`flex-1 py-3 px-4 text-center text-sm font-medium ${activeTab === 'basic' ? 'text-accent-text border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground/80'}`}
                                 onClick={() => setActiveTab('basic')}
                             >
                                 Basic Information
                             </button>
                             <button
-                                className={`flex-1 py-3 px-4 text-center text-sm font-medium ${activeTab === 'advanced' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground/80'}`}
+                                className={`flex-1 py-3 px-4 text-center text-sm font-medium ${activeTab === 'advanced' ? 'text-accent-text border-b-2 border-primary' : 'text-muted-foreground hover:text-foreground/80'}`}
                                 onClick={() => setActiveTab('advanced')}
                             >
                                 Advanced Details
@@ -704,7 +704,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                                 type="text"
                                                 id="name"
                                                 name="name"
-                                                className="w-full px-3 py-2 border border-border bg-background/50 rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all"
+                                                className="w-full px-3 py-2 border border-border bg-surface rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all"
                                                 value={formData.name}
                                                 onChange={handleChange}
                                                 required
@@ -719,7 +719,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                                 type="text"
                                                 id="symbol"
                                                 name="symbol"
-                                                className="w-full px-3 py-2 border border-border bg-background/50 rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all"
+                                                className="w-full px-3 py-2 border border-border bg-surface rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all"
                                                 value={formData.symbol}
                                                 onChange={handleChange}
                                                 required
@@ -736,7 +736,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                             id="description"
                                             name="description"
                                             rows={4}
-                                            className="w-full px-3 py-2 border border-border bg-background/50 rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all resize-none"
+                                            className="w-full px-3 py-2 border border-border bg-surface rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all resize-none"
                                             value={formData.description}
                                             onChange={handleChange}
                                             placeholder="Describe your token's purpose and features..."
@@ -757,7 +757,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                                 type="text"
                                                 id="identifier"
                                                 name="identifier"
-                                                className="w-full px-3 py-2 border border-border bg-background/50 rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all"
+                                                className="w-full px-3 py-2 border border-border bg-surface rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all"
                                                 value={formData.identifier}
                                                 onChange={handleChange}
                                                 required
@@ -776,7 +776,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
                                                 name="decimals"
                                                 min="0"
                                                 max="18"
-                                                className="w-full px-3 py-2 border border-border bg-background/50 rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all"
+                                                className="w-full px-3 py-2 border border-border bg-surface rounded-md focus:ring-1 focus:ring-primary/30 focus:border-primary/40 outline-none transition-all"
                                                 value={formData.decimals}
                                                 onChange={handleChange}
                                                 required
@@ -789,7 +789,7 @@ export function TokenDetail({ contractId: initialContractId }: TokenDetailProps)
 
                                     <div className="bg-muted/40 border border-border/50 rounded-lg p-4">
                                         <h4 className="text-sm font-medium mb-2 flex items-center">
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mr-1.5 text-primary/70">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 mr-1.5 text-accent-text/70">
                                                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
                                             </svg>
                                             Advanced Properties

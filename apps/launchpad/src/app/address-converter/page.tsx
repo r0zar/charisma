@@ -355,7 +355,7 @@ export default function AddressConverterPage() {
                                     {logs.length > 0 && (
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Execution Log</h3>
-                                            <div className="p-3 bg-black text-green-400 font-mono text-xs rounded-lg h-40 overflow-y-auto">
+                                            <div className="p-3 bg-overlay text-success font-mono text-xs rounded-lg h-40 overflow-y-auto">
                                                 {logs.map((log, index) => (
                                                     <div key={index} className="py-0.5 whitespace-pre-wrap">
                                                         &gt; {log}
@@ -372,12 +372,12 @@ export default function AddressConverterPage() {
 
                                     {/* Error Display */}
                                     {error && (
-                                        <div className="p-3 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-md">
+                                        <div className="p-3 bg-danger-soft border border-danger/30  rounded-md">
                                             <div className="flex items-start">
-                                                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mr-2 flex-shrink-0 mt-0.5" />
+                                                <AlertTriangle className="h-5 w-5 text-danger mr-2 flex-shrink-0 mt-0.5" />
                                                 <div>
-                                                    <h3 className="text-sm font-medium text-red-800 dark:text-red-300">Error</h3>
-                                                    <p className="text-xs text-red-700 dark:text-red-400 mt-1">{error}</p>
+                                                    <h3 className="text-sm font-medium text-danger ">Error</h3>
+                                                    <p className="text-xs text-danger mt-1">{error}</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -424,7 +424,7 @@ export default function AddressConverterPage() {
                                             <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="Select Helper Function" />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-background">
+                                            <SelectContent className="bg-surface-raised">
                                                 {helperFunctions.map(helper => (
                                                     <SelectItem key={helper.id} value={helper.id}>
                                                         {helper.name} - {helper.description}
@@ -453,7 +453,7 @@ export default function AddressConverterPage() {
                                                                 <SelectTrigger className="w-[150px]">
                                                                     <SelectValue placeholder="List Item Type" />
                                                                 </SelectTrigger>
-                                                                <SelectContent className="bg-background">
+                                                                <SelectContent className="bg-surface-raised">
                                                                     <SelectItem value="uint">uint</SelectItem>
                                                                     <SelectItem value="string">string</SelectItem>
                                                                     <SelectItem value="boolean">boolean</SelectItem>
@@ -512,7 +512,7 @@ export default function AddressConverterPage() {
                                     {logs.length > 0 && isTestingHelper && (
                                         <div>
                                             <h3 className="text-sm font-medium mb-2">Execution Log</h3>
-                                            <div className="p-3 bg-black text-green-400 font-mono text-xs rounded-lg h-40 overflow-y-auto">
+                                            <div className="p-3 bg-overlay text-success font-mono text-xs rounded-lg h-40 overflow-y-auto">
                                                 {logs.map((log, index) => (
                                                     <div key={index} className="py-0.5 whitespace-pre-wrap">
                                                         &gt; {log}

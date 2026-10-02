@@ -87,7 +87,7 @@ export default function YeetContractDeployment() {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Rocket className="h-5 w-5 text-primary" />
+                            <Rocket className="h-5 w-5 text-accent-text" />
                             YOLO Contract Deployer
                         </CardTitle>
                         <CardDescription>
@@ -96,7 +96,7 @@ export default function YeetContractDeployment() {
                     </CardHeader>
                     <CardContent className="flex flex-col items-center justify-center py-10">
                         <div className="rounded-full bg-primary/10 p-4 mb-4">
-                            <Code className="h-8 w-8 text-primary" />
+                            <Code className="h-8 w-8 text-accent-text" />
                         </div>
                         <h3 className="text-xl font-medium mb-2">Wallet Not Connected</h3>
                         <p className="text-muted-foreground text-center max-w-md mb-6">
@@ -113,7 +113,7 @@ export default function YeetContractDeployment() {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Rocket className="h-5 w-5 text-primary" />
+                        <Rocket className="h-5 w-5 text-accent-text" />
                         YOLO Contract Deployer
                     </CardTitle>
                     <CardDescription>

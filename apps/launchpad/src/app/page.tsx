@@ -11,7 +11,7 @@ export default function HomePage() {
         <div className="container relative z-10">
           <div className="mx-auto max-w-3xl text-center">
             <div className="inline-flex items-center justify-center px-4 py-1.5 mb-6 text-sm rounded-full border border-border bg-muted/50 text-foreground/80 gap-x-2">
-              <Rocket className="h-3.5 w-3.5 text-primary" />
+              <Rocket className="h-3.5 w-3.5 text-accent-text" />
               <span>Smart contract deployment made simple</span>
             </div>
 
@@ -58,9 +58,9 @@ export default function HomePage() {
 
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {/* Feature 1 */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <Code className="h-6 w-6 text-primary" />
+                <Code className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">SIP10 Tokens</h3>
               <p className="text-muted-foreground">
@@ -69,9 +69,9 @@ export default function HomePage() {
             </div>
 
             {/* Feature 2 */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <Layers className="h-6 w-6 text-primary" />
+                <Layers className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Liquidity Pools</h3>
               <p className="text-muted-foreground">
@@ -80,9 +80,9 @@ export default function HomePage() {
             </div>
 
             {/* Feature 3 */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <GitBranch className="h-6 w-6 text-primary" />
+                <GitBranch className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Template Customization</h3>
               <p className="text-muted-foreground">
@@ -91,9 +91,9 @@ export default function HomePage() {
             </div>
 
             {/* Feature 4 */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <Shield className="h-6 w-6 text-primary" />
+                <Shield className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Wallet-Based Deployment</h3>
               <p className="text-muted-foreground">
@@ -102,9 +102,9 @@ export default function HomePage() {
             </div>
 
             {/* Feature 5 */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <Database className="h-6 w-6 text-primary" />
+                <Database className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Contract Management</h3>
               <p className="text-muted-foreground">
@@ -113,9 +113,9 @@ export default function HomePage() {
             </div>
 
             {/* Feature 6 */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <Sparkles className="h-6 w-6 text-primary" />
+                <Sparkles className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Metadata Integration</h3>
               <p className="text-muted-foreground">

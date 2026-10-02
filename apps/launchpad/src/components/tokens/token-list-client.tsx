@@ -34,9 +34,9 @@ export function TokenListClient() {
     // If wallet is not connected, show connection message after delay
     if (showAuthMessage) {
         return (
-            <div className="text-center py-12 border border-amber-200 bg-amber-50 rounded-lg">
+            <div className="text-center py-12 border border-warning/30 bg-warning-soft rounded-lg">
                 <h2 className="text-xl font-semibold mb-4">Connect your wallet to manage tokens</h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-ink-muted">
                     Use the "Connect" button in the top right corner.
                 </p>
             </div>
@@ -51,9 +51,9 @@ export function TokenListClient() {
     // If there's an error fetching tokens
     if (tokensError) {
         return (
-            <div className="text-center py-12 border border-red-200 bg-red-50 rounded-lg">
+            <div className="text-center py-12 border border-danger/30 bg-danger-soft rounded-lg">
                 <h2 className="text-xl font-semibold mb-4">Error loading tokens</h2>
-                <p className="text-sm text-gray-500">
+                <p className="text-sm text-ink-muted">
                     {tokensError}
                 </p>
                 <Button

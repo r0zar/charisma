@@ -8,11 +8,11 @@ const Alert = React.forwardRef<
     }
 >(({ className, variant = "default", ...props }, ref) => {
     const variantClasses = {
-        default: "bg-background text-foreground",
+        default: "bg-surface text-foreground",
         destructive: "bg-destructive/15 text-destructive border-destructive/50",
-        info: "bg-blue-500/15 text-blue-500 border-blue-500/50",
-        warning: "bg-yellow-500/15 text-yellow-500 border-yellow-500/50",
-        success: "bg-green-500/15 text-green-500 border-green-500/50"
+        info: "bg-accent/15 text-accent-text border-accent/50",
+        warning: "bg-warning/15 text-warning border-warning/50",
+        success: "bg-success/15 text-success border-success/50"
     }
 
     return (
@@ -20,7 +20,7 @@ const Alert = React.forwardRef<
             ref={ref}
             role="alert"
             className={cn(
-                "relative w-full rounded-lg border p-4",
+ "relative w-full rounded-lg border p-4",
                 variantClasses[variant],
                 className
             )}

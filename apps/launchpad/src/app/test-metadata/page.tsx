@@ -100,7 +100,7 @@ export default function MetadataTestPage() {
             {results.length > 0 && (
                 <div className="grid gap-6">
                     {results.map((result, index) => (
-                        <Card key={index} className={`${result.underLimit ? 'border-emerald-500 dark:border-emerald-400' : 'border-destructive dark:border-destructive'}`}>
+                        <Card key={index} className={`${result.underLimit ? 'border-success ' : 'border-destructive '}`}>
                             <CardHeader>
                                 <CardTitle className="flex items-center justify-between">
                                     <span>{result.strategy}</span>
@@ -109,7 +109,7 @@ export default function MetadataTestPage() {
                                             {result.length} chars
                                         </Badge>
                                         {result.underLimit && (
-                                            <Badge variant="outline" className="border-emerald-500 dark:border-emerald-400 text-emerald-600 dark:text-emerald-300">
+                                            <Badge variant="outline" className="border-success text-success ">
                                                 ✓ Under 256
                                             </Badge>
                                         )}
@@ -135,7 +135,7 @@ export default function MetadataTestPage() {
                                     {result.decoded.image && result.decoded.image.startsWith('data:image') && (
                                         <div>
                                             <Label className="text-sm font-medium">Image Preview:</Label>
-                                            <div className="mt-1 w-16 h-16 border rounded bg-background dark:bg-background flex items-center justify-center">
+                                            <div className="mt-1 w-16 h-16 border rounded bg-surface flex items-center justify-center">
                                                 <img
                                                     src={result.decoded.image}
                                                     alt="preview"
@@ -175,8 +175,8 @@ export default function MetadataTestPage() {
                     </div>
                 </div>
 
-                <div className="mt-4 p-4 bg-primary/10 dark:bg-primary/20 border border-primary/20 dark:border-primary/30 rounded-lg">
-                    <p className="text-sm text-primary dark:text-primary">
+                <div className="mt-4 p-4 bg-primary/10 border border-primary/20  rounded-lg">
+                    <p className="text-sm text-accent-text ">
                         <strong>Optimization:</strong> Description field removed to save ~15-30 characters.
                         All strategies maintain standard field names (name, image) for full SIP-010 and metadata standards compatibility.
                         Color pixels and SVG circles now use random colors for visual variety!

@@ -101,7 +101,7 @@ export function ContractsList({ limit }: ContractsListProps) {
         return (
             <div className="flex items-center justify-center w-full py-12">
                 <svg
-                    className="w-8 h-8 text-primary animate-spin mr-3"
+                    className="w-8 h-8 text-accent-text animate-spin mr-3"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"
@@ -140,7 +140,7 @@ export function ContractsList({ limit }: ContractsListProps) {
                         strokeWidth="2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="w-8 h-8 text-primary/60"
+                        className="w-8 h-8 text-accent-text/60"
                     >
                         <circle cx="12" cy="12" r="10" />
                         <line x1="12" y1="16" x2="12" y2="12" />
@@ -236,7 +236,7 @@ export function ContractsList({ limit }: ContractsListProps) {
             {loading && !firstLoad && (
                 <div className="flex items-center justify-center w-full py-4">
                     <svg
-                        className="w-6 h-6 text-primary animate-spin mr-2"
+                        className="w-6 h-6 text-accent-text animate-spin mr-2"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="none"
                         viewBox="0 0 24 24"
@@ -290,24 +290,24 @@ function ContractCard({ contract, index }: ContractCardProps) {
     const getStatusColor = (status: Contract['status']) => {
         switch (status) {
             case 'deployed':
-                return 'bg-green-500';
+                return 'bg-success';
             case 'deploying':
-                return 'bg-yellow-500';
+                return 'bg-warning';
             case 'failed':
-                return 'bg-red-500';
+                return 'bg-danger';
             default:
-                return 'bg-gray-500';
+                return 'bg-surface-hover';
         }
     };
 
     const getIcon = (type: ContractType) => {
         switch (type) {
             case 'sip10':
-                return <Code className="h-6 w-6 text-primary" />;
+                return <Code className="h-6 w-6 text-accent-text" />;
             case 'liquidity-pool':
-                return <Layers className="h-6 w-6 text-primary" />;
+                return <Layers className="h-6 w-6 text-accent-text" />;
             default:
-                return <Code className="h-6 w-6 text-primary" />;
+                return <Code className="h-6 w-6 text-accent-text" />;
         }
     };
 

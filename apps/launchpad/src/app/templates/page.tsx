@@ -193,7 +193,7 @@ const TemplatesPage = () => {
                                     <ul className="space-y-1">
                                         {template.features.map((feature, featureIndex) => (
                                             <li key={featureIndex} className="text-sm text-muted-foreground flex items-start">
-                                                <span className="mr-2 text-primary">•</span>
+                                                <span className="mr-2 text-accent-text">•</span>
                                                 {feature}
                                             </li>
                                         ))}

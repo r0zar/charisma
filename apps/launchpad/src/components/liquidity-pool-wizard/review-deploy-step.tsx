@@ -104,15 +104,15 @@ export const ReviewDeployStep: React.FC<ReviewDeployStepProps> = ({
             <div className="space-y-8">
                 {/* Success message when metadata is generated */}
                 {showSuccessMessage && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start space-x-3 transition-all animate-in fade-in slide-in-from-top-4">
-                        <div className="h-5 w-5 mt-0.5 rounded-full bg-green-500 flex items-center justify-center">
-                            <Check className="h-3.5 w-3.5 text-white" />
+                    <div className="bg-success-soft border border-success/30 rounded-lg p-4 flex items-start space-x-3 transition-all animate-in fade-in slide-in-from-top-4">
+                        <div className="h-5 w-5 mt-0.5 rounded-full bg-success flex items-center justify-center">
+                            <Check className="h-3.5 w-3.5 text-ink" />
                         </div>
                         <div className="flex-1">
-                            <h4 className="font-medium text-green-900">Metadata Generated Successfully</h4>
-                            <p className="text-sm text-green-700">Your LP token metadata has been created and saved.</p>
+                            <h4 className="font-medium text-success">Metadata Generated Successfully</h4>
+                            <p className="text-sm text-success">Your LP token metadata has been created and saved.</p>
                         </div>
-                        <button onClick={() => setShowSuccessMessage(false)} className="text-green-500 hover:text-green-700">
+                        <button onClick={() => setShowSuccessMessage(false)} className="text-success hover:text-success">
                             <X className="h-4 w-4" />
                         </button>
                     </div>
@@ -120,10 +120,10 @@ export const ReviewDeployStep: React.FC<ReviewDeployStepProps> = ({
 
                 {/* Pool Configuration Summary Card */}
                 <Card className="overflow-hidden border-none shadow-md">
-                    <CardHeader className="bg-slate-50 dark:bg-slate-900/50 border-b pb-3">
+                    <CardHeader className="bg-surface-hover border-b pb-3">
                         <div className="flex items-center">
                             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                                <Layers className="h-4 w-4 text-primary" />
+                                <Layers className="h-4 w-4 text-accent-text" />
                             </div>
                             <div>
                                 <CardTitle className="text-lg">Pool Configuration</CardTitle>
@@ -134,7 +134,7 @@ export const ReviewDeployStep: React.FC<ReviewDeployStepProps> = ({
                         </div>
                     </CardHeader>
 
-                    <CardContent className="p-0 bg-slate-100/30 dark:bg-slate-900/30">
+                    <CardContent className="p-0 bg-surface-hover ">
                         <div className="divide-y">
                             <div className="grid grid-cols-3 px-6 py-4">
                                 <div className="col-span-1">
@@ -151,7 +151,7 @@ export const ReviewDeployStep: React.FC<ReviewDeployStepProps> = ({
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-3 px-6 py-4 bg-slate-50/60 dark:bg-slate-800/60">
+                            <div className="grid grid-cols-3 px-6 py-4 bg-surface-hover ">
                                 <div className="col-span-1">
                                     <div className="flex items-center mb-2">
                                         <span className="text-xs text-muted-foreground mr-2">Token Pair</span>
@@ -262,10 +262,10 @@ export const ReviewDeployStep: React.FC<ReviewDeployStepProps> = ({
 
                 {/* LP Token Metadata Card */}
                 <Card className="overflow-hidden border-none shadow-md">
-                    <CardHeader className="bg-slate-50 dark:bg-slate-900/50 border-b pb-3">
+                    <CardHeader className="bg-surface-hover border-b pb-3">
                         <div className="flex items-center">
                             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                                <ImageIconLucide className="h-4 w-4 text-primary" />
+                                <ImageIconLucide className="h-4 w-4 text-accent-text" />
                             </div>
                             <div>
                                 <CardTitle className="text-lg">LP Token Metadata</CardTitle>
@@ -276,7 +276,7 @@ export const ReviewDeployStep: React.FC<ReviewDeployStepProps> = ({
                         </div>
                     </CardHeader>
 
-                    <CardContent className="p-6 bg-slate-100/30 dark:bg-slate-900/30">
+                    <CardContent className="p-6 bg-surface-hover ">
                         {metadataApiError ? (
                             <div className="flex items-center p-4 bg-destructive/15 border border-destructive/30 rounded-lg">
                                 <AlertTriangle className="h-5 w-5 text-destructive mr-3" />
@@ -290,7 +290,7 @@ export const ReviewDeployStep: React.FC<ReviewDeployStepProps> = ({
                         ) : isGeneratingMetadata ? (
                             <div className="p-6 text-center">
                                 <div className="flex flex-col items-center justify-center h-48">
-                                    <Loader2 className="h-12 w-12 text-primary/30 animate-spin mb-4" />
+                                    <Loader2 className="h-12 w-12 text-accent-text/30 animate-spin mb-4" />
                                     <p className="text-muted-foreground">Generating LP token metadata...</p>
                                     <p className="text-xs text-muted-foreground mt-2">
                                         This may take a moment. We're creating your token information.
@@ -311,24 +311,24 @@ export const ReviewDeployStep: React.FC<ReviewDeployStepProps> = ({
                                                 onError={(e) => {
                                                     (e.target as HTMLImageElement).style.display = 'none';
                                                     const fallbackEl = document.createElement('div');
-                                                    fallbackEl.className = 'text-4xl font-bold text-primary/40';
+                                                    fallbackEl.className = 'text-4xl font-bold text-accent-text/40';
                                                     fallbackEl.textContent = lpTokenSymbol.substring(0, 2);
                                                     e.currentTarget.parentElement?.appendChild(fallbackEl);
                                                 }}
                                             />
                                         ) : (
-                                            <div className="text-4xl font-bold text-primary/40">
+                                            <div className="text-4xl font-bold text-accent-text/40">
                                                 {lpTokenSymbol.substring(0, 2)}
                                             </div>
                                         )}
                                     </div>
                                     <div className="text-center mt-4">
-                                        <span className="inline-flex items-center bg-green-100 text-green-800 text-xs px-2.5 py-1 rounded-full">
+                                        <span className="inline-flex items-center bg-success-soft text-success text-xs px-2.5 py-1 rounded-full">
                                             <Check className="h-3 w-3 mr-1" /> Metadata Ready
                                         </span>
                                     </div>
                                 </div>
-                                <div className="md:w-2/3 space-y-4 p-4 rounded-lg bg-slate-50/50 dark:bg-slate-800/50">
+                                <div className="md:w-2/3 space-y-4 p-4 rounded-lg bg-surface-hover ">
                                     <div>
                                         <p className="text-sm font-medium text-muted-foreground mb-1">Token Name</p>
                                         <p className="text-lg font-medium">{metadata?.name || poolName}</p>
@@ -354,7 +354,7 @@ export const ReviewDeployStep: React.FC<ReviewDeployStepProps> = ({
                                 </div>
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center py-10 px-4 border border-dashed rounded-lg bg-slate-50/20 dark:bg-slate-800/20">
+                            <div className="flex flex-col items-center justify-center py-10 px-4 border border-dashed rounded-lg bg-surface-hover ">
                                 <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
                                     <ImageIconLucide className="h-8 w-8 text-muted-foreground/60" />
                                 </div>
@@ -388,10 +388,10 @@ export const ReviewDeployStep: React.FC<ReviewDeployStepProps> = ({
 
                 {/* Deployment Action Card */}
                 <Card className="overflow-hidden border-none shadow-md">
-                    <CardHeader className="bg-slate-50 dark:bg-slate-900/50 border-b pb-3">
+                    <CardHeader className="bg-surface-hover border-b pb-3">
                         <div className="flex items-center">
                             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                                <DollarSign className="h-4 w-4 text-primary" />
+                                <DollarSign className="h-4 w-4 text-accent-text" />
                             </div>
                             <div>
                                 <CardTitle className="text-lg">Deployment Action</CardTitle>
@@ -402,9 +402,9 @@ export const ReviewDeployStep: React.FC<ReviewDeployStepProps> = ({
                         </div>
                     </CardHeader>
 
-                    <CardContent className="p-6 bg-slate-100/30 dark:bg-slate-900/30">
+                    <CardContent className="p-6 bg-surface-hover ">
                         <div className="space-y-4">
-                            <div className="bg-slate-50/80 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 rounded-lg p-4 flex items-start space-x-3">
+                            <div className="bg-surface-hover border border-line  rounded-lg p-4 flex items-start space-x-3">
                                 <Info className="h-5 w-5 text-muted-foreground mt-0.5" />
                                 <div>
                                     <h4 className="font-medium mb-1">Ready to Deploy?</h4>
@@ -414,15 +414,15 @@ export const ReviewDeployStep: React.FC<ReviewDeployStepProps> = ({
                                     </p>
                                     <ul className="text-sm space-y-2 mb-3">
                                         <li className="flex items-center gap-x-2">
-                                            <Check className="h-4 w-4 text-green-500" />
+                                            <Check className="h-4 w-4 text-success" />
                                             <span>Deploy a new AMM liquidity pool for {token1}-{token2}</span>
                                         </li>
                                         <li className="flex items-center gap-x-2">
-                                            <Check className="h-4 w-4 text-green-500" />
+                                            <Check className="h-4 w-4 text-success" />
                                             <span>Create LP tokens that represent shares in the pool</span>
                                         </li>
                                         <li className="flex items-center gap-x-2">
-                                            <Check className="h-4 w-4 text-green-500" />
+                                            <Check className="h-4 w-4 text-success" />
                                             <span>Enable trading between {token1} and {token2} with {swapFee}% fee</span>
                                         </li>
                                     </ul>

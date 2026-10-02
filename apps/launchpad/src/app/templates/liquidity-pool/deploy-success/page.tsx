@@ -24,8 +24,8 @@ function LiquidityPoolDeploySuccessContent() {
         <div className="container py-12 flex justify-center items-center min-h-[calc(100vh-200px)]">
             <Card className="w-full max-w-2xl shadow-xl">
                 <CardHeader className="text-center">
-                    <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4 border-2 border-green-200">
-                        <CheckCircle className="h-10 w-10 text-green-600" />
+                    <div className="mx-auto w-16 h-16 rounded-full bg-success-soft flex items-center justify-center mb-4 border-2 border-success/30">
+                        <CheckCircle className="h-10 w-10 text-success" />
                     </div>
                     <CardTitle className="text-3xl font-bold">Deployment Submitted!</CardTitle>
                     <CardDescription className="text-lg text-muted-foreground">
@@ -35,7 +35,7 @@ function LiquidityPoolDeploySuccessContent() {
                 <CardContent className="space-y-6 px-8 py-10">
                     {poolName && (
                         <div className="text-center">
-                            <h2 className="text-xl font-semibold text-primary">{poolName}</h2>
+                            <h2 className="text-xl font-semibold text-accent-text">{poolName}</h2>
                         </div>
                     )}
 
@@ -100,7 +100,7 @@ function LiquidityPoolDeploySuccessContent() {
 
 export default function LiquidityPoolDeploySuccessPage() {
     return (
-        <Suspense fallback={<div className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
+        <Suspense fallback={<div className="flex justify-center items-center h-screen"><Loader2 className="h-12 w-12 animate-spin text-accent-text" /></div>}>
             <LiquidityPoolDeploySuccessContent />
         </Suspense>
     );

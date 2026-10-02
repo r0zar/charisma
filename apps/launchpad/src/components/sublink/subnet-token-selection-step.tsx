@@ -167,17 +167,17 @@ const SubnetTokenSelectionStep = ({
                                                 className="w-full h-full object-cover"
                                                 onError={(e) => {
                                                     (e.target as HTMLImageElement).style.display = 'none';
-                                                    (e.target as HTMLImageElement).parentElement!.innerHTML = `<div className="text-sm font-bold text-primary/60">${fetchedToken.symbol?.charAt(0)}</div>`;
+                                                    (e.target as HTMLImageElement).parentElement!.innerHTML = `<div className="text-sm font-bold text-accent-text/60">${fetchedToken.symbol?.charAt(0)}</div>`;
                                                 }}
                                             />
                                         ) : (
-                                            <div className="text-sm font-bold text-primary/60">{fetchedToken.symbol?.charAt(0)}</div>
+                                            <div className="text-sm font-bold text-accent-text/60">{fetchedToken.symbol?.charAt(0)}</div>
                                         )}
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
                                             <h4 className="font-medium">{fetchedToken.symbol}</h4>
-                                            <span className="px-1.5 py-0.5 text-xs bg-primary/10 text-primary rounded-full">Subnet</span>
+                                            <span className="px-1.5 py-0.5 text-xs bg-primary/10 text-accent-text rounded-full">Subnet</span>
                                         </div>
                                         <p className="text-sm text-muted-foreground">{fetchedToken.name}</p>
                                     </div>
@@ -208,7 +208,7 @@ const SubnetTokenSelectionStep = ({
                 <div>
                     {isLoadingTokens ? (
                         <div className="flex justify-center py-8">
-                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                            <Loader2 className="w-8 h-8 animate-spin text-accent-text" />
                         </div>
                     ) : filteredTokens.length === 0 ? (
                         <div className="text-center py-8 space-y-4">
@@ -229,7 +229,7 @@ const SubnetTokenSelectionStep = ({
                                     className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden relative"
                                     onClick={() => onSelectToken(token)}
                                 >
-                                    <div className="absolute top-2 right-2 bg-primary/10 text-primary border border-primary/30 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
+                                    <div className="absolute top-2 right-2 bg-primary/10 text-accent-text border border-primary/30 text-[10px] font-medium px-1.5 py-0.5 rounded-full z-20">
                                         Subnet
                                     </div>
                                     <div className="p-6 flex flex-col items-center">
@@ -241,11 +241,11 @@ const SubnetTokenSelectionStep = ({
                                                     className="w-full h-full object-cover"
                                                     onError={(e) => {
                                                         (e.target as HTMLImageElement).style.display = 'none';
-                                                        (e.target as HTMLImageElement).parentElement!.innerHTML = `<div className="w-full h-full font-bold text-primary/60 flex items-center justify-center text-xl">${token.symbol.charAt(0)}</div>`;
+                                                        (e.target as HTMLImageElement).parentElement!.innerHTML = `<div className="w-full h-full font-bold text-accent-text/60 flex items-center justify-center text-xl">${token.symbol.charAt(0)}</div>`;
                                                     }}
                                                 />
                                             ) : (
-                                                <div className="w-full h-full font-bold text-primary/60 flex items-center justify-center text-xl">
+                                                <div className="w-full h-full font-bold text-accent-text/60 flex items-center justify-center text-xl">
                                                     {token.symbol.charAt(0)}
                                                 </div>
                                             )}
@@ -260,7 +260,7 @@ const SubnetTokenSelectionStep = ({
                             >
                                 <div className="p-6 flex flex-col items-center">
                                     <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                                        <HelpCircle className="w-8 h-8 text-primary/60" />
+                                        <HelpCircle className="w-8 h-8 text-accent-text/60" />
                                     </div>
                                     <h3 className="font-medium">Custom Subnet Token</h3>
                                     <p className="text-sm text-muted-foreground">Use a specific subnet token</p>
