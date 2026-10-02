@@ -18,7 +18,7 @@ const MobileNav = () => {
     const pathname = usePathname();
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 h-[var(--mobile-nav-height,65px)] bg-chrome border-t border-line sm:hidden z-40">
+        <nav className="fixed bottom-0 left-0 right-0 h-[var(--mobile-nav-height,65px)] bg-chrome border-t border-line lg:hidden z-40">
             <div className="flex justify-around items-center h-full px-2">
                 {navItems.map((item) => {
                     const isActive = pathname === item.href;

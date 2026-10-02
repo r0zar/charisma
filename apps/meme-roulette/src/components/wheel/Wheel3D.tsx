@@ -44,12 +44,12 @@ function paintFace(canvas: HTMLCanvasElement, layout: WheelSlice[], colors: Real
         const span = s.to - s.from;
         if (span < 0.14) return;
         const mid = (s.from + s.to) / 2;
-        const [x, y] = at(mid, layout.length === 1 ? 0 : r * 0.64);
+        const [x, y] = layout.length === 1 ? at(0, r * 0.46) : at(mid, r * 0.62);
         const size = Math.min(150, Math.max(64, span * 170));
         const token = tokens[s.tokenId];
         ctx.save();
+        // upright while the wheel rests, so every logo and label reads the right way up
         ctx.translate(x, y);
-        ctx.rotate(mid);
         if (mine.includes(s.tokenId)) {
             ctx.strokeStyle = colors.ink;
             ctx.lineWidth = 9;

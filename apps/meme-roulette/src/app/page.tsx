@@ -11,6 +11,8 @@ import { RecentBets } from '@/components/game/RecentBets';
 import { ResultCard } from '@/components/game/ResultCard';
 import { BackMemeSheet } from '@/components/game/BackMemeSheet';
 import { TokenLogo } from '@/components/game/TokenLogo';
+import { HowItWorksVideo } from '@/components/HowItWorksVideo';
+import { SharePickButton } from '@/components/game/SharePickButton';
 import { betsIn, potOf, screenAt, slicesOf, type Screen } from '@/components/game/screen';
 import ReferralRedemptionClient from '@/components/ReferralRedemptionClient';
 import useWindowSize from '@/hooks/useWindowSize';
@@ -86,6 +88,9 @@ export default function HomePage() {
     const myBets = payload?.myBets ?? [];
     const myTokens = shown ? [...new Set(betsIn(shown, myBets).filter(b => b.status !== 'excluded').map(b => b.tokenId))] : [];
     const live = payload?.round?.status === 'live' ? payload.round : null;
+    // the meme the viewer backed most recently in the live round, for the share button
+    const lastMine = live ? betsIn(live, myBets).find(b => b.status !== 'excluded') : undefined;
+    const myPick = lastMine ? byId[lastMine.tokenId]?.symbol : undefined;
     const betting = screen.kind === 'open';
     const next = screen.kind === 'result' || screen.kind === 'reveal' ? screen.next : null;
     // while the last round is on screen, its pot is the one that matters
@@ -122,7 +127,9 @@ export default function HomePage() {
                         <Button size="lg" className="h-12 w-full max-w-sm text-base" disabled={!betting} onClick={() => setSheetOpen(true)}>
                             <Rocket className="h-5 w-5" /> {betting ? 'Back a meme' : next && now < next.opensAt ? `Next round in ${formatCountdown(next.opensAt - now)}` : 'Betting is closed'}
                         </Button>
+                        {myPick && (screen.kind === 'open' || screen.kind === 'locked' || screen.kind === 'drawing') && <SharePickButton symbol={myPick} variant="outline" />}
                         {betting && <p className="text-xs text-ink-muted">Bigger stake, bigger slice. Everyone gets the winner.</p>}
+                        <HowItWorksVideo />
                     </div>
                 </section>
 

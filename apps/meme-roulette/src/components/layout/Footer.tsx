@@ -30,9 +30,9 @@ const COLUMNS: { title: string; links: { href: string; label: string; external?:
 
 const linkClass = 'text-on-chrome-muted hover:text-on-chrome transition-colors duration-200 text-sm inline-flex items-center gap-1';
 
-/** Site footer on the chrome bar. Hidden on phones, where the bottom nav takes its place. */
+/** Site footer on the chrome bar. Hidden below lg, where the bottom nav takes its place. */
 const Footer = () => (
-    <footer className="mt-auto hidden border-t border-line bg-chrome text-on-chrome-muted sm:block">
+    <footer className="mt-auto hidden border-t border-line bg-chrome text-on-chrome-muted lg:block">
         <div className="container mx-auto py-12">
             <div className="grid gap-10 md:grid-cols-4">
                 <div className="md:col-span-2">

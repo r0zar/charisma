@@ -69,13 +69,13 @@ export default function Wheel2D({ slices, spin, now, tokens, mine = [], winner, 
                     const span = s.to - s.from;
                     if (span < 0.14) return null;
                     const mid = (s.from + s.to) / 2;
-                    const [x, y] = point(mid, layout.length === 1 ? 0 : R * 0.64);
+                    const [x, y] = layout.length === 1 ? point(0, R * 0.46) : point(mid, R * 0.62);
                     const size = Math.min(30, Math.max(14, span * 34));
                     const token = tokens[s.tokenId];
                     const fill = labelOn(colors.slices[i % colors.slices.length]);
                     const outlined = mine.includes(s.tokenId);
                     return (
-                        <g key={s.tokenId} transform={`translate(${x} ${y}) rotate(${deg(mid)})`}>
+                        <g key={s.tokenId} transform={`translate(${x} ${y})`}>
                             {outlined && <circle r={size / 2 + 3} fill="none" stroke={colors.ink} strokeWidth="2" />}
                             {token?.image
                                 ? <image href={proxiedImage(token.image, 64)} x={-size / 2} y={-size / 2} width={size} height={size}

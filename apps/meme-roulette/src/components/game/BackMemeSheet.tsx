@@ -14,6 +14,7 @@ import { explorerTx, formatCountdown, formatUnits, toMicro } from '@/lib/format'
 import { TokenLogo } from './TokenLogo';
 import { betsIn, potOf } from './screen';
 import type { PublicRound } from '@/lib/roulette/types';
+import { SharePickButton } from './SharePickButton';
 
 const PRESETS = [10, 25, 50, 100];
 const ONE_CHA = 1_000_000n;
@@ -35,8 +36,9 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [topUpTx, setTopUpTx] = useState<string | null>(null);
+    const [backed, setBacked] = useState<{ symbol: string; amount: bigint } | null>(null);
 
-    useEffect(() => { if (open) { setError(null); if (initialToken) setTokenId(initialToken); } }, [open, initialToken]);
+    useEffect(() => { if (open) { setError(null); setBacked(null); if (initialToken) setTokenId(initialToken); } }, [open, initialToken]);
 
     // after a top-up swap, watch the balance until the CHA lands
     useEffect(() => {
@@ -73,9 +75,8 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
         setError(null);
         try {
             await placeBet(amount, selected.contractId);
-            toast.success(`You backed ${selected.symbol}`, { description: `${formatUnits(amount)} CHA is in the pot.` });
             refresh();
-            onOpenChange(false);
+            setBacked({ symbol: selected.symbol, amount });
         } catch (e) {
             setError(e instanceof Error ? e.message : String(e));
         } finally {
@@ -93,6 +94,17 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
                     </DialogDescription>
                 </DialogHeader>
 
+                {backed ? (
+                    <div className="space-y-5 p-5 text-center">
+                        <div>
+                            <p className="text-4xl">🎰</p>
+                            <p className="mt-2 text-xl font-bold">You backed {backed.symbol} with {formatUnits(backed.amount)} CHA</p>
+                            <p className="mt-1 text-sm text-ink-muted">Bring friends in: the bigger the pot, the bigger the pump.</p>
+                        </div>
+                        <SharePickButton symbol={backed.symbol} className="mx-auto" />
+                        <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>Done</Button>
+                    </div>
+                ) : (
                 <div className="space-y-5 p-5">
                     {!isOpen && (
                         <p className="rounded-lg bg-warning-soft p-3 text-sm text-warning">
@@ -186,6 +198,7 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
                     {connected && problem && isOpen && <p className="-mt-3 text-center text-xs text-ink-muted">{problem}</p>}
                     {connected && <p className="-mt-2 text-center text-xs text-ink-faint">Signing is free: no transaction until the draw. Signed by {address.slice(0, 6)}…</p>}
                 </div>
+                )}
             </DialogContent>
         </Dialog>
     );
