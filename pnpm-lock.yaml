@@ -499,6 +499,9 @@ importers:
       '@mdx-js/react':
         specifier: ^3.0.0
         version: 3.1.0(@types/react@19.1.8)(react@19.1.0)
+      '@repo/brand':
+        specifier: workspace:^
+        version: link:../../packages/brand
       clsx:
         specifier: ^2.0.0
         version: 2.1.1

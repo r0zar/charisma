@@ -10,7 +10,7 @@ const config: Config = {
   favicon: 'img/favicon.ico',
 
   // Set the production url of your site here
-  url: 'https://your-docusaurus-site.example.com',
+  url: 'https://docs.charisma.rocks',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
   baseUrl: '/',
@@ -67,12 +67,16 @@ const config: Config = {
 
   themeConfig: {
     // Replace with your project's social card
-    image: 'img/docusaurus-social-card.jpg',
+    image: 'img/charisma-docs-card.png',
+    // System by default: the toggle cycles System → Light · Bitcoin → Dark · RPG, like every Charisma app
+    colorMode: {
+      respectPrefersColorScheme: true,
+    },
     navbar: {
       title: 'Charisma',
       logo: {
         alt: 'Charisma Logo',
-        src: 'https://charisma.rocks/charisma.png',
+        src: 'img/charisma.png',
       },
       items: [
         {
@@ -137,7 +141,7 @@ const config: Config = {
           items: [
             {
               label: 'Discord',
-              href: 'https://discordapp.com/invite/docusaurus',
+              href: 'https://discord.gg/ZvDmqQskpy',
             },
             {
               label: 'X',
@@ -155,7 +159,7 @@ const config: Config = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} Charisma. Built with Docusaurus.`,
+      copyright: `© ${new Date().getFullYear()} Charisma`,
     },
     prism: {
       theme: prismThemes.github,

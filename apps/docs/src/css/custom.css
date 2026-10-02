@@ -1,30 +1,100 @@
 /**
- * Any CSS included here will be global. The classic template
- * bundles Infima by default. Infima is a CSS framework designed to
- * work well for content-centric websites.
+ * Charisma brand on Docusaurus. Docusaurus always sets <html data-theme="light|dark">, the same attribute the
+ * brand tokens key on, so Infima's variables point straight at the realm tokens and swap with the toggle.
  */
+@import '@repo/brand/tokens.css';
+@import '@repo/brand/fonts.css';
 
-/* You can override the default Infima variables here. */
-:root {
-  --ifm-color-primary: #c1121f; /* brand red */
-  --ifm-color-primary-dark: #ab0f1b;
-  --ifm-color-primary-darker: #9a0e18;
-  --ifm-color-primary-darkest: #7a0b13;
-  --ifm-color-primary-light: #d31d2a;
-  --ifm-color-primary-lighter: #da3a46;
-  --ifm-color-primary-lightest: #e25b68;
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+html[data-theme] {
+  --ifm-color-primary: var(--accent-text);
+  --ifm-color-primary-dark: var(--accent-text);
+  --ifm-color-primary-darker: var(--accent-text);
+  --ifm-color-primary-darkest: var(--accent-text);
+  --ifm-color-primary-light: var(--accent-text);
+  --ifm-color-primary-lighter: var(--accent-text);
+  --ifm-color-primary-lightest: var(--accent-text);
+  --ifm-link-color: var(--accent-text);
+
+  --ifm-background-color: var(--bg);
+  --ifm-background-surface-color: var(--surface-raised);
+  --ifm-font-color-base: var(--ink-body);
+  --ifm-heading-color: var(--ink);
+  --ifm-color-content: var(--ink-body);
+  --ifm-color-content-secondary: var(--ink-muted);
+
+  --ifm-color-emphasis-0: var(--bg);
+  --ifm-color-emphasis-100: var(--surface-hover);
+  --ifm-color-emphasis-200: var(--line);
+  --ifm-color-emphasis-300: var(--line);
+  --ifm-color-emphasis-400: var(--line-strong);
+  --ifm-color-emphasis-500: var(--ink-faint);
+  --ifm-color-emphasis-600: var(--ink-muted);
+  --ifm-color-emphasis-700: var(--ink-body);
+  --ifm-color-emphasis-800: var(--ink-body);
+  --ifm-color-emphasis-900: var(--ink);
+  --ifm-color-emphasis-1000: var(--ink);
+
+  --ifm-font-family-base: var(--font-sans);
+  --ifm-heading-font-family: var(--font-sans);
+  --ifm-font-family-monospace: var(--font-mono);
+  --ifm-global-radius: 0.5rem;
+  --ifm-code-font-size: 92%;
+  --ifm-code-background: var(--surface-hover);
+  --ifm-toc-border-color: var(--line);
+  --ifm-hr-background-color: var(--line);
+  --ifm-table-border-color: var(--line);
+  --ifm-table-stripe-background: var(--surface-sunken);
+
+  --ifm-menu-color: var(--ink-body);
+  --ifm-menu-color-active: var(--accent-text);
+  --ifm-menu-color-background-active: var(--accent-soft);
+  --ifm-menu-color-background-hover: var(--surface-hover);
+
+  --ifm-navbar-background-color: var(--chrome);
+  --ifm-navbar-link-color: var(--on-chrome-muted);
+  --ifm-navbar-link-hover-color: var(--on-chrome);
+  --ifm-navbar-link-active-color: var(--chrome-accent);
+  --ifm-navbar-shadow: none;
+
+  --docusaurus-highlighted-code-line-bg: var(--surface-selected);
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
-[data-theme='dark'] {
-  --ifm-color-primary: #ff6b6b;
-  --ifm-color-primary-dark: #e85f5f;
-  --ifm-color-primary-darker: #d25555;
-  --ifm-color-primary-darkest: #a84444;
-  --ifm-color-primary-light: #ff7c7c;
-  --ifm-color-primary-lighter: #ff9a9a;
-  --ifm-color-primary-lightest: #ffb8b8;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+/* the canvas past the page is chrome, so overscroll under the footer (and above the header) stays the bar colour */
+html { background-color: var(--chrome); }
+body { background-color: var(--bg); }
+
+/* the header bar: "Charisma Docs" lockup, nav and toggle on chrome in both realms */
+.navbar { border-bottom: 1px solid var(--line); }
+.navbar__title { color: var(--on-chrome); font-weight: 700; letter-spacing: -0.01em; }
+.navbar__title::after { content: ' Docs'; color: var(--chrome-accent); }
+.navbar__logo img { border-radius: 9999px; }
+.navbar__link { font-weight: 600; }
+.navbar .clean-btn, .navbar__toggle { color: var(--on-chrome-muted); }
+.navbar .clean-btn:hover { color: var(--on-chrome); background: color-mix(in srgb, var(--on-chrome) 10%, transparent); }
+.navbar-sidebar .navbar__title { color: var(--ink); }
+.navbar-sidebar .clean-btn { color: var(--ink-muted); }
+
+/* the footer: chrome in both realms */
+.footer--dark {
+  --ifm-footer-background-color: var(--chrome);
+  --ifm-footer-color: var(--on-chrome-muted);
+  --ifm-footer-link-color: var(--on-chrome-muted);
+  --ifm-footer-link-hover-color: var(--on-chrome);
+  --ifm-footer-title-color: var(--on-chrome);
+  border-top: 1px solid var(--line);
 }
+.footer__title { font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; }
+
+/* the one filled button: accent with a white label */
+.button--primary {
+  --ifm-button-background-color: var(--accent);
+  --ifm-button-border-color: var(--accent);
+  color: var(--on-accent);
+  box-shadow: var(--shadow-cta);
+}
+.button--primary:hover { --ifm-button-background-color: var(--accent-hover); --ifm-button-border-color: var(--accent-hover); color: var(--on-accent); }
+
+/* cards and admonitions sit on the surface layer */
+.card { background-color: var(--surface); border: 1px solid var(--line); box-shadow: none; }
+.pagination-nav__link { border-color: var(--line); background: var(--surface); }
+.pagination-nav__link:hover { border-color: var(--line-strong); }

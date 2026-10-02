@@ -8,8 +8,9 @@
   text-align: center;
   position: relative;
   overflow: hidden;
-  background-color: #000000DD;
-  color: white
+  background: radial-gradient(ellipse 60% 70% at 50% 0%, var(--bg-glow), transparent 70%), var(--bg);
+  color: var(--ink);
+  border-bottom: 12px solid var(--edge);
 }
 
 @media screen and (max-width: 996px) {
