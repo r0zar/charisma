@@ -75,6 +75,12 @@ path = "contracts/blaze.clar"
 clarity_version = 3
 epoch = 3.0
 
+# Draft only (not deployed): see contracts/drafts/BLAZE-V2.md
+[contracts.blaze-v2]
+path = "contracts/drafts/blaze-v2.clar"
+clarity_version = 3
+epoch = 3.0
+
 [contracts.x-welshcorgicoin-token]
 path = "contracts/x-welshcorgicoin-token.clar"
 clarity_version = 3

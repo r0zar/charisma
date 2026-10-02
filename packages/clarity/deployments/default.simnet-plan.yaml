@@ -89,13 +89,18 @@ plan:
             emulated-sender: SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ
             path: "./.cache/requirements/SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ.dme000-governance-token.clar"
             clarity-version: 1
-      epoch: "2.05"
+      epoch: "2.1"
     - id: 1
       transactions:
         - emulated-contract-publish:
             contract-name: blaze
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/blaze.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: blaze-v2
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/drafts/blaze-v2.clar
             clarity-version: 3
         - emulated-contract-publish:
             contract-name: charisma-traits-v1
