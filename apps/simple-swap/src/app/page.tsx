@@ -55,7 +55,7 @@ export default async function SwapHomePage() {
 
             {/* Enhanced Buy CHARISMA Button and Price Quote */}
             <div className="mt-8 mb-12 flex flex-col items-center space-y-4">
-              <Link href="/swap?fromSymbol=STX&toSymbol=CHA&amount=1" className="inline-flex items-center justify-center rounded-xl h-12 px-8 gap-2 bg-surface-hover border border-line backdrop-blur-sm text-ink font-medium transition-all duration-200 hover:bg-surface-selected hover:border-line-strong hover:text-ink shadow-lg shadow-black/20">
+              <Link href="/swap?fromSymbol=STX&toSymbol=CHA&amount=1" className="inline-flex items-center justify-center rounded-xl h-12 px-8 gap-2 bg-accent text-on-accent font-semibold transition-all duration-200 hover:bg-accent-hover active:scale-[0.98] shadow-[var(--shadow-cta)]">
                 Buy CHA Tokens
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -194,7 +194,7 @@ export default async function SwapHomePage() {
               </p>
 
               {/* Enhanced CTA button with glass morphism */}
-              <Link href="/swap" className="group inline-flex items-center justify-center rounded-xl h-12 px-8 gap-2 bg-surface-hover border border-line backdrop-blur-sm text-ink font-medium transition-all duration-200 hover:bg-surface-selected hover:border-line-strong hover:text-ink shadow-lg shadow-black/20 focus:outline-none focus:ring-2 focus:ring-line-strong focus:ring-offset-2 focus:ring-offset-transparent">
+              <Link href="/swap" className="group inline-flex items-center justify-center rounded-xl h-12 px-8 gap-2 bg-accent text-on-accent font-semibold transition-all duration-200 hover:bg-accent-hover active:scale-[0.98] shadow-[var(--shadow-cta)] focus:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-bg">
                 Start Swapping
                 <ArrowRight className="h-4 w-4 group-hover:translate-x-0.5 transition-transform duration-200" />
               </Link>
