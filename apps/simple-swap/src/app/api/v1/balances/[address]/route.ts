@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAccountBalances, callReadOnlyFunction } from '@repo/polyglot';
 import { principalCV, validateStacksAddress } from '@stacks/transactions';
 import { fetchMetadata } from '@repo/tokens';
+import { SUBNET_V2_OF } from 'blaze-sdk';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -66,10 +67,13 @@ export async function GET(
       }
     });
 
+    // The token list can be a CDN copy from before the Blaze v2 subnets were registered: always read those too
+    const subnetIds = [...new Set([...subnetTokens.map((token: any) => token.contractId as string), ...Object.values(SUBNET_V2_OF)])];
+
     // Fetch subnet balances in parallel
-    const subnetBalancePromises = subnetTokens.map(async (token: any) => {
+    const subnetBalancePromises = subnetIds.map(async (contractId) => {
       try {
-        const [contractAddress, contractName] = token.contractId.split('.');
+        const [contractAddress, contractName] = contractId.split('.');
         const result = await callReadOnlyFunction(
           contractAddress,
           contractName,
@@ -78,10 +82,10 @@ export async function GET(
         );
 
         const balance = result?.value ? String(result.value) : '0';
-        return { contractId: token.contractId, balance };
+        return { contractId, balance };
       } catch (error) {
-        console.warn(`Failed to fetch subnet balance for ${token.contractId}:`, error);
-        return { contractId: token.contractId, balance: '0' };
+        console.warn(`Failed to fetch subnet balance for ${contractId}:`, error);
+        return { contractId, balance: '0' };
       }
     });
 
