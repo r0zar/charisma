@@ -29,7 +29,7 @@ export function generateCorsHeaders(req: NextRequest, methods: string = 'GET'): 
         // In development, use the actual origin; in production, use the matched origin
         headers.set('Access-Control-Allow-Origin', origin);
         headers.set('Access-Control-Allow-Methods', methods);
-        headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-signature, x-public-key');
+        headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-signature, x-public-key, x-timestamp');
 
         // For credentials like cookies
         if (methods.includes('POST') || methods.includes('DELETE')) {

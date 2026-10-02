@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MetadataService } from '@/lib/metadata-service';
 // Assuming verifySignedMessage is exported from your @charisma/stacks package
-import { verifySignedRequest } from 'blaze-sdk';
+import { verifySignedRequestWithTimestamp } from 'blaze-sdk';
 import { generateCorsHeaders } from '@/lib/cors-helper';
 
 /* ───────────────────────────── helpers ───────────────────────────── */
@@ -107,7 +107,8 @@ export async function POST(
                 );
             }
 
-            const authResult = await verifySignedRequest(
+            // The deployer signs {message: contractId, timestamp} (x-timestamp header); valid for 5 minutes
+            const authResult = await verifySignedRequestWithTimestamp(
                 request,
                 {
                     message: contractId,
@@ -117,7 +118,7 @@ export async function POST(
 
             if (!authResult.ok) {
                 return NextResponse.json(
-                    { error: 'Invalid signature' },
+                    { error: authResult.error },
                     { status: 401, headers }
                 );
             }
@@ -166,7 +167,8 @@ export async function DELETE(
             );
         }
 
-        const authResult = await verifySignedRequest(
+        // The deployer signs {message: contractId, timestamp} (x-timestamp header); valid for 5 minutes
+        const authResult = await verifySignedRequestWithTimestamp(
             request,
             {
                 message: contractId,
@@ -176,7 +178,7 @@ export async function DELETE(
 
         if (!authResult.ok) {
             return NextResponse.json(
-                { error: 'Invalid signature' },
+                { error: authResult.error },
                 { status: 401, headers }
             );
         }

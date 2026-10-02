@@ -1,4 +1,5 @@
 "use client"
+import { buildTimestampedSignatureHeaders, signMessageWithTimestamp } from 'blaze-sdk';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useApp } from '@/lib/context/app-context';
@@ -546,7 +547,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
             setError('');
             setSuccess('');
 
-            const { signature, publicKey } = await signMessage(contractId);
+            const signed = await signMessageWithTimestamp(contractId);
 
             const cleanedMetadata: Record<string, any> = {};
             for (const key in metadataToSave) {
@@ -562,8 +563,7 @@ export function MetadataDetail({ contractId: initialContractId }: MetadataDetail
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-signature': signature,
-                    'x-public-key': publicKey,
+                    ...buildTimestampedSignatureHeaders(signed),
                 },
                 body: JSON.stringify(cleanedMetadata),
             });

@@ -654,8 +654,8 @@ export const getAllVaultData = async ({ protocol, type }: { protocol?: string, t
         }
         return vaults;
     } catch (error) {
-        console.error('Error fetching all vaults:', error);
-        return [];
+        // A storage failure must not look like "no vaults": throw, and let the caller show the error
+        throw new Error(`Failed to load vaults: ${error instanceof Error ? error.message : String(error)}`);
     }
 };
 

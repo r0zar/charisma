@@ -42,7 +42,7 @@ export async function GET(
         const result = await realTimeCheck(txid);
         
         // Generate appropriate cache headers based on transaction status
-        const cacheHeaders = getTransactionCacheHeaders(result.status, result.fromCache);
+        const cacheHeaders = getTransactionCacheHeaders(txid, result.status, result.fromCache);
         
         // Check conditional headers for confirmed transactions
         if (result.status !== 'pending') {

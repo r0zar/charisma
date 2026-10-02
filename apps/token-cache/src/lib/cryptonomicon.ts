@@ -63,7 +63,7 @@ export class Cryptonomicon {
         try {
             // 1. Attempt to fetch from metadata API service
             try {
-                const metadataApiUrl = `${this.config.metadataApiBaseUrl}/api/metadata/${contractId}`;
+                const metadataApiUrl = `${this.config.metadataApiBaseUrl}/api/v1/metadata/${contractId}`;
                 const response = await fetch(metadataApiUrl, {
                     headers: { 'Accept': 'application/json' }
                 });

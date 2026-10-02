@@ -54,19 +54,20 @@ export default function DocsPage() {
 }`;
     const curlUpload = `
 curl -X POST \
-  https://charisma.app/api/v1/metadata/SP2...XYZ.stkr \
+  https://metadata.charisma.rocks/api/v1/metadata/SP2...XYZ.stkr \
   -H 'content-type: application/json' \
   -H 'x-signature: SIGNATURE' \
   -H 'x-public-key: PUBKEY' \
+  -H 'x-timestamp: 1759370000000' \
   --data '${schemaFT}'`;
     const curlUploadApiKey = `
 curl -X POST \
-  https://charisma.app/api/v1/metadata/SP2...XYZ.stkr \
+  https://metadata.charisma.rocks/api/v1/metadata/SP2...XYZ.stkr \
   -H 'content-type: application/json' \
   -H 'x-api-key: YOUR_API_KEY' \
   --data '${schemaFT}'`;
     const curlFetch =
-        "curl https://charisma.app/api/v1/metadata/SP2...XYZ.stkr";
+        "curl https://metadata.charisma.rocks/api/v1/metadata/SP2...XYZ.stkr";
 
     return (
         <div className="container grid max-w-6xl grid-cols-1 gap-12 py-12 lg:grid-cols-[220px_1fr]">
@@ -157,7 +158,7 @@ curl -X POST \
                 <H2 id="api">REST API</H2>
                 <p className="my-4">
                     Base URL :{" "}
-                    <code className="px-1 bg-muted rounded text-sm">https://charisma.app/api/v1/metadata/&#123;contractId&#125;</code>
+                    <code className="px-1 bg-muted rounded text-sm">https://metadata.charisma.rocks/api/v1/metadata/&#123;contractId&#125;</code>
                 </p>
 
                 <table className="w-full my-6 border-collapse">
@@ -177,12 +178,12 @@ curl -X POST \
                         <tr className="border-b border-border/50">
                             <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">POST</code></td>
                             <td className="py-3 px-4">Create / replace JSON</td>
-                            <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">x-signature</code>, <code className="px-1 bg-muted rounded text-sm">x-public-key</code> <br /> or <code className="px-1 bg-muted rounded text-sm">x-api-key</code></td>
+                            <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">x-signature</code>, <code className="px-1 bg-muted rounded text-sm">x-public-key</code>, <code className="px-1 bg-muted rounded text-sm">x-timestamp</code> <br /> or <code className="px-1 bg-muted rounded text-sm">x-api-key</code></td>
                         </tr>
                         <tr className="border-b border-border/50">
                             <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">DELETE</code></td>
                             <td className="py-3 px-4">Delete record</td>
-                            <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">x-signature</code>, <code className="px-1 bg-muted rounded text-sm">x-public-key</code></td>
+                            <td className="py-3 px-4"><code className="px-1 bg-muted rounded text-sm">x-signature</code>, <code className="px-1 bg-muted rounded text-sm">x-public-key</code>, <code className="px-1 bg-muted rounded text-sm">x-timestamp</code></td>
                         </tr>
                     </tbody>
                 </table>
@@ -204,8 +205,11 @@ curl -X POST \
                 <h3 className="text-xl font-semibold mt-6 mb-3">1. Wallet Signature (Preferred for dApp Integrations)</h3>
                 <p className="my-4">
                     Include an{" "}
-                    <code className="px-1 bg-muted rounded text-sm">x-signature</code> header—an RSV signature of the{" "}
-                    <em>contractId</em> string—plus <code className="px-1 bg-muted rounded text-sm">x-public-key</code>. On the
+                    <code className="px-1 bg-muted rounded text-sm">x-signature</code> header—an RSV signature of the JSON string{" "}
+                    <code className="px-1 bg-muted rounded text-sm">{'{"message":"<contractId>","timestamp":<ms>}'}</code>—plus{" "}
+                    <code className="px-1 bg-muted rounded text-sm">x-public-key</code> and the same timestamp in{" "}
+                    <code className="px-1 bg-muted rounded text-sm">x-timestamp</code>. A signature is accepted for 5 minutes
+                    (blaze-sdk <code className="px-1 bg-muted rounded text-sm">signedFetchWithTimestamp</code> does all of this). On the
                     server we:
                 </p>
                 <ol className="list-decimal pl-5 space-y-2 my-6">

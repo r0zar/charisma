@@ -68,8 +68,9 @@ export async function GET(
             kv.incr('stats:api:misses').catch(console.error); // Fire and forget increment
         }
 
-        // Attempt to fetch token data
-        const tokenData = await getTokenData(contractId);
+        // ?refresh=true re-reads the chain and the metadata service (Metadata calls it after a save)
+        const refresh = new URL(request.url).searchParams.get('refresh') === 'true';
+        const tokenData = await getTokenData(contractId, refresh);
 
         if (!tokenData) {
             return NextResponse.json(

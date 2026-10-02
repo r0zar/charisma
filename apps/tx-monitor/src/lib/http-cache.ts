@@ -44,7 +44,7 @@ export const CACHE_CONFIG = {
 /**
  * Generate cache headers for transaction status responses
  */
-export function getTransactionCacheHeaders(status: TransactionStatus, fromCache: boolean = false): Record<string, string> {
+export function getTransactionCacheHeaders(txid: string, status: TransactionStatus, fromCache: boolean = false): Record<string, string> {
   if (!(status in CACHE_CONFIG)) {
     throw new Error(`Unsupported transaction status for caching: ${status}`);
   }
@@ -55,9 +55,9 @@ export function getTransactionCacheHeaders(status: TransactionStatus, fromCache:
     'Vary': 'Accept-Encoding'
   };
 
-  // Add ETag for confirmed transactions
+  // A settled transaction never changes, so its txid + final status is a stable ETag (clients get 304s)
   if (status === 'success' || status === 'abort_by_response' || status === 'abort_by_post_condition') {
-    headers['ETag'] = `"${status}-${Date.now()}"`;
+    headers['ETag'] = `"${txid}-${status}"`;
   }
 
   // Add cache status header for debugging
