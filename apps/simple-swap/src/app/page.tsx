@@ -33,14 +33,14 @@ export default async function SwapHomePage() {
         {/* Background glass effect */}
         
         <div className="container relative z-10">
-          <div className="mx-auto max-w-3xl text-center">
+          <div className="mx-auto max-w-4xl text-center">
             {/* Glass morphism badge */}
             <div className="inline-flex items-center justify-center px-4 py-2 mb-8 text-sm rounded-full bg-surface border border-line backdrop-blur-sm text-ink-body gap-x-2 transition-all duration-200 hover:bg-surface-hover hover:border-line-strong hover:text-ink">
               <Coins className="h-3.5 w-3.5 text-accent-text" />
               <span>Open source · Built on Stacks</span>
             </div>
 
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight mb-6 text-ink">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-balance mb-6 text-ink">
               The open exchange for
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-accent to-accent/80 ml-2 inline-block">
                 Stacks
