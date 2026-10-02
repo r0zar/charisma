@@ -10,6 +10,7 @@ const txMonitor = new TxMonitorClient();
 /** Move a token from the wallet into Zesty (its subnet token). Returns the txid. */
 export async function addToZesty(wallet: string, token: ZestyToken, micro: bigint): Promise<string> {
   const result = await request('stx_callContract', {
+    address: wallet,
     contract: token.subnet,
     functionName: 'deposit',
     functionArgs: [Cl.uint(micro), Cl.none()],
@@ -31,14 +32,15 @@ export async function swapStxIntoZesty(wallet: string, token: ZestyToken, microS
     throw new Error(`No route to swap STX into ${token.symbol}: ${quote.error ?? 'empty quote'}`);
   }
   const router = new Router({ maxHops: 4, defaultSlippage: 0.02, routerContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop' });
-  const result = await request('stx_callContract', { ...(await buildSwapTransaction(router, quote.data, wallet)), network: 'mainnet' });
+  const result = await request('stx_callContract', { ...(await buildSwapTransaction(router, quote.data, wallet)), address: wallet, network: 'mainnet' });
   if (!result?.txid) throw new Error(`Swapping STX into ${token.symbol} was not broadcast`);
   return result.txid;
 }
 
 /** Move a token from Zesty back to the wallet. Returns the txid. */
-export async function moveToWallet(token: ZestyToken, micro: bigint): Promise<string> {
+export async function moveToWallet(wallet: string, token: ZestyToken, micro: bigint): Promise<string> {
   const result = await request('stx_callContract', {
+    address: wallet,
     contract: token.subnet,
     functionName: 'withdraw',
     functionArgs: [Cl.uint(micro), Cl.none()],

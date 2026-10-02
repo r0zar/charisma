@@ -34,7 +34,7 @@ function CoinRow({ money, token, where, onDone, disabled }: {
     setError(null);
     try {
       if (where === 'wallet') await addToZesty(money.address, ZESTY_TOKENS[token], micro);
-      else await moveToWallet(ZESTY_TOKENS[token], micro);
+      else await moveToWallet(money.address, ZESTY_TOKENS[token], micro);
       onDone(`${where === 'wallet' ? 'Adding' : 'Moving'} ${formatUsd(toUsd(token, micro, holding.price))} of ${ZESTY_TOKENS[token].symbol}. It shows up in about a minute.`);
       await money.refresh();
     } catch (err) {

@@ -697,6 +697,7 @@ export default function BotsSettings() {
       toast.loading(`Sending ${tokenSymbol || 'LP tokens'}...`, { id: 'lp-transfer' });
 
       const result = await request('stx_callContract', {
+        address,
         contract: `${contractAddress}.${contractName}` as `${string}.${string}`,
         functionName: 'transfer',
         functionArgs: [

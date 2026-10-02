@@ -165,6 +165,7 @@ const ShopItem: React.FC<ShopItemProps> = ({ item }) => {
 
         try {
             const result = await request('stx_callContract', {
+                address,
                 contract: item.vault as any,
                 functionName: 'claim',
                 functionArgs: [uintCV(energyBalance)],

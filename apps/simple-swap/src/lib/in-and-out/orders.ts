@@ -118,7 +118,7 @@ export async function buyFromWallet(wallet: string, payToken: string, buySubnet:
   const bought = BigInt(Math.floor(quote.data.amountOut * (1 - WALLET_SLIPPAGE)));
   if (bought <= 0n) throw new Error('This amount buys too little to sell back later. Try a larger amount.');
   const router = new Router({ maxHops: 4, defaultSlippage: WALLET_SLIPPAGE, routerContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop' });
-  const result = await request('stx_callContract', { ...(await buildSwapTransaction(router, quote.data, wallet)), network: 'mainnet' });
+  const result = await request('stx_callContract', { ...(await buildSwapTransaction(router, quote.data, wallet)), address: wallet, network: 'mainnet' });
   if (!result?.txid) throw new Error('The purchase was not sent from your wallet');
   return { txid: result.txid, bought };
 }

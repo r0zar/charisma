@@ -21,7 +21,7 @@ export function CashOut({ money, tradeActive }: { money: ReturnType<typeof useZe
     setError(null);
     try {
       for (const key of KEYS) {
-        if (holdings[key].zesty > 0n) await moveToWallet(ZESTY_TOKENS[key], holdings[key].zesty);
+        if (holdings[key].zesty > 0n) await moveToWallet(money.address, ZESTY_TOKENS[key], holdings[key].zesty);
       }
       await money.refresh();
     } catch (err) {

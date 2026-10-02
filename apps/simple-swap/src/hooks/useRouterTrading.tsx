@@ -559,7 +559,8 @@ export function useRouterTrading() {
 
       // First, build and submit transaction to wallet
       const txCfg = await buildSwapTransaction(router.current, route, walletAddress);
-      const res = await request('stx_callContract', txCfg);
+      // The post-conditions name walletAddress: ask the wallet to sign with that account, not whichever is active
+      const res = await request('stx_callContract', { ...txCfg, address: walletAddress });
       console.log("Swap result:", res);
 
       if ("error" in res) {
@@ -1047,6 +1048,7 @@ export function useRouterTrading() {
       // CHA, WELSH and sBTC deposits land in Blaze v2
       const into = landingSubnet(subnetToken.contractId);
       const params = {
+        address: walletAddress,
         contract: into as `${string}.${string}`,
         functionName: 'deposit',
         functionArgs: [
@@ -1074,7 +1076,7 @@ export function useRouterTrading() {
       // Execute the swap using the provided route
       if (swapOption.route) {
         const txCfg = await buildSwapTransaction(router.current, swapOption.route, walletAddress);
-        const res = await request('stx_callContract', txCfg);
+        const res = await request('stx_callContract', { ...txCfg, address: walletAddress });
 
         if (res && res.txid) {
           return true;

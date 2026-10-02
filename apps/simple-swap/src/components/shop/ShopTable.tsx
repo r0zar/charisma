@@ -464,6 +464,7 @@ const ShopTable: React.FC<ShopTableProps> = ({ items, subnetTokens }) => {
 
             // Set up contract call parameters
             const params = {
+                address,
                 contract: subnetContractId as `${string}.${string}`,
                 functionName: 'deposit',
                 functionArgs: [

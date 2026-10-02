@@ -87,6 +87,7 @@ export async function placeDcaBuys(specs: DcaBuySpec[], onProgress: (text: strin
 /** Move a token from the wallet onto the subnet, where the buys spend it. Returns the txid. */
 export async function depositToSubnet(wallet: string, token: TokenCacheData, subnet: string, amount: bigint): Promise<string> {
   const result = await request('stx_callContract', {
+    address: wallet,
     contract: subnet as `${string}.${string}`,
     functionName: 'deposit',
     functionArgs: [Cl.uint(amount), Cl.none()],
