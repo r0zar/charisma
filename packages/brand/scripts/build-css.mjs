@@ -20,12 +20,19 @@ const resolve = (value, theme) => {
   if (v === undefined) throw new Error(`Token value missing for theme "${theme}"`);
   return v.replace(/^\{(.+)\}$/, 'var(--$1)'); // {alias} → var(--alias)
 };
-const themed = [...tokens.color.tokens, ...tokens.shadow.tokens];
+// Font families are tokens too: a string is the same in both realms, a { dark, light } object is per realm.
+const families = Object.entries(tokens.type.families).map(([key, value]) => ({ name: `font-${key}`, value }));
+const themed = [...tokens.color.tokens, ...tokens.shadow.tokens, ...families.filter(f => typeof f.value !== 'string')];
 const body = (theme, indent = '  ') =>
-  [`${indent}color-scheme: ${theme};`, ...themed.map(t => `${indent}--${t.name}: ${resolve(t.value, theme)};`)].join('\n');
+  [
+    `${indent}color-scheme: ${theme};`,
+    `${indent}font-family: var(--font-sans);`, // re-applied on a pinned subtree so it takes its realm's voice
+    `${indent}font-synthesis-weight: ${resolve(tokens.type.weightSynthesis, theme)};`,
+    ...themed.map(t => `${indent}--${t.name}: ${resolve(t.value, theme)};`),
+  ].join('\n');
 
 const fixed = [...tokens.spacing.tokens, ...tokens.radius.tokens].map(t => `  --${t.name}: ${t.value};`);
-const fonts = Object.entries(tokens.type.families).map(([key, stack]) => `  --font-${key}: ${stack};`);
+const fonts = families.filter(f => typeof f.value === 'string').map(f => `  --${f.name}: ${f.value};`);
 
 const css = `/* GENERATED from tokens.json by scripts/build-css.mjs. Do not edit by hand. */
 /* No data-theme on <html>: follow the device. data-theme="light" | "dark": the visitor's pick (or a pinned subtree). */

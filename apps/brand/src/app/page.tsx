@@ -16,7 +16,7 @@ const DOWNLOADS = [
 const PRINCIPLES = [
   ['One crest, two realms', 'The crimson mark never changes. Everything else is a semantic token that swaps with the theme, so the same markup is right in both.'],
   ['Glass in the dark, ink on paper', 'Dark builds depth from translucent layers and a crimson bloom. Light builds it from hairlines and solid white, with no glow.'],
-  ['Numbers are mono', 'Amounts, prices, addresses and stats are set in DM Mono with tabular figures. Words are set in Ysabeau Infant.'],
+  ['Numbers are mono', 'Amounts, prices, addresses and stats are set in DM Mono with tabular figures. Words are set in Ysabeau Infant by night and Matter by day.'],
   ['Blaze is teal', 'The instant subnet has one colour everywhere: subnet pills, the flame on a token, the Triggered dot and Blaze Wallet.'],
   ['Plain words, real numbers', 'Say what happens, in the user’s terms, and only show figures read from the chain.'],
 ];
