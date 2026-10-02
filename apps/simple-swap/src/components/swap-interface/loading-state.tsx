@@ -3,71 +3,49 @@
 import React from 'react';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 
+// One brush stroke circling the mark: it grows, sweeps and shrinks while the whole ring turns, and the mark breathes
+const LOADER_CSS = `
+.cx-loader-ring { animation: cx-loader-turn 1.8s linear infinite; }
+.cx-loader-arc { stroke-dasharray: 1 100; animation: cx-loader-sweep 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 45%, transparent)); }
+.cx-loader-mark { animation: cx-loader-breathe 2.4s ease-in-out infinite alternate; }
+.cx-loader-line { animation: cx-loader-fade 0.6s ease-out both; }
+@keyframes cx-loader-turn { to { transform: rotate(360deg); } }
+@keyframes cx-loader-sweep {
+  0% { stroke-dasharray: 1 100; stroke-dashoffset: 0; }
+  50% { stroke-dasharray: 62 100; stroke-dashoffset: -14; }
+  100% { stroke-dasharray: 1 100; stroke-dashoffset: -99; }
+}
+@keyframes cx-loader-breathe { from { transform: scale(0.95); opacity: 0.85; } to { transform: scale(1); opacity: 1; } }
+@keyframes cx-loader-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .cx-loader-ring, .cx-loader-mark, .cx-loader-line { animation: none; }
+  .cx-loader-arc { animation: none; stroke-dasharray: 25 100; }
+}
+`;
+
 export default function LoadingState() {
     const { isInitializing, isLoadingTokens } = useSwapTokens();
+    const step = isInitializing ? 'Connecting' : isLoadingTokens ? 'Loading tokens' : 'Finding the best routes';
 
     return (
         <div className="max-w-2xl mx-auto">
-            {/* Premium Glass Loading Container */}
-            <div className="bg-surface-sunken border border-line-soft rounded-2xl p-8 backdrop-blur-sm">
-                <div className="flex flex-col items-center justify-center min-h-[400px] space-y-8">
-                    
-                    {/* Premium Loading Animation */}
-                    <div className="relative">
-                        {/* Outer ring */}
-                        <div className="w-20 h-20 border-2 border-line rounded-full"></div>
-                        
-                        {/* Animated ring 1 */}
-                        <div className="absolute inset-0 w-20 h-20 border-2 border-accent rounded-full animate-spin border-t-transparent"></div>
-                        
-                        {/* Animated ring 2 - counter rotation */}
-                        <div className="absolute inset-2 w-16 h-16 border-2 border-blaze/60 rounded-full animate-[spin_1.5s_linear_infinite_reverse] border-b-transparent"></div>
-                        
-                        {/* Inner glow */}
-                        <div className="absolute inset-4 w-12 h-12 bg-gradient-to-br from-accent/20 to-accent/20 rounded-full animate-pulse"></div>
-                        
-                        {/* Center dot */}
-                        <div className="absolute inset-[34px] w-3 h-3 bg-ink/80 rounded-full animate-pulse"></div>
+            <style>{LOADER_CSS}</style>
+            <div className="bg-surface-sunken border border-line-soft rounded-2xl p-8">
+                <div className="flex flex-col items-center justify-center min-h-[400px] gap-6" role="status" aria-live="polite">
+                    <div className="relative h-28 w-28">
+                        <svg viewBox="0 0 100 100" className="cx-loader-ring absolute inset-0 h-full w-full" aria-hidden>
+                            <circle cx="50" cy="50" r="44" fill="none" stroke="var(--line)" strokeWidth="1.5" />
+                            <circle
+                                cx="50" cy="50" r="44" fill="none" pathLength={100}
+                                stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round"
+                                className="cx-loader-arc"
+                            />
+                        </svg>
+                        <img src="/charisma.png" alt="" className="cx-loader-mark absolute inset-[26px] h-14 w-14 rounded-full" />
                     </div>
-                    
-                    {/* Premium Text Content */}
-                    <div className="text-center space-y-4">
-                        <h3 className="text-xl font-semibold text-ink">
-                            Initializing Secure Trading
-                        </h3>
-                        
-                        <p className="text-sm text-ink-body animate-pulse max-w-sm">
-                            {isInitializing ? "Establishing secure blockchain connection..." :
-                                isLoadingTokens ? "Loading verified token registry..." :
-                                    "Building optimal routing infrastructure..."}
-                        </p>
-                        
-                        {/* Premium Progress Bar */}
-                        <div className="w-64 h-2 bg-surface rounded-full overflow-hidden mt-6">
-                            <div 
-                                className="h-full bg-gradient-to-r from-accent to-accent rounded-full transition-all duration-1000 ease-out"
-                                style={{
-                                    width: isInitializing ? '25%' : isLoadingTokens ? '65%' : '90%',
-                                    boxShadow: '0 0 20px rgba(59, 130, 246, 0.3)'
-                                }}
-                            ></div>
-                        </div>
-                        
-                        {/* Security indicators */}
-                        <div className="flex items-center justify-center space-x-4 mt-6 text-xs">
-                            <div className="flex items-center space-x-2">
-                                <div className="h-2 w-2 bg-success rounded-full animate-pulse"></div>
-                                <span className="text-ink-muted">Secure Protocol</span>
-                            </div>
-                            <div className="h-3 w-px bg-surface-selected"></div>
-                            <div className="flex items-center space-x-2">
-                                <div className="h-2 w-2 bg-accent rounded-full animate-pulse"></div>
-                                <span className="text-ink-muted">Verified Contracts</span>
-                            </div>
-                        </div>
-                    </div>
+                    <p key={step} className="cx-loader-line text-sm text-ink-muted">{step}…</p>
                 </div>
             </div>
         </div>
     );
-} 
+}
