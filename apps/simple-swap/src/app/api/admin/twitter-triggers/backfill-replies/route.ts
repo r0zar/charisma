@@ -1,3 +1,4 @@
+import { requireAdmin } from '@/lib/admin-auth';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface BackfillResult {
@@ -23,6 +24,9 @@ interface BackfillSummary {
 
 // POST /api/admin/twitter-triggers/backfill-replies - Send replies to existing successful executions
 export async function POST(request: NextRequest) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+
     try {
         const { 
             dryRun = true, 

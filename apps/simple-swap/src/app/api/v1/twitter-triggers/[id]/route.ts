@@ -1,3 +1,4 @@
+import { requireAdmin } from '@/lib/admin-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTwitterTriggerWithStats, updateTwitterTrigger, deleteTwitterTrigger } from '@/lib/twitter-triggers/store';
 
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
         return NextResponse.json({
             success: true,
-            data: trigger
+            data: (({ signature: _signature, ...rest }) => rest)(trigger)
         });
 
     } catch (error) {
@@ -31,6 +32,9 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 // PUT /api/v1/twitter-triggers/[id] - Update trigger
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+
     try {
         const { id } = await params;
         const updates = await request.json();
@@ -82,6 +86,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 // DELETE /api/v1/twitter-triggers/[id] - Delete trigger
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+
     try {
         const { id } = await params;
 

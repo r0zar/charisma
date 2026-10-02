@@ -1,5 +1,7 @@
 'use client';
 
+import { signedFetchWithTimestamp } from 'blaze-sdk';
+import { ADMIN_AUTH_MESSAGE } from '@/lib/admin-config';
 import React, { useState, useEffect } from 'react';
 import { TwitterIcon, Users, Zap, Settings, Loader2, CheckCircle, XCircle, ExternalLink, Trash2, Play, RefreshCw, Clock, AlertTriangle, TestTube, Key, Wallet } from 'lucide-react';
 import Link from 'next/link';
@@ -384,7 +386,8 @@ export default function TwitterTriggersClient() {
                 signatures
             };
 
-            const response = await fetch('/api/admin/twitter-triggers', {
+            const response = await signedFetchWithTimestamp('/api/admin/twitter-triggers', {
+                message: ADMIN_AUTH_MESSAGE,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -564,7 +567,8 @@ export default function TwitterTriggersClient() {
                 signature: 'pre_signed_orders' // Indicate we have pre-signed orders
             };
 
-            const response = await fetch('/api/v1/twitter-triggers', {
+            const response = await signedFetchWithTimestamp('/api/v1/twitter-triggers', {
+                message: ADMIN_AUTH_MESSAGE,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -777,7 +781,8 @@ export default function TwitterTriggersClient() {
     // Update trigger with additional order IDs
     const updateTriggerWithAdditionalOrders = async (triggerId: string, newOrderIds: string[]) => {
         try {
-            const response = await fetch(`/api/v1/twitter-triggers/${triggerId}/add-orders`, {
+            const response = await signedFetchWithTimestamp(`/api/v1/twitter-triggers/${triggerId}/add-orders`, {
+                message: ADMIN_AUTH_MESSAGE,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -832,7 +837,8 @@ export default function TwitterTriggersClient() {
         setDeletingTriggers(prev => new Set(prev).add(triggerId));
 
         try {
-            const response = await fetch(`/api/v1/twitter-triggers/${triggerId}`, {
+            const response = await signedFetchWithTimestamp(`/api/v1/twitter-triggers/${triggerId}`, {
+                message: ADMIN_AUTH_MESSAGE,
                 method: 'DELETE',
             });
 
@@ -862,7 +868,8 @@ export default function TwitterTriggersClient() {
         setTestingTriggers(prev => new Set(prev).add(triggerId));
 
         try {
-            const response = await fetch(`/api/v1/twitter-triggers/${triggerId}/test`, {
+            const response = await signedFetchWithTimestamp(`/api/v1/twitter-triggers/${triggerId}/test`, {
+                message: ADMIN_AUTH_MESSAGE,
                 method: 'POST',
             });
 

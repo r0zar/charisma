@@ -1,5 +1,7 @@
 "use client";
 
+import { signedFetchWithTimestamp } from 'blaze-sdk';
+import { ADMIN_AUTH_MESSAGE } from '@/lib/admin-config';
 import { useState } from 'react';
 import { RefreshCw, Trash2, Bug } from 'lucide-react';
 import { ADMIN_CONFIG } from '@/lib/admin-config';
@@ -54,7 +56,8 @@ export function QuickActions() {
         setResults(prev => ({ ...prev, 'clear-data': '' }));
 
         try {
-            const response = await fetch('/api/admin/clear-old-data', {
+            const response = await signedFetchWithTimestamp('/api/admin/clear-old-data', {
+                message: ADMIN_AUTH_MESSAGE,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

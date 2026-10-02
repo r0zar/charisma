@@ -1,5 +1,7 @@
 'use client';
 
+import { signedFetchWithTimestamp } from 'blaze-sdk';
+import { ADMIN_AUTH_MESSAGE } from '@/lib/admin-config';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -78,7 +80,8 @@ export function TwitterQueueManager() {
     const executeAction = async (action: string, params: any = {}) => {
         setActionLoading(action);
         try {
-            const response = await fetch('/api/admin/twitter-queue', {
+            const response = await signedFetchWithTimestamp('/api/admin/twitter-queue', {
+                message: ADMIN_AUTH_MESSAGE,
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action, ...params })

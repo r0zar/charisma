@@ -1,3 +1,6 @@
+/** What the admin wallet signs (with a timestamp, valid 5 minutes) to call admin endpoints */
+export const ADMIN_AUTH_MESSAGE = 'charisma-swap-admin';
+
 // Centralized admin configuration - single source of truth
 export const ADMIN_CONFIG = {
     // Price system configuration

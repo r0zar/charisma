@@ -1,3 +1,4 @@
+import { requireAdmin } from '@/lib/admin-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { cancelOrder } from '@/lib/orders/store';
@@ -33,6 +34,9 @@ async function getOrdersNeedingMonitoring(): Promise<Array<{ uuid: string; order
  * POST /api/admin/cleanup-old-orders
  */
 export async function POST(request: NextRequest) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+
     try {
         console.log('[CLEANUP-OLD-ORDERS] Starting manual cleanup of old orders...');
 

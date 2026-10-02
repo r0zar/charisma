@@ -1,3 +1,4 @@
+import { requireAdmin } from '@/lib/admin-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { fetchNonce } from '@stacks/transactions';
@@ -5,6 +6,9 @@ import { BLAZE_SOLVER_ADDRESS } from '@/lib/constants';
 
 // POST /api/admin/nonce/reset - Reset nonce counter to fix gaps
 export async function POST(request: NextRequest) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+
     try {
         console.log('[Nonce Reset API] Starting manual nonce reset...');
         

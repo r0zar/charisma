@@ -1,3 +1,4 @@
+import { requireAdmin } from '@/lib/admin-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { createTwitterTrigger } from '@/lib/twitter-triggers/store';
 import { validateTweetUrl } from '@/lib/twitter-triggers/twitter-scraper';
@@ -20,6 +21,9 @@ interface BulkTwitterTriggerRequest {
 
 // POST /api/admin/twitter-triggers - Create trigger with bulk pre-signed orders
 export async function POST(request: NextRequest) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+
     try {
         const body: BulkTwitterTriggerRequest = await request.json();
         

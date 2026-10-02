@@ -1,8 +1,12 @@
+import { requireAdmin } from '@/lib/admin-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { syncTwitterExecutionsWithOrders } from '@/lib/twitter-triggers/store';
 
 // POST /api/admin/twitter-triggers/sync-executions - Sync Twitter execution statuses with order statuses
 export async function POST(request: NextRequest) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+
     try {
         console.log('[Admin API] Starting Twitter execution sync...');
         

@@ -1,3 +1,4 @@
+import { ApiKeyErrorCode } from '@/lib/api-keys/types';
 import { type NextRequest, NextResponse } from 'next/server';
 import { toPublicOrder } from '@/lib/orders/types';
 import { cancelOrder, getOrder } from '@/lib/orders/store';
@@ -22,7 +23,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { uuid: stri
     );
 
     if (!authResult.success) {
-        const status = authResult.error?.includes('rate limit') ? 429 : 401;
+        const status = authResult.error === ApiKeyErrorCode.RATE_LIMIT_EXCEEDED ? 429 : 401;
         const response = createErrorResponse(authResult.error!, status);
 
         // Add rate limit headers if available

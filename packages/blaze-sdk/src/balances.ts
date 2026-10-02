@@ -1,96 +1,37 @@
-/**
- * Shape of the balance data returned by the balances endpoint.
- * Mirrors the API response closely so downstream consumers can rely on strong typing.
- */
+import { callReadOnlyFunction } from '@repo/polyglot';
+import { principalCV } from '@stacks/transactions';
+
+/** A user's balance of one token, as read from the chain */
 export interface BalanceData {
-    /** SIP-10 (or other) token contract identifier `{principal}.{contractName}` */
+    /** SIP-10 or subnet token contract identifier `{principal}.{contractName}` */
     contractId: string;
     /** Stacks user address the balance belongs to */
     address: string;
-    /** On-chain confirmed balance as a decimal‐encoded string */
+    /** Confirmed balance (atomic units) as a decimal-encoded string */
     onChainBalance: string;
-    /** Net diff of all pending transactions ("mempool delta") as a decimal-encoded string */
+    /** Mempool delta. Not tracked: always "0" */
     pendingDiff: string;
-    /** onChainBalance + pendingDiff as a decimal-encoded string */
+    /** onChainBalance + pendingDiff; equals onChainBalance */
     preconfirmationBalance: string;
-    /**
-     * Optional error information – present when the request succeeded technically
-     * but the endpoint signalled an application-level error.
-     */
     error?: string | null;
 }
 
-interface BalanceEndpointSuccess {
-    contractId: string;
-    address: string;
-    onChainBalance: string;
-    pendingDiff: string;
-    preconfirmationBalance: string;
-}
-
-interface BalanceEndpointError {
-    error: string;
-}
-
 /**
- * Internal: create a fully-populated BalanceData object containing safe defaults
- * so downstream UI components can rely on all properties being present.
+ * A user's balance of a SIP-10 or Blaze subnet token, read on-chain with the token's own `get-balance`.
+ * Throws a descriptive error when the chain can't be read, so callers never mistake an outage for a zero balance.
  */
-function createDefaultBalanceData(contractId: string, address: string): BalanceData {
-    return {
-        contractId,
-        address,
-        onChainBalance: '0',
-        pendingDiff: '0',
-        preconfirmationBalance: '0',
-        error: 'Balance data unavailable',
-    };
-}
-
-/**
- * Fetch a user's balance (confirmed, pending delta & pre-confirmation) via the
- * shared balances service. Falls back to a zero-filled structure when the
- * request fails or the service responds with an error.
- */
-export async function getUserTokenBalance(
-    contractId: string,
-    address: string,
-): Promise<BalanceData> {
-    const encodedContractId = encodeURIComponent(contractId);
-    const encodedAddress = encodeURIComponent(address);
-    const url = `https://blaze.charisma.rocks/api/balances/${encodedContractId}/${encodedAddress}`;
-
-    try {
-        const response = await fetch(url);
-
-        if (!response.ok) {
-            console.error(
-                `Balances API error for ${contractId} @ ${address}: ${response.status} ${response.statusText}`,
-            );
-            return createDefaultBalanceData(contractId, address);
-        }
-
-        // The endpoint returns either BalanceEndpointSuccess or BalanceEndpointError
-        const json = (await response.json()) as BalanceEndpointSuccess | BalanceEndpointError;
-
-        if ('error' in json) {
-            return {
-                ...createDefaultBalanceData(contractId, address),
-                error: json.error || 'Unknown endpoint error',
-            };
-        }
-
-        // Map endpoint response to BalanceData while ensuring all required props exist
-        return {
-            contractId: json.contractId,
-            address: json.address,
-            onChainBalance: json.onChainBalance ?? '0',
-            pendingDiff: json.pendingDiff ?? '0',
-            preconfirmationBalance: json.preconfirmationBalance ?? '0',
-            error: null,
-        };
-    } catch (err) {
-        console.error(`Failed to fetch balance for ${contractId} @ ${address}:`, err);
-        return createDefaultBalanceData(contractId, address);
+export async function getUserTokenBalance(contractId: string, address: string): Promise<BalanceData> {
+    const [contractAddress, contractName] = contractId.split('.');
+    if (!contractAddress || !contractName) {
+        throw new Error(`getUserTokenBalance: "${contractId}" is not a contract id ({principal}.{name})`);
     }
+
+    const result = await callReadOnlyFunction(contractAddress, contractName, 'get-balance', [principalCV(address)]);
+    const value = result?.value;
+    if (value === undefined || value === null) {
+        throw new Error(`getUserTokenBalance: ${contractId}.get-balance returned no value for ${address}`);
+    }
+
+    const balance = BigInt(value).toString();
+    return { contractId, address, onChainBalance: balance, pendingDiff: '0', preconfirmationBalance: balance, error: null };
 }

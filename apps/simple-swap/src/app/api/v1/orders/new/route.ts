@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { ORDER_ROUTERS, toPublicOrder } from '@/lib/orders/types';
+import { ORDER_ROUTERS, SIGNER_PAYOUT_ROUTER, toPublicOrder } from '@/lib/orders/types';
 import { findSignedRouter } from 'blaze-sdk';
 import { z } from 'zod';
 import { NewOrderRequest } from '@/lib/orders/types';
-import { addOrder } from '@/lib/orders/store';
+import { addOrder, getOrder } from '@/lib/orders/store';
+import { fetchTokenType } from '@/lib/orders/token-type';
 import { callReadOnlyFunction } from '@repo/polyglot';
 import { bufferFromHex } from '@stacks/transactions/dist/cl';
 import {
@@ -95,7 +96,14 @@ const BLAZE_CONTRACT_NAME = 'blaze-v1';
 export async function POST(req: Request) {
     try {
         const body = await req.json();
-        const parsed = validatedSchema.parse(body);
+        const result = validatedSchema.safeParse(body);
+        if (!result.success) {
+            return NextResponse.json({
+                error: 'Invalid request',
+                details: result.error.issues.map((i) => `${i.path.join('.') || 'body'}: ${i.message}`),
+            }, { status: 400 });
+        }
+        const parsed = result.data;
 
         if (!parsed.recipient) {
             parsed.recipient = parsed.owner;
@@ -112,6 +120,26 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: `Unknown router ${router}` }, { status: 400 });
         }
         parsed.router = router;
+
+        // x-multihop-v1 sends the output only to whoever signed; any other recipient would abort on every attempt
+        if (router === SIGNER_PAYOUT_ROUTER && parsed.recipient !== parsed.owner) {
+            return NextResponse.json({ error: `recipient must equal owner: ${SIGNER_PAYOUT_ROUTER} pays out only to the signer` }, { status: 400 });
+        }
+
+        // Orders spend a Blaze subnet balance; the executor would cancel anything else, so refuse it now
+        const inputType = await fetchTokenType(parsed.inputToken);
+        if (inputType && inputType !== 'SUBNET') {
+            return NextResponse.json({ error: `inputToken must be a subnet token (got ${inputType}); deposit to the subnet first` }, { status: 400 });
+        }
+
+        // A uuid names one order. Re-sending the same signed order is a safe retry; anything else would overwrite it
+        const existing = await getOrder(parsed.uuid);
+        if (existing) {
+            if (existing.signature === parsed.signature) {
+                return NextResponse.json({ status: 'success', data: toPublicOrder(existing) });
+            }
+            return NextResponse.json({ error: `An order with uuid ${parsed.uuid} already exists` }, { status: 409 });
+        }
 
         // ----- Signature Verification (Stacks-based) -----
         try {
@@ -142,6 +170,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ status: 'success', data: toPublicOrder(order) });
     } catch (err) {
         console.error('Create order error', err);
-        return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
+        return NextResponse.json({ error: err instanceof Error ? err.message : 'Invalid request' }, { status: 400 });
     }
 } 

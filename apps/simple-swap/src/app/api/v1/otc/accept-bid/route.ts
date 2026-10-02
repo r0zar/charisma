@@ -195,12 +195,10 @@ export async function POST(req: NextRequest) {
         });
 
         // Validate numeric amounts for transaction processing
-        const firstOfferedAsset = offer.offerAssets[0];
-        const numericAmountForSignature = parseInt(firstOfferedAsset.amount, 10);
-
-        if (isNaN(numericAmountForSignature)) {
+        const badAsset = offer.offerAssets.find(a => isNaN(parseInt(a.amount, 10)));
+        if (badAsset) {
             return NextResponse.json(
-                { success: false, error: `Invalid numeric amount for offer asset ${firstOfferedAsset.token}: ${firstOfferedAsset.amount}` },
+                { success: false, error: `Invalid numeric amount for offer asset ${badAsset.token}: ${badAsset.amount}` },
                 { status: 500 }
             );
         }
@@ -251,11 +249,12 @@ export async function POST(req: NextRequest) {
         for (const offerAsset of offer.offerAssets) {
             // delay for 3 seconds
             await new Promise(resolve => setTimeout(resolve, 3000));
+            // each offered asset was signed with its own uuid and amount
             const redeem = createRedeem({
                 contractId: offerAsset.token,
                 signature: offerAsset.signature,
-                uuid: offer.intentUuid,
-                amount: numericAmountForSignature,
+                uuid: offerAsset.intentUuid,
+                amount: parseInt(offerAsset.amount, 10),
                 recipient: bid.bidderAddress,
                 intent: "REDEEM_BEARER",
                 senderKey: BLAZE_SIGNER_PRIVATE_KEY!,

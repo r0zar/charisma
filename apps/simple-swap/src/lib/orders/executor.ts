@@ -1,5 +1,6 @@
 import { listOrders, fillOrder, updateOrder, cancelOrder } from './store';
 import { LEGACY_ROUTER, LimitOrder } from './types';
+import { fetchTokenType } from './token-type';
 import { getQuote } from '@/app/actions';
 import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
 import { executeMultihopSwap, buildXSwapTransaction, broadcastMultihopTransaction } from 'blaze-sdk';
@@ -8,16 +9,6 @@ import { BLAZE_SIGNER_PRIVATE_KEY, BLAZE_SOLVER_ADDRESS } from '@/lib/constants'
 import { kv } from '@vercel/kv';
 import { TxMonitorClient } from '@repo/tx-monitor-client';
 import { priceSeriesService } from '../charts/price-series-service';
-
-const TOKEN_CACHE = process.env.NEXT_PUBLIC_TOKEN_CACHE_URL || process.env.TOKEN_CACHE_URL || 'https://tokens.charisma.rocks';
-/** Returns the token's type from the token cache, or null when the cache cannot answer. Never fabricates a record. */
-async function fetchTokenType(contractId: string): Promise<string | null> {
-    const res = await fetch(`${TOKEN_CACHE}/api/v1/sip10/${encodeURIComponent(contractId)}`, { signal: AbortSignal.timeout(8000) });
-    if (!res.ok) return null;
-    const json = await res.json().catch(() => null);
-    const type = json?.data?.type;
-    return typeof type === 'string' && type.length > 0 ? type : null;
-}
 
 // Initialize tx-monitor client
 const txMonitorClient = new TxMonitorClient();

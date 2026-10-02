@@ -1,3 +1,5 @@
+import { ADMIN_ADDRESS } from '@/lib/constants';
+import { requireAdmin } from '@/lib/admin-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { listTwitterTriggers, createTwitterTrigger } from '@/lib/twitter-triggers/store';
 import { validateTweetUrl } from '@/lib/twitter-triggers/twitter-scraper';
@@ -19,7 +21,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            data: triggers,
+            data: triggers.map(({ signature: _signature, ...trigger }) => trigger),
             meta: {
                 total: triggers.length,
                 activeOnly,
@@ -38,6 +40,9 @@ export async function GET(request: NextRequest) {
 
 // POST /api/v1/twitter-triggers - Create new trigger
 export async function POST(request: NextRequest) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+
     try {
         const body: CreateTwitterTriggerRequest = await request.json();
 
@@ -71,9 +76,8 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        // TODO: Add owner verification from signature
-        // For now, use a placeholder owner
-        const owner = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS'; // This should be derived from signature
+        // Only the admin wallet can create triggers (requireAdmin above), so it owns them
+        const owner = ADMIN_ADDRESS;
 
         // Create the trigger
         const trigger = await createTwitterTrigger({

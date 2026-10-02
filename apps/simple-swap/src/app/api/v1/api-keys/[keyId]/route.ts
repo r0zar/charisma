@@ -23,13 +23,11 @@ export async function GET(
     const { keyId } = await params;
 
     // Get authentication headers
-    const message = request.headers.get('x-message');
-    const signature = request.headers.get('x-signature');
     const walletAddress = request.headers.get('x-wallet-address');
 
-    if (!message || !signature || !walletAddress) {
+    if (!request.headers.get('x-message') || !walletAddress) {
       return createErrorResponse(
-        'Missing required headers: X-Message, X-Signature, X-Wallet-Address',
+        'Missing required headers: X-Message, X-Wallet-Address, X-Signature, X-Public-Key',
         401
       );
     }
@@ -50,20 +48,10 @@ export async function GET(
       return createErrorResponse('Unauthorized', 403);
     }
 
-    // Create a mock request for signature verification
-    const mockRequest = new Request(request.url, {
-      method: 'GET',
-      headers: request.headers,
-      body: JSON.stringify({
-        message,
-        signature,
-        walletAddress
-      })
-    });
 
     // Authenticate signature - use a simple message validation for GET
     const authResult = await authenticateSignature(
-      mockRequest as any,
+      request,
       walletAddress,
       (msg) => msg.action === 'get_api_key_stats' && msg.keyId === keyId
     );
@@ -110,8 +98,8 @@ export async function DELETE(
     const body: DeleteApiKeyRequest = await request.json();
 
     // Validate basic request structure
-    if (!body.walletAddress || !body.message || !body.signature) {
-      return createErrorResponse('Missing required fields: walletAddress, message, signature');
+    if (!body.walletAddress || !body.message) {
+      return createErrorResponse('Missing required fields: walletAddress, message (and the X-Signature / X-Public-Key headers)');
     }
 
     // Validate wallet address format

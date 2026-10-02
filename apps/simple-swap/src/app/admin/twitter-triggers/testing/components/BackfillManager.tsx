@@ -1,5 +1,7 @@
 'use client';
 
+import { signedFetchWithTimestamp } from 'blaze-sdk';
+import { ADMIN_AUTH_MESSAGE } from '@/lib/admin-config';
 import React, { useState, useEffect } from 'react';
 import { 
     RotateCcw, 
@@ -112,7 +114,8 @@ export default function BackfillManager() {
         setBackfillResult(null);
 
         try {
-            const response = await fetch('/api/admin/twitter-triggers/backfill-replies', {
+            const response = await signedFetchWithTimestamp('/api/admin/twitter-triggers/backfill-replies', {
+                message: ADMIN_AUTH_MESSAGE,
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -114,13 +114,16 @@ export async function authenticateSignature(
   parsedMessage?: any;
 }> {
   try {
-    const body = await request.clone().json();
-    const { message, signature, walletAddress } = body;
+    // The signature and public key ride in x-signature / x-public-key. The signed message comes from the body,
+    // or from x-message / x-wallet-address on GET, which has no body.
+    const { message, walletAddress } = request.method === 'GET'
+      ? { message: request.headers.get('x-message'), walletAddress: request.headers.get('x-wallet-address') }
+      : await request.clone().json();
 
-    if (!message || !signature || !walletAddress) {
+    if (!message || !walletAddress) {
       return {
         success: false,
-        error: 'Missing required fields: message, signature, walletAddress'
+        error: 'Missing required fields: message, walletAddress'
       };
     }
 

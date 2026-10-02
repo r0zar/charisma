@@ -1,8 +1,12 @@
+import { requireAdmin } from '@/lib/admin-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { getTwitterTrigger, updateTwitterTrigger, createTwitterExecution, updateTwitterExecution, incrementTriggerCount, getExecutionByTriggerAndBNS } from '@/lib/twitter-triggers/store';
 
 // POST /api/v1/twitter-triggers/[id]/test - Manually test a trigger
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+
     try {
         const { id } = await params;
         

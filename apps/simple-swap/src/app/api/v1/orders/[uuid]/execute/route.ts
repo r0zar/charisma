@@ -1,3 +1,4 @@
+import { ApiKeyErrorCode } from '@/lib/api-keys/types';
 import { type NextRequest, NextResponse } from 'next/server';
 import { getOrder, fillOrder } from '@/lib/orders/store';
 import { executeTrade, cancelOtherExits } from '@/lib/orders/executor';
@@ -24,7 +25,7 @@ export async function POST(req: NextRequest, { params }: { params: { uuid: strin
         );
 
         if (!authResult.success) {
-            const status = authResult.error?.includes('rate limit') ? 429 : 401;
+            const status = authResult.error === ApiKeyErrorCode.RATE_LIMIT_EXCEEDED ? 429 : 401;
             const response = createErrorResponse(authResult.error!, status);
             
             // Add rate limit headers if available

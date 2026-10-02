@@ -1,10 +1,14 @@
+import { requireAdmin } from '@/lib/admin-auth';
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { ADMIN_CONFIG } from '@/lib/admin-config';
 
-export async function POST() {
+export async function POST(request: Request) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+
     try {
         console.log('🗑️ Starting old data cleanup process...');
 

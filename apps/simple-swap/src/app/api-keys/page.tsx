@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useWallet } from '@/contexts/wallet-context';
-import { signMessage } from 'blaze-sdk';
+import { buildSignatureHeaders, signMessage } from 'blaze-sdk';
 import { toast } from '@/components/ui/sonner';
 import { 
   Key, 
@@ -86,7 +86,7 @@ export default function ApiKeysPage() {
         method: 'GET',
         headers: {
           'X-Message': messageString,
-          'X-Signature': signature.signature,
+          ...buildSignatureHeaders(signature),
           'X-Wallet-Address': address
         }
       });
@@ -125,7 +125,8 @@ export default function ApiKeysPage() {
       const response = await fetch('/api/v1/api-keys', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...buildSignatureHeaders(signature)
         },
         body: JSON.stringify({
           message: messageString,
@@ -183,7 +184,8 @@ export default function ApiKeysPage() {
       const response = await fetch(`/api/v1/api-keys/${keyId}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...buildSignatureHeaders(signature)
         },
         body: JSON.stringify({
           message: messageString,

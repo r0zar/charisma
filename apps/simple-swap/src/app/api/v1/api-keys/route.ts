@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
     const body: CreateApiKeyRequest = await request.json();
 
     // Validate basic request structure
-    if (!body.walletAddress || !body.message || !body.signature) {
-      return createErrorResponse('Missing required fields: walletAddress, message, signature');
+    if (!body.walletAddress || !body.message) {
+      return createErrorResponse('Missing required fields: walletAddress, message (and the X-Signature / X-Public-Key headers)');
     }
 
     // Validate wallet address format
@@ -94,13 +94,11 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Get authentication headers
-    const message = request.headers.get('x-message');
-    const signature = request.headers.get('x-signature');
     const walletAddress = request.headers.get('x-wallet-address');
 
-    if (!message || !signature || !walletAddress) {
+    if (!request.headers.get('x-message') || !walletAddress) {
       return createErrorResponse(
-        'Missing required headers: X-Message, X-Signature, X-Wallet-Address',
+        'Missing required headers: X-Message, X-Wallet-Address, X-Signature, X-Public-Key',
         401
       );
     }
@@ -110,20 +108,10 @@ export async function GET(request: NextRequest) {
       return createErrorResponse('Invalid wallet address format');
     }
 
-    // Create a mock request for signature verification
-    const mockRequest = new Request(request.url, {
-      method: 'GET',
-      headers: request.headers,
-      body: JSON.stringify({
-        message,
-        signature,
-        walletAddress
-      })
-    });
 
     // Authenticate signature and validate message
     const authResult = await authenticateSignature(
-      mockRequest as any,
+      request,
       walletAddress,
       validateListApiKeysMessage
     );

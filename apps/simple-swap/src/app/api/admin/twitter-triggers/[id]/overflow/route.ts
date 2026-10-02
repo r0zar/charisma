@@ -1,3 +1,4 @@
+import { requireAdmin } from '@/lib/admin-auth';
 import { NextRequest, NextResponse } from 'next/server';
 import { addOverflowSignaturesToTrigger } from '@/lib/twitter-triggers/store';
 
@@ -18,6 +19,9 @@ export async function POST(
     request: NextRequest,
     { params }: { params: { id: string } }
 ) {
+    const denied = await requireAdmin(request);
+    if (denied) return denied;
+
     try {
         const triggerId = params.id;
         const body: AddOverflowRequest = await request.json();
