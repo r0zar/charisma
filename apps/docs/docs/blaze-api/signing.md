@@ -62,6 +62,40 @@ This is standard SIP-018, so `signStructuredData` from `@stacks/transactions` an
 
 A swap is `TRANSFER_TOKENS` with the router as `target`. See [Swap routers](./routers.md).
 
+## The opcode field
+
+`opcode` is an optional buffer of up to 16 bytes, signed with the rest of the intent. Every intent today sets it to `none`.
+
+It is a free, signed variable. When `intent`, `amount` and `target` don't pin down enough, a contract can require an opcode and enforce what it says. The signer then commits to more than the intent alone, and new behaviour needs no new intent type and no new verifier:
+
+1. The signer puts the extra terms in `opcode` and signs.
+2. The submitter passes the opcode to the contract, which hands it to `blaze-v1` `execute` or `recover`. If it isn't what was signed, a different principal is recovered and the call fails.
+3. The contract enforces the terms.
+
+Ideas, none of them built:
+
+| A signed opcode could carry | Enforced by |
+|---|---|
+| A minimum output. 16 bytes is one `uint`, read with `buff-to-uint-be` | The router, after the last hop. Today there is [no minimum on-chain](./routers.md#no-minimum-output-on-chain) |
+| A deadline block height | The subnet or router, against `stacks-block-height` |
+| A route or vault, as 16 bytes of its hash | The router, before the first hop |
+| A [Dexterity operation](../dexterity/opcodes.md) | A vault that runs signed operations |
+
+Where it stands:
+
+| Place | `opcode` |
+|---|---|
+| Live subnets: `x-transfer`, `x-transfer-lte`, `x-redeem` | `none`, hard-coded in the call to `blaze-v1` |
+| `x-multihop-v1` signer check | `none`, hard-coded |
+| `signTriggeredSwap` | `none` |
+| `signIntentWithWallet`, `signIntentWithPrivateKey`, `recoverSigner`, `generateHash` | Accept `opcode` as a hex string |
+
+Because the live contracts hard-code `none`, a signature over any other opcode recovers a different principal on them and fails. Only a contract written to pass an opcode can use one.
+
+:::note Not the Dexterity opcode
+Dexterity vaults take an `opcode` of the same type, but it selects which operation a vault runs, and whoever builds the transaction chooses it. A Blaze opcode is signed and makes an intent stricter. See [The opcode](../dexterity/opcodes.md).
+:::
+
 ## blaze-sdk helpers
 
 These live in the monorepo package `packages/blaze-sdk`. The `blaze-sdk` on npm is an older release without them.

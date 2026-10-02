@@ -8,6 +8,7 @@ type Section = { title: string; to: string; description: string };
 const SECTIONS: Section[] = [
   { title: 'DEX API', to: '/docs/dex-api/overview', description: 'Quotes, signed orders, cancel and execute, API keys.' },
   { title: 'Blaze', to: '/docs/blaze-api/introduction', description: 'Signed intents, subnet tokens, swap routers and the trust model.' },
+  { title: 'Dexterity', to: '/docs/dexterity/overview', description: 'Vaults: one interface for every pool, wrapper and DeFi operation.' },
   { title: 'Prices', to: '/docs/prices/overview', description: 'How every token gets a USD price, and the API that serves it.' },
   { title: 'Data APIs', to: '/docs/data-apis/overview', description: 'Tokens, vaults, metadata and balances, open to read.' },
   { title: 'Tokenomics', to: '/docs/tokenomics/cha', description: 'CHA, Hold-to-Earn and who can change what.' },
