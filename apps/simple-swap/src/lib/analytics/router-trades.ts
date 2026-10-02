@@ -2,6 +2,7 @@
 import { kv } from '@vercel/kv';
 import { createHash } from 'node:crypto';
 import { Cl, encodeStructuredDataBytes, getAddressFromPublicKey, publicKeyFromSignatureRsv } from '@stacks/transactions';
+import { blazeDomain, blazeVersionOf } from 'blaze-sdk';
 
 /**
  * Every successful trade through Charisma's routers, read from the chain (Hiro) and kept in KV, one key per
@@ -57,11 +58,9 @@ interface HiroTx {
   tx_result?: { repr: string };
 }
 
-/** The Blaze protocol's SIP-018 domain (blaze-sdk's BLAZE_V1_DOMAIN) */
-const BLAZE_DOMAIN = Cl.tuple({ name: Cl.stringAscii('BLAZE_PROTOCOL'), version: Cl.stringAscii('v1.0'), 'chain-id': Cl.uint(1) });
-
-/** Who signed a subnet order: recovered from its signature over the Blaze message the router checked */
-function orderSigner(inRepr: string, router: string): string {
+/** Who signed a subnet order: recovered from its signature over the Blaze message the router checked, under the
+ * domain of the Blaze version the paying subnet uses (a v2 subnet's orders are signed for v2) */
+async function orderSigner(inRepr: string, router: string): Promise<string> {
   const amount = inRepr.match(/\(amount u(\d+)\)/)?.[1];
   const signature = inRepr.match(/\(signature 0x([0-9a-f]+)\)/)?.[1];
   const token = principalIn(inRepr, 'token');
@@ -75,14 +74,15 @@ function orderSigner(inRepr: string, router: string): string {
     target: Cl.some(Cl.principal(router)),
     uuid: Cl.stringAscii(uuid),
   });
-  const hash = createHash('sha256').update(encodeStructuredDataBytes({ message, domain: BLAZE_DOMAIN })).digest('hex');
+  const domain = blazeDomain(await blazeVersionOf(token));
+  const hash = createHash('sha256').update(encodeStructuredDataBytes({ message, domain })).digest('hex');
   return getAddressFromPublicKey(publicKeyFromSignatureRsv(hash, signature), 'mainnet');
 }
 
 const principalIn = (repr: string, field: string) => repr.match(new RegExp(`\\(${field} '([A-Z0-9]+\\.[a-zA-Z0-9-]+)\\)`))?.[1];
 
 /** Read one router transaction into a trade; null for anything that isn't a successful swap */
-function toTrade(tx: HiroTx, router: string): RouterTrade | null {
+async function toTrade(tx: HiroTx, router: string): Promise<RouterTrade | null> {
   if (tx.tx_status !== 'success' || tx.tx_type !== 'contract_call' || tx.contract_call?.contract_id !== router) return null;
   const args = Object.fromEntries((tx.contract_call.function_args ?? []).map(a => [a.name, a.repr]));
   // The first hop's result: (dx uN) is what went in
@@ -108,7 +108,7 @@ function toTrade(tx: HiroTx, router: string): RouterTrade | null {
     router,
     at: tx.burn_block_time * 1000,
     sender: tx.sender_address,
-    ...(args.in && { signer: orderSigner(args.in, router) }),
+    ...(args.in && { signer: await orderSigner(args.in, router) }),
     in: inSide,
     out: outSide,
     amount: dx,
@@ -172,7 +172,7 @@ export async function syncRouterTrades(budgetMs = 45_000) {
         const stop = page.findIndex(tx => tx.tx_id === state.head);
         const unseen = stop === -1 ? page : page.slice(0, stop);
         fresh += unseen.length;
-        added += await store(unseen.map(tx => toTrade(tx, router)).filter((t): t is RouterTrade => !!t));
+        added += await store((await Promise.all(unseen.map(tx => toTrade(tx, router)))).filter((t): t is RouterTrade => !!t));
         if (stop !== -1 || page.length < PAGE || Date.now() > deadline) break;
         offset += PAGE;
       }
@@ -185,7 +185,7 @@ export async function syncRouterTrades(budgetMs = 45_000) {
     while (!state.complete && Date.now() < deadline) {
       const page = await fetchPage(router, state.tailOffset);
       if (state.tailOffset === 0) state.head ??= page[0]?.tx_id;
-      added += await store(page.map(tx => toTrade(tx, router)).filter((t): t is RouterTrade => !!t));
+      added += await store((await Promise.all(page.map(tx => toTrade(tx, router)))).filter((t): t is RouterTrade => !!t));
       state.tailOffset += page.length;
       if (page.length < PAGE) state.complete = true;
       // Keep the place after every page, so a failure never loses progress
