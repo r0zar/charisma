@@ -67,12 +67,14 @@ export function InfoTooltip({ content, children, side = "top" }: TooltipProps) {
 interface BalanceTooltipProps {
     mainnet: string;
     subnet?: string;
+    /** Where the subnet balance sits, when it's split (CHA on Blaze v1 and v2) */
+    subnetParts?: { label: string; amount: string }[];
     activeLabel: string;
     children?: React.ReactNode;
     side?: "top" | "bottom" | "left" | "right";
 }
 
-export function BalanceTooltip({ mainnet, subnet, activeLabel, children, side = "bottom" }: BalanceTooltipProps) {
+export function BalanceTooltip({ mainnet, subnet, subnetParts, activeLabel, children, side = "bottom" }: BalanceTooltipProps) {
     const hasSubnet = subnet !== undefined;
     const total = hasSubnet ? (Number(mainnet.replace(/,/g, '')) + Number(subnet.replace(/,/g, ''))).toLocaleString() : mainnet;
     
@@ -104,6 +106,12 @@ export function BalanceTooltip({ mainnet, subnet, activeLabel, children, side = 
                                         <span className="text-muted-foreground">Subnet:</span>
                                         <span className="font-mono text-xs text-blaze ">{subnet}</span>
                                     </div>
+                                    {subnetParts?.map(part => (
+                                        <div key={part.label} className="flex justify-between items-center gap-3 pl-3 text-xs">
+                                            <span className="text-muted-foreground">{part.label}</span>
+                                            <span className="font-mono">{part.amount}</span>
+                                        </div>
+                                    ))}
                                     <div className="flex justify-between items-center gap-3 pt-1 border-t border-border/30">
                                         <span className="text-muted-foreground font-medium">Total:</span>
                                         <span className="font-mono text-xs font-medium">{total}</span>

@@ -14,6 +14,9 @@ import BlazeWalletPitch from './BlazeWalletPitch';
 import { waitForConfirmation } from '@/lib/zesty/subnet';
 import { fromUnits, toUnits } from '@/lib/units';
 import { listTokens } from '@/app/actions';
+import { CHA_SUBNET_V1, CHA_SUBNET_V2, chaPlan, isChaSubnet } from '@/lib/cha-subnets';
+import { chaPlanNow } from '@/lib/cha-commitments';
+import ChaUpgrade from '@/components/cha-upgrade/ChaUpgrade';
 
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
@@ -45,7 +48,7 @@ const buysFor = (every: number, span: number) => Math.floor(span / every);
 export default function DcaPage() {
     const { address } = useWallet();
     const { getSubnetContractId } = useSubnetTokens();
-    const { getSubnetBalance, getTokenBalance } = useBalances(address ? [address] : []);
+    const { getSubnetBalance, getSubnetBalanceExact, getTokenBalance } = useBalances(address ? [address] : []);
     // Only tokens the router can trade, the same list the swap page offers
     const [swappable, setSwappable] = useState<TokenCacheData[] | null>(null);
     const [listError, setListError] = useState<string | null>(null);
@@ -107,7 +110,17 @@ export default function DcaPage() {
     // Never guess decimals: a token without them in the token list can't be traded here
     const decimals = from?.decimals;
     const amountRaw = decimals !== undefined ? toUnits(amountText, decimals) : 0n;
-    const toMove = amountRaw > fromHeld.subnet ? amountRaw - fromHeld.subnet : 0n;
+    let toMove = amountRaw > fromHeld.subnet ? amountRaw - fromHeld.subnet : 0n;
+    // CHA sits in two subnets: the buys spend one of them (old first), and wallet CHA tops up v2
+    const chaHeld = (subnet: string) => address ? getSubnetBalanceExact(address, subnet) : 0;
+    let chaSplit: string | null = null;
+    if (isChaSubnet(fromSubnet) && amountRaw > 0n && amountRaw <= balance) {
+        try {
+            toMove = chaPlan(amountRaw, BigInt(Math.floor(chaHeld(CHA_SUBNET_V1))), BigInt(Math.floor(chaHeld(CHA_SUBNET_V2))), fromHeld.wallet).deposit;
+        } catch (err) {
+            chaSplit = (err as Error).message;
+        }
+    }
     const shareRaw = (s: number) => balance * BigInt(Math.round(s * 100)) / 100n;
 
     const buys = buysFor(every, span);
@@ -125,6 +138,8 @@ export default function DcaPage() {
         ? `${from.symbol} has no decimals in the token list, so amounts can't be read safely`
         : amountRaw > balance
             ? `That's more ${from?.symbol} than you hold`
+            : chaSplit
+                ? chaSplit
             : buys < 2
                 ? 'Pick a longer time or buy more often, so there are at least 2 buys'
                 : buys > MAX_BUYS && !bulk
@@ -140,9 +155,13 @@ export default function DcaPage() {
         setError(null);
         setPhase('signing');
         try {
-            if (toMove > 0n) {
+            // Settle which CHA subnet pays now, counting what open orders already spend
+            const { source, deposit } = isChaSubnet(fromSubnet)
+                ? await chaPlanNow(address!, amountRaw, chaHeld(CHA_SUBNET_V1), chaHeld(CHA_SUBNET_V2), fromHeld.wallet)
+                : { source: fromSubnet, deposit: toMove };
+            if (deposit > 0n) {
                 setProgress('Approve moving funds in your wallet…');
-                const txid = await depositToSubnet(address!, from, fromSubnet, toMove);
+                const txid = await depositToSubnet(address!, from, source, deposit);
                 setProgress('Getting funds ready… about a minute');
                 await waitForConfirmation(txid);
             }
@@ -153,7 +172,7 @@ export default function DcaPage() {
                 strategyId,
                 strategySize: buys,
                 position: i + 1,
-                fromSubnet,
+                fromSubnet: source,
                 to: to.contractId,
                 amount: perBuy,
                 validFrom: new Date(startsAt + i * every),
@@ -175,6 +194,8 @@ export default function DcaPage() {
                 <h1 className="text-2xl font-semibold text-ink">DCA</h1>
                 <p className="text-sm text-ink-muted">Buy a little at a time, on a schedule. Set it once and walk away.</p>
             </div>
+
+            <ChaUpgrade />
 
             <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_260px] items-start">
             <div className="rounded-xl border border-line bg-surface p-4 space-y-5">

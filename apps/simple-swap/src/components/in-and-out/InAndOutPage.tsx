@@ -14,6 +14,9 @@ import { waitForConfirmation } from '@/lib/zesty/subnet';
 import { listTokens } from '@/app/actions';
 import { Chip } from '@/components/advanced/Chip';
 import { fromUnits, toUnits } from '@/lib/units';
+import { CHA_SUBNET_V1, CHA_SUBNET_V2, chaDestination, chaPlan, isChaSubnet } from '@/lib/cha-subnets';
+import { chaPlanNow } from '@/lib/cha-commitments';
+import ChaUpgrade from '@/components/cha-upgrade/ChaUpgrade';
 
 const ConditionTokenChart = dynamic(() => import('@/components/condition-token-chart'), { ssr: false });
 
@@ -29,6 +32,9 @@ const CASH_OUT_TOKENS = [
 const SAFETY = 0.1;
 const FORM_KEY = 'in-and-out:form';
 const SHARES = [0.05, 0.1, 0.25, 0.5, 1];
+
+/** A payment's split for a CHA plan: its subnet part comes from one CHA subnet, the rest from the wallet */
+const chaPays = (amount: bigint, plan: { source: string; deposit: bigint }) => ({ subnet: plan.source, fromSubnet: amount - plan.deposit, fromWallet: plan.deposit });
 
 /** Up to 6 significant digits, no exponent */
 const fmt = (n: number) => n.toLocaleString('en-US', { maximumSignificantDigits: 6 });
@@ -54,7 +60,7 @@ export default function InAndOutPage() {
     const { address } = useWallet();
     const { getPrice } = usePrices();
     const { getSubnetContractId } = useSubnetTokens();
-    const { getSubnetBalance, getTokenBalance } = useBalances(address ? [address] : []);
+    const { getSubnetBalance, getSubnetBalanceExact, getTokenBalance } = useBalances(address ? [address] : []);
     // Only tokens the router can trade, the same list the swap page offers
     const [swappable, setSwappable] = useState<TokenCacheData[] | null>(null);
     const [listError, setListError] = useState<string | null>(null);
@@ -101,8 +107,10 @@ export default function InAndOutPage() {
         }
     }, [pay, buy, cashOut, amountText, targetPct, safetyOn]);
 
-    const paySubnet = pay ? getSubnetContractId(pay.contractId) : null;
-    const buySubnet = buy ? getSubnetContractId(buy.contractId) : null;
+    const payListed = pay ? getSubnetContractId(pay.contractId) : null;
+    const buyListed = buy ? getSubnetContractId(buy.contractId) : null;
+    // CHA bought lands in Blaze v2
+    const buySubnet = isChaSubnet(buyListed) ? chaDestination() : buyListed;
     // What you hold, wherever it sits: the subnet part is spent first (just a signature), the rest from the wallet
     const held = (t: TokenCacheData) => {
         if (!address) return { subnet: 0n, wallet: 0n };
@@ -118,8 +126,18 @@ export default function InAndOutPage() {
     const decimals = pay?.decimals;
     const amountRaw = decimals !== undefined ? toUnits(amountText, decimals) : 0n;
     const tooMuch = amountRaw > balance;
-    const fromSubnet = amountRaw < payHeld.subnet ? amountRaw : payHeld.subnet;
-    const fromWallet = amountRaw - fromSubnet;
+    const subnetPart = amountRaw < payHeld.subnet ? amountRaw : payHeld.subnet;
+    let pays = { subnet: payListed, fromSubnet: subnetPart, fromWallet: amountRaw - subnetPart };
+    // CHA sits in two subnets: v1 pays first, else v2 topped up from the wallet
+    const chaHeld = (subnet: string) => address ? getSubnetBalanceExact(address, subnet) : 0;
+    let chaSplit: string | null = null;
+    if (isChaSubnet(payListed) && amountRaw > 0n && !tooMuch) {
+        try {
+            pays = chaPays(amountRaw, chaPlan(amountRaw, BigInt(Math.floor(chaHeld(CHA_SUBNET_V1))), BigInt(Math.floor(chaHeld(CHA_SUBNET_V2))), payHeld.wallet));
+        } catch (err) {
+            chaSplit = (err as Error).message;
+        }
+    }
     const shareRaw = (s: number) => balance * BigInt(Math.round(s * 100)) / 100n;
 
     // The bought token, priced in the token the profit is taken in
@@ -145,11 +163,14 @@ export default function InAndOutPage() {
         ? `${pay.symbol} has no decimals in the token list, so amounts can't be read safely`
         : pay && tooMuch
             ? `That's more ${pay.symbol} than you hold`
+        : chaSplit
+            ? chaSplit
         : buy && cashOut && !ratio
             ? `No price for ${!priceBuy ? buy.symbol : cashOut.symbol} right now, so a target can't be set`
             : null;
-    const ready = !!(address && pay && buy && cashOut && buySubnet && ratio && decimals !== undefined && amountRaw > 0n && !tooMuch);
-    const signatures = (fromSubnet > 0n ? 1 : 0) + (fromWallet > 0n ? 1 : 0) + (safetyOn ? 2 : 1);
+    const ready = !!(address && pay && buy && cashOut && buySubnet && ratio && decimals !== undefined && amountRaw > 0n && !tooMuch && !chaSplit);
+    const signaturesFor = (p: typeof pays) => (p.fromSubnet > 0n ? 1 : 0) + (p.fromWallet > 0n ? 1 : 0) + (safetyOn ? 2 : 1);
+    const signatures = signaturesFor(pays);
 
     const pickPay = (t: TokenCacheData) => {
         setPay(t);
@@ -164,8 +185,12 @@ export default function InAndOutPage() {
         if (!ready || !pay || !buy || !cashOut || !buySubnet || !ratio || !targetRatio) return;
         setError(null);
         setPhase('signing');
-        const common = { wallet: address!, strategyId: crypto.randomUUID(), strategySize: signatures, entryRatio: ratio };
         try {
+            // Settle which CHA subnet pays now, counting what open orders already spend
+            const { subnet: paySubnet, fromSubnet, fromWallet } = isChaSubnet(pays.subnet)
+                ? chaPays(amountRaw, await chaPlanNow(address!, amountRaw, chaHeld(CHA_SUBNET_V1), chaHeld(CHA_SUBNET_V2), payHeld.wallet))
+                : pays;
+            const common = { wallet: address!, strategyId: crypto.randomUUID(), strategySize: signaturesFor({ subnet: paySubnet, fromSubnet, fromWallet }), entryRatio: ratio };
             // The exits sell what the buy delivers at worst
             let bought = 0n;
             let txid: string | null = null;
@@ -207,6 +232,8 @@ export default function InAndOutPage() {
                     Buy a token now, and sell it automatically once it&apos;s up. You pick the profit; it cashes out into sBTC, STX or a stablecoin.
                 </p>
             </div>
+
+            <ChaUpgrade />
 
             <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
                 <div className="rounded-xl border border-line bg-surface p-4 flex flex-col">

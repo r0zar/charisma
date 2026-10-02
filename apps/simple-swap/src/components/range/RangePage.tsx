@@ -20,6 +20,7 @@ import RangeControls, { type RangeForm } from './RangeControls';
 import RangePreview from './RangePreview';
 import RangeSchedule, { type LegStatus } from './RangeSchedule';
 import { useSubnetFundedTokens } from './SubnetPairSelector';
+import { CHA_SUBNET_V1, CHA_SUBNET_V2, isChaSubnet } from '@/lib/cha-subnets';
 
 const ConditionTokenChart = dynamic(() => import('@/components/condition-token-chart'), { ssr: false });
 
@@ -52,7 +53,7 @@ export default function RangePage() {
     const { address } = useWallet();
     const { getPrice } = usePrices();
     const { getSubnetContractId } = useSubnetTokens();
-    const { getSubnetBalance, getBalance } = useBalances(address ? [address] : []);
+    const { getSubnetBalanceExact, getBalance } = useBalances(address ? [address] : []);
     const { tokens, isLoading: metadataLoading } = useTokenMetadata();
     const funded = useSubnetFundedTokens();
 
@@ -109,8 +110,14 @@ export default function RangePage() {
     // Rounded to the token's decimals so display, runway and the quote request all describe the same amount.
     const amountA = prices ? Number((form.perSwapUsd / prices.a).toFixed(decA)) : 0;
     const amountB = prices ? Number((form.perSwapUsd / prices.b).toFixed(decB)) : 0;
-    const subnetA = tokenA ? getSubnetContractId(tokenA.contractId) : null;
-    const subnetB = tokenB ? getSubnetContractId(tokenB.contractId) : null;
+    // A range keeps its CHA in one subnet so its buys refill what its sells spend: v1 while it pays a swap, else v2
+    const legSubnet = (token: TokenCacheData | null, perSwap: number, dec: number) => {
+        const listed = token ? getSubnetContractId(token.contractId) : null;
+        if (!isChaSubnet(listed)) return listed;
+        return address && getSubnetBalanceExact(address, CHA_SUBNET_V1) >= perSwap * 10 ** dec ? CHA_SUBNET_V1 : CHA_SUBNET_V2;
+    };
+    const subnetA = legSubnet(tokenA, amountA, decA);
+    const subnetB = legSubnet(tokenB, amountB, decB);
     const perSwapUsd = form.perSwapUsd;
     const realDecA = tokenA?.decimals, realDecB = tokenB?.decimals;
 
@@ -145,8 +152,8 @@ export default function RangePage() {
     const routeCostUsd = prices && quotes ? routeCostPerCycle({ ...quotes, priceA: prices.a, priceB: prices.b }).totalUsd : null;
     const preview = rangeProfitPreview({ price: ratio, sell, buy, perSwapUsd, windows, routeCostUsd });
     const runway = {
-        sells: address && subnetA ? runwayFor(getSubnetBalance(address, subnetA) / 10 ** decA, amountA) : 0,
-        buys: address && subnetB ? runwayFor(getSubnetBalance(address, subnetB) / 10 ** decB, amountB) : 0,
+        sells: address && subnetA ? runwayFor(getSubnetBalanceExact(address, subnetA) / 10 ** decA, amountA) : 0,
+        buys: address && subnetB ? runwayFor(getSubnetBalanceExact(address, subnetB) / 10 ** decB, amountB) : 0,
     };
 
     const patch = (p: Partial<RangeForm>) => setForm((f) => ({ ...f, ...p }));

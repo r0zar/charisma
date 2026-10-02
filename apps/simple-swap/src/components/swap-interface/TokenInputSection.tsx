@@ -13,6 +13,7 @@ import { useWallet } from '@/contexts/wallet-context';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { BalanceTooltip } from '@/components/ui/tooltip';
 import { formatCompactNumber, formatTokenAmount } from '@/lib/swap-utils';
+import { CHA_SUBNET_V1, CHA_SUBNET_V2, isChaSubnet } from '@/lib/cha-subnets';
 
 export default function TokenInputSection() {
     const [showChart, setShowChart] = useState(false);
@@ -37,7 +38,7 @@ export default function TokenInputSection() {
     const { address } = useWallet();
 
     const { getPrice } = usePrices();
-    const { getBalance, getTokenBalance, getSubnetBalance, getFormattedMainnetBalance, getFormattedSubnetBalance } = useBalances(address ? [address] : []);
+    const { getBalance, getTokenBalance, getSubnetBalance, getSubnetBalanceExact, getFormattedMainnetBalance, getFormattedSubnetBalance } = useBalances(address ? [address] : []);
     const priceValue = getPrice(selectedFromToken?.contractId ?? '');
     const price = priceValue ? { price: priceValue } : undefined;
 
@@ -83,6 +84,12 @@ export default function TokenInputSection() {
             rawActiveBalance
         };
     }, [address, baseContractId, getTokenBalance, getSubnetBalance, getFormattedMainnetBalance, getFormattedSubnetBalance, subnetDisplayTokens, useSubnetFrom]);
+
+    // Subnet CHA is one balance across Blaze v1 and v2; the tooltip shows where it sits
+    const chaParts = address && isChaSubnet(subnetDisplayTokens.find(t => t.base === baseContractId)?.contractId)
+        ? [['Blaze v1', CHA_SUBNET_V1], ['Blaze v2', CHA_SUBNET_V2]]
+            .map(([part, subnet]) => ({ label: part, amount: formatTokenAmount(getSubnetBalanceExact(address, subnet), 6) }))
+        : undefined;
 
     // Determine which tokens to show and other props based on mode
     const label = 'You send';
@@ -217,7 +224,7 @@ export default function TokenInputSection() {
                         </div>
 
                         <div className="text-right flex-shrink-0">
-                            <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} activeLabel={tooltipData.activeLabel} side="bottom">
+                            <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} subnetParts={chaParts} activeLabel={tooltipData.activeLabel} side="bottom">
                                 <div className="cursor-help">
                                     <div className="text-sm font-semibold text-ink">
                                         {compactBalance} {selectedFromToken.symbol}

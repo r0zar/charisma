@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { CHA_SUBNET_V1, isListedSubnet } from '@/lib/cha-subnets';
 
 export interface SubnetTokenInfo {
   contractId: string;
@@ -42,11 +43,14 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         decimals: token.decimals || 6
       }));
     
-    // Create mainnet -> subnet pairing map
+    // Create mainnet -> subnet pairing map. CHA has two subnets during the Blaze v2 migration: it pairs with the
+    // v1 entry, which stands for both (balances are combined, spending picks the source)
     const pairings: Record<string, string> = {};
-    subnetTokens.forEach(subnetToken => {
+    subnetTokens.filter(t => isListedSubnet(t.contractId)).forEach(subnetToken => {
       pairings[subnetToken.base] = subnetToken.contractId;
     });
+    const chaV1 = subnetTokens.find(t => t.contractId === CHA_SUBNET_V1);
+    if (chaV1) pairings[chaV1.base] = chaV1.contractId;
     
     console.log(`[SubnetTokens] Found ${subnetTokens.length} subnet tokens with ${Object.keys(pairings).length} pairings`);
     

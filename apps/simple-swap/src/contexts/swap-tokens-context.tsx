@@ -7,6 +7,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { isSubnetFromActive } from '@/lib/subnet-from';
+import { isListedSubnet } from '@/lib/cha-subnets';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { saveSwapPreferences, loadBasicPreferences, loadTokenPreferences as loadTokenPreferencesFromStorage, clearTokenPreferences } from '../lib/swap-storage';
 import { listTokens as fetchAllTokensServerAction } from '../app/actions';
@@ -421,8 +422,8 @@ export function SwapTokensProvider({
 
     // Mainnet tokens: type !== 'SUBNET'
     const mainnetTokens = selectedTokens.filter(t => t.type !== 'SUBNET');
-    // Subnet tokens: type === 'SUBNET'
-    const subnetTokens = selectedTokens.filter(t => t.type === 'SUBNET');
+    // Subnet tokens: type === 'SUBNET', with CHA's v2 subnet folded into its v1 row (one CHA, one combined balance)
+    const subnetTokens = selectedTokens.filter(t => t.type === 'SUBNET' && isListedSubnet(t.contractId));
 
     const sortedDisplayTokens = mainnetTokens.sort((a, b) => a.symbol.localeCompare(b.symbol));
     const sortedSubnetTokens = subnetTokens.sort((a, b) => a.symbol.localeCompare(b.symbol));

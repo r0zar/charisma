@@ -7,6 +7,7 @@ import { formatTokenAmount } from '@/lib/swap-utils';
 import { useTokenMetadata } from './token-metadata-context';
 import { useSubnetTokens } from './subnet-tokens-context';
 import type { BulkBalanceResponse } from '@repo/tokens';
+import { CHA_SUBNET_V1, CHA_SUBNET_V2, isChaSubnet, isListedSubnet } from '@/lib/cha-subnets';
 
 interface WalletBalanceContextType {
   balances: Record<string, AccountBalancesResponse>;
@@ -16,7 +17,10 @@ interface WalletBalanceContextType {
   refreshBalances: (addresses?: string[]) => Promise<void>;
   getBalance: (address: string) => AccountBalancesResponse | null;
   getTokenBalance: (address: string, contractId: string) => number;
+  /** A subnet balance; for CHA, Blaze v1 and v2 together (one balance for the user) */
   getSubnetBalance: (address: string, contractId: string) => number;
+  /** One subnet contract's own balance, never combined: for picking which subnet pays */
+  getSubnetBalanceExact: (address: string, contractId: string) => number;
   getSubnetTokenBalance: (address: string, subnetContractId: string) => number;
   getStxBalance: (address: string) => number;
   getFormattedMainnetBalance: (address: string, contractId: string) => string;
@@ -173,7 +177,7 @@ export function WalletBalanceProvider({
     }
   };
 
-  const getSubnetBalance = (address: string, contractId: string): number => {
+  const getSubnetBalanceExact = (address: string, contractId: string): number => {
     const balance = balances[address];
     if (!balance) return 0;
 
@@ -186,6 +190,12 @@ export function WalletBalanceProvider({
       return 0;
     }
   };
+
+  // CHA sits in two subnets during the Blaze v2 migration; everywhere a balance is shown, it's one number
+  const getSubnetBalance = (address: string, contractId: string): number =>
+    isChaSubnet(contractId)
+      ? getSubnetBalanceExact(address, CHA_SUBNET_V1) + getSubnetBalanceExact(address, CHA_SUBNET_V2)
+      : getSubnetBalanceExact(address, contractId);
 
   const getSubnetTokenBalance = (address: string, subnetContractId: string): number => {
     return getSubnetBalance(address, subnetContractId);
@@ -257,8 +267,9 @@ export function WalletBalanceProvider({
       // This is a mainnet token - get mainnet balance from this token, look for corresponding subnet token
       mainnetBalance = getFormattedMainnetBalance(address, contractId);
 
-      // Find corresponding subnet token
-      const subnetToken = Object.values(tokens).find(t => t.type === 'SUBNET' && t.base === contractId);
+      // Find corresponding subnet token (CHA: the v1 entry, whose balance includes v2)
+      const subnets = Object.values(tokens).filter(t => t.type === 'SUBNET' && t.base === contractId);
+      const subnetToken = subnets.find(t => t.contractId === CHA_SUBNET_V1) ?? subnets.find(t => isListedSubnet(t.contractId));
       if (subnetToken) {
         subnetBalance = getFormattedSubnetBalance(address, subnetToken.contractId);
         hasSubnet = getSubnetBalance(address, subnetToken.contractId) > 0;
@@ -365,6 +376,7 @@ export function WalletBalanceProvider({
     getBalance,
     getTokenBalance,
     getSubnetBalance,
+    getSubnetBalanceExact,
     getSubnetTokenBalance,
     getStxBalance,
     getFormattedMainnetBalance,
@@ -416,6 +428,7 @@ export function useBalances(addresses?: string[]) {
     getBalance: context.getBalance,
     getTokenBalance: context.getTokenBalance,
     getSubnetBalance: context.getSubnetBalance,
+    getSubnetBalanceExact: context.getSubnetBalanceExact,
     getSubnetTokenBalance: context.getSubnetTokenBalance,
     getStxBalance: context.getStxBalance,
     getFormattedMainnetBalance: context.getFormattedMainnetBalance,

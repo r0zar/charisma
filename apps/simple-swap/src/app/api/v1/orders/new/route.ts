@@ -1,20 +1,11 @@
 import { NextResponse } from 'next/server';
 import { ORDER_ROUTERS, SIGNER_ONLY_ROUTERS } from '@/lib/orders/types';
 import { toPublicOrder } from '@/lib/orders/public';
-import { findSignedRouter } from 'blaze-sdk';
+import { findSignedRouter, recoverSigner } from 'blaze-sdk';
 import { z } from 'zod';
 import { NewOrderRequest } from '@/lib/orders/types';
 import { addOrder, getOrder } from '@/lib/orders/store';
 import { fetchTokenType } from '@/lib/orders/token-type';
-import { callReadOnlyFunction } from '@repo/polyglot';
-import { bufferFromHex } from '@stacks/transactions/dist/cl';
-import {
-    principalCV,
-    stringAsciiCV,
-    uintCV,
-    noneCV,
-    optionalCVOf,
-} from '@stacks/transactions';
 
 const schema: z.ZodType<NewOrderRequest> = z.object({
     owner: z.string().min(3),
@@ -91,9 +82,6 @@ const validatedSchema = schema.superRefine((data, ctx) => {
     }
 });
 
-const BLAZE_CONTRACT_ADDRESS = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
-const BLAZE_CONTRACT_NAME = 'blaze-v1';
-
 export async function POST(req: Request) {
     try {
         const body = await req.json();
@@ -142,24 +130,10 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: `An order with uuid ${parsed.uuid} already exists` }, { status: 409 });
         }
 
-        // ----- Signature Verification (Stacks-based) -----
+        // ----- Signature Verification: recovered by the Blaze version the input subnet uses (v1 or v2) -----
         try {
-            const response = await callReadOnlyFunction(
-                BLAZE_CONTRACT_ADDRESS,
-                BLAZE_CONTRACT_NAME,
-                'recover',
-                [
-                    bufferFromHex(parsed.signature),
-                    principalCV(parsed.inputToken),
-                    stringAsciiCV('TRANSFER_TOKENS'),
-                    noneCV(),
-                    optionalCVOf(uintCV(BigInt(parsed.amountIn))),
-                    optionalCVOf(principalCV(router)),
-                    stringAsciiCV(parsed.uuid),
-                ],
-            );
-
-            if (!response || typeof response.value !== 'string' || response.value !== parsed.owner) {
+            const signer = await recoverSigner(parsed.signature, parsed.inputToken, 'TRANSFER_TOKENS', parsed.uuid, { amount: parsed.amountIn, target: router });
+            if (signer !== parsed.owner) {
                 return NextResponse.json({ error: 'Signature verification failed' }, { status: 400 });
             }
         } catch (verErr) {

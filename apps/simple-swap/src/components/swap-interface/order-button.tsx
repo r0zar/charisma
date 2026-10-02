@@ -9,6 +9,9 @@ import { convertToMicroUnits } from '@/lib/swap-utils';
 import { useWallet } from '@/contexts/wallet-context';
 import { toast } from 'sonner';
 import { shouldShowErrorToast, getErrorMessage } from '@/lib/error-utils';
+import { useBalances } from '@/contexts/wallet-balance-context';
+import { chaDestination, isChaSubnet } from '@/lib/cha-subnets';
+import { payingSubnet } from '@/lib/cha-commitments';
 
 export default function OrderButton() {
     const { createOrder, isCreatingOrder, isValidTriggers } = useOrderConditions();
@@ -24,6 +27,7 @@ export default function OrderButton() {
         subnetDisplayTokens
     } = useSwapTokens();
     const { address: walletAddress } = useWallet();
+    const { getSubnetBalanceExact } = useBalances(walletAddress ? [walletAddress] : []);
 
     // Helper function to get the contract ID to use for a token based on subnet toggle
     const getContractIdForToken = (token: any, useSubnet: boolean): string | null => {
@@ -119,9 +123,10 @@ export default function OrderButton() {
                 className: "bg-surface-sunken border-line text-ink backdrop-blur-sm"
             });
 
+            // CHA spends from Blaze v1 first and lands in v2
             await createOrder({
-                fromToken: fromContractId,
-                toToken: toContractId,
+                fromToken: await payingSubnet(fromContractId, walletAddress, BigInt(microAmount), subnet => getSubnetBalanceExact(walletAddress, subnet)),
+                toToken: isChaSubnet(toContractId) ? chaDestination() : toContractId,
                 amountIn: microAmount,
                 walletAddress
             });
