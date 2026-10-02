@@ -98,9 +98,14 @@ plan:
             path: contracts/blaze.clar
             clarity-version: 3
         - emulated-contract-publish:
+            contract-name: blaze-v1
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/blaze.clar
+            clarity-version: 3
+        - emulated-contract-publish:
             contract-name: blaze-v2
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
-            path: contracts/drafts/blaze-v2.clar
+            path: contracts/blaze-v2.clar
             clarity-version: 3
         - emulated-contract-publish:
             contract-name: charisma-traits-v1
@@ -208,9 +213,37 @@ plan:
             path: contracts/deployed/sub-link.clar
             clarity-version: 3
         - emulated-contract-publish:
+            contract-name: welsh-subnet-v1
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/test/welsh-subnet-v1.clar
+            clarity-version: 3
+      epoch: "3.0"
+    - id: 2
+      transactions:
+        - emulated-contract-publish:
+            contract-name: welsh-sublink-v1
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/test/welsh-sublink-v1.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: welsh-subnet-v2
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/test/welsh-subnet-v2.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: welsh-sublink-v2
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/test/welsh-sublink-v2.clar
+            clarity-version: 3
+        - emulated-contract-publish:
             contract-name: x-multihop
             emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
             path: contracts/x-multihop.clar
+            clarity-version: 3
+        - emulated-contract-publish:
+            contract-name: x-multihop-v2
+            emulated-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            path: contracts/routers/x-multihop-v2.clar
             clarity-version: 3
         - emulated-contract-publish:
             contract-name: x-vault

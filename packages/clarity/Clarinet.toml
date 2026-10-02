@@ -75,9 +75,41 @@ path = "contracts/blaze.clar"
 clarity_version = 3
 epoch = 3.0
 
-# Draft only (not deployed): see contracts/drafts/BLAZE-V2.md
+# blaze.clar is deployed on mainnet as blaze-v1; routers call it by that name
+[contracts.blaze-v1]
+path = "contracts/blaze.clar"
+clarity_version = 3
+epoch = 3.0
+
+# Blaze v2: see contracts/drafts/BLAZE-V2.md
 [contracts.blaze-v2]
-path = "contracts/drafts/blaze-v2.clar"
+path = "contracts/blaze-v2.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.x-multihop-v2]
+path = "contracts/routers/x-multihop-v2.clar"
+clarity_version = 3
+epoch = 3.0
+
+# test-only renders of the Launchpad subnet and sublink templates (contracts/test)
+[contracts.welsh-subnet-v1]
+path = "contracts/test/welsh-subnet-v1.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.welsh-subnet-v2]
+path = "contracts/test/welsh-subnet-v2.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.welsh-sublink-v1]
+path = "contracts/test/welsh-sublink-v1.clar"
+clarity_version = 3
+epoch = 3.0
+
+[contracts.welsh-sublink-v2]
+path = "contracts/test/welsh-sublink-v2.clar"
 clarity_version = 3
 epoch = 3.0
 
