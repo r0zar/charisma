@@ -24,7 +24,7 @@ import { ClientDisplayVault } from './vault-detail-client';
 
 // Placeholder - Define TokenDisplay and BalanceInfo or import them
 const TokenDisplay = ({ amount, symbol, imgSrc, label, price, decimals, isLoading }: any) => (
-    <div className="flex items-center justify-between p-3 border rounded-md border-border bg-background/50">
+    <div className="flex items-center justify-between p-3 border rounded-md border-border bg-surface-sunken">
         <div className="flex items-center space-x-3">
             <img src={imgSrc || '/placeholder.png'} alt={symbol || 'Token'} className="w-6 h-6 rounded-full" />
             <div>

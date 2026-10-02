@@ -125,7 +125,7 @@ export function EnergyTokenRequirements() {
               </div>
 
               <div className="space-y-2">
-                <code className="text-xs bg-background border rounded px-2 py-1 block break-all">
+                <code className="text-xs bg-surface-sunken border rounded px-2 py-1 block break-all">
                   {token.contractId}
                 </code>
                 <p className="text-sm text-muted-foreground">

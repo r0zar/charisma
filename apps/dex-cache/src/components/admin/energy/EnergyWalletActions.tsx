@@ -248,7 +248,7 @@ export function EnergyWalletActions() {
                   <p className="text-sm text-muted-foreground mb-3">{func.description}</p>
                   
                   {func.example && (
-                    <div className="text-xs font-mono bg-background border rounded p-2 mb-3">
+                    <div className="text-xs font-mono bg-surface-sunken border rounded p-2 mb-3">
                       {func.example}
                     </div>
                   )}
@@ -318,7 +318,7 @@ export function EnergyWalletActions() {
                 {result && (
                   <div className="border rounded-lg p-4 bg-success-soft">
                     <h4 className="font-medium mb-2">Result</h4>
-                    <pre className="text-sm bg-background border rounded p-2 overflow-auto">
+                    <pre className="text-sm bg-surface-sunken border rounded p-2 overflow-auto">
                       {JSON.stringify(result, null, 2)}
                     </pre>
                   </div>

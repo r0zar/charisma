@@ -993,7 +993,7 @@ export function EnergyTracker() {
                             <div className="bg-muted/50 rounded-lg p-3 border border-muted/60">
                                 <div className="flex items-center justify-between mb-2">
                                     <span className="text-xs font-medium text-muted-foreground">Burn Contract</span>
-                                    <code className="text-xs bg-background px-2 py-1 rounded border">hooter-farm-x10</code>
+                                    <code className="text-xs bg-surface-sunken px-2 py-1 rounded border">hooter-farm-x10</code>
                                 </div>
                                 <div className="text-xs text-muted-foreground">
                                     Burns 1000 energy → Generates HOOT tokens

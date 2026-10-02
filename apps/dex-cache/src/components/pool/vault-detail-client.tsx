@@ -103,7 +103,7 @@ const ComingSoonMask = ({ children }: { children: React.ReactNode }) => (
             {children}
         </div>
         <div className="absolute inset-0 flex items-center justify-center z-10">
-            <div className="bg-background/80 border border-border/60 rounded-lg px-6 py-3 text-center text-base font-semibold text-muted-foreground shadow-lg">
+            <div className="bg-surface border border-border rounded-lg px-6 py-3 text-center text-base font-semibold text-muted-foreground shadow-lg">
                 Coming Soon
             </div>
         </div>
@@ -409,7 +409,7 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                             />
                                         </div>
                                         <div className="absolute inset-0 flex items-center justify-center z-10">
-                                            <div className="bg-background/80 border border-border/60 rounded-lg px-4 py-2 text-center text-sm font-medium text-muted-foreground shadow-lg">
+                                            <div className="bg-surface border border-border rounded-lg px-4 py-2 text-center text-sm font-medium text-muted-foreground shadow-lg">
                                                 Coming Soon
                                             </div>
                                         </div>

@@ -303,7 +303,7 @@ export function EnergyContractIntelligence() {
                 </div>
                 
                 <div className="space-y-2">
-                  <code className="text-xs bg-background border rounded px-2 py-1 block">
+                  <code className="text-xs bg-surface-sunken border rounded px-2 py-1 block">
                     {relationship.contractId}
                   </code>
                   <p className="text-sm text-muted-foreground">
@@ -328,7 +328,7 @@ export function EnergyContractIntelligence() {
                 </div>
                 
                 <div className="space-y-2">
-                  <div className="text-xs font-mono bg-background border rounded p-2">
+                  <div className="text-xs font-mono bg-surface-sunken border rounded p-2">
                     {func.signature}
                   </div>
                   {func.description && (

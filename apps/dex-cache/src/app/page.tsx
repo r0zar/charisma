@@ -27,7 +27,7 @@ export default function CharismaInvestLandingPage() {
 
             {/* Explore Opportunities Button */}
             <div className="mt-8 mb-12 flex flex-col items-center">
-              <Link href="/pools" className="inline-flex items-center justify-center rounded-md h-11 px-8 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 text-ink font-medium shadow-md">
+              <Link href="/pools" className="inline-flex items-center justify-center rounded-md h-11 px-8 gap-2 bg-accent text-on-accent font-semibold hover:bg-accent-hover active:scale-[0.98] shadow-[var(--shadow-cta)] transition-all duration-200">
                 Explore Yield Opportunities
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -50,7 +50,7 @@ export default function CharismaInvestLandingPage() {
 
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {/* Feature 1: Diverse Yield Pools */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
                 <HandCoins className="h-6 w-6 text-accent-text" />
               </div>
@@ -61,7 +61,7 @@ export default function CharismaInvestLandingPage() {
             </div>
 
             {/* Feature 2: Automated Strategies */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
                 <Bot className="h-6 w-6 text-accent-text" />
               </div>
@@ -72,7 +72,7 @@ export default function CharismaInvestLandingPage() {
             </div>
 
             {/* Feature 3: Secure & Audited */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
                 <ShieldCheck className="h-6 w-6 text-accent-text" />
               </div>
@@ -83,7 +83,7 @@ export default function CharismaInvestLandingPage() {
             </div>
 
             {/* Feature 4: Manual LP Management */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
                 <Layers className="h-6 w-6 text-accent-text" />
               </div>
@@ -92,7 +92,7 @@ export default function CharismaInvestLandingPage() {
             </div>
 
             {/* Feature 5: Optimized Execution */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
                 <Zap className="h-6 w-6 text-accent-text" />
               </div>
@@ -101,7 +101,7 @@ export default function CharismaInvestLandingPage() {
             </div>
 
             {/* Feature 6: Comprehensive Analytics */}
-            <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+            <div className="bg-surface border border-border rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
                 <TrendingUp className="h-6 w-6 text-accent-text" />
               </div>
@@ -128,7 +128,7 @@ export default function CharismaInvestLandingPage() {
             </p>
 
             <Link href="/pools">
-              <button className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background h-11 px-8 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 text-ink">
+              <button className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background h-11 px-8 gap-2 bg-accent text-on-accent font-semibold hover:bg-accent-hover active:scale-[0.98] shadow-[var(--shadow-cta)] transition-all duration-200">
                 Explore Pools & Strategies
                 <ArrowRight className="h-4 w-4" />
               </button>
