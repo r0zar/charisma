@@ -398,11 +398,11 @@ export function formatDailyProfit(profit: number): string {
  * Get APY color class based on value
  */
 export function getAPYColorClass(apy: number): string {
-    if (apy <= 0) return 'text-gray-500';
-    if (apy < 5) return 'text-yellow-500';
-    if (apy < 15) return 'text-green-500';
-    if (apy < 50) return 'text-green-400';
-    return 'text-green-300'; // Very high APY
+    if (apy <= 0) return 'text-ink-muted';
+    if (apy < 5) return 'text-warning';
+    if (apy < 15) return 'text-success';
+    if (apy < 50) return 'text-success';
+    return 'text-success'; // Very high APY
 }
 
 /**
@@ -414,12 +414,12 @@ export function getConfidenceIndicator(confidence: number): {
     icon: string;
 } {
     if (confidence >= 0.9) {
-        return { label: 'High', color: 'text-green-500', icon: '●' };
+        return { label: 'High', color: 'text-success', icon: '●' };
     } else if (confidence >= 0.7) {
-        return { label: 'Medium', color: 'text-yellow-500', icon: '●' };
+        return { label: 'Medium', color: 'text-warning', icon: '●' };
     } else if (confidence >= 0.5) {
-        return { label: 'Low', color: 'text-orange-500', icon: '●' };
+        return { label: 'Low', color: 'text-accent-text', icon: '●' };
     } else {
-        return { label: 'Very Low', color: 'text-red-500', icon: '●' };
+        return { label: 'Very Low', color: 'text-danger', icon: '●' };
     }
 }

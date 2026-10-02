@@ -29,7 +29,7 @@ async function AdminStats() {
                         <div className="flex items-center">
                             <div className="flex-shrink-0">
                                 <div className="w-8 h-8 bg-primary/20 rounded-md flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-5 h-5 text-accent-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14-7l2 2m0 0l2 2m-2-2l-2 2m2-2V9M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
                                     </svg>
                                 </div>
@@ -48,8 +48,8 @@ async function AdminStats() {
                     <div className="p-5">
                         <div className="flex items-center">
                             <div className="flex-shrink-0">
-                                <div className="w-8 h-8 bg-green-500/20 rounded-md flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="w-8 h-8 bg-success/20 rounded-md flex items-center justify-center">
+                                    <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
@@ -68,8 +68,8 @@ async function AdminStats() {
                     <div className="p-5">
                         <div className="flex items-center">
                             <div className="flex-shrink-0">
-                                <div className="w-8 h-8 bg-red-500/20 rounded-md flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="w-8 h-8 bg-danger/20 rounded-md flex items-center justify-center">
+                                    <svg className="w-5 h-5 text-danger" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
                                     </svg>
                                 </div>
@@ -89,7 +89,7 @@ async function AdminStats() {
                         <div className="flex items-center">
                             <div className="flex-shrink-0">
                                 <div className="w-8 h-8 bg-secondary/20 rounded-md flex items-center justify-center">
-                                    <svg className="w-5 h-5 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-5 h-5 text-accent-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                                     </svg>
                                 </div>
@@ -107,8 +107,8 @@ async function AdminStats() {
         );
     } catch (error) {
         return (
-            <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-8">
-                <p className="text-red-400">Error loading stats: {error instanceof Error ? error.message : 'Unknown error'}</p>
+            <div className="bg-danger-soft border border-danger/30 rounded-lg p-4 mb-8">
+                <p className="text-danger">Error loading stats: {error instanceof Error ? error.message : 'Unknown error'}</p>
             </div>
         );
     }
@@ -218,11 +218,11 @@ export default function AdminDashboard() {
                         className="block bg-card rounded-lg border border-border p-6 hover:border-primary/50 hover:shadow-md transition-all duration-200"
                     >
                         <div className="flex items-center mb-4">
-                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${action.color === 'red' ? 'bg-red-500/20 text-red-400' :
-                                action.color === 'blue' ? 'bg-primary/20 text-primary' :
-                                    action.color === 'green' ? 'bg-green-500/20 text-green-400' :
-                                        action.color === 'yellow' ? 'bg-yellow-500/20 text-yellow-400' :
-                                            'bg-secondary/20 text-secondary'
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${action.color === 'red' ? 'bg-danger/20 text-danger' :
+                                action.color === 'blue' ? 'bg-primary/20 text-accent-text' :
+                                    action.color === 'green' ? 'bg-success/20 text-success' :
+                                        action.color === 'yellow' ? 'bg-warning/20 text-warning' :
+                                            'bg-secondary/20 text-accent-text'
                                 }`}>
                                 {action.icon}
                             </div>
@@ -240,12 +240,12 @@ export default function AdminDashboard() {
             <div className="mt-8 bg-secondary/10 border border-secondary/20 rounded-lg p-4">
                 <div className="flex">
                     <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-secondary" viewBox="0 0 20 20" fill="currentColor">
+                        <svg className="h-5 w-5 text-accent-text" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                         </svg>
                     </div>
                     <div className="ml-3">
-                        <h3 className="text-sm font-medium text-secondary">
+                        <h3 className="text-sm font-medium text-accent-text">
                             Important Notes
                         </h3>
                         <div className="mt-2 text-sm text-muted-foreground">

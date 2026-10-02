@@ -90,7 +90,7 @@ const AssetBreakdownItem = ({
 }) => (
     <div className="flex items-center justify-between py-2 px-3 bg-muted/10 rounded border border-border/20">
         <div className="flex items-center space-x-2">
-            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-accent-text">
                 {symbol.charAt(0)}
             </div>
             <span className="text-sm font-medium">{symbol}</span>
@@ -162,7 +162,7 @@ export default function LpTokenPriceAnalysis({ vault, prices, analytics, classNa
             <Card className={`p-6 border border-border/50 ${className}`}>
                 <div className="flex items-center space-x-3 mb-4">
                     <div className="p-2 rounded-lg bg-primary/10">
-                        <Target className="w-5 h-5 text-primary" />
+                        <Target className="w-5 h-5 text-accent-text" />
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold">LP Token Pricing</h3>
@@ -218,7 +218,7 @@ export default function LpTokenPriceAnalysis({ vault, prices, analytics, classNa
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-3">
                     <div className="p-2.5 rounded-xl bg-primary/10 ring-1 ring-primary/20">
-                        <Target className="w-5 h-5 text-primary" />
+                        <Target className="w-5 h-5 text-accent-text" />
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold tracking-tight">LP Token Pricing</h3>
@@ -259,7 +259,7 @@ export default function LpTokenPriceAnalysis({ vault, prices, analytics, classNa
 
                                                 <div className="space-y-2 text-sm">
                                                     <div className="flex items-start gap-2">
-                                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 mt-0.5">1</div>
+                                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-accent-text flex-shrink-0 mt-0.5">1</div>
                                                         <div>
                                                             <div className="font-medium">Multiple Price Sources</div>
                                                             <div className="text-muted-foreground">Data is fetched from Charisma, STXTools and Kraxel price APIs</div>
@@ -267,7 +267,7 @@ export default function LpTokenPriceAnalysis({ vault, prices, analytics, classNa
                                                     </div>
 
                                                     <div className="flex items-start gap-2">
-                                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 mt-0.5">2</div>
+                                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-accent-text flex-shrink-0 mt-0.5">2</div>
                                                         <div>
                                                             <div className="font-medium">Price Aggregation</div>
                                                             <div className="text-muted-foreground">The default strategy averages prices across all available sources that have data for this token</div>
@@ -275,7 +275,7 @@ export default function LpTokenPriceAnalysis({ vault, prices, analytics, classNa
                                                     </div>
 
                                                     <div className="flex items-start gap-2">
-                                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 mt-0.5">3</div>
+                                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-accent-text flex-shrink-0 mt-0.5">3</div>
                                                         <div>
                                                             <div className="font-medium">Fallback Protection</div>
                                                             <div className="text-muted-foreground">If the primary source fails, secondary sources provide backup data to ensure price availability</div>
@@ -283,7 +283,7 @@ export default function LpTokenPriceAnalysis({ vault, prices, analytics, classNa
                                                     </div>
 
                                                     <div className="flex items-start gap-2">
-                                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0 mt-0.5">4</div>
+                                                        <div className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-accent-text flex-shrink-0 mt-0.5">4</div>
                                                         <div>
                                                             <div className="font-medium">Quality Filtering</div>
                                                             <div className="text-muted-foreground">Only prices with sufficient confidence scores (&gt;0.1) are included in the final calculation</div>
@@ -340,7 +340,7 @@ export default function LpTokenPriceAnalysis({ vault, prices, analytics, classNa
                                                     {/* Asset A */}
                                                     <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
                                                         <div className="flex items-center space-x-2">
-                                                            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                                                            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-accent-text">
                                                                 {analysis.assetBreakdown.tokenA.symbol.charAt(0)}
                                                             </div>
                                                             <div>
@@ -359,7 +359,7 @@ export default function LpTokenPriceAnalysis({ vault, prices, analytics, classNa
                                                     {/* Asset B */}
                                                     <div className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
                                                         <div className="flex items-center space-x-2">
-                                                            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
+                                                            <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-accent-text">
                                                                 {analysis.assetBreakdown.tokenB.symbol.charAt(0)}
                                                             </div>
                                                             <div>
@@ -384,7 +384,7 @@ export default function LpTokenPriceAnalysis({ vault, prices, analytics, classNa
                                                                 <span>+</span>
                                                                 <span>${analysis.assetBreakdown.tokenB.value.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
                                                                 <span>=</span>
-                                                                <span className="font-bold text-primary">{formatted.intrinsicValue}</span>
+                                                                <span className="font-bold text-accent-text">{formatted.intrinsicValue}</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -394,7 +394,7 @@ export default function LpTokenPriceAnalysis({ vault, prices, analytics, classNa
                                     </DialogContent>
                                 </Dialog>
                             </div>
-                            <div className="text-2xl font-bold numeric text-primary">{formatted.intrinsicValue}</div>
+                            <div className="text-2xl font-bold numeric text-accent-text">{formatted.intrinsicValue}</div>
                             <div className="text-xs text-muted-foreground">Click info for breakdown</div>
                         </div>
                     </div>

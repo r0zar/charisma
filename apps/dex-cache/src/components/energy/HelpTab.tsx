@@ -26,7 +26,7 @@ export function HelpTab() {
             <div className="glass-card p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Target className="h-5 w-5 text-primary" />
+                        <Target className="h-5 w-5 text-accent-text" />
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold">Getting Started</h3>
@@ -38,11 +38,11 @@ export function HelpTab() {
                     {/* Step 1: Get Tokens */}
                     <div className="token-card p-5">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                                <Coins className="h-4 w-4 text-blue-500" />
+                            <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                                <Coins className="h-4 w-4 text-accent-text" />
                             </div>
                             <div>
-                                <Badge variant="outline" className="text-blue-500 border-blue-500/30 mb-1">Step 1</Badge>
+                                <Badge variant="outline" className="text-accent-text border-accent/30 mb-1">Step 1</Badge>
                                 <h4 className="font-semibold">Get Energy Tokens</h4>
                             </div>
                         </div>
@@ -70,11 +70,11 @@ export function HelpTab() {
                     {/* Step 2: Generate Energy */}
                     <div className="token-card p-5">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="h-8 w-8 rounded-lg bg-green-500/10 flex items-center justify-center">
-                                <Zap className="h-4 w-4 text-green-500" />
+                            <div className="h-8 w-8 rounded-lg bg-success/10 flex items-center justify-center">
+                                <Zap className="h-4 w-4 text-success" />
                             </div>
                             <div>
-                                <Badge variant="outline" className="text-green-500 border-green-500/30 mb-1">Step 2</Badge>
+                                <Badge variant="outline" className="text-success border-success/30 mb-1">Step 2</Badge>
                                 <h4 className="font-semibold">Generate Energy</h4>
                             </div>
                         </div>
@@ -86,15 +86,15 @@ export function HelpTab() {
                         <div className="space-y-2 text-sm">
                             <div className="flex items-center justify-between">
                                 <span>SXC tokens:</span>
-                                <span className="text-green-500">High rate</span>
+                                <span className="text-success">High rate</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span>POV tokens:</span>
-                                <span className="text-green-500">Medium rate</span>
+                                <span className="text-success">Medium rate</span>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span>DEX tokens:</span>
-                                <span className="text-green-500">Base rate</span>
+                                <span className="text-success">Base rate</span>
                             </div>
                         </div>
                     </div>
@@ -102,11 +102,11 @@ export function HelpTab() {
                     {/* Step 3: Claim Rewards */}
                     <div className="token-card p-5">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="h-8 w-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                                <Flame className="h-4 w-4 text-orange-500" />
+                            <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                                <Flame className="h-4 w-4 text-accent-text" />
                             </div>
                             <div>
-                                <Badge variant="outline" className="text-orange-500 border-orange-500/30 mb-1">Step 3</Badge>
+                                <Badge variant="outline" className="text-accent-text border-accent/30 mb-1">Step 3</Badge>
                                 <h4 className="font-semibold">Claim Rewards</h4>
                             </div>
                         </div>
@@ -129,7 +129,7 @@ export function HelpTab() {
             <div className="glass-card p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <HelpCircle className="h-5 w-5 text-primary" />
+                        <HelpCircle className="h-5 w-5 text-accent-text" />
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold">How the Energy System Works</h3>
@@ -140,7 +140,7 @@ export function HelpTab() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Energy Generation */}
                     <div className="space-y-4">
-                        <h4 className="font-semibold text-primary flex items-center gap-2">
+                        <h4 className="font-semibold text-accent-text flex items-center gap-2">
                             <Droplets className="h-4 w-4" />
                             Energy Generation
                         </h4>
@@ -174,31 +174,31 @@ export function HelpTab() {
 
                     {/* Rewards & Benefits */}
                     <div className="space-y-4">
-                        <h4 className="font-semibold text-orange-500 flex items-center gap-2">
+                        <h4 className="font-semibold text-accent-text flex items-center gap-2">
                             <TrendingUp className="h-4 w-4" />
                             Rewards & Benefits
                         </h4>
                         <div className="space-y-3 text-sm text-muted-foreground">
                             <div className="flex items-start gap-3">
-                                <div className="w-2 h-2 rounded-full bg-orange-500 mt-2 flex-shrink-0" />
+                                <div className="w-2 h-2 rounded-full bg-accent mt-2 flex-shrink-0" />
                                 <div>
                                     <strong>HOOT Token Rewards:</strong> Burn energy to receive HOOT tokens, which have real utility and value in the ecosystem.
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
-                                <div className="w-2 h-2 rounded-full bg-orange-500 mt-2 flex-shrink-0" />
+                                <div className="w-2 h-2 rounded-full bg-accent mt-2 flex-shrink-0" />
                                 <div>
                                     <strong>Governance Power:</strong> Use your energy and HOOT tokens to participate in community governance and vote on proposals.
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
-                                <div className="w-2 h-2 rounded-full bg-orange-500 mt-2 flex-shrink-0" />
+                                <div className="w-2 h-2 rounded-full bg-accent mt-2 flex-shrink-0" />
                                 <div>
                                     <strong>Exclusive Access:</strong> Energy holders get early access to new features, airdrops, and special community events.
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
-                                <div className="w-2 h-2 rounded-full bg-orange-500 mt-2 flex-shrink-0" />
+                                <div className="w-2 h-2 rounded-full bg-accent mt-2 flex-shrink-0" />
                                 <div>
                                     <strong>Compound Benefits:</strong> The longer you hold and the more you participate, the greater your rewards become.
                                 </div>
@@ -212,7 +212,7 @@ export function HelpTab() {
             <div className="glass-card p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Coins className="h-5 w-5 text-primary" />
+                        <Coins className="h-5 w-5 text-accent-text" />
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold">Supported Energy Tokens</h3>
@@ -224,12 +224,12 @@ export function HelpTab() {
                     {/* SXC Token */}
                     <div className="token-card p-4">
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="h-8 w-8 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                                <Droplets className="h-4 w-4 text-orange-500" />
+                            <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                                <Droplets className="h-4 w-4 text-accent-text" />
                             </div>
                             <div>
                                 <h4 className="font-semibold">SXC Token</h4>
-                                <Badge variant="outline" className="text-orange-500 border-orange-500/30">High Yield</Badge>
+                                <Badge variant="outline" className="text-accent-text border-accent/30">High Yield</Badge>
                             </div>
                         </div>
                         <p className="text-sm text-muted-foreground mb-3">
@@ -246,12 +246,12 @@ export function HelpTab() {
                     {/* POV Token */}
                     <div className="token-card p-4">
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                                <Users className="h-4 w-4 text-purple-500" />
+                            <div className="h-8 w-8 rounded-lg bg-blaze/10 flex items-center justify-center">
+                                <Users className="h-4 w-4 text-blaze" />
                             </div>
                             <div>
                                 <h4 className="font-semibold">POV Token</h4>
-                                <Badge variant="outline" className="text-purple-500 border-purple-500/30">Medium Yield</Badge>
+                                <Badge variant="outline" className="text-blaze border-blaze/30">Medium Yield</Badge>
                             </div>
                         </div>
                         <p className="text-sm text-muted-foreground mb-3">
@@ -268,12 +268,12 @@ export function HelpTab() {
                     {/* DEX Token */}
                     <div className="token-card p-4">
                         <div className="flex items-center gap-3 mb-3">
-                            <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                                <TrendingUp className="h-4 w-4 text-blue-500" />
+                            <div className="h-8 w-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                                <TrendingUp className="h-4 w-4 text-accent-text" />
                             </div>
                             <div>
                                 <h4 className="font-semibold">DEX Token</h4>
-                                <Badge variant="outline" className="text-blue-500 border-blue-500/30">Base Yield</Badge>
+                                <Badge variant="outline" className="text-accent-text border-accent/30">Base Yield</Badge>
                             </div>
                         </div>
                         <p className="text-sm text-muted-foreground mb-3">
@@ -293,7 +293,7 @@ export function HelpTab() {
             <div className="glass-card p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Crown className="h-5 w-5 text-primary" />
+                        <Crown className="h-5 w-5 text-accent-text" />
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold">Boost with NFTs</h3>
@@ -303,14 +303,14 @@ export function HelpTab() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                        <h4 className="font-semibold text-green-500 flex items-center gap-2">
+                        <h4 className="font-semibold text-success flex items-center gap-2">
                             <Zap className="h-4 w-4" />
                             Generation Boosts
                         </h4>
                         <div className="space-y-2 text-sm">
                             <div className="flex items-center justify-between">
                                 <span>Welsh NFTs:</span>
-                                <Badge variant="outline" className="text-green-500 border-green-500/30">Up to +100%</Badge>
+                                <Badge variant="outline" className="text-success border-success/30">Up to +100%</Badge>
                             </div>
                             <p className="text-muted-foreground">
                                 Welsh NFTs multiply your energy generation rate. Collect different types to maximize your bonus.
@@ -319,18 +319,18 @@ export function HelpTab() {
                     </div>
 
                     <div className="space-y-4">
-                        <h4 className="font-semibold text-blue-500 flex items-center gap-2">
+                        <h4 className="font-semibold text-accent-text flex items-center gap-2">
                             <Battery className="h-4 w-4" />
                             Capacity & Efficiency
                         </h4>
                         <div className="space-y-2 text-sm">
                             <div className="flex items-center justify-between">
                                 <span>Memobot NFTs:</span>
-                                <Badge variant="outline" className="text-blue-500 border-blue-500/30">+10 per NFT</Badge>
+                                <Badge variant="outline" className="text-accent-text border-accent/30">+10 per NFT</Badge>
                             </div>
                             <div className="flex items-center justify-between">
                                 <span>Raven NFTs:</span>
-                                <Badge variant="outline" className="text-purple-500 border-purple-500/30">Up to -50% fees</Badge>
+                                <Badge variant="outline" className="text-blaze border-blaze/30">Up to -50% fees</Badge>
                             </div>
                             <p className="text-muted-foreground">
                                 Increase storage capacity and reduce transaction costs for more efficient energy management.
@@ -341,9 +341,9 @@ export function HelpTab() {
 
                 <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
                     <div className="flex items-start gap-3">
-                        <Crown className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                        <Crown className="h-5 w-5 text-accent-text mt-0.5 flex-shrink-0" />
                         <div>
-                            <h5 className="font-medium text-primary mb-1">Pro Tip</h5>
+                            <h5 className="font-medium text-accent-text mb-1">Pro Tip</h5>
                             <p className="text-sm text-muted-foreground">
                                 Check the NFT Bonuses tab to see your current bonuses and learn about optimization strategies.
                                 The best approach combines all three NFT types for maximum efficiency.
@@ -357,7 +357,7 @@ export function HelpTab() {
             <div className="glass-card p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <ArrowRight className="h-5 w-5 text-primary" />
+                        <ArrowRight className="h-5 w-5 text-accent-text" />
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold">Quick Actions</h3>

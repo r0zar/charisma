@@ -55,10 +55,10 @@ export function EnergyTokenRequirements() {
   return (
     <div className="space-y-6">
       {/* Primary Token Requirement Alert */}
-      <Alert className="border-l-4 border-l-blue-500 bg-blue-50">
+      <Alert className="border-l-4 border-l-accent bg-accent-soft">
         <Coins className="h-4 w-4" />
-        <AlertTitle className="text-blue-800">Required Token for Energy Generation</AlertTitle>
-        <AlertDescription className="text-blue-700">
+        <AlertTitle className="text-accent-text">Required Token for Energy Generation</AlertTitle>
+        <AlertDescription className="text-accent-text">
           To generate energy, users must hold <strong>{requiredToken.name}</strong> ({requiredToken.symbol}) tokens in their wallet.
           The energize vault manages this token to provide energy rewards through the hold-to-earn mechanism.
         </AlertDescription>
@@ -77,10 +77,10 @@ export function EnergyTokenRequirements() {
         </CardHeader>
         <CardContent className="space-y-4">
           {tokenRequirements.map((token, index) => (
-            <div key={index} className={`border rounded-lg p-4 ${token.isRequired ? 'border-blue-200 bg-blue-50' : 'border-gray-200'}`}>
+            <div key={index} className={`border rounded-lg p-4 ${token.isRequired ? 'border-accent-line bg-accent-soft' : 'border-line'}`}>
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${token.isRequired ? 'bg-blue-500' : 'bg-gray-400'}`} />
+                  <div className={`w-3 h-3 rounded-full ${token.isRequired ? 'bg-accent' : 'bg-surface-hover'}`} />
                   <div>
                     <h3 className="font-medium text-lg">{token.name}</h3>
                     <div className="flex items-center gap-2 mt-1">
@@ -107,7 +107,7 @@ export function EnergyTokenRequirements() {
                     className="h-8 w-8 p-0"
                   >
                     {copied === token.contractId ? (
-                      <CheckCircle className="h-3 w-3 text-green-500" />
+                      <CheckCircle className="h-3 w-3 text-success" />
                     ) : (
                       <Copy className="h-3 w-3" />
                     )}
@@ -133,7 +133,7 @@ export function EnergyTokenRequirements() {
                 </p>
                 
                 {token.minimumAmount && (
-                  <div className="text-xs text-blue-600 font-medium">
+                  <div className="text-xs text-accent-text font-medium">
                     <strong>Minimum to hold:</strong> {token.minimumAmount} tokens
                   </div>
                 )}
@@ -154,7 +154,7 @@ export function EnergyTokenRequirements() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 border rounded-lg">
-              <Coins className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+              <Coins className="h-8 w-8 text-accent-text mx-auto mb-2" />
               <h3 className="font-medium mb-1">1. Hold Tokens</h3>
               <p className="text-sm text-muted-foreground">
                 Users must hold {requiredToken.symbol} tokens in their wallet
@@ -162,7 +162,7 @@ export function EnergyTokenRequirements() {
             </div>
 
             <div className="text-center p-4 border rounded-lg">
-              <Clock className="h-8 w-8 text-green-500 mx-auto mb-2" />
+              <Clock className="h-8 w-8 text-success mx-auto mb-2" />
               <h3 className="font-medium mb-1">2. Earn Over Time</h3>
               <p className="text-sm text-muted-foreground">
                 Energy accumulates automatically based on token holdings
@@ -170,7 +170,7 @@ export function EnergyTokenRequirements() {
             </div>
 
             <div className="text-center p-4 border rounded-lg">
-              <Zap className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+              <Zap className="h-8 w-8 text-blaze mx-auto mb-2" />
               <h3 className="font-medium mb-1">3. Harvest Energy</h3>
               <p className="text-sm text-muted-foreground">
                 Use the energize vault to harvest accumulated energy rewards

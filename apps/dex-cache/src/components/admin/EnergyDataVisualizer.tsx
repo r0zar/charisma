@@ -351,7 +351,7 @@ export default function EnergyDataVisualizer() {
                                                     <span className="text-muted-foreground">{item.date}</span>
                                                     <div className="flex items-center gap-2">
                                                         <div 
-                                                            className="bg-green-500 h-2 rounded"
+                                                            className="bg-success h-2 rounded"
                                                             style={{ 
                                                                 width: `${Math.min((item.users / Math.max(...chartData.map(d => d.users))) * 100, 100)}px`
                                                             }}
@@ -370,7 +370,7 @@ export default function EnergyDataVisualizer() {
                                 <Card>
                                     <CardContent className="p-4">
                                         <div className="flex items-center gap-2">
-                                            <Zap className="h-4 w-4 text-primary" />
+                                            <Zap className="h-4 w-4 text-accent-text" />
                                             <div>
                                                 <p className="text-sm text-muted-foreground">Total Energy</p>
                                                 <p className="font-semibold">
@@ -384,7 +384,7 @@ export default function EnergyDataVisualizer() {
                                 <Card>
                                     <CardContent className="p-4">
                                         <div className="flex items-center gap-2">
-                                            <Users className="h-4 w-4 text-green-500" />
+                                            <Users className="h-4 w-4 text-success" />
                                             <div>
                                                 <p className="text-sm text-muted-foreground">Unique Users</p>
                                                 <p className="font-semibold">{data.stats.uniqueUsers.toLocaleString()}</p>
@@ -396,7 +396,7 @@ export default function EnergyDataVisualizer() {
                                 <Card>
                                     <CardContent className="p-4">
                                         <div className="flex items-center gap-2">
-                                            <TrendingUp className="h-4 w-4 text-blue-500" />
+                                            <TrendingUp className="h-4 w-4 text-accent-text" />
                                             <div>
                                                 <p className="text-sm text-muted-foreground">Avg per Harvest</p>
                                                 <p className="font-semibold">
@@ -410,7 +410,7 @@ export default function EnergyDataVisualizer() {
                                 <Card>
                                     <CardContent className="p-4">
                                         <div className="flex items-center gap-2">
-                                            <Clock className="h-4 w-4 text-purple-500" />
+                                            <Clock className="h-4 w-4 text-blaze" />
                                             <div>
                                                 <p className="text-sm text-muted-foreground">Last Updated</p>
                                                 <p className="font-semibold text-xs">{new Date(data.stats.lastUpdated).toLocaleDateString()}</p>

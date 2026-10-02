@@ -58,9 +58,9 @@ export default function EnergyRateAnalytics() {
     const getTrendIcon = (direction: 'up' | 'down' | 'stable') => {
         switch (direction) {
             case 'up':
-                return <TrendingUp className="h-4 w-4 text-green-500" />;
+                return <TrendingUp className="h-4 w-4 text-success" />;
             case 'down':
-                return <TrendingDown className="h-4 w-4 text-red-500" />;
+                return <TrendingDown className="h-4 w-4 text-danger" />;
             default:
                 return <Minus className="h-4 w-4 text-muted-foreground" />;
         }
@@ -69,9 +69,9 @@ export default function EnergyRateAnalytics() {
     const getTrendColor = (direction: 'up' | 'down' | 'stable') => {
         switch (direction) {
             case 'up':
-                return 'text-green-600 bg-green-50 border-green-200';
+                return 'text-success bg-success-soft border-success/30';
             case 'down':
-                return 'text-red-600 bg-red-50 border-red-200';
+                return 'text-danger bg-danger-soft border-danger/30';
             default:
                 return 'text-muted-foreground bg-muted/50 border-border';
         }

@@ -41,7 +41,7 @@ export default function EnergyRateCalculatorPage() {
                 <div className="mb-8">
                     <h1 className="text-4xl font-bold tracking-tight mb-4 flex items-center gap-3">
                         <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Zap className="h-6 w-6 text-primary" />
+                            <Zap className="h-6 w-6 text-accent-text" />
                         </div>
                         Energy Rate Calculator
                     </h1>
@@ -54,7 +54,7 @@ export default function EnergyRateCalculatorPage() {
                     <div className="mt-6 glass-card p-4 border-l-4 border-l-primary">
                         <div className="flex items-start gap-4">
                             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                <Zap className="h-5 w-5 text-primary" />
+                                <Zap className="h-5 w-5 text-accent-text" />
                             </div>
                             <div>
                                 <h3 className="font-semibold text-foreground mb-1">Required Token for Energy Generation</h3>

@@ -79,7 +79,7 @@ export default function APYSimulator({ tvl, feeRate, tokenASymbol, tokenBSymbol,
             <div className="flex items-stretch">
                 <div className="bg-muted/30 p-4 flex items-center justify-center border-r border-border/50">
                     <div className="relative w-16 h-16 flex items-center justify-center">
-                        <Calculator className="w-8 h-8 text-primary" />
+                        <Calculator className="w-8 h-8 text-accent-text" />
                     </div>
                 </div>
 
@@ -103,7 +103,7 @@ export default function APYSimulator({ tvl, feeRate, tokenASymbol, tokenBSymbol,
                             </div>
                         </div>
                         <div className="text-right flex-shrink-0 ml-2">
-                            <div className="font-bold text-lg text-primary">
+                            <div className="font-bold text-lg text-accent-text">
                                 {formatNumber(results.apy, 'percent')}
                             </div>
                             <div className="text-xs text-muted-foreground">
@@ -172,7 +172,7 @@ export default function APYSimulator({ tvl, feeRate, tokenASymbol, tokenBSymbol,
                                 <DollarSign className="w-3.5 h-3.5 mr-1.5" />
                                 <span>Daily Fees:</span>
                             </div>
-                            <div className="font-medium text-green-600">{formatNumber(results.dailyFees, 'currency')}</div>
+                            <div className="font-medium text-success">{formatNumber(results.dailyFees, 'currency')}</div>
                         </div>
                         <div className="flex justify-between items-center">
                             <div className="flex items-center text-muted-foreground">

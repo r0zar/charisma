@@ -109,7 +109,7 @@ const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; rese
                                         href={`https://explorer.hiro.so/txid/${contractId}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="inline-flex items-center text-xs text-primary hover:underline"
+                                        className="inline-flex items-center text-xs text-accent-text hover:underline"
                                     >
                                         {truncateAddress(contractId)}
                                         <ExternalLink className="h-3 w-3 ml-1" />
@@ -118,7 +118,7 @@ const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; rese
                             </div>
                         </div>
                         <div className="text-right flex-shrink-0 ml-2">
-                            <div className="font-bold text-lg text-primary">
+                            <div className="font-bold text-lg text-accent-text">
                                 {reserveAmountDisplay}
                             </div>
                             <div className="text-xs text-muted-foreground">

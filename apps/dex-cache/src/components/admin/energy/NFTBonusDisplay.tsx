@@ -106,23 +106,23 @@ export function NFTBonusDisplay({ userAddress, className }: NFTBonusDisplayProps
         switch (rarity) {
             case 'legendary':
                 return {
-                    border: 'border-purple-500/50',
-                    bg: 'bg-purple-500/10',
-                    text: 'text-purple-400',
+                    border: 'border-blaze/50',
+                    bg: 'bg-blaze/10',
+                    text: 'text-blaze',
                     glow: 'shadow-purple-500/20'
                 };
             case 'rare':
                 return {
-                    border: 'border-blue-500/50',
-                    bg: 'bg-blue-500/10',
-                    text: 'text-blue-400',
+                    border: 'border-accent/50',
+                    bg: 'bg-accent/10',
+                    text: 'text-accent-text',
                     glow: 'shadow-blue-500/20'
                 };
             default:
                 return {
-                    border: 'border-gray-500/50',
-                    bg: 'bg-gray-500/10',
-                    text: 'text-gray-400',
+                    border: 'border-line',
+                    bg: 'bg-surface-hover',
+                    text: 'text-ink-muted',
                     glow: 'shadow-gray-500/20'
                 };
         }
@@ -131,11 +131,11 @@ export function NFTBonusDisplay({ userAddress, className }: NFTBonusDisplayProps
     const getBonusTypeIcon = (bonusType: string) => {
         switch (bonusType) {
             case 'energy_generation':
-                return <Plus className="h-3 w-3 text-green-400" />;
+                return <Plus className="h-3 w-3 text-success" />;
             case 'fee_discount':
-                return <Shield className="h-3 w-3 text-purple-400" />;
+                return <Shield className="h-3 w-3 text-blaze" />;
             case 'capacity_increase':
-                return <Cpu className="h-3 w-3 text-blue-400" />;
+                return <Cpu className="h-3 w-3 text-accent-text" />;
             default:
                 return null;
         }
@@ -178,7 +178,7 @@ export function NFTBonusDisplay({ userAddress, className }: NFTBonusDisplayProps
         return (
             <div className={cn("glass-card p-4", className)}>
                 <div className="text-center p-4 text-muted-foreground">
-                    <div className="text-sm text-red-400">Error loading NFT bonuses</div>
+                    <div className="text-sm text-danger">Error loading NFT bonuses</div>
                     <div className="text-xs mt-1">{nftError}</div>
                 </div>
             </div>
@@ -194,7 +194,7 @@ export function NFTBonusDisplay({ userAddress, className }: NFTBonusDisplayProps
                 </div>
                 
                 {activeBonuses.length > 0 && (
-                    <Badge variant="outline" className="text-green-400 border-green-400/50">
+                    <Badge variant="outline" className="text-success border-success/50">
                         {activeBonuses.length} Active
                     </Badge>
                 )}
@@ -203,23 +203,23 @@ export function NFTBonusDisplay({ userAddress, className }: NFTBonusDisplayProps
             {/* Active Bonuses Summary */}
             {activeBonuses.length > 0 && (
                 <div className="mb-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                    <div className="text-xs text-primary font-medium mb-2">Active Effects</div>
+                    <div className="text-xs text-accent-text font-medium mb-2">Active Effects</div>
                     <div className="grid grid-cols-1 gap-1 text-xs">
                         {totalEnergyBonus > 0 && (
                             <div className="flex items-center gap-2">
-                                <Plus className="h-3 w-3 text-green-400" />
+                                <Plus className="h-3 w-3 text-success" />
                                 <span>Energy Generation: +{totalEnergyBonus}%</span>
                             </div>
                         )}
                         {nftBonuses.find(b => b.bonusType === 'fee_discount' && b.isActive) && (
                             <div className="flex items-center gap-2">
-                                <Shield className="h-3 w-3 text-purple-400" />
+                                <Shield className="h-3 w-3 text-blaze" />
                                 <span>Fee Discount: {formatBonusValue(nftBonuses.find(b => b.bonusType === 'fee_discount' && b.isActive)!)}</span>
                             </div>
                         )}
                         {nftBonuses.find(b => b.bonusType === 'capacity_increase' && b.isActive) && (
                             <div className="flex items-center gap-2">
-                                <Cpu className="h-3 w-3 text-blue-400" />
+                                <Cpu className="h-3 w-3 text-accent-text" />
                                 <span>Extra Capacity: {formatBonusValue(nftBonuses.find(b => b.bonusType === 'capacity_increase' && b.isActive)!)}</span>
                             </div>
                         )}
@@ -239,7 +239,7 @@ export function NFTBonusDisplay({ userAddress, className }: NFTBonusDisplayProps
                                 <TooltipTrigger asChild>
                                     <div
                                         className={cn(
-                                            "relative p-3 rounded-lg border-2 transition-all duration-300",
+ "relative p-3 rounded-lg border-2 transition-all duration-300",
                                             bonus.isActive 
                                                 ? `${rarityStyles.border} ${rarityStyles.bg} shadow-lg ${rarityStyles.glow}`
                                                 : "border-muted/30 bg-muted/10 opacity-60"
@@ -253,13 +253,13 @@ export function NFTBonusDisplay({ userAddress, className }: NFTBonusDisplayProps
                                         <div className="flex items-center gap-3">
                                             {/* NFT Icon */}
                                             <div className={cn(
-                                                "h-10 w-10 rounded-lg flex items-center justify-center",
+ "h-10 w-10 rounded-lg flex items-center justify-center",
                                                 bonus.isActive 
                                                     ? rarityStyles.bg 
                                                     : "bg-muted/20"
                                             )}>
                                                 <IconComponent className={cn(
-                                                    "h-5 w-5",
+ "h-5 w-5",
                                                     bonus.isActive 
                                                         ? rarityStyles.text 
                                                         : "text-muted-foreground"
@@ -276,7 +276,7 @@ export function NFTBonusDisplay({ userAddress, className }: NFTBonusDisplayProps
                                                         <Badge 
                                                             variant="outline"
                                                             className={cn(
-                                                                "text-xs px-1 py-0",
+ "text-xs px-1 py-0",
                                                                 rarityStyles.text,
                                                                 rarityStyles.border
                                                             )}
@@ -299,7 +299,7 @@ export function NFTBonusDisplay({ userAddress, className }: NFTBonusDisplayProps
 
                                             {/* Active Indicator */}
                                             {bonus.isActive && (
-                                                <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse"></div>
+                                                <div className="h-2 w-2 rounded-full bg-success animate-pulse"></div>
                                             )}
                                         </div>
 
@@ -322,7 +322,7 @@ export function NFTBonusDisplay({ userAddress, className }: NFTBonusDisplayProps
                                             {bonus.description}
                                         </div>
                                         {bonus.isActive && (
-                                            <div className="text-xs text-green-400 mt-1">
+                                            <div className="text-xs text-success mt-1">
                                                 Active: {formatBonusValue(bonus)}
                                             </div>
                                         )}

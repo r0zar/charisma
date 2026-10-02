@@ -130,7 +130,7 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
             <Card className="mt-6">
                 <CardContent className="pt-6">
                     <div className="text-center py-8 text-muted-foreground">
-                        <Coins className="w-12 h-12 mx-auto mb-4 text-muted" />
+                        <Coins className="w-12 h-12 mx-auto mb-4 text-ink-faint" />
                         <p className="text-lg font-semibold">No Subnets Found</p>
                         <p className="text-sm mt-1">Subnets will appear here once available.</p>
                     </div>
@@ -143,7 +143,7 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
         <Card className="mt-6 overflow-hidden">
             <CardHeader className="border-b border-border">
                 <CardTitle className="flex items-center text-lg">
-                    <ArrowRightLeft className="w-5 h-5 mr-2 text-primary" /> {/* Changed icon to ArrowRightLeft to match bridge concept */}
+                    <ArrowRightLeft className="w-5 h-5 mr-2 text-accent-text" /> {/* Changed icon to ArrowRightLeft to match bridge concept */}
                     Token List
                     <Badge variant="secondary" className="ml-auto">
                         {vaults.length} subnet{vaults.length !== 1 ? 's' : ''}
@@ -184,7 +184,7 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
                                                             className="h-7 w-7 rounded-lg object-contain bg-card p-0.5 border border-border"
                                                         />
                                                     )}
-                                                    <Link href={`/sublinks/${encodeURIComponent(sublink.contractId)}`} className="hover:underline text-primary">
+                                                    <Link href={`/sublinks/${encodeURIComponent(sublink.contractId)}`} className="hover:underline text-accent-text">
                                                         {sublink.name}
                                                     </Link>
                                                 </div>
@@ -203,12 +203,12 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
                                             <td className="p-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                                     <span>Stacks</span>
-                                                    <ArrowRightLeft className="w-4 h-4 mx-1 text-primary" />
+                                                    <ArrowRightLeft className="w-4 h-4 mx-1 text-accent-text" />
                                                     <div className="flex items-center">
                                                         <span>Blaze</span>
                                                         <div className="relative ml-1">
-                                                            <div className="bg-red-500 rounded-full p-0.5 shadow-sm flame-pulse">
-                                                                <Flame className="w-2.5 h-2.5 text-white" />
+                                                            <div className="bg-danger rounded-full p-0.5 shadow-sm flame-pulse">
+                                                                <Flame className="w-2.5 h-2.5 text-ink" />
                                                             </div>
                                                         </div>
                                                     </div>

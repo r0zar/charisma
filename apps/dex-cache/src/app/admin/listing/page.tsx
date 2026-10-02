@@ -17,7 +17,7 @@ export default function ListingPage() {
     return (
         <main className="container py-8">
             <div className="flex items-center gap-3 mb-2">
-                <ListPlus className="h-6 w-6 text-primary" />
+                <ListPlus className="h-6 w-6 text-accent-text" />
                 <h1 className="text-2xl font-bold">Manage Vault Listings</h1>
             </div>
             <p className="text-muted-foreground mb-6 max-w-3xl">
@@ -25,10 +25,10 @@ export default function ListingPage() {
                 This includes liquidity pools (LP tokens), subnet bridges, and other vault types.
             </p>
 
-            <Alert className="mb-6 border-blue-500/30 bg-blue-500/5">
-                <AlertCircle className="h-4 w-4 text-blue-500" />
-                <AlertTitle className="text-blue-500">Vault Type Information</AlertTitle>
-                <AlertDescription className="text-blue-500/90 text-sm">
+            <Alert className="mb-6 border-accent/30 bg-accent/5">
+                <AlertCircle className="h-4 w-4 text-accent-text" />
+                <AlertTitle className="text-accent-text">Vault Type Information</AlertTitle>
+                <AlertDescription className="text-accent-text/90 text-sm">
                     <ul className="list-disc pl-5 mt-2 space-y-1">
                         <li><strong>POOL</strong> - Standard liquidity pools with two tokens (e.g., STX/USDA)</li>
                         <li><strong>SUBLINK</strong> - Subnet bridge vaults that connect mainnet assets to subnet networks</li>

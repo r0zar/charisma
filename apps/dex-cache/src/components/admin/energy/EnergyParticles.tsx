@@ -164,7 +164,7 @@ export function AnimatedCounter({
     return (
         <motion.span
             className={className}
-            key={value} // Force re-render on value change for highlight effect
+ key={value} // Force re-render on value change for highlight effect
             initial={{ scale: 1 }}
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 0.3 }}
@@ -255,7 +255,7 @@ export function EnergyBurstEffect({ trigger, onComplete }: EnergyBurstEffectProp
                                 ease: "easeOut"
                             }}
                         >
-                            <Zap className="h-4 w-4 text-primary" />
+                            <Zap className="h-4 w-4 text-accent-text" />
                         </motion.div>
                     ))}
                     

@@ -10,7 +10,7 @@ export default function CharismaInvestLandingPage() {
         <div className="container relative z-10">
           <div className="mx-auto max-w-3xl text-center">
             <div className="inline-flex items-center justify-center px-4 py-1.5 mb-6 text-sm rounded-full border border-border bg-muted/50 text-foreground/80 gap-x-2">
-              <TrendingUp className="h-3.5 w-3.5 text-primary" />
+              <TrendingUp className="h-3.5 w-3.5 text-accent-text" />
               <span>Stacks Yield Generation & Automation</span>
             </div>
 
@@ -27,7 +27,7 @@ export default function CharismaInvestLandingPage() {
 
             {/* Explore Opportunities Button */}
             <div className="mt-8 mb-12 flex flex-col items-center">
-              <Link href="/pools" className="inline-flex items-center justify-center rounded-md h-11 px-8 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 text-white font-medium shadow-md">
+              <Link href="/pools" className="inline-flex items-center justify-center rounded-md h-11 px-8 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 text-ink font-medium shadow-md">
                 Explore Yield Opportunities
                 <ArrowRight className="h-4 w-4" />
               </Link>
@@ -52,7 +52,7 @@ export default function CharismaInvestLandingPage() {
             {/* Feature 1: Diverse Yield Pools */}
             <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <HandCoins className="h-6 w-6 text-primary" />
+                <HandCoins className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Diverse Yield Pools</h3>
               <p className="text-muted-foreground">
@@ -63,7 +63,7 @@ export default function CharismaInvestLandingPage() {
             {/* Feature 2: Automated Strategies */}
             <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <Bot className="h-6 w-6 text-primary" />
+                <Bot className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Automated Strategies</h3>
               <p className="text-muted-foreground">
@@ -74,7 +74,7 @@ export default function CharismaInvestLandingPage() {
             {/* Feature 3: Secure & Audited */}
             <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <ShieldCheck className="h-6 w-6 text-primary" />
+                <ShieldCheck className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Secure & Battle Tested</h3>
               <p className="text-muted-foreground">
@@ -85,7 +85,7 @@ export default function CharismaInvestLandingPage() {
             {/* Feature 4: Manual LP Management */}
             <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <Layers className="h-6 w-6 text-primary" />
+                <Layers className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Direct LP Management</h3>
               <p className="text-muted-foreground">Prefer hands-on control? Easily add or remove liquidity directly into individual pools.</p>
@@ -94,7 +94,7 @@ export default function CharismaInvestLandingPage() {
             {/* Feature 5: Optimized Execution */}
             <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <Zap className="h-6 w-6 text-primary" />
+                <Zap className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Optimized Execution</h3>
               <p className="text-muted-foreground">Leverage efficient routing and interaction with underlying protocols for better results.</p>
@@ -103,7 +103,7 @@ export default function CharismaInvestLandingPage() {
             {/* Feature 6: Comprehensive Analytics */}
             <div className="bg-background border border-border/50 rounded-xl p-6 transition-all duration-300 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-5">
-                <TrendingUp className="h-6 w-6 text-primary" />
+                <TrendingUp className="h-6 w-6 text-accent-text" />
               </div>
               <h3 className="text-xl font-semibold mb-2">Performance Insights</h3>
               <p className="text-muted-foreground">
@@ -128,7 +128,7 @@ export default function CharismaInvestLandingPage() {
             </p>
 
             <Link href="/pools">
-              <button className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background h-11 px-8 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 text-white">
+              <button className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background h-11 px-8 gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 transition-all duration-300 text-ink">
                 Explore Pools & Strategies
                 <ArrowRight className="h-4 w-4" />
               </button>

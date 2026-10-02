@@ -1,113 +1,64 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* Charisma brand: Dark · RPG / Light · Bitcoin tokens, fonts, Tailwind utilities, shadcn names */
+@import "@repo/brand/tokens.css";
+@import "@repo/brand/fonts.css";
+@import "@repo/brand/theme.css";
+@import "@repo/brand/shadcn.css";
 
-/* BASE STYLES (Dark Theme) */
-
-/* Define base variables within @theme */
-:root {
-  @theme {
-    /* Base colors */
-    --color-background:         hsl(222 47% 8%);
-    --color-foreground:         hsl(0 0% 98%);
-    --color-card:               hsl(222 47% 11%);
-    --color-card-foreground:    hsl(0 0% 98%);
-    --color-popover:            hsl(222 47% 6%);
-    --color-popover-foreground: hsl(0 0% 98%);
-
-    /* Primary - Bitcoin Orange */
-    --color-primary:              hsl(26 93% 53%);
-    --color-primary-foreground:   hsl(222 47% 5%);
-
-    /* Secondary - Bitcoin Orange v2 */
-    --color-secondary:            hsl(26 93% 60%);
-    --color-secondary-foreground: hsl(0 0% 98%);
-
-    /* Utility colors */
-    --color-destructive:          hsl(0 84% 60%);
-    --color-destructive-foreground: hsl(0 0% 98%);
-    --color-muted:              hsl(223 47% 15%);
-    --color-muted-foreground:   hsl(220 10% 70%);
-    --color-accent:             hsl(223 47% 15%);
-    --color-accent-foreground:  hsl(0 0% 98%);
-    --color-border:             hsl(222 47% 18%);
-    --color-input:              var(--color-border);
-    --color-ring:               var(--color-primary);
-
-    /* Semantic colors */
-    --color-pump:               hsl(135 94% 65%);
-    --color-dump:               hsl(356 100% 65%);
-    --color-success:            hsl(145, 80%, 42%);
-    --color-warning:            hsl(43, 96%, 56%);
-    --color-info:               hsl(215, 100%, 69%);
-
-    /* Motion */
-    --duration-instant:         0.1s;
-    --duration-fast:            0.2s;
-    --duration-normal:          0.3s;
-    --duration-slow:            0.5s;
-    --ease-snap:                cubic-bezier(0.2, 0.8, 0.2, 1);
-    --ease-smooth:              cubic-bezier(0.4, 0.0, 0.2, 1);
-
-    /* Other theme variables */
-    --radius: 0.75rem;
-    --font-display: var(--font-display), system-ui, -apple-system, sans-serif;
-    --font-body: var(--font-body), system-ui, -apple-system, sans-serif;
-    --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, monospace;
-
-    /* Aliases for Tailwind compatibility/existing usage */
-    --background: var(--color-background);
-    --foreground: var(--color-foreground);
-    --card: var(--color-card);
-    --card-foreground: var(--color-card-foreground);
-    --popover: var(--color-popover);
-    --popover-foreground: var(--color-popover-foreground);
-    --primary: var(--color-primary);
-    --primary-foreground: var(--color-primary-foreground);
-    --secondary: var(--color-secondary);
-    --secondary-foreground: var(--color-secondary-foreground);
-    --muted: var(--color-muted);
-    --muted-foreground: var(--color-muted-foreground);
-    --accent: var(--color-accent);
-    --accent-foreground: var(--color-accent-foreground);
-    --destructive: var(--color-destructive);
-    --destructive-foreground: var(--color-destructive-foreground);
-    --border: var(--color-border);
-    --input: var(--color-input);
-    --ring: var(--color-ring);
-  }
+@theme inline {
+  --radius: 0.75rem;
+  --color-pump: var(--success);
+  --color-dump: var(--danger);
+  --color-info: var(--accent-text);
 }
 
+@theme {
+  /* Motion */
+  --duration-instant: 0.1s;
+  --duration-fast: 0.2s;
+  --duration-normal: 0.3s;
+  --duration-slow: 0.5s;
+  --ease-snap: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-smooth: cubic-bezier(0.4, 0.0, 0.2, 1);
+}
 
 /* BASE LAYER */
 @layer base {
   * {
-    /* Apply border color using the variable */
-    border-color: color-mix(in srgb, var(--color-border) 50%, transparent);
+    @apply border-line;
+  }
+  /* the canvas past the page is chrome, so overscroll under the footer (and above the header) stays the bar colour */
+  html {
+    background-color: var(--chrome);
   }
   body {
-    /* Apply base styles directly using variables */
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-    font-family: var(--font-body); 
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
     font-feature-settings: "rlig" 1, "calt" 1;
     text-rendering: optimizeLegibility;
   }
-  
-  h1, h2, h3, h4, h5, h6 {
-    font-family: var(--font-display);
-    @apply font-medium tracking-tight;
+  /* Tailwind 4 dropped the pointer on buttons; every clickable button gets it back */
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
-  
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+    text-wrap: balance;
+  }
+
   h1 {
     @apply text-3xl md:text-4xl lg:text-5xl leading-tight;
   }
-  
+
   h2 {
     @apply text-2xl md:text-3xl lg:text-4xl leading-tight;
   }
-  
+
   .numeric, .price, .cha-amount {
     font-family: var(--font-mono);
     @apply tabular-nums;
@@ -122,113 +73,52 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--color-muted) 90%, var(--color-primary) 10%);
+    background-color: var(--line-strong);
     border-radius: 9999px;
   }
-   ::-webkit-scrollbar-thumb:hover {
-    background-color: color-mix(in srgb, var(--color-muted) 70%, var(--color-primary) 30%);
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--ink-faint);
   }
 }
 
 /* COMPONENTS LAYER */
 @layer components {
   .glass-card {
-    background-color: color-mix(in srgb, var(--color-card) 50%, transparent);
-    border-color: color-mix(in srgb, var(--color-border) 40%, var(--color-primary) 5%);
-    border-width: 1px;
-    backdrop-filter: blur(16px);
+    @apply bg-surface border border-line backdrop-blur-md;
     border-radius: var(--radius);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 10, 20, 0.1), 0 0 1px rgba(var(--color-primary), 0.2);
-    transition: transform var(--duration-normal) var(--ease-smooth),
-                box-shadow var(--duration-normal) var(--ease-smooth);
-  }
-  
-  .glass-card:hover {
-    /* transform: translateY(-1px); */
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 10, 20, 0.15), 0 0 2px rgba(var(--color-primary), 0.3);
+    box-shadow: var(--shadow-card);
   }
 
   .button-primary {
-    @apply px-6 py-3 bg-primary text-primary-foreground font-medium rounded-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed;
-    font-family: var(--font-display);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    transition: all var(--duration-normal) var(--ease-snap);
-    &:hover {
-      /* transform: translateY(-1px); */
-      box-shadow: 0 6px 20px rgba(0, 255, 120, 0.2);
-      background-color: color-mix(in srgb, var(--color-primary) 90%, white);
-    }
-    &:active {
-      transform: translateY(1px);
-    }
+    @apply px-6 py-3 bg-accent text-on-accent font-semibold rounded-xl transition-all shadow-[var(--shadow-cta)] flex items-center justify-center gap-2 hover:bg-accent-hover active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .button-secondary {
-    @apply px-6 py-3 bg-secondary text-secondary-foreground font-medium rounded-xl transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed;
-    font-family: var(--font-display);
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-    transition: all var(--duration-normal) var(--ease-snap);
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(255, 40, 40, 0.2);
-      background-color: color-mix(in srgb, var(--color-secondary) 90%, white);
-    }
-    &:active {
-      transform: translateY(1px);
-    }
+    @apply px-6 py-3 bg-surface border border-line text-ink font-semibold rounded-xl transition-all flex items-center justify-center gap-2 hover:bg-surface-hover hover:border-line-strong active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
   }
 
   .input-field {
-    @apply bg-transparent border-none text-lg font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 w-full;
-    /* Ensure ring offset uses background color */
-    --tw-ring-offset-color: var(--color-background);
-    transition: all var(--duration-normal) var(--ease-smooth);
-    &:focus {
-      box-shadow: 0 0 0 2px rgba(var(--color-primary), 0.3);
-    }
+    @apply bg-transparent border-none text-lg font-medium focus:outline-none focus:ring-2 focus:ring-focus focus:ring-offset-2 w-full;
+    --tw-ring-offset-color: var(--bg);
   }
 
   .token-select {
-    @apply flex items-center gap-2 px-3 py-2 rounded-xl bg-muted cursor-pointer transition-all;
-    border: 1px solid transparent;
-    transition: all var(--duration-normal) var(--ease-smooth);
-    &:hover {
-      background-color: color-mix(in srgb, var(--color-muted) 80%, var(--color-primary) 20%);
-      border-color: color-mix(in srgb, var(--color-primary) 30%, transparent);
-      transform: translateY(-1px);
-    }
+    @apply flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-hover border border-transparent cursor-pointer transition-all hover:border-line-strong;
     &.selected {
-      background-color: color-mix(in srgb, var(--color-muted) 70%, var(--color-primary) 30%);
-      border-color: var(--color-primary);
+      @apply bg-surface-selected border-accent-line;
     }
   }
-  
+
   .token-card {
-    @apply p-4 rounded-xl border border-border bg-card flex flex-col gap-3 transition-all;
-    transition: all var(--duration-normal) var(--ease-smooth);
-    transform: translate3d(0, 0, 0);
-    backface-visibility: hidden;
-    perspective: 1000px;
-    will-change: transform;
+    @apply p-4 rounded-xl border border-line bg-surface flex flex-col gap-3 transition-all hover:border-line-strong;
     margin-top: 2px;
-    &:hover {
-      z-index: 100;
-      /* transform: translateY(-1px); */
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 10, 20, 0.1);
-      border-color: color-mix(in srgb, var(--color-border) 60%, var(--color-primary) 40%);
-    }
   }
-  
+
   .progress-bar {
-    @apply h-2 rounded-full bg-muted overflow-hidden relative;
+    @apply h-2 rounded-full bg-surface-hover overflow-hidden relative;
     .progress-bar-fill {
-      @apply h-full rounded-full absolute left-0 top-0;
-      background: linear-gradient(90deg, 
-        var(--color-primary) 0%, 
-        color-mix(in srgb, var(--color-primary) 80%, white) 100%
-      );
+      @apply h-full rounded-full absolute left-0 top-0 bg-accent;
       transition: width var(--duration-slow) var(--ease-smooth);
-      box-shadow: 0 0 10px rgba(var(--color-primary), 0.5);
     }
   }
 }
@@ -255,7 +145,7 @@
   }
   
   .text-glow {
-    text-shadow: 0 0 8px rgba(var(--color-primary), 0.7);
+    text-shadow: none;
   }
   
   .bg-blur {
@@ -318,12 +208,12 @@
 
   @keyframes pulse-glow {
     0% { 
-      box-shadow: 0 0 5px rgba(var(--color-primary), 0.5);
-      border-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+      box-shadow: 0 0 5px var(--accent-line);
+      border-color: var(--accent-line);
     }
     100% { 
-      box-shadow: 0 0 15px rgba(var(--color-primary), 0.8);
-      border-color: var(--color-primary);
+      box-shadow: 0 0 15px var(--accent-line);
+      border-color: var(--accent);
     }
   }
 

@@ -12,8 +12,8 @@ async function VaultBlacklistData() {
 
     if (!result.success) {
         return (
-            <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4">
-                <p className="text-red-400">Error loading blacklisted vaults: {result.error}</p>
+            <div className="bg-danger-soft border border-danger/30 rounded-lg p-4">
+                <p className="text-danger">Error loading blacklisted vaults: {result.error}</p>
             </div>
         );
     }
@@ -46,7 +46,7 @@ export default function VaultBlacklistPage() {
                 <h1 className="text-3xl font-bold text-foreground mb-2">
                     Vault Blacklist Management
                     {process.env.NODE_ENV === 'development' && (
-                        <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary/20 text-secondary">
+                        <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary/20 text-accent-text">
                             Dev Only
                         </span>
                     )}
@@ -57,8 +57,8 @@ export default function VaultBlacklistPage() {
                     cannot appear in pool listings.
                 </p>
                 {process.env.NODE_ENV !== 'development' && (
-                    <div className="mt-4 bg-red-900/20 border border-red-500/30 rounded-lg p-4">
-                        <p className="text-red-400 font-medium">
+                    <div className="mt-4 bg-danger-soft border border-danger/30 rounded-lg p-4">
+                        <p className="text-danger font-medium">
                             ⚠️ Vault blacklist functionality is only available in development mode.
                         </p>
                     </div>

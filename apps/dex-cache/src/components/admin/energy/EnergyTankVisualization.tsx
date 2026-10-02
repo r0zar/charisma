@@ -192,12 +192,12 @@ export function EnergyTankVisualization({
             // Create engines from real vault data with individual rates
             const realEngines: EnergyEngine[] = [];
             const colors = [
-                'from-orange-400 to-orange-600',
-                'from-green-400 to-green-600',
-                'from-purple-400 to-purple-600',
-                'from-blue-400 to-blue-600',
-                'from-red-400 to-red-600',
-                'from-yellow-400 to-yellow-600'
+                'from-accent to-accent',
+                'from-success to-success',
+                'from-blaze to-blaze',
+                'from-accent to-accent',
+                'from-danger to-danger',
+                'from-warning to-warning'
             ];
 
             for (let i = 0; i < energyVaults.length; i++) {
@@ -386,22 +386,22 @@ export function EnergyTankVisualization({
         switch (zone) {
             case 'overflow':
                 return {
-                    tankBorder: 'border-red-500/70 shadow-red-500/20',
-                    fluidColor: 'from-red-400 via-red-500 to-red-600',
+                    tankBorder: 'border-danger/70 shadow-red-500/20',
+                    fluidColor: 'from-danger via-danger to-danger',
                     glowColor: 'rgba(239, 68, 68, 0.3)',
                     animation: 'animate-pulse'
                 };
             case 'critical':
                 return {
-                    tankBorder: 'border-red-400/60 shadow-red-400/15',
-                    fluidColor: 'from-red-300 via-red-400 to-red-500',
+                    tankBorder: 'border-danger/60 shadow-red-400/15',
+                    fluidColor: 'from-danger via-danger to-danger',
                     glowColor: 'rgba(248, 113, 113, 0.25)',
                     animation: 'animate-pulse'
                 };
             case 'warning':
                 return {
-                    tankBorder: 'border-yellow-400/60 shadow-yellow-400/15',
-                    fluidColor: 'from-yellow-300 via-yellow-400 to-yellow-500',
+                    tankBorder: 'border-warning/60 shadow-yellow-400/15',
+                    fluidColor: 'from-warning via-warning to-warning',
                     glowColor: 'rgba(251, 191, 36, 0.25)',
                     animation: ''
                 };
@@ -409,7 +409,7 @@ export function EnergyTankVisualization({
                 return {
                     tankBorder: 'border-primary/40 shadow-primary/10',
                     fluidColor: 'from-primary via-primary/90 to-primary/80',
-                    glowColor: 'hsl(var(--primary) / 0.15)',
+                    glowColor: 'var(--accent-soft)',
                     animation: ''
                 };
         }
@@ -438,7 +438,7 @@ export function EnergyTankVisualization({
             <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Droplets className="h-5 w-5 text-primary" />
+                        <Droplets className="h-5 w-5 text-accent-text" />
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold">Energy Collective System</h3>
@@ -498,11 +498,11 @@ export function EnergyTankVisualization({
                                     <div
                                         key={engine.id}
                                         className={cn(
-                                            "token-card p-4 transition-all duration-300 relative group",
+ "token-card p-4 transition-all duration-300 relative group",
                                             engine.isActive ? "border-primary/30" : "border-muted/30 opacity-60",
                                             canHarvest && "cursor-pointer hover:border-primary/60 hover:shadow-lg hover:bg-primary/5 hover:scale-[1.02] hover:-translate-y-1",
-                                            isHarvesting && "bg-yellow-500/10 border-yellow-500/50",
-                                            isSuccess && "bg-green-500/10 border-green-500/50",
+                                            isHarvesting && "bg-warning/10 border-warning/50",
+                                            isSuccess && "bg-success/10 border-success/50",
                                             !walletState.connected && "opacity-50"
                                         )}
                                         onClick={() => canHarvest && handleHarvestEngine(engine.engineContractId)}
@@ -534,14 +534,14 @@ export function EnergyTankVisualization({
                                                                     e.currentTarget.style.display = 'none';
                                                                     const parent = e.currentTarget.parentElement;
                                                                     if (parent) {
-                                                                        parent.innerHTML = `<div class="h-3 w-3 rounded-full ${engine.isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}"></div>`;
+                                                                        parent.innerHTML = `<div class="h-3 w-3 rounded-full ${engine.isActive ? 'bg-success animate-pulse' : 'bg-surface-hover'}"></div>`;
                                                                     }
                                                                 }}
                                                             />
                                                         ) : (
                                                             <div className={cn(
-                                                                "h-3 w-3 rounded-full transition-all duration-300",
-                                                                engine.isActive ? "bg-green-500 animate-pulse" : "bg-gray-400",
+ "h-3 w-3 rounded-full transition-all duration-300",
+                                                                engine.isActive ? "bg-success animate-pulse" : "bg-surface-hover",
                                                                 canHarvest && "group-hover:bg-primary"
                                                             )} />
                                                         )}
@@ -549,13 +549,13 @@ export function EnergyTankVisualization({
 
                                                     {/* Status indicator overlay */}
                                                     {isHarvesting && (
-                                                        <div className="absolute -top-1 -right-1 h-4 w-4 bg-yellow-500 rounded-full flex items-center justify-center">
-                                                            <div className="h-2 w-2 bg-white rounded-full animate-ping" />
+                                                        <div className="absolute -top-1 -right-1 h-4 w-4 bg-warning rounded-full flex items-center justify-center">
+                                                            <div className="h-2 w-2 bg-ink rounded-full animate-ping" />
                                                         </div>
                                                     )}
                                                     {isSuccess && (
-                                                        <div className="absolute -top-1 -right-1 h-4 w-4 bg-green-500 rounded-full flex items-center justify-center">
-                                                            <Zap className="h-2 w-2 text-white" />
+                                                        <div className="absolute -top-1 -right-1 h-4 w-4 bg-success rounded-full flex items-center justify-center">
+                                                            <Zap className="h-2 w-2 text-ink" />
                                                         </div>
                                                     )}
                                                 </div>
@@ -567,15 +567,15 @@ export function EnergyTankVisualization({
                                                             <div className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent" />
                                                         )}
                                                         {isSuccess && (
-                                                            <Zap className="h-3 w-3 text-green-500 animate-pulse" />
+                                                            <Zap className="h-3 w-3 text-success animate-pulse" />
                                                         )}
                                                     </div>
                                                     <div className="text-xs text-muted-foreground">
                                                         Hold {engine.tokenSymbol} tokens
                                                         {canHarvest && (
                                                             <span className={cn(
-                                                                "opacity-0 group-hover:opacity-100 transition-opacity duration-300 ml-1",
-                                                                willWasteEnergy ? "text-orange-500" : "text-primary"
+ "opacity-0 group-hover:opacity-100 transition-opacity duration-300 ml-1",
+                                                                willWasteEnergy ? "text-accent-text" : "text-accent-text"
                                                             )}>
                                                                 • {willWasteEnergy ? 'Click to tap (may waste energy)' : 'Click to tap'}
                                                             </span>
@@ -597,8 +597,8 @@ export function EnergyTankVisualization({
                                                 <div className="text-right">
                                                     <div className="text-xs text-muted-foreground">Untapped</div>
                                                     <div className={cn(
-                                                        "text-sm font-mono font-semibold transition-colors duration-300",
-                                                        engine.accumulatedEnergy && engine.accumulatedEnergy > 0 ? "text-green-400" : "text-muted-foreground"
+ "text-sm font-mono font-semibold transition-colors duration-300",
+                                                        engine.accumulatedEnergy && engine.accumulatedEnergy > 0 ? "text-success" : "text-muted-foreground"
                                                     )}>
                                                         {engine.accumulatedEnergy ? formatEnergy(engine.accumulatedEnergy) : '0'}
                                                     </div>
@@ -620,7 +620,7 @@ export function EnergyTankVisualization({
                                                 <div className="h-1 bg-muted/30 rounded-full overflow-hidden">
                                                     <div
                                                         className={cn(
-                                                            "h-full bg-gradient-to-r transition-all duration-1000",
+ "h-full bg-gradient-to-r transition-all duration-1000",
                                                             engine.color,
                                                             isGenerating && "animate-pulse",
                                                         )}
@@ -654,15 +654,15 @@ export function EnergyTankVisualization({
                     </div>
                     <div>
                         <div className="text-xs text-muted-foreground">Efficiency</div>
-                        <div className="font-semibold text-green-500">
+                        <div className="font-semibold text-success">
                             {capacityZone === 'overflow' ? '0%' : '100%'}
                         </div>
                     </div>
                     <div>
                         <div className="text-xs text-muted-foreground">Status</div>
                         <div className={cn(
-                            "font-semibold text-xs",
-                            isGenerating ? 'text-green-500' : 'text-gray-500'
+ "font-semibold text-xs",
+                            isGenerating ? 'text-success' : 'text-ink-muted'
                         )}>
                             {isGenerating ? 'GENERATING' : 'IDLE'}
                         </div>

@@ -95,7 +95,7 @@ export function SublinkMetadataEditForm({ sublink, onMetadataUpdate }: SublinkMe
     return (
         <div className="space-y-4">
             <h3 className="text-lg font-semibold">Edit Sublink Metadata (JSON)</h3>
-            <Alert variant={isValidJson ? "default" : "destructive"} className={isValidJson ? "border-blue-500/50 bg-blue-500/10 text-blue-700 dark:text-blue-300" : ""}>
+            <Alert variant={isValidJson ? "default" : "destructive"} className={isValidJson ? "border-accent/50 bg-accent/10 text-accent-text " : ""}>
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>{isValidJson ? "Valid JSON" : "Invalid JSON Format"}</AlertTitle>
                 <AlertDescription>

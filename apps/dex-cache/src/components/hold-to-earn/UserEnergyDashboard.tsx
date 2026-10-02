@@ -215,7 +215,7 @@ export default function UserEnergyDashboard() {
                             />
                         </div>
                     ) : (
-                        <ZapIcon className="h-7 w-7 text-primary" />
+                        <ZapIcon className="h-7 w-7 text-accent-text" />
                     )}
                     <h2 className="text-2xl font-bold">
                         Energy Dashboard

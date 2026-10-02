@@ -54,7 +54,7 @@ export default function ProfitSimulator({ apy, vault, prices }: ProfitSimulatorP
             <div className="flex items-stretch">
                 <div className="bg-muted/30 p-4 flex items-center justify-center border-r border-border/50">
                     <div className="relative w-16 h-16 flex items-center justify-center">
-                        <Calendar className="w-8 h-8 text-primary" />
+                        <Calendar className="w-8 h-8 text-accent-text" />
                     </div>
                 </div>
 
@@ -77,7 +77,7 @@ export default function ProfitSimulator({ apy, vault, prices }: ProfitSimulatorP
                             </div>
                         </div>
                         <div className="text-right flex-shrink-0 ml-2">
-                            <div className="font-bold text-lg text-green-600">
+                            <div className="font-bold text-lg text-success">
                                 +{formatNumber(results.monthlyReturn, 'currency')}
                             </div>
                             <div className="text-xs text-muted-foreground">
@@ -115,7 +115,7 @@ export default function ProfitSimulator({ apy, vault, prices }: ProfitSimulatorP
                                 <TrendingUp className="w-3.5 h-3.5 mr-1.5" />
                                 <span>30-Day Return:</span>
                             </div>
-                            <div className="font-medium text-green-600">
+                            <div className="font-medium text-success">
                                 +{formatNumber(results.monthlyReturn, 'currency')} ({results.monthlyPercentage.toFixed(2)}%)
                             </div>
                         </div>
@@ -124,7 +124,7 @@ export default function ProfitSimulator({ apy, vault, prices }: ProfitSimulatorP
                                 <Wallet className="w-3.5 h-3.5 mr-1.5" />
                                 <span>Total After 30 Days:</span>
                             </div>
-                            <div className="font-medium text-primary">{formatNumber(results.finalAmount, 'currency')}</div>
+                            <div className="font-medium text-accent-text">{formatNumber(results.finalAmount, 'currency')}</div>
                         </div>
                     </div>
 

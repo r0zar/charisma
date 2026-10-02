@@ -231,7 +231,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
             <Card className="w-full mt-8 border-border/60">
                 <CardHeader>
                     <CardTitle className="flex items-center text-lg">
-                        <Info className="w-5 h-5 mr-2 text-primary" />
+                        <Info className="w-5 h-5 mr-2 text-accent-text" />
                         Contract Information
                     </CardTitle>
                 </CardHeader>
@@ -366,11 +366,11 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                             />
                                         ) : (
                                             <div className="w-12 h-12 flex items-center justify-center bg-primary/10 rounded-lg border border-primary/30">
-                                                <ArrowRightLeft className="w-6 h-6 text-primary" />
+                                                <ArrowRightLeft className="w-6 h-6 text-accent-text" />
                                             </div>
                                         )}
                                     </div>
-                                    <span className="text-xs text-primary font-medium mt-1">Bridge</span>
+                                    <span className="text-xs text-accent-text font-medium mt-1">Bridge</span>
                                 </div>
 
                                 {/* Arrow */}
@@ -398,13 +398,13 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                         {/* Layered flame badge - static base with animation */}
                                         <div className="relative">
                                             {/* Base layer - non-animated flame */}
-                                            <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 shadow-md z-20">
-                                                <Flame className="w-3 h-3 text-white" />
+                                            <div className="absolute -top-1 -right-1 bg-danger rounded-full p-0.5 shadow-md z-20">
+                                                <Flame className="w-3 h-3 text-ink" />
                                             </div>
 
                                             {/* Animated layer - pulsing ring */}
-                                            <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 z-10 flame-ping">
-                                                <Flame className="w-3 h-3 text-white opacity-0" />
+                                            <div className="absolute -top-1 -right-1 bg-danger rounded-full p-0.5 z-10 flame-ping">
+                                                <Flame className="w-3 h-3 text-ink opacity-0" />
                                             </div>
                                         </div>
                                     </div>
@@ -432,7 +432,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                     <StatCard
                                         title="Total Value Locked (TVL)"
                                         value={formatUsdValue(calculatedTvl !== null ? calculatedTvl : analytics.tvl)}
-                                        icon={<DollarSign className="w-5 h-5 text-primary" />}
+                                        icon={<DollarSign className="w-5 h-5 text-accent-text" />}
                                     />
                                 )}
 
@@ -440,7 +440,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                     <StatCard
                                         title="Bridge Fee"
                                         value={`${feePercent}%`}
-                                        icon={<Wallet className="w-5 h-5 text-primary" />}
+                                        icon={<Wallet className="w-5 h-5 text-accent-text" />}
                                     />
                                 )}
                             </div>
@@ -502,7 +502,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                             <Card className="border border-border/50 overflow-hidden">
                                 <CardHeader className="bg-muted/30 border-b border-border/30">
                                     <CardTitle className="text-lg flex items-center">
-                                        <ShieldCheck className="w-5 h-5 mr-2 text-primary" />
+                                        <ShieldCheck className="w-5 h-5 mr-2 text-accent-text" />
                                         Token Details
                                     </CardTitle>
                                 </CardHeader>
@@ -573,13 +573,13 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                                         {/* Layered flame badge - static base with animation */}
                                                         <div className="relative">
                                                             {/* Base layer - non-animated flame */}
-                                                            <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 shadow-md z-20">
-                                                                <Flame className="w-4 h-4 text-white" />
+                                                            <div className="absolute -top-1 -right-1 bg-danger rounded-full p-0.5 shadow-md z-20">
+                                                                <Flame className="w-4 h-4 text-ink" />
                                                             </div>
 
                                                             {/* Animated layer - pulsing ring */}
-                                                            <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 z-10 flame-ping">
-                                                                <Flame className="w-4 h-4 text-white opacity-0" />
+                                                            <div className="absolute -top-1 -right-1 bg-danger rounded-full p-0.5 z-10 flame-ping">
+                                                                <Flame className="w-4 h-4 text-ink opacity-0" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -591,13 +591,13 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                                         {/* Layered flame badge - static base with animation */}
                                                         <div className="relative">
                                                             {/* Base layer - non-animated flame */}
-                                                            <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 shadow-md z-20">
-                                                                <Flame className="w-4 h-4 text-white" />
+                                                            <div className="absolute -top-1 -right-1 bg-danger rounded-full p-0.5 shadow-md z-20">
+                                                                <Flame className="w-4 h-4 text-ink" />
                                                             </div>
 
                                                             {/* Animated layer - pulsing ring */}
-                                                            <div className="absolute -top-1 -right-1 bg-red-500 rounded-full p-0.5 z-10 flame-ping">
-                                                                <Flame className="w-4 h-4 text-white opacity-0" />
+                                                            <div className="absolute -top-1 -right-1 bg-danger rounded-full p-0.5 z-10 flame-ping">
+                                                                <Flame className="w-4 h-4 text-ink opacity-0" />
                                                             </div>
                                                         </div>
                                                     </div>
@@ -702,15 +702,15 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
 
                         {isDev && (
                             <TabsContent value="dev" className="space-y-6">
-                                <Card className="border border-amber-500/50 bg-amber-500/10">
+                                <Card className="border border-warning/50 bg-warning/10">
                                     <CardHeader>
-                                        <CardTitle className="flex items-center text-amber-600 dark:text-amber-400">
+                                        <CardTitle className="flex items-center text-warning ">
                                             <Settings className="w-5 h-5 mr-2" />
                                             Development Mode
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <p className="text-sm text-amber-700 dark:text-amber-300 mb-4">
+                                        <p className="text-sm text-warning mb-4">
                                             This tab is only visible in development mode. Use it to edit the dex-cache metadata for this sublink.
                                         </p>
                                         <SublinkMetadataEditForm

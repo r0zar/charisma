@@ -149,7 +149,7 @@ export default async function ExploreSubnetsPage() {
       <div className="flex items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <ArrowRightLeft className="h-6 w-6 text-primary" />
+            <ArrowRightLeft className="h-6 w-6 text-accent-text" />
           </div>
           <h1 className="text-2xl font-bold">Subnets</h1>
         </div>

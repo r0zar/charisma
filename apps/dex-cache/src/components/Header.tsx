@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { WalletConnector } from "@/components/wallet-connector";
-import { HandCoinsIcon, Menu } from 'lucide-react';
-import { Button } from "@/components/ui/button";
+import { Menu } from 'lucide-react';
+import { ThemeToggle } from "@repo/brand/react";
 import {
     Sheet,
     SheetContent,
@@ -13,42 +13,32 @@ import {
     SheetClose,
 } from "@/components/ui/sheet";
 import { useState } from "react";
+import { navigationLinks } from "@/lib/nav-links";
 
-// Navigation links array for reuse in both desktop and mobile views
-const navigationLinks = [
-    { href: "/vaults", label: "All" },
-    { href: "/pools", label: "Liquidity Pools" },
-    { href: "/sublinks", label: "Subnets" },
-    { href: "/energy", label: "Hold-to-Earn" },
-];
+const toggleClass = "inline-flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200";
 
 export default function Header() {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
-        <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-background/90 backdrop-blur supports-[backdrop-flur]:bg-background/60">
-            <div className="container flex h-16 items-center justify-between py-4">
-                <div className="flex items-center gap-6 md:gap-10">
-                    <Link
-                        href="/"
-                        className="flex items-center space-x-2 transition-opacity hover:opacity-80"
-                    >
-                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-tr from-primary via-primary/80 to-primary/50">
-                            <HandCoinsIcon suppressHydrationWarning className="h-4 w-4 text-primary-foreground" />
-                        </div>
-                        <span className="hidden tracking-tight text-foreground sm:inline-block text-lg">
-                            <span className="font-bold">Charisma</span>{" "}
-                            <span className="text-primary">Invest</span>
+        <header className="sticky top-0 z-40 w-full border-b border-line bg-chrome text-on-chrome">
+            <div className="container flex h-16 items-center justify-between">
+                <div className="flex items-center gap-8">
+                    <Link href="/" className="flex items-center gap-2.5">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/charisma.png" alt="" className="h-7 w-7 rounded-full" />
+                        <span className="hidden text-[18px] font-bold tracking-tight sm:inline-block">
+                            Charisma <span className="text-chrome-accent">Invest</span>
                         </span>
                     </Link>
 
                     {/* Desktop Navigation - Hidden on mobile */}
-                    <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+                    <nav className="hidden md:flex items-center gap-1">
                         {navigationLinks.map((link) => (
                             <Link
                                 key={link.href}
                                 href={link.href}
-                                className="transition-colors hover:text-foreground/80 text-foreground/60"
+                                className="px-4 py-2 text-sm font-semibold text-on-chrome-muted hover:text-on-chrome hover:bg-on-chrome/10 rounded-xl transition-all duration-200"
                             >
                                 {link.label}
                             </Link>
@@ -56,33 +46,34 @@ export default function Header() {
                     </nav>
                 </div>
 
-                <div className="relative flex items-center gap-4">
-                    <WalletConnector className="ml-auto" />
+                <div className="flex items-center gap-2">
+                    <ThemeToggle className={`hidden sm:inline-flex text-on-chrome-muted hover:text-on-chrome hover:bg-on-chrome/10 ${toggleClass}`} />
+                    <WalletConnector />
 
                     {/* Mobile Menu Button - Visible only on mobile */}
                     <Sheet open={isOpen} onOpenChange={setIsOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="md:hidden">
+                            <button className={`md:hidden text-on-chrome-muted hover:text-on-chrome hover:bg-on-chrome/10 ${toggleClass}`}>
                                 <Menu suppressHydrationWarning className="h-5 w-5" />
                                 <span className="sr-only">Toggle menu</span>
-                            </Button>
+                            </button>
                         </SheetTrigger>
-                        <SheetContent side="right" className="w-[75vw] sm:w-[350px]">
+                        <SheetContent side="right" className="w-[75vw] sm:w-[350px] bg-surface-raised">
                             <SheetHeader className="mb-6">
                                 <SheetTitle className="flex items-center">
-                                    <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-tr from-primary via-primary/80 to-primary/50 mr-2">
-                                        <HandCoinsIcon suppressHydrationWarning className="h-4 w-4 text-primary-foreground" />
-                                    </div>
-                                    Charisma Invest
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src="/charisma.png" alt="" className="mr-2.5 h-6 w-6 rounded-full" />
+                                    Charisma <span className="ml-1 text-accent-text">Invest</span>
+                                    <ThemeToggle className={`ml-auto text-ink-muted hover:text-ink hover:bg-surface-hover ${toggleClass}`} />
                                 </SheetTitle>
                             </SheetHeader>
 
-                            <nav className="flex flex-col space-y-4">
+                            <nav className="flex flex-col space-y-1">
                                 {navigationLinks.map((link) => (
                                     <SheetClose asChild key={link.href}>
                                         <Link
                                             href={link.href}
-                                            className="flex items-center py-2 px-4 rounded-md hover:bg-muted transition-colors text-foreground/80 hover:text-foreground"
+                                            className="flex items-center py-2 px-4 rounded-lg hover:bg-surface-hover transition-colors text-ink-body hover:text-ink"
                                             onClick={() => setIsOpen(false)}
                                         >
                                             {link.label}
@@ -96,4 +87,4 @@ export default function Header() {
             </div>
         </header>
     );
-} 
+}

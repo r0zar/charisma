@@ -155,12 +155,12 @@ export default function EnergyTrendsAnalysis() {
                 <Card>
                     <CardHeader className="pb-3">
                         <CardTitle className="text-base flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-green-500" />
+                            <TrendingUp className="h-4 w-4 text-success" />
                             Trending Up
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-green-600">{trendStats.upTrending}</div>
+                        <div className="text-2xl font-bold text-success">{trendStats.upTrending}</div>
                         <p className="text-sm text-muted-foreground">tokens increasing</p>
                     </CardContent>
                 </Card>
@@ -168,12 +168,12 @@ export default function EnergyTrendsAnalysis() {
                 <Card>
                     <CardHeader className="pb-3">
                         <CardTitle className="text-base flex items-center gap-2">
-                            <TrendingUp className="h-4 w-4 text-red-500 rotate-180" />
+                            <TrendingUp className="h-4 w-4 text-danger rotate-180" />
                             Trending Down
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-red-600">{trendStats.downTrending}</div>
+                        <div className="text-2xl font-bold text-danger">{trendStats.downTrending}</div>
                         <p className="text-sm text-muted-foreground">tokens decreasing</p>
                     </CardContent>
                 </Card>
@@ -378,8 +378,8 @@ export default function EnergyTrendsAnalysis() {
                         <div className="space-y-4">
                             {data.rateHistories.map((history) => {
                                 const currentRate = data.tokenRates.find(r => r.contractId === history.contractId);
-                                const trendColor = history.trendDirection === 'up' ? 'text-green-600' : 
-                                                 history.trendDirection === 'down' ? 'text-red-600' : 'text-muted-foreground';
+                                const trendColor = history.trendDirection === 'up' ? 'text-success' : 
+                                                 history.trendDirection === 'down' ? 'text-danger' : 'text-muted-foreground';
                                 
                                 return (
                                     <div key={history.contractId} className="flex items-center justify-between p-4 border rounded-lg">
@@ -395,7 +395,7 @@ export default function EnergyTrendsAnalysis() {
                                             </p>
                                             <div className="flex items-center gap-2 mt-1">
                                                 <Badge variant="outline" className={trendColor}>
-                                                    {history.trendDirection === 'up' ? '↗' : history.trendDirection === 'down' ? '↘' : '→'} 
+ {history.trendDirection === 'up' ? '↗' : history.trendDirection === 'down' ? '↘' : '→'} 
                                                     {history.trendDirection}
                                                 </Badge>
                                                 <span className="text-xs text-muted-foreground">

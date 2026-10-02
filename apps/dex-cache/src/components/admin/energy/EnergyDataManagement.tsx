@@ -318,8 +318,8 @@ export default function EnergyDataManagement() {
                                     <div key={contract.id} className="flex items-center justify-between p-4 border rounded-lg">
                                         <div className="flex items-center gap-4">
                                             <div className={`w-3 h-3 rounded-full ${
-                                                contract.status === 'active' ? 'bg-green-500' :
-                                                contract.status === 'paused' ? 'bg-yellow-500' : 'bg-red-500'
+                                                contract.status === 'active' ? 'bg-success' :
+                                                contract.status === 'paused' ? 'bg-warning' : 'bg-danger'
                                             }`} />
                                             <div>
                                                 <h4 className="font-medium">{contract.name}</h4>
@@ -339,7 +339,7 @@ export default function EnergyDataManagement() {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             {contract.issues.length > 0 && (
-                                                <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                                <AlertTriangle className="h-4 w-4 text-accent-text" />
                                             )}
                                             <Button
                                                 variant="outline"
@@ -385,9 +385,9 @@ export default function EnergyDataManagement() {
                                 <div className="flex items-center justify-between p-4 border rounded-lg">
                                     <div className="flex items-center gap-3">
                                         {processingStatus.isRunning ? (
-                                            <RefreshCw className="h-5 w-5 animate-spin text-blue-500" />
+                                            <RefreshCw className="h-5 w-5 animate-spin text-accent-text" />
                                         ) : (
-                                            <CheckCircle className="h-5 w-5 text-green-500" />
+                                            <CheckCircle className="h-5 w-5 text-success" />
                                         )}
                                         <div>
                                             <h4 className="font-medium">

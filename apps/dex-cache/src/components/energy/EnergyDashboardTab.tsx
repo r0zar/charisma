@@ -681,8 +681,8 @@ export function EnergyDashboardTab() {
         <div className="flex items-center gap-2">
             {connectionState.isConnected ? (
                 <>
-                    <Wifi className="h-4 w-4 text-green-500" />
-                    <span className="text-xs text-green-500">Live</span>
+                    <Wifi className="h-4 w-4 text-success" />
+                    <span className="text-xs text-success">Live</span>
                 </>
             ) : connectionState.isConnecting ? (
                 <>
@@ -691,8 +691,8 @@ export function EnergyDashboardTab() {
                 </>
             ) : (
                 <>
-                    <WifiOff className="h-4 w-4 text-red-500" />
-                    <span className="text-xs text-red-500">Offline</span>
+                    <WifiOff className="h-4 w-4 text-danger" />
+                    <span className="text-xs text-danger">Offline</span>
                     {connectionState.reconnectAttempts > 0 && (
                         <span className="text-xs text-muted-foreground">({connectionState.reconnectAttempts} attempts)</span>
                     )}
@@ -812,8 +812,8 @@ export function EnergyDashboardTab() {
         <div className="space-y-6">
             {/* Connection Error Alert (only when there's an error) */}
             {connectionState.error && (
-                <Alert className="border-red-500/20 bg-red-500/5">
-                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                <Alert className="border-danger/20 bg-danger/5">
+                    <AlertTriangle className="h-4 w-4 text-danger" />
                     <AlertDescription className="text-sm">
                         {connectionState.error}
                     </AlertDescription>
@@ -841,7 +841,7 @@ export function EnergyDashboardTab() {
                             <Zap className="h-4 w-4" />
                             Generation Rate
                         </div>
-                        <div className="text-2xl font-bold text-primary">
+                        <div className="text-2xl font-bold text-accent-text">
                             {formatEnergy(displayEnergyState.energyRatePerSecond || 0)}
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -854,7 +854,7 @@ export function EnergyDashboardTab() {
                             <Coins className="h-4 w-4" />
                             Daily Profit
                         </div>
-                        <div className="text-2xl font-bold text-green-400">
+                        <div className="text-2xl font-bold text-success">
                             {!energyPrices ? 'Loading...' :
                                 !displayEnergyState ? 'No Data' :
                                     apyData ? formatDailyProfit(apyData.dailyProfit) : '$0.00'}
@@ -873,8 +873,8 @@ export function EnergyDashboardTab() {
                             APY
                         </div>
                         <div className={cn(
-                            "text-2xl font-bold",
-                            apyData ? getAPYColorClass(apyData.apy) : 'text-gray-500'
+ "text-2xl font-bold",
+                            apyData ? getAPYColorClass(apyData.apy) : 'text-ink-muted'
                         )}>
                             {!energyPrices ? 'Loading...' :
                                 !displayEnergyState ? 'No Data' :
@@ -884,11 +884,11 @@ export function EnergyDashboardTab() {
                             <span>annual yield</span>
                             {apyData && (
                                 <span className={getConfidenceIndicator(apyData.confidence).color}>
-                                    {getConfidenceIndicator(apyData.confidence).icon}
+ {getConfidenceIndicator(apyData.confidence).icon}
                                 </span>
                             )}
                             {apyData?.warnings && apyData.warnings.length > 0 && (
-                                <span title={apyData.warnings.join(', ')} className="text-yellow-500 cursor-help">
+                                <span title={apyData.warnings.join(', ')} className="text-warning cursor-help">
                                     ⚠
                                 </span>
                             )}
@@ -917,7 +917,7 @@ export function EnergyDashboardTab() {
             <div className="glass-card p-6">
                 <div className="flex items-center gap-3 mb-6">
                     <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <Battery className="h-5 w-5 text-primary" />
+                        <Battery className="h-5 w-5 text-accent-text" />
                     </div>
                     <div>
                         <h3 className="text-lg font-semibold">Energy Management</h3>
@@ -941,11 +941,11 @@ export function EnergyDashboardTab() {
                                 </div>
                                 <div className="text-right">
                                     <div className={cn(
-                                        "text-3xl font-bold",
-                                        currentBalanceZone === 'safe' ? 'text-green-500' :
-                                            currentBalanceZone === 'warning' ? 'text-blue-500' :
-                                                currentBalanceZone === 'critical' ? 'text-orange-500' :
-                                                    'text-orange-600'
+ "text-3xl font-bold",
+                                        currentBalanceZone === 'safe' ? 'text-success' :
+                                            currentBalanceZone === 'warning' ? 'text-accent-text' :
+                                                currentBalanceZone === 'critical' ? 'text-accent-text' :
+                                                    'text-accent-text'
                                     )}>
                                         {(currentBalancePercentage || 0).toFixed(0)}%
                                     </div>
@@ -962,10 +962,10 @@ export function EnergyDashboardTab() {
                                 <div className="h-3 bg-muted/30 rounded-full overflow-hidden">
                                     <div
                                         className={cn(
-                                            "h-full transition-all duration-1000 rounded-full",
-                                            currentBalanceZone === 'overflow' ? 'bg-orange-500' :
-                                                currentBalanceZone === 'critical' ? 'bg-orange-400' :
-                                                    currentBalanceZone === 'warning' ? 'bg-blue-400' :
+ "h-full transition-all duration-1000 rounded-full",
+                                            currentBalanceZone === 'overflow' ? 'bg-accent' :
+                                                currentBalanceZone === 'critical' ? 'bg-accent' :
+                                                    currentBalanceZone === 'warning' ? 'bg-accent' :
                                                         'bg-gradient-to-r from-primary to-primary/80',
                                             connectionState.isConnected && "animate-pulse"
                                         )}
@@ -974,10 +974,10 @@ export function EnergyDashboardTab() {
                                 </div>
                                 {/* Capacity zone markers */}
                                 <div className="absolute top-0 h-3 pointer-events-none" style={{ left: '60%' }}>
-                                    <div className="w-0.5 h-full bg-blue-400/60" />
+                                    <div className="w-0.5 h-full bg-accent/60" />
                                 </div>
                                 <div className="absolute top-0 h-3 pointer-events-none" style={{ left: '85%' }}>
-                                    <div className="w-0.5 h-full bg-orange-400/60" />
+                                    <div className="w-0.5 h-full bg-accent/60" />
                                 </div>
                             </div>
 
@@ -988,8 +988,8 @@ export function EnergyDashboardTab() {
                                     <span className="font-mono">{formatEnergy(displayEnergyState.currentEnergyBalance || 0)}</span>
                                 </div>
                                 <div className="flex items-center justify-between">
-                                    <span className="text-green-400">+ Untapped:</span>
-                                    <span className="font-mono text-green-400">{formatEnergy(displayEnergyState.accumulatedSinceLastHarvest || 0)}</span>
+                                    <span className="text-success">+ Untapped:</span>
+                                    <span className="font-mono text-success">{formatEnergy(displayEnergyState.accumulatedSinceLastHarvest || 0)}</span>
                                 </div>
                                 <div className="flex items-center justify-between font-medium pt-1 border-t border-border/20">
                                     <span>Total Available:</span>
@@ -1003,7 +1003,7 @@ export function EnergyDashboardTab() {
                                     const overflowEnergy = Math.max(0, totalAccumulated - remainingCapacity);
 
                                     return overflowEnergy > 0 ? (
-                                        <div className="flex items-center justify-between text-red-400 font-medium">
+                                        <div className="flex items-center justify-between text-danger font-medium">
                                             <span>- Unclaimable:</span>
                                             <span className="font-mono">{formatEnergy(overflowEnergy)}</span>
                                         </div>
@@ -1019,8 +1019,8 @@ export function EnergyDashboardTab() {
                                         <span className="font-mono">{formatEnergy(baseCapacity)}</span>
                                     </div>
                                     <div className="flex items-center justify-between text-xs">
-                                        <span className="text-blue-400">Bonus Capacity</span>
-                                        <span className="font-mono text-blue-400">+{formatEnergy(bonusCapacity)}</span>
+                                        <span className="text-accent-text">Bonus Capacity</span>
+                                        <span className="font-mono text-accent-text">+{formatEnergy(bonusCapacity)}</span>
                                     </div>
                                 </div>
                             )}
@@ -1031,7 +1031,7 @@ export function EnergyDashboardTab() {
                             <div className="flex items-center justify-between mb-3">
                                 <div>
                                     <div className="text-sm font-medium">Generation Rate</div>
-                                    <div className="text-xl font-bold text-primary">
+                                    <div className="text-xl font-bold text-accent-text">
                                         {formatEnergy(displayEnergyState.energyRatePerSecond || 0)}<span className="text-sm font-normal">/s</span>
                                     </div>
                                 </div>
@@ -1048,8 +1048,8 @@ export function EnergyDashboardTab() {
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex items-center gap-2">
                                         <div className={cn(
-                                            "w-2 h-2 rounded-full",
-                                            connectionState.isConnected && (displayEnergyState.energyRatePerSecond || 0) > 0 ? "bg-green-500 animate-pulse" : "bg-gray-400"
+ "w-2 h-2 rounded-full",
+                                            connectionState.isConnected && (displayEnergyState.energyRatePerSecond || 0) > 0 ? "bg-success animate-pulse" : "bg-surface-hover"
                                         )} />
                                         <span className="text-sm">
                                             {connectionState.isConnected && (displayEnergyState.energyRatePerSecond || 0) > 0 ? 'Generating Energy' : 'Generation Paused'}
@@ -1057,9 +1057,9 @@ export function EnergyDashboardTab() {
                                     </div>
                                     <div className="text-sm font-medium">
                                         {currentBalanceZone === 'overflow' ? (
-                                            <span className="text-orange-500">Ready to Harvest</span>
+                                            <span className="text-accent-text">Ready to Harvest</span>
                                         ) : (
-                                            <span className="text-green-500">Collecting Energy</span>
+                                            <span className="text-success">Collecting Energy</span>
                                         )}
                                     </div>
                                 </div>
@@ -1082,7 +1082,7 @@ export function EnergyDashboardTab() {
                             <div className="flex items-center justify-between mb-4">
                                 <div>
                                     <div className="text-sm font-medium mb-1">Available to Burn</div>
-                                    <div className="text-2xl font-bold text-orange-500">
+                                    <div className="text-2xl font-bold text-accent-text">
                                         {formatEnergy(displayEnergyState.currentEnergyBalance || 0)}
                                     </div>
                                     <div className="text-xs text-muted-foreground">
@@ -1090,13 +1090,13 @@ export function EnergyDashboardTab() {
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <Flame className="h-8 w-8 text-orange-500 opacity-50" />
+                                    <Flame className="h-8 w-8 text-accent-text opacity-50" />
                                 </div>
                             </div>
 
                             <div className="space-y-3">
                                 <Button
-                                    className="w-full bg-orange-500 hover:bg-orange-600 text-white"
+                                    className="w-full bg-accent hover:bg-accent text-on-accent"
                                     disabled={!displayEnergyState.currentEnergyBalance || displayEnergyState.currentEnergyBalance <= 0 || isBurning}
                                     onClick={handleBurnEnergy}
                                 >
@@ -1132,7 +1132,7 @@ export function EnergyDashboardTab() {
             {/* Harvest Animation */}
             {harvestAnimation.show && (
                 <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-                    <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg animate-bounce text-lg font-bold">
+                    <div className="bg-success-fill text-on-fill px-6 py-3 rounded-lg shadow-lg animate-bounce text-lg font-bold">
                         +{formatEnergy(harvestAnimation.amount)} Energy!
                     </div>
                 </div>
@@ -1141,7 +1141,7 @@ export function EnergyDashboardTab() {
             {/* Burn Animation */}
             {burnAnimation.show && (
                 <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50 pointer-events-none">
-                    <div className="bg-orange-500 text-white px-6 py-3 rounded-lg shadow-lg animate-bounce text-lg font-bold flex items-center gap-2">
+                    <div className="bg-accent text-on-accent px-6 py-3 rounded-lg shadow-lg animate-bounce text-lg font-bold flex items-center gap-2">
                         <Flame className="h-5 w-5" />
                         Burned {formatEnergy(burnAnimation.amount)} Energy!
                     </div>

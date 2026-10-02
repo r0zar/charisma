@@ -173,7 +173,7 @@ export function EnergyRateBreakdown({ tokenData = [], energyTokenMetadata, histo
             {/* Header */}
             <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
-                    <Calculator className="h-5 w-5 text-primary" />
+                    <Calculator className="h-5 w-5 text-accent-text" />
                 </div>
                 <div>
                     <h3 className="text-lg font-semibold">Energy Rate Calculator & Simulation</h3>
@@ -440,7 +440,7 @@ export function EnergyRateBreakdown({ tokenData = [], energyTokenMetadata, histo
                                             {simulation.filter((_, i) => i % Math.max(1, Math.floor(simulation.length / 12)) === 0).map((point, index) => (
                                                 <div key={index} className="flex justify-between p-2 bg-muted/50 rounded">
                                                     <span>{formatTime(point.time)}</span>
-                                                    <span className={point.isCapped ? 'text-orange-600' : ''}>
+                                                    <span className={point.isCapped ? 'text-accent-text' : ''}>
                                                         {formatNumber(point.energyFormatted, 4)}
                                                         {point.isCapped && ' (capped)'}
                                                     </span>

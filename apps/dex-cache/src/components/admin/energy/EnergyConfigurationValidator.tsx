@@ -280,10 +280,10 @@ export function EnergyConfigurationValidator() {
                   <TabsContent value="comparison" className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-3">
-                        <h4 className="font-medium text-sm text-blue-600">📝 Configured Values</h4>
+                        <h4 className="font-medium text-sm text-accent-text">📝 Configured Values</h4>
                         
                         <div className="space-y-2">
-                          <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                          <div className="flex items-center justify-between p-2 bg-accent-soft rounded">
                             <span className="text-sm font-medium">Engine:</span>
                             <div className="flex items-center gap-1">
                               <span className="text-xs font-mono truncate max-w-32">{vault.configured.engine || 'Not set'}</span>
@@ -300,7 +300,7 @@ export function EnergyConfigurationValidator() {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                          <div className="flex items-center justify-between p-2 bg-accent-soft rounded">
                             <span className="text-sm font-medium">Base Token:</span>
                             <div className="flex items-center gap-1">
                               <span className="text-xs font-mono truncate max-w-32">{vault.configured.baseToken || 'Not set'}</span>
@@ -317,7 +317,7 @@ export function EnergyConfigurationValidator() {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between p-2 bg-blue-50 rounded">
+                          <div className="flex items-center justify-between p-2 bg-accent-soft rounded">
                             <span className="text-sm font-medium">Protocol:</span>
                             <span className="text-xs">{vault.configured.protocol}</span>
                           </div>
@@ -325,10 +325,10 @@ export function EnergyConfigurationValidator() {
                       </div>
 
                       <div className="space-y-3">
-                        <h4 className="font-medium text-sm text-green-600">🔍 Discovered Values</h4>
+                        <h4 className="font-medium text-sm text-success">🔍 Discovered Values</h4>
                         
                         <div className="space-y-2">
-                          <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                          <div className="flex items-center justify-between p-2 bg-success-soft rounded">
                             <span className="text-sm font-medium">Engine:</span>
                             <div className="flex items-center gap-1">
                               <span className="text-xs font-mono truncate max-w-32">{vault.discovered.engine || 'Not found'}</span>
@@ -345,7 +345,7 @@ export function EnergyConfigurationValidator() {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                          <div className="flex items-center justify-between p-2 bg-success-soft rounded">
                             <span className="text-sm font-medium">Base Token:</span>
                             <div className="flex items-center gap-1">
                               <span className="text-xs font-mono truncate max-w-32">{vault.discovered.baseToken || 'Not found'}</span>
@@ -362,7 +362,7 @@ export function EnergyConfigurationValidator() {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between p-2 bg-green-50 rounded">
+                          <div className="flex items-center justify-between p-2 bg-success-soft rounded">
                             <span className="text-sm font-medium">Contract Type:</span>
                             <span className="text-xs">{vault.discovered.contractType}</span>
                           </div>
@@ -376,18 +376,18 @@ export function EnergyConfigurationValidator() {
                       <h4 className="font-medium text-sm">🔗 Contract Relationships</h4>
                       
                       {vault.discovered.traits.length > 0 && (
-                        <div className="p-3 bg-gray-50 rounded">
+                        <div className="p-3 bg-surface-hover rounded">
                           <p className="text-sm font-medium mb-2">Implemented Traits:</p>
                           {vault.discovered.traits.map((trait, index) => (
                             <div key={index} className="flex items-center gap-2 text-xs">
-                              <CheckCircle className="h-3 w-3 text-green-500" />
+                              <CheckCircle className="h-3 w-3 text-success" />
                               <span className="font-mono">{trait}</span>
                             </div>
                           ))}
                         </div>
                       )}
 
-                      <div className="p-3 bg-gray-50 rounded">
+                      <div className="p-3 bg-surface-hover rounded">
                         <p className="text-sm font-medium mb-2">Analysis Summary:</p>
                         <div className="space-y-1 text-xs text-muted-foreground">
                           <p>• Contract implements liquidity-pool-trait for standardization</p>

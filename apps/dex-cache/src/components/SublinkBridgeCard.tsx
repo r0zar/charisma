@@ -410,7 +410,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
             <CardHeader className="flex flex-row items-center justify-between">
                 <div className="space-y-1">
                     <CardTitle className="flex items-center">
-                        <ArrowRightLeft className="w-5 h-5 mr-2 text-primary" />
+                        <ArrowRightLeft className="w-5 h-5 mr-2 text-accent-text" />
                         Bridge Assets
                     </CardTitle>
                     <p className="text-xs text-muted-foreground">
@@ -440,7 +440,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
                                 {!isLoadingBalances && mainnetBalance !== null && mainnetBalance > 0 && (
                                     <button
                                         type="button"
-                                        className="cursor-pointer text-xs text-primary hover:text-primary/80 font-medium"
+                                        className="cursor-pointer text-xs text-accent-text hover:text-accent-text/80 font-medium"
                                         onClick={() => setAmountToBridgeTo(mainnetBalance?.toString() || '0')}
                                     >
                                         Max
@@ -493,7 +493,7 @@ export function SublinkBridgeCard({ sublink, prices = {} }: SublinkBridgeCardPro
                                 {!isLoadingBalances && subnetBalance !== null && subnetBalance > 0 && (
                                     <button
                                         type="button"
-                                        className="cursor-pointer text-xs text-primary hover:text-primary/80 font-medium"
+                                        className="cursor-pointer text-xs text-accent-text hover:text-accent-text/80 font-medium"
                                         onClick={() => setAmountToBridgeFrom(subnetBalance?.toString() || '0')}
                                     >
                                         Max

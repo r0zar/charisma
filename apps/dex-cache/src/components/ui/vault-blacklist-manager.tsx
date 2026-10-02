@@ -59,8 +59,8 @@ export default function VaultBlacklistManager({ initialBlacklistedVaults }: Vaul
             {/* Message Display */}
             {message && (
                 <div className={`rounded-lg p-4 ${message.type === 'success'
-                    ? 'bg-green-900/20 border border-green-500/30 text-green-400'
-                    : 'bg-red-900/20 border border-red-500/30 text-red-400'
+                    ? 'bg-success-soft border border-success/30 text-success'
+                    : 'bg-danger-soft border border-danger/30 text-danger'
                     }`}>
                     {message.text}
                 </div>
@@ -93,7 +93,7 @@ export default function VaultBlacklistManager({ initialBlacklistedVaults }: Vaul
                     >
                         {isPending ? (
                             <>
-                                <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-ink" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
@@ -142,7 +142,7 @@ export default function VaultBlacklistManager({ initialBlacklistedVaults }: Vaul
                                 <button
                                     onClick={() => handleRemoveVault(vaultId)}
                                     disabled={isPending}
-                                    className="ml-4 inline-flex items-center px-3 py-1 border border-border text-sm font-medium rounded-md text-muted-foreground bg-card hover:bg-accent focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="ml-4 inline-flex items-center px-3 py-1 border border-border text-sm font-medium rounded-md text-muted-foreground bg-card hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isPending ? 'Removing...' : 'Remove'}
                                 </button>
@@ -156,12 +156,12 @@ export default function VaultBlacklistManager({ initialBlacklistedVaults }: Vaul
             <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
                 <div className="flex">
                     <div className="flex-shrink-0">
-                        <svg className="h-5 w-5 text-primary" viewBox="0 0 20 20" fill="currentColor">
+                        <svg className="h-5 w-5 text-accent-text" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                         </svg>
                     </div>
                     <div className="ml-3">
-                        <h3 className="text-sm font-medium text-primary">
+                        <h3 className="text-sm font-medium text-accent-text">
                             About Vault Blacklisting
                         </h3>
                         <div className="mt-2 text-sm text-muted-foreground">

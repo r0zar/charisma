@@ -166,7 +166,7 @@ export default async function EnergySystemOverview() {
                             <p className="text-xs text-muted-foreground">
                                 harvested across all contracts
                             </p>
-                            <p className="text-xs text-green-600 mt-1">
+                            <p className="text-xs text-success mt-1">
                                 ~{formatEnergyCompact(systemHealth.avgEnergyPerContract, energyTokenMetadata)} avg/contract
                             </p>
                         </CardContent>
@@ -182,7 +182,7 @@ export default async function EnergySystemOverview() {
                             <p className="text-xs text-muted-foreground">
                                 across all energy contracts
                             </p>
-                            <p className="text-xs text-blue-600 mt-1">
+                            <p className="text-xs text-accent-text mt-1">
                                 ~{avgUsersPerContract} avg users/contract
                             </p>
                         </CardContent>
@@ -226,7 +226,7 @@ export default async function EnergySystemOverview() {
                             <div className="space-y-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <CheckCircle className="h-4 w-4 text-green-500" />
+                                        <CheckCircle className="h-4 w-4 text-success" />
                                         <span className="text-sm">Active Contracts</span>
                                     </div>
                                     <Badge variant="default">{systemHealth.activeContracts}</Badge>
@@ -234,7 +234,7 @@ export default async function EnergySystemOverview() {
                                 
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <AlertTriangle className="h-4 w-4 text-orange-500" />
+                                        <AlertTriangle className="h-4 w-4 text-accent-text" />
                                         <span className="text-sm">Stale Contracts</span>
                                     </div>
                                     <Badge variant={systemHealth.staleContracts > 0 ? "destructive" : "secondary"}>
@@ -244,7 +244,7 @@ export default async function EnergySystemOverview() {
                                 
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
-                                        <BarChart3 className="h-4 w-4 text-blue-500" />
+                                        <BarChart3 className="h-4 w-4 text-accent-text" />
                                         <span className="text-sm">Total Monitored</span>
                                     </div>
                                     <Badge variant="outline">{systemHealth.totalContracts}</Badge>

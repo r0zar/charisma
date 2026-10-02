@@ -176,13 +176,13 @@ export default function AddNewPoolDialog({ isOpen, onOpenChange }: AddNewPoolDia
     // Status indicator component
     const StatusIndicator = ({ state }: { state: LookupState }) => {
         if (state.isLoading) {
-            return <Loader2 className="w-4 h-4 animate-spin text-blue-500" />;
+            return <Loader2 className="w-4 h-4 animate-spin text-accent-text" />;
         }
         if (state.isSuccess) {
-            return <CheckCircle className="w-4 h-4 text-green-500" />;
+            return <CheckCircle className="w-4 h-4 text-success" />;
         }
         if (state.isError) {
-            return <X className="w-4 h-4 text-red-500" />;
+            return <X className="w-4 h-4 text-danger" />;
         }
         return null;
     };
@@ -344,7 +344,7 @@ export default function AddNewPoolDialog({ isOpen, onOpenChange }: AddNewPoolDia
                                     </div>
                                 </div>
                                 {lpLookupState.isError && (
-                                    <p className="text-xs text-red-500">{lpLookupState.error}</p>
+                                    <p className="text-xs text-danger">{lpLookupState.error}</p>
                                 )}
                             </div>
                             <div className="space-y-2">
@@ -481,7 +481,7 @@ export default function AddNewPoolDialog({ isOpen, onOpenChange }: AddNewPoolDia
                                         </div>
                                     </div>
                                     {tokenALookupState.isError && (
-                                        <p className="text-xs text-red-500">{tokenALookupState.error}</p>
+                                        <p className="text-xs text-danger">{tokenALookupState.error}</p>
                                     )}
                                 </div>
                                 <div className="space-y-2">
@@ -549,7 +549,7 @@ export default function AddNewPoolDialog({ isOpen, onOpenChange }: AddNewPoolDia
                                         </div>
                                     </div>
                                     {tokenBLookupState.isError && (
-                                        <p className="text-xs text-red-500">{tokenBLookupState.error}</p>
+                                        <p className="text-xs text-danger">{tokenBLookupState.error}</p>
                                     )}
                                 </div>
                                 <div className="space-y-2">

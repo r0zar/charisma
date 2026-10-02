@@ -196,7 +196,7 @@ export default function AddSublinkDialog({ isOpen, onOpenChange, onSublinkCreate
                         />
                     </div>
                     {error && (
-                        <p className="text-sm text-red-500 col-span-4">{error}</p>
+                        <p className="text-sm text-danger col-span-4">{error}</p>
                     )}
                 </div>
 
@@ -294,7 +294,7 @@ export default function AddSublinkDialog({ isOpen, onOpenChange, onSublinkCreate
 
                         {viewMode === 'raw' && (
                             <div
-                                className="max-h-96 overflow-auto text-xs bg-black/80 p-2 rounded-md"
+                                className="max-h-96 overflow-auto text-xs bg-overlay p-2 rounded-md"
                                 style={{ overflowWrap: 'break-word', wordBreak: 'break-all' }}
                             >
                                 <ReactJson

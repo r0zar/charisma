@@ -82,7 +82,7 @@ export default function EnergyRateChart({
                         </div>
                         {showUsers && (
                             <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 bg-green-500 rounded"></div>
+                                <div className="w-3 h-3 bg-success rounded"></div>
                                 <span>Active Users</span>
                             </div>
                         )}
@@ -145,7 +145,7 @@ export default function EnergyRateChart({
                                             {/* Users bar (if enabled) */}
                                             {showUsers && (
                                                 <div 
-                                                    className="bg-green-500 w-1 rounded-t ml-1"
+                                                    className="bg-success w-1 rounded-t ml-1"
                                                     style={{ height: `${Math.max(userHeightPercent, 2)}%` }}
                                                     title={`${point.activeUsers} active users`}
                                                 />

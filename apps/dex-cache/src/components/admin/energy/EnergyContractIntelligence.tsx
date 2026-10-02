@@ -154,9 +154,9 @@ export function EnergyContractIntelligence() {
 
   const getInsightIcon = (type: string) => {
     switch (type) {
-      case 'info': return <Info className="h-4 w-4 text-blue-500" />;
-      case 'warning': return <AlertTriangle className="h-4 w-4 text-orange-500" />;
-      case 'error': return <AlertTriangle className="h-4 w-4 text-red-500" />;
+      case 'info': return <Info className="h-4 w-4 text-accent-text" />;
+      case 'warning': return <AlertTriangle className="h-4 w-4 text-accent-text" />;
+      case 'error': return <AlertTriangle className="h-4 w-4 text-danger" />;
       default: return <Info className="h-4 w-4" />;
     }
   };
@@ -231,7 +231,7 @@ export function EnergyContractIntelligence() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="border rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <Database className="h-4 w-4 text-blue-500" />
+                  <Database className="h-4 w-4 text-accent-text" />
                   <span className="text-sm font-medium">Contract Type</span>
                 </div>
                 <Badge variant="outline" className="capitalize">{intelligence.type}</Badge>
@@ -239,7 +239,7 @@ export function EnergyContractIntelligence() {
 
               <div className="border rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <Network className="h-4 w-4 text-green-500" />
+                  <Network className="h-4 w-4 text-success" />
                   <span className="text-sm font-medium">Relationships</span>
                 </div>
                 <span className="text-lg font-bold">{intelligence.relationships.length}</span>
@@ -247,7 +247,7 @@ export function EnergyContractIntelligence() {
 
               <div className="border rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <Code className="h-4 w-4 text-purple-500" />
+                  <Code className="h-4 w-4 text-blaze" />
                   <span className="text-sm font-medium">Functions</span>
                 </div>
                 <span className="text-lg font-bold">{intelligence.functions.length}</span>
@@ -255,7 +255,7 @@ export function EnergyContractIntelligence() {
 
               <div className="border rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <Activity className="h-4 w-4 text-orange-500" />
+                  <Activity className="h-4 w-4 text-accent-text" />
                   <span className="text-sm font-medium">Complexity</span>
                 </div>
                 <Badge variant="secondary" className="capitalize">{intelligence.metadata.complexity}</Badge>

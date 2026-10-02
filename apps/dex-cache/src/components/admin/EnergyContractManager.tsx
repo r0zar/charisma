@@ -326,7 +326,7 @@ export default function EnergyContractManager() {
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => removeContract(contract.id)}
-                                                    className="text-red-600 hover:text-red-700"
+                                                    className="text-danger hover:text-danger"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -404,12 +404,12 @@ export default function EnergyContractManager() {
                                     <div className="flex items-center gap-2">
                                         {processingStatus.isRunning ? (
                                             <>
-                                                <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
+                                                <RefreshCw className="h-4 w-4 animate-spin text-accent-text" />
                                                 <span className="font-medium">Running</span>
                                             </>
                                         ) : (
                                             <>
-                                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                                <CheckCircle className="h-4 w-4 text-success" />
                                                 <span className="font-medium">Idle</span>
                                             </>
                                         )}

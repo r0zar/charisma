@@ -333,8 +333,8 @@ export default function AdminKVPage() {
             )}
 
             {successMessage && (
-                <Alert className="mb-4 bg-green-50 border-green-200">
-                    <AlertDescription className="text-green-600">{successMessage}</AlertDescription>
+                <Alert className="mb-4 bg-success-soft border-success/30">
+                    <AlertDescription className="text-success">{successMessage}</AlertDescription>
                 </Alert>
             )}
 
@@ -351,7 +351,7 @@ export default function AdminKVPage() {
                 <Card className="mb-6 bg-card/80 border-primary/20">
                     <CardHeader>
                         <CardTitle className="text-lg flex items-center">
-                            <PlusCircle className="w-5 h-5 mr-2 text-primary" /> Create New KV Pair
+                            <PlusCircle className="w-5 h-5 mr-2 text-accent-text" /> Create New KV Pair
                         </CardTitle>
                         <CardDescription>Enter a unique key name and its JSON value.</CardDescription>
                     </CardHeader>
@@ -376,7 +376,7 @@ export default function AdminKVPage() {
                                 rows={6}
                             />
                             {!isNewValueJsonValid && (
-                                <p className="text-xs text-red-500 px-1 py-1">Invalid JSON format.</p>
+                                <p className="text-xs text-danger px-1 py-1">Invalid JSON format.</p>
                             )}
                         </div>
                     </CardContent>
@@ -510,7 +510,7 @@ export default function AdminKVPage() {
                                                         deleteKey(key);
                                                     }}
                                                 >
-                                                    <Trash className="h-3.5 w-3.5 text-red-500" />
+                                                    <Trash className="h-3.5 w-3.5 text-danger" />
                                                 </Button>
                                             </div>
                                         </li>
@@ -586,7 +586,7 @@ export default function AdminKVPage() {
                                             disabled={loading}
                                         />
                                         {!isJsonValid && valueKey && (
-                                            <p className="text-xs text-red-500 px-1 py-2">Invalid JSON format.</p>
+                                            <p className="text-xs text-danger px-1 py-2">Invalid JSON format.</p>
                                         )}
                                     </TabsContent>
                                     <TabsContent value="raw" className="p-0">

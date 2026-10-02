@@ -372,7 +372,7 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
                     <div className="space-y-6">
                         {isLoadingTokens ? (
                             <div className="text-center py-8">
-                                <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-primary" />
+                                <Loader2 className="w-8 h-8 mx-auto mb-4 animate-spin text-accent-text" />
                                 <p className="text-muted-foreground">Loading your tokens...</p>
                             </div>
                         ) : (
@@ -405,7 +405,7 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
                                 {/* Pool Status */}
                                 {(selectedTokenA && selectedTokenB && matchingPool) ? (
                                     <div className="space-y-4">
-                                        <div className="flex items-center text-green-600">
+                                        <div className="flex items-center text-success">
                                             <CheckCircle className="w-5 h-5 mr-2" />
                                             <span className="font-medium">Pool Found!</span>
                                         </div>
@@ -457,7 +457,7 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
                                                 <Alert variant="default" className="flex items-start gap-3 bg-card border-primary/40">
                                                     <Sparkles className="h-5 w-5 mt-0.5 min-w-6 animate-pulse" />
                                                     <div>
-                                                        <div className="font-medium text-primary">Create this pool and collect fees!</div>
+                                                        <div className="font-medium text-accent-text">Create this pool and collect fees!</div>
                                                         <div className="text-sm text-muted-foreground">As the first liquidity provider, you'll receive <b>100% of all swap fees</b> until others add liquidity to this pool.</div>
                                                     </div>
                                                 </Alert>

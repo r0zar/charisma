@@ -171,7 +171,7 @@ export function EnergyWalletActions() {
         <CardContent>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${walletState.isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
+              <div className={`w-3 h-3 rounded-full ${walletState.isConnected ? 'bg-success' : 'bg-surface-hover'}`} />
               <div>
                 <p className="font-medium">
                   {walletState.isConnected ? 'Wallet Connected' : 'Wallet Disconnected'}
@@ -267,7 +267,7 @@ export function EnergyWalletActions() {
                     {func.args.map(arg => (
                       <div key={arg.name}>
                         <Label htmlFor={`${func.name}-${arg.name}`}>
-                          {arg.name} ({arg.type}) {arg.required && <span className="text-red-500">*</span>}
+                          {arg.name} ({arg.type}) {arg.required && <span className="text-danger">*</span>}
                         </Label>
                         <Input
                           id={`${func.name}-${arg.name}`}
@@ -316,7 +316,7 @@ export function EnergyWalletActions() {
 
                 {/* Result Display */}
                 {result && (
-                  <div className="border rounded-lg p-4 bg-green-50">
+                  <div className="border rounded-lg p-4 bg-success-soft">
                     <h4 className="font-medium mb-2">Result</h4>
                     <pre className="text-sm bg-background border rounded p-2 overflow-auto">
                       {JSON.stringify(result, null, 2)}
@@ -349,15 +349,15 @@ export function EnergyWalletActions() {
         <CardContent>
           <div className="space-y-3">
             {/* Required Token Highlight */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <div className="bg-accent-soft border border-accent-line rounded-lg p-3 mb-4">
               <div className="flex items-center gap-2 mb-2">
-                <Coins className="h-4 w-4 text-blue-500" />
-                <span className="text-sm font-medium text-blue-800">Required for Energy Generation</span>
+                <Coins className="h-4 w-4 text-accent-text" />
+                <span className="text-sm font-medium text-accent-text">Required for Energy Generation</span>
               </div>
-              <div className="text-xs text-blue-700">
+              <div className="text-xs text-accent-text">
                 <strong>Token:</strong> SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1
               </div>
-              <div className="text-xs text-blue-600 mt-1">
+              <div className="text-xs text-accent-text mt-1">
                 Users must hold DEX-POOL-V1 tokens in their wallet to generate energy rewards
               </div>
             </div>

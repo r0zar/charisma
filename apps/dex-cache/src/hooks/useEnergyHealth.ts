@@ -116,10 +116,10 @@ export function getHealthStatusIcon(status: ContractHealth['overallStatus']): st
 
 export function getHealthStatusColor(status: ContractHealth['overallStatus']): string {
   switch (status) {
-    case 'healthy': return 'text-green-600';
-    case 'warning': return 'text-yellow-600';
-    case 'error': return 'text-red-600';
-    default: return 'text-gray-600';
+    case 'healthy': return 'text-success';
+    case 'warning': return 'text-warning';
+    case 'error': return 'text-danger';
+    default: return 'text-ink-muted';
   }
 }
 

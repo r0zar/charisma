@@ -127,7 +127,7 @@ export function TokenEnergyComparison() {
         <div className="glass-card p-6">
             <div className="flex items-center gap-3 mb-6">
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <BarChart3 className="h-5 w-5 text-primary" />
+                    <BarChart3 className="h-5 w-5 text-accent-text" />
                 </div>
                 <div>
                     <h3 className="text-lg font-semibold">Token Energy Comparison</h3>
@@ -204,7 +204,7 @@ export function TokenEnergyComparison() {
 
                             <div className="text-center">
                                 <div className="text-sm font-medium text-muted-foreground mb-1">Estimated APY</div>
-                                <div className="font-bold text-primary text-lg">
+                                <div className="font-bold text-accent-text text-lg">
                                     {comparison.estimatedAPY.toFixed(2)}%
                                 </div>
                             </div>
@@ -239,7 +239,7 @@ export function TokenEnergyComparison() {
             {/* Quick Comparison Amounts */}
             <div className="mt-6 pt-4 border-t border-border/30">
                 <div className="flex items-center gap-2 mb-3">
-                    <Target className="h-4 w-4 text-primary" />
+                    <Target className="h-4 w-4 text-accent-text" />
                     <span className="text-sm font-medium">Quick comparisons:</span>
                 </div>
                 <div className="flex flex-wrap gap-2">

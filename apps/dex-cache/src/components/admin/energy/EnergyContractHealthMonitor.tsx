@@ -255,7 +255,7 @@ export function EnergyContractHealthMonitor() {
                         </p>
                       )}
                       {contract.functions.quote.error && (
-                        <p className="text-xs text-red-600">{contract.functions.quote.error}</p>
+                        <p className="text-xs text-danger">{contract.functions.quote.error}</p>
                       )}
                     </div>
 
@@ -272,7 +272,7 @@ export function EnergyContractHealthMonitor() {
                         </p>
                       )}
                       {contract.functions.tokenUri.error && (
-                        <p className="text-xs text-red-600">{contract.functions.tokenUri.error}</p>
+                        <p className="text-xs text-danger">{contract.functions.tokenUri.error}</p>
                       )}
                     </div>
 
@@ -289,7 +289,7 @@ export function EnergyContractHealthMonitor() {
                         </p>
                       )}
                       {contract.functions.engineTap.error && (
-                        <p className="text-xs text-red-600">{contract.functions.engineTap.error}</p>
+                        <p className="text-xs text-danger">{contract.functions.engineTap.error}</p>
                       )}
                     </div>
                   </div>
@@ -337,9 +337,9 @@ export function EnergyContractHealthMonitor() {
 
                     {contract.configValidation.warnings.length > 0 && (
                       <div className="space-y-1">
-                        <p className="text-sm font-medium text-red-600">Configuration Issues:</p>
+                        <p className="text-sm font-medium text-danger">Configuration Issues:</p>
                         {contract.configValidation.warnings.map((warning, index) => (
-                          <p key={index} className="text-xs text-red-600">• {warning}</p>
+                          <p key={index} className="text-xs text-danger">• {warning}</p>
                         ))}
                       </div>
                     )}

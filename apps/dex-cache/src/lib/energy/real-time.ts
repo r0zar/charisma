@@ -191,35 +191,35 @@ export function getCapacityZoneStyles(zone: string) {
     switch (zone) {
         case 'overflow':
             return {
-                progressColor: 'bg-red-500',
+                progressColor: 'bg-danger',
                 glowColor: 'rgba(239, 68, 68, 0.4)',
-                borderColor: 'border-red-500/50',
+                borderColor: 'border-danger/50',
                 animation: 'animate-pulse',
-                textColor: 'text-red-400'
+                textColor: 'text-danger'
             };
         case 'critical':
             return {
-                progressColor: 'bg-red-400',
+                progressColor: 'bg-danger',
                 glowColor: 'rgba(248, 113, 113, 0.3)',
-                borderColor: 'border-red-400/40',
+                borderColor: 'border-danger/40',
                 animation: 'animate-pulse',
-                textColor: 'text-red-300'
+                textColor: 'text-danger'
             };
         case 'warning':
             return {
-                progressColor: 'bg-yellow-400',
+                progressColor: 'bg-warning',
                 glowColor: 'rgba(251, 191, 36, 0.3)',
-                borderColor: 'border-yellow-400/40',
+                borderColor: 'border-warning/40',
                 animation: 'animate-bounce',
-                textColor: 'text-yellow-300'
+                textColor: 'text-warning'
             };
         default:
             return {
                 progressColor: 'bg-gradient-to-r from-primary to-primary/80',
-                glowColor: 'hsl(var(--primary) / 0.2)',
+                glowColor: 'var(--accent-line)',
                 borderColor: 'border-primary/30',
                 animation: '',
-                textColor: 'text-primary'
+                textColor: 'text-accent-text'
             };
     }
 }

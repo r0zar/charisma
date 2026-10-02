@@ -102,13 +102,13 @@ const calculateUsdValue = (amount: number, decimals: number, contractId: string,
 const getVaultTypeIcon = (type: string) => {
     switch (type?.toUpperCase()) {
         case 'POOL':
-            return <Layers className="w-5 h-5 text-primary" />;
+            return <Layers className="w-5 h-5 text-accent-text" />;
         case 'SUBLINK':
-            return <ArrowRightLeft className="w-5 h-5 text-primary" />;
+            return <ArrowRightLeft className="w-5 h-5 text-accent-text" />;
         case 'ENERGY':
-            return <Shield className="w-5 h-5 text-primary" />;
+            return <Shield className="w-5 h-5 text-accent-text" />;
         default:
-            return <Coins className="w-5 h-5 text-primary" />;
+            return <Coins className="w-5 h-5 text-accent-text" />;
     }
 };
 
@@ -180,7 +180,7 @@ export default function VaultList({ vaults }: Props) {
         <Card className="mt-6">
             <CardContent className="pt-6">
                 <div className="text-center py-8 text-muted-foreground">
-                    <Coins className="w-12 h-12 mx-auto mb-4 text-muted" />
+                    <Coins className="w-12 h-12 mx-auto mb-4 text-ink-faint" />
                     <p className="text-lg font-semibold">No vaults found</p>
                     <p className="text-sm mt-1">Add a vault using the form above to get started.</p>
                 </div>
@@ -194,7 +194,7 @@ export default function VaultList({ vaults }: Props) {
                 <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center">
                         {!filteredType || filteredType === 'ALL' ? (
-                            <Coins className="w-5 h-5 mr-2 text-primary" />
+                            <Coins className="w-5 h-5 mr-2 text-accent-text" />
                         ) : (
                             getVaultTypeIcon(filteredType)
                         )}
@@ -267,7 +267,7 @@ export default function VaultList({ vaults }: Props) {
                                                         </div>
                                                     )}
                                                     <div>
-                                                        <div className="font-semibold text-foreground group-hover:text-primary group-hover:underline">
+                                                        <div className="font-semibold text-foreground group-hover:text-accent-text group-hover:underline">
                                                             {v.name}
                                                         </div>
                                                         {lastUpdated && (
@@ -277,7 +277,7 @@ export default function VaultList({ vaults }: Props) {
                                                         )}
                                                     </div>
                                                 </Link>
-                                                <button onClick={() => toggleExpand(v.contractId)} className="ml-auto text-muted-foreground p-1 px-3 rounded-full hover:bg-accent">
+                                                <button onClick={() => toggleExpand(v.contractId)} className="ml-auto text-muted-foreground p-1 px-3 rounded-full hover:bg-surface-hover">
                                                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                                 </button>
                                             </td>
@@ -286,9 +286,9 @@ export default function VaultList({ vaults }: Props) {
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
                                                 <Badge className={`
-                                                    ${vaultType === 'POOL' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30 hover:bg-blue-500/20 hover:text-blue-600 hover:border-blue-500/10' : ''}
-                                                    ${vaultType === 'SUBLINK' ? 'bg-purple-500/10 text-purple-500 border-purple-500/30 hover:bg-purple-500/20 hover:text-purple-600 hover:border-purple-500/10' : ''}
-                                                    ${vaultType === 'ENERGY' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/30 hover:bg-yellow-500/20 hover:text-yellow-600 hover:border-yellow-500/10' : ''}
+                                                    ${vaultType === 'POOL' ? 'bg-accent/10 text-accent-text border-accent/30 hover:bg-accent/20 hover:text-accent-text hover:border-accent/10' : ''}
+                                                    ${vaultType === 'SUBLINK' ? 'bg-blaze/10 text-blaze border-blaze/30 hover:bg-blaze/20 hover:text-blaze hover:border-blaze/10' : ''}
+                                                    ${vaultType === 'ENERGY' ? 'bg-warning/10 text-warning border-warning/30 hover:bg-warning/20 hover:text-warning hover:border-warning/10' : ''}
                                                 `}>
                                                     {getVaultTypeDisplay(vaultType)}
                                                 </Badge>
@@ -307,7 +307,7 @@ export default function VaultList({ vaults }: Props) {
                                                                     className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
                                                                 />
                                                             )}
-                                                            <span className="text-primary font-medium">{v.tokenA.symbol}</span>
+                                                            <span className="text-accent-text font-medium">{v.tokenA.symbol}</span>
                                                         </span>
                                                         <span className="text-muted-foreground">/</span>
                                                         <span className="flex items-center">
@@ -318,7 +318,7 @@ export default function VaultList({ vaults }: Props) {
                                                                     className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
                                                                 />
                                                             )}
-                                                            <span className="text-secondary font-medium">{v.tokenB.symbol}</span>
+                                                            <span className="text-accent-text font-medium">{v.tokenB.symbol}</span>
                                                         </span>
                                                     </div>
                                                 ) : (
@@ -328,7 +328,7 @@ export default function VaultList({ vaults }: Props) {
                                             <td className="p-4 whitespace-nowrap">
                                                 <Badge
                                                     variant={updateStatus.status === 'stale' ? 'destructive' : 'outline'}
-                                                    className={`capitalize ${updateStatus.status === 'fresh' ? 'border-green-500/50 text-green-600 bg-green-500/10 dark:text-green-400' : ''}`}
+                                                    className={`capitalize ${updateStatus.status === 'fresh' ? 'border-success/50 text-success bg-success/10 ' : ''}`}
                                                 >
                                                     {updateStatus.status}
                                                 </Badge>
@@ -391,7 +391,7 @@ export default function VaultList({ vaults }: Props) {
                                                                                     className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
                                                                                 />
                                                                             )}
-                                                                            <h5 className="font-medium text-primary">{v.tokenA.symbol}</h5>
+                                                                            <h5 className="font-medium text-accent-text">{v.tokenA.symbol}</h5>
                                                                         </div>
                                                                         <p className="text-xs font-mono mb-1 pl-7">{v.tokenA.contractId}</p>
                                                                         {v.reservesA !== undefined && (
@@ -410,7 +410,7 @@ export default function VaultList({ vaults }: Props) {
                                                                                     className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
                                                                                 />
                                                                             )}
-                                                                            <h5 className="font-medium text-secondary">{v.tokenB.symbol}</h5>
+                                                                            <h5 className="font-medium text-accent-text">{v.tokenB.symbol}</h5>
                                                                         </div>
                                                                         <p className="text-xs font-mono mb-1 pl-7">{v.tokenB.contractId}</p>
                                                                         {v.reservesB !== undefined && (
@@ -425,8 +425,8 @@ export default function VaultList({ vaults }: Props) {
 
                                                         {/* Additional information for other vault types */}
                                                         {vaultType === 'SUBLINK' && (
-                                                            <div className="space-y-2 bg-purple-500/5 p-3 rounded-lg border border-purple-500/20">
-                                                                <h4 className="text-sm font-medium text-purple-500">Subnet Bridge Details</h4>
+                                                            <div className="space-y-2 bg-blaze/5 p-3 rounded-lg border border-blaze/20">
+                                                                <h4 className="text-sm font-medium text-blaze">Subnet Bridge Details</h4>
                                                                 <p className="text-xs text-muted-foreground">
                                                                     This bridge connects Stacks mainnet with a subnet network, allowing assets to move between chains.
                                                                 </p>
@@ -440,8 +440,8 @@ export default function VaultList({ vaults }: Props) {
                                                         )}
 
                                                         {vaultType === 'ENERGY' && (
-                                                            <div className="space-y-2 bg-green-500/5 p-3 rounded-lg border border-green-500/20">
-                                                                <h4 className="text-sm font-medium text-green-500">Hold-to-Earn Details</h4>
+                                                            <div className="space-y-2 bg-success/5 p-3 rounded-lg border border-success/20">
+                                                                <h4 className="text-sm font-medium text-success">Hold-to-Earn Details</h4>
                                                                 <p className="text-xs text-muted-foreground">
                                                                     This vault gives users energy for holding tokens.
                                                                 </p>

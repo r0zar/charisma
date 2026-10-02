@@ -435,7 +435,7 @@ export function EnergyTracker() {
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center gap-3">
                         <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Zap className="h-5 w-5 text-primary" />
+                            <Zap className="h-5 w-5 text-accent-text" />
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold">Real-Time Energy Tracker</h3>
@@ -464,7 +464,7 @@ export function EnergyTracker() {
                         {connectionState.error && (
                             <button
                                 onClick={handleReconnect}
-                                className="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                                className="text-xs px-2 py-1 rounded bg-danger/20 text-danger hover:bg-danger/30"
                             >
                                 Reconnect
                             </button>
@@ -476,7 +476,7 @@ export function EnergyTracker() {
                 {(!connectionState.isConnected || connectionState.error) && walletState.connected && (
                     <div className="token-card p-4 mb-6">
                         <h4 className="font-medium mb-2 flex items-center gap-2">
-                            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                            <AlertTriangle className="h-4 w-4 text-warning" />
                             Stream Status
                         </h4>
                         {connectionState.error && (
@@ -511,7 +511,7 @@ export function EnergyTracker() {
                                     value={energyState.currentEnergyBalance / Math.pow(10, energyMetadata?.decimals || 6)}
                                     decimals={2}
                                     suffix=" Energy"
-                                    className={harvestAnimation.show ? "text-yellow-500" : ""}
+                                    className={harvestAnimation.show ? "text-warning" : ""}
                                 />
                             ) : (
                                 <span className="text-muted-foreground">--</span>
@@ -521,15 +521,15 @@ export function EnergyTracker() {
                             {harvestAnimation.show && (
                                 <div className="absolute inset-0 pointer-events-none">
                                     {/* Golden glow effect */}
-                                    <div className="absolute inset-0 bg-yellow-400/20 rounded-lg animate-pulse" />
+                                    <div className="absolute inset-0 bg-warning/20 rounded-lg animate-pulse" />
 
                                     {/* Floating tap amount */}
                                     <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
                                         <div className={cn(
-                                            "text-xs px-2 py-1 rounded-full font-bold shadow-lg",
+ "text-xs px-2 py-1 rounded-full font-bold shadow-lg",
                                             energyState && energyState.currentEnergyBalance >= energyState.maxCapacity
-                                                ? "bg-orange-500 text-orange-900"
-                                                : "bg-yellow-500 text-yellow-900"
+                                                ? "bg-accent text-accent-text"
+                                                : "bg-warning text-warning"
                                         )}>
                                             +{(harvestAnimation.amount / Math.pow(10, energyMetadata?.decimals || 6)).toFixed(0)} Energy
                                             {energyState && energyState.currentEnergyBalance >= energyState.maxCapacity && (
@@ -540,13 +540,13 @@ export function EnergyTracker() {
 
                                     {/* Sparkle effects */}
                                     <div className="absolute top-1 right-1">
-                                        <div className="h-2 w-2 bg-yellow-400 rounded-full animate-ping" />
+                                        <div className="h-2 w-2 bg-warning rounded-full animate-ping" />
                                     </div>
                                     <div className="absolute bottom-1 left-1">
-                                        <div className="h-1 w-1 bg-yellow-300 rounded-full animate-ping" style={{ animationDelay: '0.2s' }} />
+                                        <div className="h-1 w-1 bg-warning rounded-full animate-ping" style={{ animationDelay: '0.2s' }} />
                                     </div>
                                     <div className="absolute top-2 left-1/2">
-                                        <div className="h-1.5 w-1.5 bg-yellow-500 rounded-full animate-ping" style={{ animationDelay: '0.4s' }} />
+                                        <div className="h-1.5 w-1.5 bg-warning rounded-full animate-ping" style={{ animationDelay: '0.4s' }} />
                                     </div>
                                 </div>
                             )}
@@ -555,11 +555,11 @@ export function EnergyTracker() {
                             {burnAnimation.show && (
                                 <div className="absolute inset-0 pointer-events-none">
                                     {/* Red flame effect */}
-                                    <div className="absolute inset-0 bg-red-500/30 rounded-lg animate-pulse" />
+                                    <div className="absolute inset-0 bg-danger/30 rounded-lg animate-pulse" />
 
                                     {/* Floating burn amount */}
                                     <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
-                                        <div className="text-xs px-2 py-1 rounded-full font-bold shadow-lg bg-red-500 text-red-100">
+                                        <div className="text-xs px-2 py-1 rounded-full font-bold shadow-lg bg-danger text-danger">
                                             <Flame className="h-3 w-3 inline mr-1" />
                                             -{(burnAnimation.amount / Math.pow(10, energyMetadata?.decimals || 6)).toFixed(0)} Energy Burned
                                         </div>
@@ -567,13 +567,13 @@ export function EnergyTracker() {
 
                                     {/* Fire effects */}
                                     <div className="absolute top-1 right-1">
-                                        <div className="h-2 w-2 bg-red-500 rounded-full animate-ping" />
+                                        <div className="h-2 w-2 bg-danger rounded-full animate-ping" />
                                     </div>
                                     <div className="absolute bottom-1 left-1">
-                                        <div className="h-1 w-1 bg-orange-500 rounded-full animate-ping" style={{ animationDelay: '0.2s' }} />
+                                        <div className="h-1 w-1 bg-accent rounded-full animate-ping" style={{ animationDelay: '0.2s' }} />
                                     </div>
                                     <div className="absolute top-2 left-1/2">
-                                        <div className="h-1.5 w-1.5 bg-red-400 rounded-full animate-ping" style={{ animationDelay: '0.4s' }} />
+                                        <div className="h-1.5 w-1.5 bg-danger rounded-full animate-ping" style={{ animationDelay: '0.4s' }} />
                                     </div>
                                 </div>
                             )}
@@ -588,7 +588,7 @@ export function EnergyTracker() {
                                     value={energyState.accumulatedSinceLastHarvest / Math.pow(10, energyMetadata?.decimals || 6)}
                                     decimals={2}
                                     suffix=" Energy"
-                                    className="text-primary"
+                                    className="text-accent-text"
                                 />
                             ) : (
                                 <span className="text-muted-foreground">--</span>
@@ -604,7 +604,7 @@ export function EnergyTracker() {
                                     value={energyState.energyRatePerSecond / Math.pow(10, energyMetadata?.decimals || 6)}
                                     decimals={6}
                                     suffix="/sec"
-                                    className="text-green-400"
+                                    className="text-success"
                                 />
                             ) : (
                                 <span className="text-muted-foreground">--</span>
@@ -669,8 +669,8 @@ export function EnergyTracker() {
                             <Badge
                                 variant={currentBalanceZone === 'safe' ? 'outline' : currentBalanceZone === 'overflow' ? 'destructive' : 'secondary'}
                                 className={cn(
-                                    "text-xs",
-                                    currentBalanceZone === 'overflow' && 'animate-pulse bg-red-500/20 text-red-700 border-red-500/50'
+ "text-xs",
+                                    currentBalanceZone === 'overflow' && 'animate-pulse bg-danger/20 text-danger border-danger/50'
                                 )}
                             >
                                 {currentBalanceZone === 'overflow' ? '⚠️ FULL' :
@@ -704,12 +704,12 @@ export function EnergyTracker() {
                             <div className="absolute inset-0 h-8 pointer-events-none">
                                 {/* Warning zone marker at 60% */}
                                 <div
-                                    className="absolute top-0 bottom-0 w-0.5 bg-yellow-400/60"
+                                    className="absolute top-0 bottom-0 w-0.5 bg-warning/60"
                                     style={{ left: '60%' }}
                                 />
                                 {/* Critical zone marker at 85% */}
                                 <div
-                                    className="absolute top-0 bottom-0 w-0.5 bg-red-400/60"
+                                    className="absolute top-0 bottom-0 w-0.5 bg-danger/60"
                                     style={{ left: '85%' }}
                                 />
                             </div>
@@ -717,8 +717,8 @@ export function EnergyTracker() {
                             {/* Energy Value Overlay with Zone-Aware Styling and Animation */}
                             <div className="absolute inset-0 flex items-center justify-center h-8">
                                 <span className={cn(
-                                    "text-xs font-medium drop-shadow-sm",
-                                    currentBalanceZone === 'safe' ? "text-foreground/90" : "text-white font-bold"
+ "text-xs font-medium drop-shadow-sm",
+                                    currentBalanceZone === 'safe' ? "text-foreground/90" : "text-ink font-bold"
                                 )}>
                                     {energyState ? (
                                         <AnimatedCounter
@@ -758,11 +758,11 @@ export function EnergyTracker() {
 
                             <div className="flex items-center gap-2">
                                 <Battery className={cn(
-                                    "h-4 w-4",
-                                    currentBalanceZone === 'overflow' ? 'text-red-500' : 'text-muted-foreground'
+ "h-4 w-4",
+                                    currentBalanceZone === 'overflow' ? 'text-danger' : 'text-muted-foreground'
                                 )} />
                                 <span className={cn(
-                                    currentBalanceZone === 'overflow' && 'text-red-500 font-bold'
+ currentBalanceZone === 'overflow' && 'text-danger font-bold'
                                 )}>
                                     {currentBalancePercentage >= 100 ? 'CAPACITY FULL' : (
                                         energyState ? `Full in: ${formatTimeDuration(energyState.timeToCapacity)}` : '--'
@@ -773,17 +773,17 @@ export function EnergyTracker() {
 
                         {/* Energy Waste Calculator */}
                         {currentBalanceZone === 'overflow' && energyState && energyState.energyWasteRate > 0 && (
-                            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
-                                <div className="flex items-center gap-2 text-red-400 text-sm">
+                            <div className="p-3 bg-danger/10 border border-danger/30 rounded-lg">
+                                <div className="flex items-center gap-2 text-danger text-sm">
                                     <span className="font-semibold">⚠️ Energy Being Wasted:</span>
                                     <span className="font-mono">
                                         {formatEnergyValue(energyState.energyWasteRate * 60)}/minute
                                     </span>
-                                    <span className="text-xs text-red-300">
+                                    <span className="text-xs text-danger">
                                         ({formatEnergyValue(energyState.energyWasteRate * 3600)}/hour)
                                     </span>
                                 </div>
-                                <div className="text-xs text-red-300 mt-1">
+                                <div className="text-xs text-danger mt-1">
                                     Harvest now to resume earning! Every second at full capacity wastes potential rewards.
                                 </div>
                             </div>
@@ -821,15 +821,15 @@ export function EnergyTracker() {
                                 // Case 1: At capacity but need to harvest first
                                 if (currentCapacityPercent >= 95 && hasEnergyToHarvest && !hasEnergyToSpend) {
                                     return (
-                                        <div className="border-2 border-orange-500/50 bg-orange-500/10 rounded-lg p-4 space-y-3">
+                                        <div className="border-2 border-accent/50 bg-accent/10 rounded-lg p-4 space-y-3">
                                             <div className="flex items-start gap-2">
-                                                <AlertTriangle className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                                                <AlertTriangle className="h-5 w-5 text-accent-text flex-shrink-0 mt-0.5" />
                                                 <div className="flex-1">
-                                                    <div className="font-semibold text-orange-700">Harvest Energy First!</div>
-                                                    <div className="text-sm text-orange-600 mt-1">
+                                                    <div className="font-semibold text-accent-text">Harvest Energy First!</div>
+                                                    <div className="text-sm text-accent-text mt-1">
                                                         You have {(accumulatedEnergy / 1000000).toFixed(1)} energy ready to harvest
                                                     </div>
-                                                    <div className="text-xs text-orange-500/80 mt-1">
+                                                    <div className="text-xs text-accent-text/80 mt-1">
                                                         Tap the engine buttons above to collect your energy, then you can spend it
                                                     </div>
                                                 </div>
@@ -841,15 +841,15 @@ export function EnergyTracker() {
                                 // Case 2: Full energy and has spendable energy - prompt to spend
                                 if (currentCapacityPercent >= 95 && hasEnergyToSpend) {
                                     return (
-                                        <div className="border-2 border-red-500/50 bg-red-500/10 rounded-lg p-4 space-y-3">
+                                        <div className="border-2 border-danger/50 bg-danger/10 rounded-lg p-4 space-y-3">
                                             <div className="flex items-start gap-2">
-                                                <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                                                <AlertTriangle className="h-5 w-5 text-danger flex-shrink-0 mt-0.5" />
                                                 <div className="flex-1">
-                                                    <div className="font-semibold text-red-700">Energy Full!</div>
-                                                    <div className="text-sm text-red-600 mt-1">
+                                                    <div className="font-semibold text-danger">Energy Full!</div>
+                                                    <div className="text-sm text-danger mt-1">
                                                         Spend energy to avoid overflow waste
                                                     </div>
-                                                    <div className="text-xs text-red-500/80 mt-1">
+                                                    <div className="text-xs text-danger/80 mt-1">
                                                         Can spend up to {(maxSpendable / 1000000).toFixed(1)} energy • Burns 1000 energy per transaction
                                                     </div>
                                                 </div>
@@ -884,15 +884,15 @@ export function EnergyTracker() {
                                 // Case 3: Critical level but need to harvest first
                                 if (currentCapacityPercent >= 85 && hasEnergyToHarvest && !hasEnergyToSpend) {
                                     return (
-                                        <div className="border border-orange-400/50 bg-orange-400/5 rounded-lg p-4">
+                                        <div className="border border-accent/50 bg-accent/5 rounded-lg p-4">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <AlertTriangle className="h-4 w-4 text-orange-500" />
-                                                <div className="font-medium text-orange-700">Harvest Available Energy</div>
+                                                <AlertTriangle className="h-4 w-4 text-accent-text" />
+                                                <div className="font-medium text-accent-text">Harvest Available Energy</div>
                                             </div>
-                                            <div className="text-sm text-orange-600">
+                                            <div className="text-sm text-accent-text">
                                                 {(accumulatedEnergy / 1000000).toFixed(1)} energy ready to collect
                                             </div>
-                                            <div className="text-xs text-orange-500/80 mt-1">
+                                            <div className="text-xs text-accent-text/80 mt-1">
                                                 Tap engines above to harvest, then spend to avoid waste
                                             </div>
                                         </div>
@@ -902,15 +902,15 @@ export function EnergyTracker() {
                                 // Case 4: Critical level and has spendable energy
                                 if (currentCapacityPercent >= 85 && hasEnergyToSpend) {
                                     return (
-                                        <div className="border border-red-400/50 bg-red-400/5 rounded-lg p-4 space-y-3">
+                                        <div className="border border-danger/50 bg-danger/5 rounded-lg p-4 space-y-3">
                                             <div className="flex items-start gap-2">
-                                                <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
+                                                <AlertTriangle className="h-4 w-4 text-danger flex-shrink-0 mt-0.5" />
                                                 <div className="flex-1">
-                                                    <div className="font-medium text-red-600">Critical Level!</div>
-                                                    <div className="text-sm text-red-500 mt-1">
+                                                    <div className="font-medium text-danger">Critical Level!</div>
+                                                    <div className="text-sm text-danger mt-1">
                                                         Energy nearly full at {currentCapacityPercent.toFixed(1)}%
                                                     </div>
-                                                    <div className="text-xs text-red-400/80 mt-1">
+                                                    <div className="text-xs text-danger/80 mt-1">
                                                         Spend energy soon to avoid waste
                                                     </div>
                                                 </div>
@@ -945,15 +945,15 @@ export function EnergyTracker() {
                                 // Case 5: Warning level - only if user has energy to spend
                                 if (currentCapacityPercent >= 60 && hasEnergyToSpend) {
                                     return (
-                                        <div className="border border-yellow-500/40 bg-yellow-500/5 rounded-lg p-4">
+                                        <div className="border border-warning/40 bg-warning/5 rounded-lg p-4">
                                             <div className="flex items-center gap-2 mb-2">
-                                                <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                                                <div className="font-medium text-yellow-700">Monitor Energy Levels</div>
+                                                <AlertTriangle className="h-4 w-4 text-warning" />
+                                                <div className="font-medium text-warning">Monitor Energy Levels</div>
                                             </div>
-                                            <div className="text-sm text-yellow-600">
+                                            <div className="text-sm text-warning">
                                                 {currentCapacityPercent.toFixed(1)}% capacity
                                             </div>
-                                            <div className="text-xs text-yellow-500/80 mt-1">
+                                            <div className="text-xs text-warning/80 mt-1">
                                                 Consider spending energy soon
                                             </div>
                                         </div>
@@ -963,12 +963,12 @@ export function EnergyTracker() {
                                 // Case 6: Has energy to harvest but not critical
                                 if (hasEnergyToHarvest && !hasEnergyToSpend) {
                                     return (
-                                        <div className="border border-blue-500/30 bg-blue-500/5 rounded-lg p-4 text-center">
-                                            <div className="text-blue-600 font-medium mb-1">💰 Energy Ready to Harvest</div>
-                                            <div className="text-sm text-blue-500">
+                                        <div className="border border-accent/30 bg-accent/5 rounded-lg p-4 text-center">
+                                            <div className="text-accent-text font-medium mb-1">💰 Energy Ready to Harvest</div>
+                                            <div className="text-sm text-accent-text">
                                                 {(accumulatedEnergy / 1000000).toFixed(1)} energy available to collect
                                             </div>
-                                            <div className="text-xs text-blue-400/80 mt-1">
+                                            <div className="text-xs text-accent-text/80 mt-1">
                                                 Tap the engine buttons above to collect your energy
                                             </div>
                                         </div>
@@ -977,12 +977,12 @@ export function EnergyTracker() {
 
                                 // Case 7: Safe operation or no energy to spend/harvest
                                 return (
-                                    <div className="border border-green-500/30 bg-green-500/5 rounded-lg p-4 text-center">
-                                        <div className="text-green-600 font-medium mb-1">✅ Energy Levels Optimal</div>
-                                        <div className="text-sm text-green-500">
+                                    <div className="border border-success/30 bg-success/5 rounded-lg p-4 text-center">
+                                        <div className="text-success font-medium mb-1">✅ Energy Levels Optimal</div>
+                                        <div className="text-sm text-success">
                                             {hasEnergyToSpend ? 'Continue accumulating' : hasEnergyToHarvest ? 'Tap engines to collect energy' : 'Energy generating normally'}
                                         </div>
-                                        <div className="text-xs text-green-400/80 mt-1">
+                                        <div className="text-xs text-success/80 mt-1">
                                             Current: {currentCapacityPercent.toFixed(1)}% capacity
                                         </div>
                                     </div>

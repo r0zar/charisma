@@ -25,7 +25,7 @@ export default async function ExplorePoolsPage() {
   return (
     <main className="flex-1 container py-8">
       <div className="flex items-center gap-3 mb-6">
-        <Coins className="h-6 w-6 text-primary" />
+        <Coins className="h-6 w-6 text-accent-text" />
         <h1 className="text-2xl font-bold">Explore Vaults</h1>
       </div>
       <p className="text-muted-foreground mb-6 max-w-2xl">

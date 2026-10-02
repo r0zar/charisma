@@ -77,7 +77,7 @@ const StatCard = ({ title, value, icon, trend, footnote }: {
                 <div className="text-2xl font-bold tracking-tight">{value}</div>
 
                 {trend && (
-                    <div className={`flex items-center text-xs mt-1.5 ${trend.positive ? 'text-green-500' : 'text-red-500'}`}>
+                    <div className={`flex items-center text-xs mt-1.5 ${trend.positive ? 'text-success' : 'text-danger'}`}>
                         {trend.positive ? <TrendingUp className="w-3 h-3 mr-1" /> : <TrendingUp className="w-3 h-3 mr-1 rotate-180" />}
                         {trend.positive ? '+' : ''}{trend.value}% past 30d
                     </div>
@@ -164,7 +164,7 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                     </div>
                     <div className="p-4">
                         <h3 className="font-medium mb-2 flex items-center">
-                            <ShieldIcon className="w-4 h-4 mr-2 text-primary" />
+                            <ShieldIcon className="w-4 h-4 mr-2 text-accent-text" />
                             Technical Details
                         </h3>
                         <div className="bg-muted/20 p-4 rounded-lg mb-4 space-y-2 text-sm">
@@ -202,7 +202,7 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                     {contractInfo.source_code && (
                         <div className="border-t border-border/50 p-4">
                             <h3 className="font-medium mb-2 flex items-center">
-                                <Info className="w-4 h-4 mr-2 text-primary" />
+                                <Info className="w-4 h-4 mr-2 text-accent-text" />
                                 Source Code
                             </h3>
                             <div className="relative">
@@ -223,7 +223,7 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
             {/* Loading State */}
             {!vault && (
                 <div className="flex items-center justify-center h-64">
-                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <Loader2 className="h-8 w-8 animate-spin text-accent-text" />
                     <span className="ml-2 text-muted-foreground">Loading Investment Opportunity...</span>
                 </div>
             )}
@@ -239,12 +239,12 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                         </div>
                         <div className="flex items-center gap-4">
                             <Badge className={`px-3 py-1 font-medium ${recommendationStatus === "Highly Recommended"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300"
+                                ? "bg-success-soft text-success border-success/30   "
                                 : recommendationStatus === "Recommended"
-                                    ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300"
+                                    ? "bg-accent-soft text-accent-text border-accent-line   "
                                     : recommendationStatus === "Consider"
-                                        ? "bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:border-orange-700 dark:text-orange-300"
-                                        : "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-900/20 dark:border-gray-700 dark:text-gray-300"
+                                        ? "bg-accent-soft text-accent-text border-accent-line   "
+                                        : "bg-surface-hover text-ink-muted border-line   "
                                 }`}>
                                 <CheckCircle className="w-3.5 h-3.5 mr-1.5" />
                                 {recommendationStatus}
@@ -269,7 +269,7 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                             onError={(e) => { e.currentTarget.style.display = 'none'; }} // Hide if image fails
                                         />
                                         {/* Overlay to improve text readability */}
-                                        <div className="absolute inset-0 bg-black/30 z-10"></div>
+                                        <div className="absolute inset-0 bg-surface-sunken z-10"></div>
                                     </div>
                                 )}
 
@@ -352,7 +352,7 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                                 vault={currentVaultData}
                                                 prices={prices}
                                                 trigger={
-                                                    <Button variant="outline" className="flex-1 gap-2 border-primary/20 text-primary hover:bg-primary/5" disabled={buttonsDisabled}>
+                                                    <Button variant="outline" className="flex-1 gap-2 border-primary/20 text-accent-text hover:bg-primary/5" disabled={buttonsDisabled}>
                                                         <ArrowUpDown className="w-4 h-4" />
                                                         Withdraw
                                                     </Button>
@@ -382,20 +382,20 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                             {/* Key Metrics */}
                             <div>
                                 <h2 className="text-lg font-semibold mb-3 flex items-center">
-                                    <PieChart className="w-5 h-5 mr-2 text-primary" />
+                                    <PieChart className="w-5 h-5 mr-2 text-accent-text" />
                                     Key Metrics
                                 </h2>
                                 <div className="space-y-3">
                                     <StatCard
                                         title="Total Value Locked"
                                         value={formatNumber(analytics.tvl, 'currency')}
-                                        icon={<Wallet className="w-5 h-5 text-primary" />}
+                                        icon={<Wallet className="w-5 h-5 text-accent-text" />}
                                         footnote="Total assets under management"
                                     />
                                     <StatCard
                                         title="Fee Structure"
                                         value={`${feePercent}%`}
-                                        icon={<Shield className="w-5 h-5 text-primary" />}
+                                        icon={<Shield className="w-5 h-5 text-accent-text" />}
                                         footnote="LP fee rebate percentage"
                                     />
                                     {/* APY hidden until we have real calculation */}
@@ -404,7 +404,7 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                             <StatCard
                                                 title="Expected Annual Yield"
                                                 value="Calculating..."
-                                                icon={<LineChart className="w-5 h-5 text-primary" />}
+                                                icon={<LineChart className="w-5 h-5 text-accent-text" />}
                                                 footnote="Based on current pool performance"
                                             />
                                         </div>
@@ -491,7 +491,7 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                     <Card className="border border-border/50">
                                         <div className="border-b border-border/50 p-4">
                                             <h3 className="text-lg font-medium flex items-center mb-3">
-                                                <DollarSign className="w-5 h-5 mr-2 text-primary" />
+                                                <DollarSign className="w-5 h-5 mr-2 text-accent-text" />
                                                 Fee Structure & LP Economics
                                             </h3>
 
@@ -501,25 +501,25 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                                     <span className="text-xs text-muted-foreground font-medium mr-2">Fee Tiers:</span>
                                                     <div className="inline-flex flex-wrap gap-1.5 text-xs">
                                                         <div className={`px-2 py-1 rounded-md border ${parseFloat(feePercent) >= 3.0
-                                                            ? 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-700 dark:text-red-300 font-medium'
+                                                            ? 'bg-danger-soft border-danger/30 text-danger    font-medium'
                                                             : 'bg-muted/30 border-muted text-muted-foreground'
                                                             }`}>
                                                             Premium (3%+)
                                                         </div>
                                                         <div className={`px-2 py-1 rounded-md border ${parseFloat(feePercent) >= 1.0 && parseFloat(feePercent) < 3.0
-                                                            ? 'bg-orange-50 border-orange-200 text-orange-700 dark:bg-orange-900/20 dark:border-orange-700 dark:text-orange-300 font-medium'
+                                                            ? 'bg-accent-soft border-accent-line text-accent-text    font-medium'
                                                             : 'bg-muted/30 border-muted text-muted-foreground'
                                                             }`}>
                                                             High (1-3%)
                                                         </div>
                                                         <div className={`px-2 py-1 rounded-md border ${parseFloat(feePercent) >= 0.3 && parseFloat(feePercent) < 1.0
-                                                            ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300 font-medium'
+                                                            ? 'bg-accent-soft border-accent-line text-accent-text    font-medium'
                                                             : 'bg-muted/30 border-muted text-muted-foreground'
                                                             }`}>
                                                             Moderate (0.3-1%)
                                                         </div>
                                                         <div className={`px-2 py-1 rounded-md border ${parseFloat(feePercent) < 0.3
-                                                            ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-700 dark:text-green-300 font-medium'
+                                                            ? 'bg-success-soft border-success/30 text-success    font-medium'
                                                             : 'bg-muted/30 border-muted text-muted-foreground'
                                                             }`}>
                                                             Low (&lt;0.3%)
@@ -531,31 +531,31 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                                     <span className="text-xs text-muted-foreground font-medium mr-2">TVL Ranges:</span>
                                                     <div className="inline-flex flex-wrap gap-1.5 text-xs">
                                                         <div className={`px-2 py-1 rounded-md border ${analytics.tvl >= 10000000
-                                                            ? 'bg-purple-50 border-purple-200 text-purple-700 dark:bg-purple-900/20 dark:border-purple-700 dark:text-purple-300 font-medium'
+                                                            ? 'bg-blaze-soft border-blaze/30 text-blaze    font-medium'
                                                             : 'bg-muted/30 border-muted text-muted-foreground'
                                                             }`}>
                                                             Mega ($10M+)
                                                         </div>
                                                         <div className={`px-2 py-1 rounded-md border ${analytics.tvl >= 1000000 && analytics.tvl < 10000000
-                                                            ? 'bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-700 dark:text-indigo-300 font-medium'
+                                                            ? 'bg-accent-soft border-accent-line text-accent-text    font-medium'
                                                             : 'bg-muted/30 border-muted text-muted-foreground'
                                                             }`}>
                                                             Large ($1M-$10M)
                                                         </div>
                                                         <div className={`px-2 py-1 rounded-md border ${analytics.tvl >= 100000 && analytics.tvl < 1000000
-                                                            ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-300 font-medium'
+                                                            ? 'bg-accent-soft border-accent-line text-accent-text    font-medium'
                                                             : 'bg-muted/30 border-muted text-muted-foreground'
                                                             }`}>
                                                             Medium ($100K-$1M)
                                                         </div>
                                                         <div className={`px-2 py-1 rounded-md border ${analytics.tvl >= 10000 && analytics.tvl < 100000
-                                                            ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-700 dark:text-green-300 font-medium'
+                                                            ? 'bg-success-soft border-success/30 text-success    font-medium'
                                                             : 'bg-muted/30 border-muted text-muted-foreground'
                                                             }`}>
                                                             Small ($10K-$100K)
                                                         </div>
                                                         <div className={`px-2 py-1 rounded-md border ${analytics.tvl < 10000
-                                                            ? 'bg-gray-50 border-gray-200 text-gray-700 dark:bg-gray-900/20 dark:border-gray-700 dark:text-gray-300 font-medium'
+                                                            ? 'bg-surface-hover border-line text-ink-muted    font-medium'
                                                             : 'bg-muted/30 border-muted text-muted-foreground'
                                                             }`}>
                                                             Micro (&lt;$10K)

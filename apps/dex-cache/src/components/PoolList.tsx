@@ -194,7 +194,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
         <Card className="mt-6">
             <CardContent className="pt-6">
                 <div className="text-center py-8 text-muted-foreground">
-                    <Coins className="w-12 h-12 mx-auto mb-4 text-muted" />
+                    <Coins className="w-12 h-12 mx-auto mb-4 text-ink-faint" />
                     <p className="text-lg font-semibold">No vaults found</p>
                     <p className="text-sm mt-1">Add a vault using the form above to get started.</p>
                 </div>
@@ -206,7 +206,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
         <Card className="mt-6 overflow-hidden">
             <CardHeader className="border-b border-border">
                 <CardTitle className="flex items-center">
-                    <Layers className="w-5 h-5 mr-2 text-primary" />
+                    <Layers className="w-5 h-5 mr-2 text-accent-text" />
                     Liquidity Pools
                     <Badge variant="secondary" className="ml-auto">
                         {vaults.length} pool{vaults.length !== 1 ? 's' : ''}
@@ -281,7 +281,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                         </div>
                                                     )}
                                                     <div>
-                                                        <div className="font-semibold text-foreground group-hover:text-primary group-hover:underline">
+                                                        <div className="font-semibold text-foreground group-hover:text-accent-text group-hover:underline">
                                                             {v.name} <span className="text-muted-foreground font-normal">({v.symbol})</span>
                                                         </div>
                                                         {lastUpdated && (
@@ -291,7 +291,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                         )}
                                                     </div>
                                                 </Link>
-                                                <button onClick={() => toggleExpand(v.contractId)} className="ml-auto text-muted-foreground p-1 px-3 rounded-full hover:bg-accent">
+                                                <button onClick={() => toggleExpand(v.contractId)} className="ml-auto text-muted-foreground p-1 px-3 rounded-full hover:bg-surface-hover">
                                                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                                 </button>
                                             </td>
@@ -316,7 +316,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                                 className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
                                                             />
                                                         )}
-                                                        <span className="text-primary font-medium">{v.tokenA?.symbol}</span>
+                                                        <span className="text-accent-text font-medium">{v.tokenA?.symbol}</span>
                                                     </span>
                                                     <span className="text-muted-foreground">/</span>
                                                     <span className="flex items-center">
@@ -327,7 +327,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                                 className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
                                                             />
                                                         )}
-                                                        <span className="text-secondary font-medium">{v.tokenB?.symbol}</span>
+                                                        <span className="text-accent-text font-medium">{v.tokenB?.symbol}</span>
                                                     </span>
                                                 </div>
                                             </td>
@@ -347,7 +347,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                             <td className="p-4 whitespace-nowrap">
                                                 <Badge
                                                     variant={updateStatus.status === 'stale' ? 'destructive' : 'outline'}
-                                                    className={`capitalize ${updateStatus.status === 'fresh' ? 'border-green-500/50 text-green-600 bg-green-500/10 dark:text-green-400' : ''}`}
+                                                    className={`capitalize ${updateStatus.status === 'fresh' ? 'border-success/50 text-success bg-success/10 ' : ''}`}
                                                 >
                                                     {updateStatus.status}
                                                 </Badge>
@@ -369,7 +369,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                         onClick={(e) => { e.stopPropagation(); handleBlacklist(v.contractId); }}
                                                         disabled={isLoading}
                                                         title="Add to Blacklist (Dev Only)"
-                                                        className="text-orange-600 hover:text-orange-600 hover:bg-orange-600/10"
+                                                        className="text-accent-text hover:text-accent-text hover:bg-accent/10"
                                                     >
                                                         <Ban className={`w-4 h-4 ${isBlacklisting ? 'animate-spin' : ''}`} />
                                                     </Button>
@@ -426,7 +426,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                                                 className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
                                                                             />
                                                                         )}
-                                                                        <h5 className="font-medium text-primary">{v.tokenA?.symbol}</h5>
+                                                                        <h5 className="font-medium text-accent-text">{v.tokenA?.symbol}</h5>
                                                                     </div>
                                                                     <p className="text-xs font-mono mb-1 pl-7">{v.tokenA?.contractId}</p>
                                                                     <div className="flex justify-between text-xs pl-7">
@@ -444,7 +444,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                                                 className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
                                                                             />
                                                                         )}
-                                                                        <h5 className="font-medium text-secondary">{v.tokenB?.symbol}</h5>
+                                                                        <h5 className="font-medium text-accent-text">{v.tokenB?.symbol}</h5>
                                                                     </div>
                                                                     <p className="text-xs font-mono mb-1 pl-7">{v.tokenB?.contractId}</p>
                                                                     <div className="flex justify-between text-xs pl-7">

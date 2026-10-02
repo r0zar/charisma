@@ -72,25 +72,25 @@ export const StatCard: React.FC<StatCardProps> = ({
         default: 'bg-card text-card-foreground border-border',
         primary: 'bg-card text-card-foreground border-primary/20',
         secondary: 'bg-card text-card-foreground border-secondary/20',
-        success: 'bg-card text-card-foreground border-emerald-500/20',
-        warning: 'bg-card text-card-foreground border-amber-500/20',
-        danger: 'bg-card text-card-foreground border-rose-500/20'
+        success: 'bg-card text-card-foreground border-success/20',
+        warning: 'bg-card text-card-foreground border-warning/20',
+        danger: 'bg-card text-card-foreground border-danger/20'
     }
 
     // Icon color based on color scheme
     const iconColors = {
         default: 'text-muted-foreground',
-        primary: 'text-primary',
-        secondary: 'text-secondary',
-        success: 'text-emerald-400',
-        warning: 'text-amber-400',
-        danger: 'text-rose-400'
+        primary: 'text-accent-text',
+        secondary: 'text-accent-text',
+        success: 'text-success',
+        warning: 'text-warning',
+        danger: 'text-danger'
     }
 
     // Change colors
     const changeColors = {
-        up: 'text-emerald-400',
-        down: 'text-rose-400',
+        up: 'text-success',
+        down: 'text-danger',
         neutral: 'text-muted-foreground'
     }
 
@@ -118,24 +118,24 @@ export const StatCard: React.FC<StatCardProps> = ({
     return (
         <Card
             className={cn(
-                colorStyles[colorScheme],
+ colorStyles[colorScheme],
                 onClick && 'cursor-pointer hover:shadow-md transition-shadow duration-200',
                 className
             )}
             onClick={onClick}
         >
             <CardContent className={cn(
-                "flex items-start justify-between",
+ "flex items-start justify-between",
                 sizeStyles[size]
             )}>
                 <div>
                     <p className={cn(
-                        "text-muted-foreground font-medium",
+ "text-muted-foreground font-medium",
                         titleSizes[size]
                     )}>{title}</p>
 
                     <p className={cn(
-                        "font-semibold",
+ "font-semibold",
                         valueSizes[size]
                     )}>
                         {typeof value === 'number'
@@ -147,7 +147,7 @@ export const StatCard: React.FC<StatCardProps> = ({
 
                     {description && (
                         <p className={cn(
-                            "text-muted-foreground mt-1",
+ "text-muted-foreground mt-1",
                             descriptionSizes[size]
                         )}>
                             {description}
@@ -156,7 +156,7 @@ export const StatCard: React.FC<StatCardProps> = ({
 
                     {change && (
                         <div className={cn(
-                            "flex items-center gap-1 mt-1",
+ "flex items-center gap-1 mt-1",
                             descriptionSizes[size],
                             changeColors[change.direction]
                         )}>
@@ -174,16 +174,16 @@ export const StatCard: React.FC<StatCardProps> = ({
                 </div>
 
                 <div className={cn(
-                    "rounded-full p-2",
+ "rounded-full p-2",
                     colorScheme === 'default' ? 'bg-primary/10' :
                     colorScheme === 'primary' ? 'bg-primary/10' :
                     colorScheme === 'secondary' ? 'bg-secondary/10' :
-                    colorScheme === 'success' ? 'bg-emerald-500/10' :
-                    colorScheme === 'warning' ? 'bg-amber-500/10' :
-                    colorScheme === 'danger' ? 'bg-rose-500/10' : 'bg-primary/10'
+                    colorScheme === 'success' ? 'bg-success/10' :
+                    colorScheme === 'warning' ? 'bg-warning/10' :
+                    colorScheme === 'danger' ? 'bg-danger/10' : 'bg-primary/10'
                 )}>
                     <IconComponent className={cn(
-                        "h-5 w-5",
+ "h-5 w-5",
                         iconColors[colorScheme],
                         iconClassName
                     )} />

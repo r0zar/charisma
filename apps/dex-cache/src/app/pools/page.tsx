@@ -47,7 +47,7 @@ export default async function ExplorePoolsPage() {
     <main className="flex-1 container py-8">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <Coins className="h-6 w-6 text-primary" />
+          <Coins className="h-6 w-6 text-accent-text" />
           <h1 className="text-2xl font-bold">Explore Liquidity Pools</h1>
         </div>
         <div className="flex items-center gap-3">

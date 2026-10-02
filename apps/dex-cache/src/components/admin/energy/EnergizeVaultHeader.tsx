@@ -31,12 +31,12 @@ export function EnergizeVaultHeader({ showDetails = false, className = '' }: Ene
   const vaultHealth = healthData?.health[0]; // Single vault
 
   return (
-    <Card className={`border-l-4 border-l-blue-500 ${className}`}>
+    <Card className={`border-l-4 border-l-accent ${className}`}>
       <CardContent className="pt-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
-              <Zap className="h-5 w-5 text-blue-500" />
+              <Zap className="h-5 w-5 text-accent-text" />
               <div>
                 <h3 className="font-medium text-lg">Energize Vault</h3>
                 <div className="flex items-center gap-2 mt-1">
@@ -110,15 +110,15 @@ export function EnergizeVaultHeader({ showDetails = false, className = '' }: Ene
         {showDetails && vaultHealth && (
           <div className="mt-4 pt-4 border-t space-y-4">
             {/* Required Token Highlight */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <div className="bg-accent-soft border border-accent-line rounded-lg p-3">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-                <span className="text-sm font-medium text-blue-800">Required Token for Energy Generation</span>
+                <div className="w-2 h-2 rounded-full bg-accent"></div>
+                <span className="text-sm font-medium text-accent-text">Required Token for Energy Generation</span>
               </div>
-              <code className="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded">
+              <code className="text-xs text-accent-text bg-accent-soft px-2 py-1 rounded">
                 SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dexterity-pool-v1
               </code>
-              <div className="text-xs text-blue-600 mt-1">
+              <div className="text-xs text-accent-text mt-1">
                 Users must hold DEX-POOL-V1 tokens to generate energy rewards
               </div>
             </div>
