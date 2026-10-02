@@ -37,6 +37,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { uuid: stri
     }
 
     /* ─────────────── Cancel the order ─────────────── */
+    // A broadcast swap is already on its way to the chain; marking it cancelled would only hide it
+    if (order.status === 'broadcasted') {
+        return NextResponse.json({ error: `Order already broadcast (txid ${order.txid}); it can no longer be cancelled` }, { status: 409 });
+    }
     const cancelled = await cancelOrder(uuid);
     return NextResponse.json({ status: 'success', data: cancelled && toPublicOrder(cancelled) });
 } 

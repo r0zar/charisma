@@ -46,8 +46,8 @@ export function NFTBonusesTab() {
                         <div>
                             <h5 className="font-medium text-accent-text mb-2">Balanced Approach</h5>
                             <p className="text-sm text-muted-foreground">
-                                The most effective strategy combines all three NFT types: Welsh NFTs boost generation, 
-                                Memobots provide storage capacity, and Ravens reduce transaction costs.
+                                Memobots raise how much energy you can store, and Ravens reduce the energy spent on
+                                burns. Welsh NFTs don't change Hold-to-Earn generation.
                             </p>
                         </div>
                     </div>
@@ -77,7 +77,7 @@ export function NFTBonusesTab() {
                                 </div>
                                 <div>
                                     <h4 className="font-semibold text-success">Welsh NFTs</h4>
-                                    <p className="text-xs text-muted-foreground">Energy Generation</p>
+                                    <p className="text-xs text-muted-foreground">Legacy meme engines only</p>
                                 </div>
                             </div>
                             
@@ -98,8 +98,8 @@ export function NFTBonusesTab() {
                             
                             <div className="mt-4 pt-3 border-t border-border/50">
                                 <div className="flex items-center justify-between">
-                                    <span className="text-xs text-muted-foreground">Max Bonus</span>
-                                    <span className="text-sm font-semibold text-success">100%</span>
+                                    <span className="text-xs text-muted-foreground">Hold-to-Earn</span>
+                                    <span className="text-sm font-semibold text-ink-muted">No bonus</span>
                                 </div>
                             </div>
                         </div>
@@ -196,10 +196,9 @@ export function NFTBonusesTab() {
                                 Maximum Generation
                             </h4>
                             <div className="space-y-2 text-sm text-muted-foreground">
-                                <div>• Start with Happy Welsh NFTs for highest generation bonus</div>
-                                <div>• Mix different Welsh types to reach 100% generation cap</div>
-                                <div>• Consider cost-effectiveness of each NFT type</div>
-                                <div>• Focus on this strategy if you harvest frequently</div>
+                                <div>• Generation comes from what you hold and how long since your last harvest</div>
+                                <div>• Harvest before you reach capacity: energy above it is lost</div>
+                                <div>• Add Memobots to raise capacity if you harvest rarely</div>
                             </div>
                         </div>
 

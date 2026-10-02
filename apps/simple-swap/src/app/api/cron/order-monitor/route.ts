@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { TxMonitorClient } from '@repo/tx-monitor-client';
-import { confirmOrder, failOrder, cancelOrder } from '@/lib/orders/store';
+import { confirmOrder, failOrder, expireOrder } from '@/lib/orders/store';
 
 // Environment variable for cron authentication
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -109,6 +109,8 @@ export async function GET(request: NextRequest) {
         // Check the chain first, so an order whose swap succeeded is never cancelled for age
         for (const { uuid, order } of ordersToCheck) {
             const orderAge = now - new Date(order.createdAt).getTime();
+            // Orders broadcast before broadcastedAt existed only get the 90-day limit
+            const sentAge = order.broadcastedAt ? now - new Date(order.broadcastedAt).getTime() : 0;
 
             try {
                 console.log(`[ORDER-MONITOR] Checking transaction ${order.txid} for order ${uuid}`);
@@ -137,9 +139,9 @@ export async function GET(request: NextRequest) {
                     result.failedTransactions++;
                     console.log(`[ORDER-MONITOR] ❌ Order ${uuid} marked as 'failed' due to transaction failure ${order.txid} (${txStatus.status})`);
 
-                } else if (orderAge > ABSOLUTE_MAX_AGE || orderAge > BROADCASTED_MAX_AGE) {
+                } else if (orderAge > ABSOLUTE_MAX_AGE || sentAge > BROADCASTED_MAX_AGE) {
                     const is90Day = orderAge > ABSOLUTE_MAX_AGE;
-                    await cancelOrder(uuid);
+                    await expireOrder(uuid);
                     monitorResult.orderUpdated = true;
                     monitorResult.error = `Order cancelled: transaction ${txStatus.status} after ${Math.round(orderAge / (60 * 60 * 1000))} hours`;
                     result.ordersUpdated++;
@@ -148,7 +150,7 @@ export async function GET(request: NextRequest) {
                     console.log(`[ORDER-MONITOR] 🕐 Order ${uuid} cancelled: ${monitorResult.error}`);
 
                 } else if (txStatus.status === 'not_found') {
-                    await cancelOrder(uuid);
+                    await expireOrder(uuid);
                     monitorResult.orderUpdated = true;
                     result.ordersUpdated++;
                     result.failedTransactions++;

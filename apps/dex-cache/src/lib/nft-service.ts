@@ -146,24 +146,9 @@ export async function getNFTBonuses(userAddress: string): Promise<NFTBonuses> {
             }
         });
 
-        // Calculate bonuses based on energetic-welsh contract logic
-        // The contract gives fixed bonuses per collection type (not per NFT count)
-        let energyBonus = 0;
-
-        // Check for specific Welsh collections and their bonuses
-        bonuses.welshNFTs.forEach(collection => {
-            const contractLower = collection.contractId.toLowerCase();
-            if (contractLower.includes('happy-welsh') && collection.totalCount > 0) {
-                energyBonus += 25; // 25% for Happy Welsh collection
-            } else if (contractLower.includes('weird-welsh') && collection.totalCount > 0) {
-                energyBonus += 15; // 15% for Weird Welsh collection  
-            } else if (contractLower.includes('welsh-punk') && collection.totalCount > 0) {
-                energyBonus += 10; // 10% for Welsh Punk collection
-            }
-        });
-
-        // Cap at 100% maximum as per contract
-        bonuses.energyGenerationBonus = Math.min(energyBonus, 100);
+        // energetic-welsh only boosts the legacy meme engines on its supported-engines list; none of the
+        // Hold-to-Earn engines are on it (is-engine-supported = false), so Welsh NFTs add nothing here
+        bonuses.energyGenerationBonus = 0;
 
         // Raven fee discount - based on highest Raven ID owned
         // Formula from raven-wisdom contract: BASE_REDUCTION (25%) + (raven_id * MAX_BURN_REDUCTION / MAX_RAVEN_ID)

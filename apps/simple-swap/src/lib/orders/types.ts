@@ -28,6 +28,8 @@ export interface LimitOrder {
     status: 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled' | 'filled';
     createdAt: string; // ISO
     txid?: string;
+    /** When the swap transaction was broadcast (ISO) */
+    broadcastedAt?: string;
     
     // Blockchain confirmation details (populated when status becomes 'confirmed' or 'failed')
     blockHeight?: number;

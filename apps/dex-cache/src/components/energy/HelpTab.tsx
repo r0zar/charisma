@@ -310,10 +310,10 @@ export function HelpTab() {
                         <div className="space-y-2 text-sm">
                             <div className="flex items-center justify-between">
                                 <span>Welsh NFTs:</span>
-                                <Badge variant="outline" className="text-success border-success/30">Up to +100%</Badge>
+                                <Badge variant="outline" className="text-ink-muted border-line">No Hold-to-Earn bonus</Badge>
                             </div>
                             <p className="text-muted-foreground">
-                                Welsh NFTs multiply your energy generation rate. Collect different types to maximize your bonus.
+                                Welsh NFTs boost only the legacy meme engines. Hold-to-Earn generation depends on what you hold and how long since you last harvested.
                             </p>
                         </div>
                     </div>

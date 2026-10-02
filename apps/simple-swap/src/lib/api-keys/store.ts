@@ -195,7 +195,8 @@ export async function checkRateLimit(keyId: string, endpoint: string): Promise<R
       limit: keyData.rateLimit,
       remaining: 0,
       reset: windowStart + window,
-      window
+      window,
+      exceeded: true
     };
   }
 
@@ -207,7 +208,8 @@ export async function checkRateLimit(keyId: string, endpoint: string): Promise<R
     limit: keyData.rateLimit,
     remaining: remaining - 1,
     reset: windowStart + window,
-    window
+    window,
+    exceeded: false
   };
 }
 
@@ -335,7 +337,7 @@ export async function validateApiKey(
   // Check rate limit
   try {
     const rateLimitInfo = await checkRateLimit(keyRecord.id, 'validation');
-    if (rateLimitInfo.remaining <= 0) {
+    if (rateLimitInfo.exceeded) {
       return {
         valid: false,
         error: ApiKeyErrorCode.RATE_LIMIT_EXCEEDED,

@@ -477,7 +477,7 @@ export default function SublinkWizard() {
                             <ul className="space-y-2 w-full">
                                 <li>
                                     <a
-                                        href="https://docs.charisma.rocks/subnet"
+                                        href="https://docs.charisma.rocks/docs/blaze-api/subnet-tokens"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="text-sm flex items-center text-accent-text hover:underline"

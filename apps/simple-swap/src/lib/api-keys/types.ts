@@ -81,6 +81,7 @@ export interface RateLimitInfo {
   remaining: number;
   reset: number; // Unix timestamp when limit resets
   window: number; // Window size in seconds
+  exceeded: boolean; // true when this request was over the limit (and was not counted)
 }
 
 export interface ApiKeyStats {

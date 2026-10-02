@@ -142,8 +142,19 @@ export async function listOrdersPaginated(
 export async function cancelOrder(uuid: string): Promise<LimitOrder | undefined> {
     const order = await getOrder(uuid);
     if (!order) return undefined;
-    // @ts-ignore: allow legacy 'filled' status
-    if (order.status === 'open' || order.status === 'broadcasted' || order.status === 'filled') {
+    if (order.status === 'open') {
+        order.status = 'cancelled';
+        order.cancelledAt = new Date().toISOString();
+        await kv.hset(HASH_KEY, { [uuid]: JSON.stringify(order) });
+    }
+    return order;
+}
+
+/** Retires an order whose swap was sent but never landed (order monitor). Open orders are cancelled too. */
+export async function expireOrder(uuid: string): Promise<LimitOrder | undefined> {
+    const order = await getOrder(uuid);
+    if (!order) return undefined;
+    if (order.status === 'open' || order.status === 'broadcasted') {
         order.status = 'cancelled';
         order.cancelledAt = new Date().toISOString();
         await kv.hset(HASH_KEY, { [uuid]: JSON.stringify(order) });
@@ -157,6 +168,7 @@ export async function broadcastOrder(uuid: string, txid: string): Promise<LimitO
     if (order.status === 'open') {
         order.status = 'broadcasted';
         order.txid = txid;
+        order.broadcastedAt = new Date().toISOString();
         await kv.hset(HASH_KEY, { [uuid]: JSON.stringify(order) });
     }
     return order;
