@@ -61,12 +61,10 @@ flowchart LR
     xmh -->|"execute(amount, opcode)"| vaults
     invest["Invest"] -->|"add and remove liquidity"| vaults
     subgraph vaults["Vaults: execute and quote"]
-        pools["Charisma pools"]
+        pools["Pools: Charisma's own, plus Bitflow, ALEX, Arkadiko and Velar wrappers"]
         sublinks["Sublinks to Blaze subnets"]
-        wrappers["Bitflow, ALEX, Arkadiko and Velar wrappers"]
-        energy["Energy vault: energize-v1"]
-        rewards["Reward vault: hooter-farm-rewards"]
-        future["Future vaults"]
+        experiments["Experiments: energy and reward vaults"]
+        future["Anyone's future vaults"]
     end
 ```
 
@@ -75,5 +73,5 @@ flowchart LR
 ## Where this is going
 
 :::info Direction, not built yet
-`execute` can do anything a contract can do. Today vaults swap, add and remove liquidity, report reserves, move tokens in and out of subnets, harvest Hold-to-Earn energy, and pay out farm rewards for energy. The same two functions could front lending, staking or any other DeFi operation on Stacks, each behind a new opcode. Every router could call such a vault as it is; an app would only need to know the new opcode. That makes the vault a candidate building block for all of DeFi on Stacks. No vault beyond the kinds above exists yet.
+`execute` can do anything a contract can do. Pools and sublinks are the proven kinds. Energy and reward vaults are Charisma's first experiments with vaults that aren't swaps. The goal is for anyone to experiment the same way: lending, staking, games or any other DeFi operation, each behind its own opcode. Every router can chain such a vault with swaps and bridges as it is; an app only needs to know the opcode. That makes the vault a candidate building block for all of DeFi on Stacks.
 :::

@@ -3,15 +3,15 @@ sidebar_position: 3
 title: Vault kinds
 ---
 
-Five kinds of vault are on-chain. Three route swaps: Charisma pools, sublinks to Blaze subnets, and wrappers around other DEXes' pools. Two pay rewards: energy vaults and reward vaults.
+Two kinds of vault carry real trading: **pools** and **sublinks**. Pools are Charisma's own AMMs and wrappers around other DEXes' pools, and a router treats both the same. Sublinks move tokens in and out of Blaze subnets. Everything else is an [experiment](#experiments), and anyone can run one.
 
 | Kind | Registry `type` / `protocol` | Example | Tokens sit in | Opcodes (`execute` / `quote`) |
 |---|---|---|---|---|
-| Charisma pool | `POOL` / `CHARISMA` | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-usdh-amm-lp-v1` | The pool contract | `00` to `03` / `00` to `04` |
+| Pool: Charisma | `POOL` / `CHARISMA` | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-usdh-amm-lp-v1` | The pool contract | `00` to `03` / `00` to `04` |
+| Pool: external wrapper | `POOL` / `BITFLOW`, `ALEX`, `ARKADIKO`, `VELAR` | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitflow-welsh-stx` | The external pool | `00`, `01` / `00`, `01`, `04` |
 | Sublink | `SUBLINK` / `CHARISMA` | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-bitcoin` | The subnet token, `sbtc-token-subnet-v1` | `05`, `06` / `05`, `06` |
-| External wrapper | `POOL` / `BITFLOW`, `ALEX`, `ARKADIKO`, `VELAR` | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitflow-welsh-stx` | The external pool | `00`, `01` / `00`, `01`, `04` |
-| Energy vault | `ENERGY` / `CHARISMA` | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energize-v1` | Nothing: energy is minted | `07` / `07` |
-| Reward vault | Not registered | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-farm-rewards` | The farm, `hooter-farm` | `00`, `01` / `00`, `01`, `04` |
+| Experiment: energy vault | `ENERGY` / `CHARISMA` | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.energize-v1` | Nothing: energy is minted | `07` / `07` |
+| Experiment: reward vault | Not registered | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-farm-rewards` | The farm, `hooter-farm` | `00`, `01` / `00`, `01`, `04` |
 
 The [Invest API](../data-apis/invest-api.md#get-vaults) serves the registry.
 
@@ -27,7 +27,11 @@ flowchart LR
     ext <-->|"tokens"| caller
 ```
 
-## Charisma pools: the AMM is the vault
+## Pools
+
+To a router, a Charisma pool and a wrapped external pool are the same thing: `0x00` and `0x01` swap, and `quote` prices them. Only Charisma's own pools also take liquidity.
+
+### Charisma pools: the AMM is the vault
 
 One contract is the x·y=k AMM, the SIP-010 LP token and the vault. It holds both reserves, keeps its fee (`LP_REBATE`, on a 1,000,000 scale) for liquidity providers, and dispatches on the opcode:
 
@@ -45,23 +49,7 @@ One contract is the x·y=k AMM, the SIP-010 LP token and the vault. It holds bot
 
 Launchpad's [liquidity-pool template](https://launchpad.charisma.rocks/templates/liquidity-pool) generates this contract (`apps/launchpad/src/lib/templates/liquidity-pool-contract-template.ts`). Early pools such as `charismatic-flow` (STX-CHA) predate `0x04`, so the reserves refresh reads their token balances instead.
 
-## Sublinks: subnets as vaults
-
-A [subnet token](../blaze-api/subnet-tokens.md) is Blaze's balance ledger, not a vault. Subnets came after vaults, so each one gets a separate vault wrapper, its sublink, that lets a router move tokens in or out of the subnet as a hop. It is 1:1 with no fee:
-
-```clarity
-(define-public (withdraw (amount uint) (recipient principal))
-    (begin
-        (try! (contract-call? '{{SUBNET_CONTRACT}} withdraw amount (some recipient)))
-        (ok {dx: amount, dy: amount, dk: u0})))
-```
-
-- `0x05` takes the caller's tokens and credits the caller's subnet balance. `0x06` does the reverse.
-- Launchpad's [subnet-wrapper](https://launchpad.charisma.rocks/templates/subnet-wrapper) template makes the subnet token; its [sublink](https://launchpad.charisma.rocks/templates/sublink) template makes the vault.
-- In the registry, `tokenA` is the base token and `tokenB` the subnet token.
-- A Blaze swap normally starts with the sublink and `0x06`. See [Swap routers](../blaze-api/routers.md).
-
-## External DEX wrappers: other pools, one interface
+### External DEX wrappers: other pools, one interface
 
 A wrapper normalises another DEX's pool behind the trait. It holds no tokens. `execute` calls the external protocol with the caller still `tx-sender`, so tokens move straight between the caller and the external pool. Sources are in `packages/clarity/contracts/vaults`, and each one is deployed by `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS`.
 
@@ -82,7 +70,29 @@ A wrapper normalises another DEX's pool behind the trait. It holds no tokens. `e
 | Swaps only, by choice | A wrapper could add and remove liquidity with `0x02` and `0x03`. Charisma's don't: Charisma doesn't put liquidity in other DEXes' pools, and each protocol's liquidity flow is its own work to build and maintain (Bitflow DLMM shares, for one, aren't SIP-010 tokens) |
 | Unusual token moves are declared | Arkadiko's STX pairs set `stxWrapper` (wSTX is minted and burned mid-swap). Velar vaults set `forwardsInputFee` (the pool sends part of the input to a fee contract) |
 
-## Energy vaults: harvest Hold-to-Earn
+## Sublinks: subnets as vaults
+
+A [subnet token](../blaze-api/subnet-tokens.md) is Blaze's balance ledger, not a vault. Subnets came after vaults, so each one gets a separate vault wrapper, its sublink, that lets a router move tokens in or out of the subnet as a hop. It is 1:1 with no fee:
+
+```clarity
+(define-public (withdraw (amount uint) (recipient principal))
+    (begin
+        (try! (contract-call? '{{SUBNET_CONTRACT}} withdraw amount (some recipient)))
+        (ok {dx: amount, dy: amount, dk: u0})))
+```
+
+- `0x05` takes the caller's tokens and credits the caller's subnet balance. `0x06` does the reverse.
+- Launchpad's [subnet-wrapper](https://launchpad.charisma.rocks/templates/subnet-wrapper) template makes the subnet token; its [sublink](https://launchpad.charisma.rocks/templates/sublink) template makes the vault.
+- In the registry, `tokenA` is the base token and `tokenB` the subnet token.
+- A Blaze swap normally starts with the sublink and `0x06`. See [Swap routers](../blaze-api/routers.md).
+
+## Experiments
+
+Any contract that does one useful thing in one call can be a vault, and once it is, routers can chain it with swaps and bridges. Energy and reward vaults are Charisma's first tries at vaults that aren't swaps. They work on-chain, but they aren't core, and their rough edges are part of the experiment.
+
+Anyone can try their own. Deploying a vault and calling it through `multihop` needs no permission; registering it is what puts it in Charisma's routes. See [Build a vault](./build-a-vault.md).
+
+### Energy vaults: harvest Hold-to-Earn
 
 An energy vault puts a [Hold-to-Earn](../tokenomics/hold-to-earn.md) engine behind the vault interface. `energize-v1` is the one on-chain. `0x07` calls its engine's `tap`, which measures how many DEX LP tokens (`dexterity-pool-v1`) the caller held since their last harvest, and the rulebook mints them that much energy. `amount` is ignored.
 
@@ -100,7 +110,7 @@ An energy vault puts a [Hold-to-Earn](../tokenomics/hold-to-earn.md) engine behi
 - `quote` returns only `dk`, the blocks since the caller's last harvest.
 - In the registry, `engineContractId` names the engine and `tokenA` and `tokenB` are empty.
 
-## Reward vaults: spend energy, get tokens
+### Reward vaults: spend energy, get tokens
 
 A reward vault turns a farm into a swap. `hooter-farm-rewards` wraps the Hooter Farm: `0x00` burns 100 of the caller's energy, and the farm sends them 100 HOOT from its own balance. The amount is fixed. Any `amount` of 100 energy or more quotes 100 for 100; less quotes 0.
 
