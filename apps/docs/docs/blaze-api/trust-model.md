@@ -61,4 +61,4 @@ Broadcasting a transaction publishes its signature. Until it confirms, anyone wa
 | Swap on v1 | The route and output token, not the recipient |
 | `TRANSFER_TOKENS` | Only who pays the fee |
 
-So bearer-style redemptions can be front-run. And anyone who knows an open order's UUID can spend it through `execute` and stop the order. That is griefing, not theft. Limit-order APIs show a public handle in place of the UUID, so a UUID goes public only when its order is broadcast. OTC offers still list their intent UUIDs. [Blaze v2](./blaze-v2.md) proposes fixes for both.
+So bearer-style redemptions can be front-run. And anyone who knows an open order's UUID can spend it through `execute` and stop the order. That is griefing, not theft. Limit-order APIs show a public handle in place of the UUID, so a UUID goes public only when its order is broadcast. OTC offers still list their intent UUIDs. Subnets on [Blaze v2](./blaze-v2.md) fix both: per-signer replay protection, and notes whose key signs the payout address.
