@@ -5,7 +5,7 @@ import { Loader2, Check, X as XIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useOrderConditions } from '@/contexts/order-conditions-context';
-import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { useRouterTrading } from '@/contexts/router-trading-context';
 import { InfoTooltip } from '../ui/tooltip';
 import { formatTokenAmount } from '@/lib/swap-utils';
 import { estimateSplitOutput } from '@/lib/split-estimate';

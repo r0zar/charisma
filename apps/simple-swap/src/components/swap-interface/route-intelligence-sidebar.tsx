@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { useRouterTrading } from '@/contexts/router-trading-context';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { useWallet } from '@/contexts/wallet-context';
 import TokenLogo from '@/components/TokenLogo';
@@ -13,7 +13,9 @@ export function RouteIntelligenceSidebar() {
     const { selectedFromToken, selectedToToken, displayAmount, mode } = useSwapTokens();
     const { address: walletAddress } = useWallet();
 
-    const showRouteDetails = quote && !isLoadingQuote;
+    // The last route stays on screen while a new one loads; it dims only while it doesn't match the inputs
+    const showRouteDetails = !!quote;
+    const dim = `transition-opacity duration-300 ${isLoadingQuote ? 'opacity-50' : ''}`;
 
     const routeHops = quote?.path || [];
     const totalHops = routeHops.length - 1;
@@ -115,7 +117,7 @@ export function RouteIntelligenceSidebar() {
 
             {/* Route Overview - Only show when route details are available */}
             {showRouteDetails && (
-            <div className="bg-surface border border-line rounded-xl p-4 hover:bg-surface-hover transition-all duration-200">
+            <div className={`bg-surface border border-line rounded-xl p-4 hover:bg-surface-hover transition-all duration-200 ${dim}`}>
                 <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2">
                         <Zap className="w-4 h-4 text-accent-text" />
@@ -159,7 +161,7 @@ export function RouteIntelligenceSidebar() {
 
             {/* Post Conditions - Only show when route details are available */}
             {showRouteDetails && postConditionsData && (
-                <div className="bg-surface border border-line rounded-xl p-4 hover:bg-surface-hover transition-all duration-200">
+                <div className={`bg-surface border border-line rounded-xl p-4 hover:bg-surface-hover transition-all duration-200 ${dim}`}>
                     <div className="flex items-center space-x-2 mb-4">
                         <Shield className="w-4 h-4 text-success" />
                         <span className="text-sm font-semibold text-ink">Transaction Safety</span>
@@ -243,7 +245,7 @@ export function RouteIntelligenceSidebar() {
 
             {/* Route Analysis - Only show when route details are available */}
             {showRouteDetails && quote?.hops && quote.hops.length > 0 && (
-                <div className="bg-surface border border-line rounded-xl p-4 hover:bg-surface-hover transition-all duration-200">
+                <div className={`bg-surface border border-line rounded-xl p-4 hover:bg-surface-hover transition-all duration-200 ${dim}`}>
                     <div className="flex items-center space-x-2 mb-4">
                         <Clock className="w-4 h-4 text-accent-text" />
                         <span className="text-sm font-semibold text-ink">Liquidity Pools</span>

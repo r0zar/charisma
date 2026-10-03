@@ -12,7 +12,7 @@ import BalanceCheckDialog from './balance-check-dialog';
 import { DcaDialog } from "./dca-dialog";
 import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import { useSwapTokens } from "../../contexts/swap-tokens-context";
-import { useRouterTrading } from "../../hooks/useRouterTrading";
+import { useRouterTrading } from "@/contexts/router-trading-context";
 import { useOrderConditions } from "../../contexts/order-conditions-context";
 import { toast } from '@/components/ui/sonner';
 import V2Upgrade from '@/components/v2-upgrade/V2Upgrade';

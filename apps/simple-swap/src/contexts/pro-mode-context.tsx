@@ -11,7 +11,7 @@ import { usePrices } from './token-price-context';
 import { useBalances } from './wallet-balance-context';
 import { toast } from 'sonner';
 import { formatUsd } from '@/lib/swap-utils';
-import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { useRouterTrading } from '@/contexts/router-trading-context';
 import { classifyOrderTypes, type ClassifiedOrder } from '@/lib/orders/classification';
 
 // Use the ClassifiedOrder type from the shared utility

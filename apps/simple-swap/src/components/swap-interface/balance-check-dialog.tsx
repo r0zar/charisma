@@ -8,7 +8,7 @@ import { Badge } from '../ui/badge';
 import TokenLogo from '../TokenLogo';
 import { AlertTriangle, ArrowRight, Wallet, Zap, TrendingUp } from 'lucide-react';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
-import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { useRouterTrading } from '@/contexts/router-trading-context';
 import { useTokenMetadata } from '@/contexts/token-metadata-context';
 
 interface BalanceCheckDialogProps {

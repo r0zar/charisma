@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { useRouterTrading } from '@/contexts/router-trading-context';
 
 export default function ErrorAlert() {
     const { error } = useRouterTrading();

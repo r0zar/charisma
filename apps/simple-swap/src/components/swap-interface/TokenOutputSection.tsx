@@ -10,7 +10,7 @@ import { usePrices } from '@/contexts/token-price-context';
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { formatPriceUSD, hasValidPrice } from '@/lib/utils';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
-import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { useRouterTrading } from '@/contexts/router-trading-context';
 import { formatTokenAmount, formatCompactNumber } from '@/lib/swap-utils';
 import { useWallet } from '@/contexts/wallet-context';
 import { BalanceTooltip } from '@/components/ui/tooltip';
@@ -180,7 +180,7 @@ export default function TokenOutputSection() {
                         </span>
 
                         {/* Price Impact Display */}
-                        {totalPriceImpact && totalPriceImpact.priceImpact !== null && !isLoadingQuote && (
+                        {totalPriceImpact && totalPriceImpact.priceImpact !== null && (
                             <div className={`px-2 py-1 rounded-lg text-xs font-medium flex-shrink-0 ${
                                 totalPriceImpact.priceImpact > 0
                                     ? 'text-success bg-success/20 border border-success/30'
@@ -198,7 +198,7 @@ export default function TokenOutputSection() {
             <div className="group bg-transparent hover:bg-surface rounded-xl p-3 sm:p-4 transition-all duration-200">
                 <div className="flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                        {isLoadingQuote ? (
+                        {isLoadingQuote && !quote ? (
                             <div className="flex items-center space-x-3">
                                 <div className="animate-pulse bg-surface rounded-xl h-12 w-32"></div>
                                 <div className="relative h-5 w-5">
@@ -207,7 +207,8 @@ export default function TokenOutputSection() {
                                 </div>
                             </div>
                         ) : (
-                            <>
+                            // the last amount stays put while a new quote loads, dimmed only while it doesn't match the inputs
+                            <div className={`transition-opacity duration-300 ${isLoadingQuote ? 'opacity-50' : ''}`}>
                                 <div className="text-xl sm:text-2xl lg:text-3xl font-semibold text-ink">
                                     {outputAmount}
                                 </div>
@@ -222,7 +223,7 @@ export default function TokenOutputSection() {
                                         return hasPrice && hasOutput && !isNaN(numericOutput) && !isNaN(calculation!) ? formatPriceUSD(calculation!) : 'Enter amount';
                                     })()}
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
 

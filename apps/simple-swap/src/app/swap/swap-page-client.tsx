@@ -11,6 +11,7 @@ import { SwapInformationSidebar } from '@/components/swap-interface/swap-informa
 import { RouteIntelligenceSidebar } from '@/components/swap-interface/route-intelligence-sidebar';
 import { X, BarChart3, Info } from 'lucide-react';
 import { Footer } from '@/components/layout/footer';
+import { RouterTradingProvider } from '@/contexts/router-trading-context';
 
 interface SwapPageClientProps {
     tokens: any[];
@@ -33,7 +34,7 @@ function SwapPageWithProviders({ children }: { children: React.ReactNode }) {
 
     return (
         <OrderConditionsProvider availableTokens={selectedTokens}>
-            {children}
+            <RouterTradingProvider>{children}</RouterTradingProvider>
         </OrderConditionsProvider>
     );
 }

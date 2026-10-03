@@ -7,7 +7,7 @@ import { Hop } from 'dexterity-sdk';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { Info, DollarSign } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
-import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { useRouterTrading } from '@/contexts/router-trading-context';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { formatTokenAmount, formatCompactNumber } from '@/lib/swap-utils';
 import { usePrices } from '@/contexts/token-price-context';
@@ -98,8 +98,8 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
         return null;
     }
 
-    // Show loading state if loading
-    if (isLoadingQuote) {
+    // A loading state only when there's no route to show yet; otherwise the last one stays on screen, dimmed
+    if (isLoadingQuote && !quote) {
         if (compact) {
             return (
                 <div className="flex items-center justify-center py-8">
@@ -126,7 +126,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
     // Compact version for main interface
     if (compact) {
         return (
-            <div className="space-y-3">
+            <div className={`space-y-3 transition-opacity duration-300 ${isLoadingQuote ? 'opacity-50' : ''}`}>
                 {/* High price impact warning */}
                 {showHighImpactWarning && impactValue !== null && (
                     <div className={`flex items-center p-3 rounded-lg text-xs ${
@@ -192,7 +192,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
     }
 
     return (
-        <div className="space-y-6">
+        <div className={`space-y-6 transition-opacity duration-300 ${isLoadingQuote ? 'opacity-50' : ''}`}>
             {/* High price impact warning */}
             {showHighImpactWarning && impactValue !== null && (
                 <div className={`flex items-center p-4 rounded-xl border animate-[appear_0.3s_ease-out] ${

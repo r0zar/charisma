@@ -310,6 +310,7 @@ export default function OrdersPanel() {
         hasPrevPage: false
     });
     const [paginationLoading, setPaginationLoading] = useState(false);
+    const loadedOnceRef = useRef(false);
 
     // Initialize pagination from URL params
     useEffect(() => {
@@ -341,7 +342,8 @@ export default function OrdersPanel() {
         }
     }, [searchParams]);
 
-    const fetchOrders = useCallback(async (usePagination = true) => {
+    // quiet: a background refresh (the 30s poll) updates the list in place, with no loading state at all
+    const fetchOrders = useCallback(async (usePagination = true, quiet = false) => {
         if (!connected || !address) {
             setDisplayOrders([]);
             setLoading(false);
@@ -349,10 +351,10 @@ export default function OrdersPanel() {
             return;
         }
 
-        const isInitialLoad = displayOrders.length === 0;
-        if (isInitialLoad) {
+        // A ref, not displayOrders: this callback's copy of the list is from when it was made, so it always looked empty
+        if (!loadedOnceRef.current) {
             setLoading(true);
-        } else {
+        } else if (!quiet) {
             setPaginationLoading(true);
         }
 
@@ -552,6 +554,7 @@ export default function OrdersPanel() {
                     }
                 }
                 setDisplayOrders(newDisplayOrders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+                loadedOnceRef.current = true;
             } else {
                 throw new Error(j.error || "Failed to load orders");
             }
@@ -617,7 +620,7 @@ export default function OrdersPanel() {
 
         // Poll every 30 seconds for order status updates  
         const pollInterval = setInterval(() => {
-            fetchOrders();
+            fetchOrders(true, true);
         }, 30000);
 
         return () => clearInterval(pollInterval);
@@ -987,7 +990,7 @@ export default function OrdersPanel() {
 
                     {/* Loading overlay during filter changes */}
                     {paginationLoading && (
-                        <div className="absolute inset-0 bg-surface backdrop-blur-sm flex items-center justify-center rounded-2xl z-10">
+                        <div className="absolute inset-0 bg-surface/60 backdrop-blur-[1px] flex items-center justify-center rounded-2xl z-10">
                             <div className="flex items-center gap-3 text-sm text-ink-body">
                                 <div className="h-5 w-5 border-2 border-line-strong border-t-ink/80 rounded-full animate-spin" />
                                 <span>Updating orders...</span>

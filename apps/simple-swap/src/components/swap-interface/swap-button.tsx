@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Button } from '../ui/button';
-import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { useRouterTrading } from '@/contexts/router-trading-context';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { toast } from 'sonner';
 import { shouldShowErrorToast, getErrorMessage } from '@/lib/error-utils';

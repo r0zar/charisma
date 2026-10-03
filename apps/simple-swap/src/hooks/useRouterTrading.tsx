@@ -65,7 +65,8 @@ interface SwapOption {
   route?: any;
 }
 
-export function useRouterTrading() {
+/** The swap page's trading state. Mounted once by RouterTradingProvider; read it with useRouterTrading() */
+export function useRouterTradingState() {
 
   const { address: walletAddress } = useWallet();
 
@@ -203,47 +204,48 @@ export function useRouterTrading() {
     };
   }, []);
 
-  // Fetch quote when tokens or amount change
-  const fetchQuote = useCallback(async () => {
-    if (!selectedFromToken || !selectedToToken) return;
-    const amountNum = Number(microAmount);
-    if (isNaN(amountNum) || amountNum <= 0) return;
+  // The route's two ends as plain ids, so a balance refresh that leaves them unchanged doesn't re-quote
+  const fromContractId = getContractIdForToken(selectedFromToken, useSubnetFrom);
+  const toContractId = getContractIdForToken(selectedToToken, useSubnetTo, 'to');
+  const [quoteTick, setQuoteTick] = useState(0);
+  const fetchQuote = () => setQuoteTick(n => n + 1);
 
-    const fromContractId = getContractIdForToken(selectedFromToken, useSubnetFrom);
-    const toContractId = getContractIdForToken(selectedToToken, useSubnetTo, 'to');
-
-    if (!fromContractId || !toContractId) return;
-
-    setIsLoadingQuote(true);
-    setError(null);
-    try {
-      const result = await getQuote(
-        fromContractId,
-        toContractId,
-        microAmount
-      );
-      if (result && result.data) {
-        setQuote(result.data);
-      } else {
-        throw new Error(result.error || "Failed to get quote");
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to get quote");
-      setQuote(null);
-    } finally {
-      setIsLoadingQuote(false);
-    }
-  }, [selectedFromToken, selectedToToken, microAmount, useSubnetFrom, useSubnetTo, getContractIdForToken]);
-
-  // Auto-fetch quote when dependencies change
+  // Quote when the route's ends or the amount change, and again quietly every 30s so it never goes stale. The last
+  // quote stays on screen meanwhile; panels only dim it while it doesn't match the inputs.
   useEffect(() => {
-    if (!selectedFromToken || !selectedToToken) return;
+    if (!fromContractId || !toContractId) return;
     if (!microAmount || Number(microAmount) <= 0) {
       setQuote(null);
       return;
     }
-    fetchQuote();
-  }, [selectedFromToken, selectedToToken, microAmount, useSubnetFrom, useSubnetTo, fetchQuote]);
+    let live = true;
+    setIsLoadingQuote(true);
+    setError(null);
+    getQuote(fromContractId, toContractId, microAmount)
+      .then(result => {
+        if (!live) return;
+        if (!result?.data) throw new Error(result?.error || 'Failed to get quote');
+        setQuote(result.data);
+      })
+      .catch(err => {
+        if (!live) return;
+        setError(err instanceof Error ? err.message : 'Failed to get quote');
+        setQuote(null);
+      })
+      .finally(() => { if (live) setIsLoadingQuote(false); });
+    return () => { live = false; };
+  }, [fromContractId, toContractId, microAmount, quoteTick]);
+
+  const hasQuote = !!quote;
+  useEffect(() => {
+    if (!hasQuote) return;
+    const id = setInterval(() => setQuoteTick(n => n + 1), 30_000);
+    return () => clearInterval(id);
+  }, [hasQuote]);
+
+  // Whether the quote on screen is for exactly what's entered now (a background refresh keeps it usable)
+  const quoteMatches = !!quote && Number(quote.amountIn) === Number(microAmount)
+    && quote.path[0]?.contractId === fromContractId && quote.path[quote.path.length - 1]?.contractId === toContractId;
 
   // Generate post conditions data when quote is available
   const postConditionsData = useMemo(() => {
@@ -1206,9 +1208,11 @@ export function useRouterTrading() {
     // Routeable tokens
     routeableTokenIds,
 
-    // Quote state
+    // Quote state: isLoadingQuote while the quote on screen isn't for the current inputs (swapping waits for it);
+    // isRefreshingQuote while a matching quote is quietly re-checked (nothing changes on screen)
     quote,
-    isLoadingQuote,
+    isLoadingQuote: isLoadingQuote && !quoteMatches,
+    isRefreshingQuote: isLoadingQuote && quoteMatches,
     error,
     setError,
 

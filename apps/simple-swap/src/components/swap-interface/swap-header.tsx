@@ -4,7 +4,7 @@ import React, { useCallback } from 'react';
 import { Share2, Repeat, Monitor, AlarmCheck } from 'lucide-react';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
-import { useRouterTrading } from '@/hooks/useRouterTrading';
+import { useRouterTrading } from '@/contexts/router-trading-context';
 import Link from 'next/link';
 
 // Pure function for creating share URLs and tweets
