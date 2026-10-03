@@ -6,6 +6,18 @@ import { TokenCacheData } from "@repo/tokens";
 /**
  * Configuration for the metadata service
  */
+/** Native STX has no contract to read, so its metadata is fixed here */
+const STX_TOKEN: TokenCacheData = {
+    type: "",
+    contractId: ".stx",
+    identifier: "STX",
+    name: "Stacks Token",
+    symbol: "STX",
+    decimals: 6,
+    description: "The native token of the Stacks blockchain.",
+    image: "https://charisma.rocks/stx-logo.png",
+};
+
 export interface MetadataServiceConfig {
     apiKey?: string;
     proxy?: string;
@@ -40,20 +52,8 @@ export class Cryptonomicon {
      * @returns TokenMetadata or null if not found
      */
     async getTokenMetadata(contractId: string): Promise<TokenCacheData | null> {
-        // Handle special case for STX token
-        if (contractId === ".stx") {
-            // Predefined metadata for native STX
-            return {
-                type: "",
-                name: "Stacks Token",
-                symbol: "STX",
-                decimals: 6,
-                description: "The native token of the Stacks blockchain.",
-                image: "https://placehold.co/200?text=\?",
-                contractId: ".stx",
-                identifier: "STX",
-            };
-        }
+        // Native STX has no contract to read
+        if (contractId === ".stx") return { ...STX_TOKEN };
 
         let offChainMetadata: any = {};
         let fallbackContractData: any = {};
@@ -414,19 +414,8 @@ export class Cryptonomicon {
      * Get token information (unified method)
      */
     async getTokenInfo(contractId: string): Promise<TokenCacheData | null> {
-        // Handle special case for STX token
-        if (contractId === ".stx") {
-            return {
-                type: '',
-                contractId: ".stx",
-                identifier: "STX",
-                name: "STX Token",
-                symbol: "STX",
-                decimals: 6,
-                description: "The native token of the Stacks blockchain",
-                image: "https://charisma.rocks/stx-logo.png",
-            };
-        }
+        // Native STX has no contract to read
+        if (contractId === ".stx") return { ...STX_TOKEN };
 
         try {
             // Get token metadata
