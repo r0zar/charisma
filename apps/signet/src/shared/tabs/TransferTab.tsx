@@ -249,7 +249,7 @@ export function TransferTab() {
           {unlisted.length > 0 && (
             <button type="button" className="cx-btn cx-btn-quiet" style={{ justifyContent: 'flex-start', height: 'auto', padding: '10px 12px', whiteSpace: 'normal', textAlign: 'left' }} onClick={() => setShowUnlisted(open => !open)} aria-expanded={showUnlisted}>
               {showUnlisted ? <ChevronDown size={16} aria-hidden /> : <ChevronRight size={16} aria-hidden />}
-              <span>Unlisted ({unlisted.length}) · not on Charisma's token list, may be scams</span>
+              <span>{unlisted.length} unlisted · not on Charisma's token list, may be scams</span>
             </button>
           )}
           {showUnlisted && unlisted.map(row)}

@@ -26,6 +26,9 @@ Upload `build/blaze-wallet-chrome.zip` (made by `pnpm package:store` in apps/sig
 > KNOW EXACTLY WHAT YOU SIGN
 > Blaze subnet orders are shown in plain words: the action, the token, the amount, and who can be paid. Transactions list exactly which tokens can leave your wallet, and warn loudly when a site asks for more.
 >
+> A WHOLE PLAN, ONE APPROVAL
+> Sign many Blaze orders at once, like a month of scheduled buys. One card shows how many there are, the total they can spend, and that they can only pay you.
+>
 > EVERY TOKEN, ONE VIEW
 > Balances with logos and dollar values. Sends allow exactly the amount you choose. Tokens that aren't on Charisma's token list, like scam airdrops, are tucked away and can't be sent by mistake.
 >
@@ -33,7 +36,10 @@ Upload `build/blaze-wallet-chrome.zip` (made by `pnpm package:store` in apps/sig
 > Your seed phrase and keys are encrypted in your browser with your password and never sent anywhere. The wallet locks itself after 15 minutes idle. New seed phrases must be written down and confirmed before they're saved.
 >
 > LIVE NETWORK VIEW
-> A diagnostics hologram shows the Stacks network, every Charisma Blaze subnet, and your balance on each, read straight from the blockchain.
+> The Status tab shows the Stacks network, Charisma's token list, and every Blaze subnet with your balance on each, read straight from the blockchain.
+>
+> LIGHT OR DARK
+> Charisma's Light · Bitcoin and Dark · RPG looks. Blaze Wallet follows your device, or pick one in the Vault.
 >
 > Blaze Wallet has no accounts, no analytics and no tracking.
 
@@ -41,7 +47,7 @@ Upload `build/blaze-wallet-chrome.zip` (made by `pnpm package:store` in apps/sig
 | Asset | File |
 |---|---|
 | Store icon (128×128) | `icon-128.png` |
-| Screenshots (1280×800) | `screenshot-1-wallet.png` … `screenshot-5-sign.png` |
+| Screenshots (1280×800, light look) | `screenshot-1-tokens.png`, `-2-sign`, `-3-connect`, `-4-wallet`, `-5-status` |
 | Small promo tile (440×280) | `promo-small-440x280.png` |
 | Marquee promo tile (1400×560) | `promo-marquee-1400x560.png` |
 
@@ -67,7 +73,7 @@ Upload `build/blaze-wallet-chrome.zip` (made by `pnpm package:store` in apps/sig
 
 **Remote code:** No, I am not using remote code. (All scripts ship in the package.)
 
-**Data usage — collected:** None of the categories are collected by the developer. Addresses and signed transactions go only to the Stacks network (Hiro API) and to sites the user approves, as described in the privacy policy.
+**Data usage — collected:** None of the categories are collected by the developer. Addresses and signed transactions go only to the Stacks network (Hiro API) and to sites the user approves, as described in the privacy policy. Token names, logos and prices come from Charisma's token list and price feed, asked by token, never by address; token logos load from wherever each token hosts them.
 
 Certify:
 - I do not sell or transfer user data to third parties, outside of the approved use cases
