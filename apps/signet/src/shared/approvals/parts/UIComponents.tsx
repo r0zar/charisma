@@ -7,7 +7,8 @@ import { PermissionLevel } from './types';
 const RISK: Record<PermissionLevel, { pill: string; text: string }> = {
   [PermissionLevel.INFO]: { pill: 'cx-pill-success', text: 'Low risk' },
   [PermissionLevel.SENSITIVE]: { pill: 'cx-pill-warning', text: 'Review carefully' },
-  [PermissionLevel.CRITICAL]: { pill: 'cx-pill-danger', text: 'High risk' },
+  // Sends a transaction: often routine (a swap through x-multihop-v2), so no alarm; the card says what can move
+  [PermissionLevel.CRITICAL]: { pill: 'cx-pill-warning', text: 'Review carefully' },
 };
 
 /** The risk pill and which site is asking for what */
