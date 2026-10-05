@@ -261,3 +261,6 @@ textarea.w-input { height: auto; padding: 10px 14px; resize: none; line-height: 
 .w-origin strong { color: var(--ink); font-family: var(--font-mono); font-weight: 500; font-size: 13px; }
 .w-feature { display: flex; align-items: center; gap: 10px; color: var(--ink-body); }
 .w-feature svg { flex: none; }
+
+/* A token's Blaze share, under its name in the Tokens tab */
+.w-blaze-line { display: inline-flex; align-items: center; gap: 4px; color: var(--blaze-v2) !important; font-family: var(--font-mono); font-size: 12px; }

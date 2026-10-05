@@ -2,7 +2,7 @@
  * TransferTab (Tokens) - the active account's tokens (STX and every SIP-10 it holds), and sending them.
  */
 import { useEffect, useState } from 'react';
-import { ChevronDown, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, Flame, RefreshCw } from 'lucide-react';
 import { useSignetContext } from '~shared/context/SignetContext';
 import { sendMessage } from '~shared/context/utils';
 import { Card, ErrorText, Kv } from '~shared/ui';
@@ -27,8 +27,11 @@ function parseUnits(text: string, decimals: number) {
 const usd = (value: number) =>
   value.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: value < 1 ? 4 : 2 });
 
-/** Whole-token amount of a balance (for pricing; display uses formatUnits) */
-const units = (token: TokenBalance) => Number(token.balance) / 10 ** token.meta!.decimals;
+/** Stacks and Blaze together, smallest units: the token's one balance */
+const totalOf = (token: TokenBalance) => (BigInt(token.balance) + BigInt(token.blaze)).toString();
+
+/** Whole-token amount of the whole balance (for pricing; display uses formatUnits) */
+const units = (token: TokenBalance) => Number(totalOf(token)) / 10 ** token.meta!.decimals;
 
 const label = (token: TokenBalance) => token.meta?.symbol ?? token.contractId.split('.')[1];
 
@@ -145,6 +148,9 @@ function SendForm({ token, onDone, onCancel }: { token: TokenBalance; onDone: ()
             <button type="button" className="cx-chip" onClick={() => setAmount(formatUnits(token.balance, decimals).replace(/,/g, ''))}>Max</button>
           </div>
         </label>
+        {token.blaze !== '0' && (
+          <p className="w-note">Sends use your {formatUnits(token.balance, decimals)} {label(token)} on Stacks. Your {formatUnits(token.blaze, decimals)} on Blaze stays in its subnet; move it with Charisma Swap.</p>
+        )}
         <ErrorText error={error} />
         <div className="w-actions">
           <button type="button" className="cx-btn" onClick={onCancel}>Cancel</button>
@@ -193,7 +199,8 @@ export function TransferTab() {
   const row = (token: TokenBalance) => {
     const key = `${token.contractId}::${token.asset}`;
     const open = selected === key;
-    const sendable = !!token.meta && token.listed;
+    // Sends spend the Stacks balance; a token held only on Blaze has nothing here to send
+    const sendable = !!token.meta && token.listed && token.balance !== '0';
     const value = valueOf(token);
     return (
       <div key={key} className="w-stack" style={{ gap: '8px' }}>
@@ -205,15 +212,19 @@ export function TransferTab() {
           style={sendable ? undefined : { cursor: 'default' }}
           onClick={() => sendable && setSelected(open ? null : key)}
           onKeyDown={e => { if (sendable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setSelected(open ? null : key); } }}
-          title={!token.listed ? 'Not on Charisma\'s token list: hidden from sends' : token.meta ? `Send ${label(token)}` : 'Unknown token: shown in smallest units, not sendable here'}
+          title={!token.listed ? 'Not on Charisma\'s token list: hidden from sends' : !token.meta ? 'Unknown token: shown in smallest units, not sendable here' : sendable ? `Send ${label(token)}` : `${label(token)} is all on Blaze: move it with Charisma Swap`}
         >
           <TokenIcon token={token} />
           <div className="cx-token-row-name">
             <strong>{label(token)}</strong>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{token.meta?.name ?? token.contractId}</span>
+            {token.blaze !== '0' && token.meta ? (
+              <span className="w-blaze-line"><Flame size={11} aria-hidden /> {formatUnits(token.blaze, token.meta.decimals)} on Blaze</span>
+            ) : (
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{token.meta?.name ?? token.contractId}</span>
+            )}
           </div>
           <div className="cx-token-row-bal">
-            {token.meta ? formatUnits(token.balance, token.meta.decimals) : `${token.balance} units`}
+            {token.meta ? formatUnits(totalOf(token), token.meta.decimals) : `${totalOf(token)} units`}
             <span>{prices ? (value === null ? '—' : usd(value)) : ''}</span>
           </div>
         </div>

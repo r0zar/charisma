@@ -2,11 +2,13 @@
  * Sign structured data (SIP-018): what the order does, in plain words.
  * Blaze orders (Charisma subnets) get a readable summary, including who the funds can be paid out to.
  */
+import { useEffect, useState } from "react"
 import { Cl, type ClarityValue, type TupleCV } from "@stacks/transactions"
+import { getTokenMetadataStrict } from "@repo/tokens"
 import { RequestHeader } from "./parts/UIComponents"
 import { PermissionLevel } from "./parts/types"
 import { BLAZE_V1_DOMAIN, LEGACY_MULTIHOP_CONTRACT_ID, MULTIHOP_CONTRACT_ID, MULTIHOP_V1_CONTRACT_ID } from "blaze-sdk"
-import { Kv } from "~shared/ui"
+import { formatUnits, Kv } from "~shared/ui"
 
 /** Routers and what they allow once they hold a signed order */
 const ROUTERS: Record<string, { text: string; tone: "success" | "danger" }> = {
@@ -27,8 +29,15 @@ function optional(value: ClarityValue | undefined): ClarityValue | null {
 
 
 function BlazeOrder({ fields }: { fields: Record<string, ClarityValue> }) {
-  const contract = Cl.prettyPrint(fields.contract)
+  const contract = Cl.prettyPrint(fields.contract).replace(/^'/, "")
   const amount = optional(fields.amount)
+  // Symbol and decimals from Charisma's token list; an unknown token stays in smallest units, never guessed
+  const [token, setToken] = useState<{ symbol: string; decimals: number } | null | undefined>(undefined)
+  useEffect(() => {
+    getTokenMetadataStrict(contract)
+      .then(data => setToken({ symbol: data.symbol, decimals: data.decimals }))
+      .catch(() => setToken(null))
+  }, [contract])
   const target = optional(fields.target)
   const targetId = target ? Cl.prettyPrint(target).replace(/^'/, "") : null
   const router = targetId ? ROUTERS[targetId] : null
@@ -37,8 +46,12 @@ function BlazeOrder({ fields }: { fields: Record<string, ClarityValue> }) {
   return (
     <>
       <Kv label="Action">{Cl.prettyPrint(fields.intent).replace(/"/g, "")}</Kv>
-      <Kv label="Token">{shortName(contract.replace(/^'/, ""))}</Kv>
-      {amount && <Kv label="Amount (smallest units)">{Cl.prettyPrint(amount).replace(/^u/, "")}</Kv>}
+      <Kv label="Token">{token ? `${token.symbol} on Blaze` : shortName(contract)}</Kv>
+      {amount?.type === "uint" && (
+        <Kv label={token === null ? "Amount (smallest units)" : "Amount"}>
+          {token ? `${formatUnits(BigInt(amount.value), token.decimals)} ${token.symbol}` : token === undefined ? "…" : amount.value.toString()}
+        </Kv>
+      )}
       {targetId && sendsTo && <Kv label="Sends to" tone="danger">{targetId}</Kv>}
       {targetId && !sendsTo && (
         <Kv label="Payout" tone={router?.tone ?? "warning"}>

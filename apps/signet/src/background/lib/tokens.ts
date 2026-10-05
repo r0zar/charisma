@@ -6,6 +6,7 @@ import { Cl, Pc, broadcastTransaction, makeContractCall, makeSTXTokenTransfer } 
 import { getTokenMetadataStrict, lakehouseClient, listTokens } from "@repo/tokens"
 import * as wallet from "./wallet"
 import { hiroClient, hiroFetch } from "./hiro"
+import { blazeTotals, subnetBalances } from "./subnets"
 
 const HIRO = "https://api.hiro.so"
 export const STX_ID = ".stx"
@@ -15,8 +16,10 @@ export interface TokenBalance {
   contractId: string
   /** Asset name inside the contract, needed for post conditions ("" for STX) */
   asset: string
-  /** Raw amount in the token's smallest unit */
+  /** On Stacks (the wallet itself), in the token's smallest unit: what sends spend */
   balance: string
+  /** On Blaze: the token's subnets (v1, v2 and older releases) added up, smallest units */
+  blaze: string
   /** Null when the token cache doesn't know the token: shown raw and not sendable */
   meta: { symbol: string; name: string; decimals: number; image: string | null } | null
   /** On Charisma's token list. Blocked tokens (scams) and unknown airdrops are not, and the wallet tucks them away. */
@@ -40,7 +43,7 @@ async function tokenMeta(contractId: string): Promise<TokenBalance["meta"]> {
   }
 }
 
-/** STX first, then every token with a balance */
+/** STX first, then every token with a balance on Stacks, on Blaze, or both */
 export async function getWalletBalances(): Promise<TokenBalance[]> {
   const { stxAddress } = await activeAccount()
   const res = await hiroFetch(`${HIRO}/extended/v1/address/${stxAddress}/balances`)
@@ -56,13 +59,22 @@ export async function getWalletBalances(): Promise<TokenBalance[]> {
   if (list.length === 0) throw new Error("Charisma's token list is unavailable, so tokens can't be checked against the block list")
   const listed = new Set(list.map(token => token.contractId))
   const spendableStx = (BigInt(data.stx.balance) - BigInt(data.stx.locked)).toString()
+  // Subnet balances fold into their base token's row; a token held only on Blaze gets a row of its own
+  const blaze = blazeTotals(await subnetBalances(stxAddress, list))
+  const onStacks = new Set([STX_ID, ...held.map(([key]) => key.split("::")[0])])
+  const onlyOnBlaze = [...blaze.keys()].filter(base => !onStacks.has(base))
+  const assetOf = (base: string) => list.find(token => token.contractId === base)?.identifier ?? ""
   // The token cache knows STX too (".stx"), logo included
   return Promise.all([
     [`${STX_ID}::`, { balance: spendableStx }] as const,
-    ...held
+    ...held,
+    ...onlyOnBlaze.map(base => [`${base}::${assetOf(base)}`, { balance: "0" }] as const),
   ].map(async ([key, { balance }]) => {
     const [contractId, asset] = key.split("::")
-    return { contractId, asset, balance, meta: await tokenMeta(contractId), listed: contractId === STX_ID || listed.has(contractId) }
+    return {
+      contractId, asset, balance, blaze: (blaze.get(contractId) ?? 0n).toString(),
+      meta: await tokenMeta(contractId), listed: contractId === STX_ID || listed.has(contractId),
+    }
   }))
 }
 

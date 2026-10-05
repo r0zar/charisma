@@ -38,5 +38,13 @@ export function ErrorText({ error }: { error: string | null }) {
   return error ? <p className="w-error" role="alert">{error}</p> : null
 }
 
+/** Smallest units as whole tokens, exactly: 1500000 with 6 decimals is "1.5" */
+export function formatUnits(raw: bigint, decimals: number): string {
+  const text = raw.toString().padStart(decimals + 1, "0")
+  const whole = text.slice(0, text.length - decimals)
+  const fraction = text.slice(text.length - decimals).replace(/0+$/, "")
+  return `${BigInt(whole).toLocaleString("en-US")}${fraction ? `.${fraction}` : ""}`
+}
+
 /** "SP2ZNG…55KS" */
 export const short = (address: string) => `${address.slice(0, 6)}…${address.slice(-4)}`

@@ -8,7 +8,7 @@ import { getTokenMetadataStrict } from "@repo/tokens"
 import { LEGACY_MULTIHOP_CONTRACT_ID, MULTIHOP_CONTRACT_ID, MULTIHOP_V1_CONTRACT_ID } from "blaze-sdk"
 import { RequestHeader } from "./parts/UIComponents"
 import { PermissionLevel } from "./parts/types"
-import { Kv } from "~shared/ui"
+import { formatUnits, Kv } from "~shared/ui"
 
 /** Routers and what they allow once they hold a signed order */
 const ROUTERS: Record<string, { text: string; tone: "success" | "danger" }> = {
@@ -27,13 +27,6 @@ function optional(value: ClarityValue | undefined): ClarityValue | null {
 }
 
 
-/** Smallest units as whole tokens */
-function formatUnits(raw: bigint, decimals: number): string {
-  const text = raw.toString().padStart(decimals + 1, "0")
-  const whole = text.slice(0, text.length - decimals)
-  const fraction = text.slice(text.length - decimals).replace(/0+$/, "")
-  return `${BigInt(whole).toLocaleString("en-US")}${fraction ? `.${fraction}` : ""}`
-}
 
 export function SignOrdersContent({ origin, address, messages }: { origin: string; address: string | null; messages: string[] }) {
   const orders = messages.map(m => (Cl.deserialize(m) as TupleCV).value)
