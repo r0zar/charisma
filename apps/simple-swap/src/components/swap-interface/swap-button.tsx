@@ -6,6 +6,7 @@ import { useRouterTrading } from '@/contexts/router-trading-context';
 import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { toast } from 'sonner';
 import { shouldShowErrorToast, getErrorMessage } from '@/lib/error-utils';
+import { moveOf } from '@/lib/route-move';
 
 export default function SwapButton() {
     // Get swap state from context
@@ -27,17 +28,9 @@ export default function SwapButton() {
     const showShimmer = !isLoadingQuote && !swapping && quote && selectedFromToken && selectedToToken && displayAmount && displayAmount !== "0";
 
     // Determine if this is a subnet shift operation
-    const isSubnetShift = quote?.hops.some((hop: any) =>
-        hop.vault.type === 'SUBLINK'
-    );
-
-    // Determine shift direction for button text
-    const getShiftDirection = () => {
-        if (!isSubnetShift || !selectedToToken) return null;
-        return selectedToToken.type === 'SUBNET' ? 'to-subnet' : 'from-subnet';
-    };
-
-    const shiftDirection = getShiftDirection();
+    // Moving one token between Stacks and Blaze says so; anything that changes the token is a swap
+    const shiftDirection = moveOf(quote?.hops);
+    const isSubnetShift = shiftDirection !== null;
 
     let buttonContent;
     if (isLoadingQuote) {
@@ -89,7 +82,7 @@ export default function SwapButton() {
                         <svg className="mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M7 17l10-10M7 7h10v10" />
                         </svg>
-                        {shiftDirection === 'to-subnet' ? 'Execute Subnet Deposit' : 'Execute Subnet Withdrawal'}
+                        {shiftDirection === 'to-subnet' ? 'Move to Blaze' : 'Move to Stacks'}
                     </>
                 ) : (
                     // Normal swap icon and text

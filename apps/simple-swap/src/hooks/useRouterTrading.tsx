@@ -24,6 +24,7 @@ import { TxMonitorClient } from '@repo/tx-monitor-client';
 import { registerTransactionForMonitoring } from '@/lib/activity/tx-monitor-client';
 import { toast } from 'sonner';
 import { baseTokenLeaves } from '@/lib/subnet-deposit';
+import { moveOf } from '@/lib/route-move';
 
 // Initialize tx-monitor client
 const txMonitorClient = new TxMonitorClient();
@@ -587,7 +588,7 @@ export function useRouterTradingState() {
           txid: res.txid,
           metadata: {
             route: quote.hops,
-            isSubnetShift: quote.hops.some((hop: any) => hop.vault.type === 'SUBLINK')
+            isSubnetShift: moveOf(quote.hops) !== null
           }
         });
         swapRecordId = swapRecord.id;
@@ -1171,21 +1172,14 @@ export function useRouterTradingState() {
 
   // ---------------------- UI Helper Logic ----------------------
   // Determine if this is a subnet shift operation
-  const isSubnetShift = useMemo(() => {
-    return quote?.hops.some((hop: any) => hop.vault.type === 'SUBLINK') || false;
-  }, [quote]);
-
-  // Get shift direction for label customization
-  const shiftDirection = useMemo((): 'to-subnet' | 'from-subnet' | null => {
-    if (!isSubnetShift || !selectedToToken) return null;
-    const toContractId = getContractIdForToken(selectedToToken, useSubnetTo, 'to');
-    return toContractId?.includes('-subnet') ? 'to-subnet' : 'from-subnet';
-  }, [isSubnetShift, selectedToToken, useSubnetTo, getContractIdForToken]);
+  // Moving one token between Stacks and Blaze, and which way; anything that changes the token is a swap
+  const shiftDirection = moveOf(quote?.hops);
+  const isSubnetShift = shiftDirection !== null;
 
   // Custom label based on operation type
   const toLabel = useMemo(() => {
     if (isSubnetShift) {
-      return shiftDirection === 'to-subnet' ? 'You receive in subnet' : 'You receive in mainnet';
+      return shiftDirection === 'to-subnet' ? 'You receive on Blaze' : 'You receive on Stacks';
     }
     return 'You receive';
   }, [isSubnetShift, shiftDirection]);

@@ -54,9 +54,9 @@ function createShareData(params: {
     } else {
         // Swap mode
         if (shiftDirection === 'to-subnet') {
-            text = `Subnet deposit: ${displayAmount || ''} ${selectedFromToken?.symbol} → ${toTag} (subnet) via Charisma`;
+            text = `Moving ${displayAmount || ''} ${selectedFromToken?.symbol} onto Blaze via Charisma`;
         } else if (shiftDirection === 'from-subnet') {
-            text = `Subnet swap: ${displayAmount || ''} ${selectedFromToken?.symbol} (subnet) → ${toTag} via Charisma`;
+            text = `Moving ${displayAmount || ''} ${selectedFromToken?.symbol} back to Stacks via Charisma`;
         } else {
             text = `Swap ${displayAmount || ''} ${selectedFromToken?.symbol} for ${toTag} on Charisma`;
         }

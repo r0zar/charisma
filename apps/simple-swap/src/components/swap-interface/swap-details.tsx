@@ -12,6 +12,7 @@ import { useSwapTokens } from '@/contexts/swap-tokens-context';
 import { formatTokenAmount, formatCompactNumber } from '@/lib/swap-utils';
 import { usePrices } from '@/contexts/token-price-context';
 import { formatPriceUSD } from '@/lib/utils';
+import { moveOf } from '@/lib/route-move';
 
 // Pool image with fallback for LP vaults
 function PoolImageWithFallback({ src, alt }: { src?: string; alt?: string }) {
@@ -62,29 +63,21 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
     const { getPrice } = usePrices();
 
 
-    // Determine if this is a subnet shift operation by checking for SUBLINK vault type
-    const isSubnetShift = quote?.hops.some((hop: Hop) => hop.vault.type === 'SUBLINK');
+    // Moving one token between Stacks and Blaze; anything that changes the token is a swap
+    const shiftDirection = moveOf(quote?.hops);
+    const isSubnetShift = shiftDirection !== null;
 
     // Detect if both from and to tokens are subnet tokens using type property
     const isFromSubnet = quote?.path[0]?.type === 'SUBNET';
     const isToSubnet = quote?.path[quote.path.length - 1]?.type === 'SUBNET';
     const isSubnetToSubnet = isFromSubnet && isToSubnet;
 
-    // Get the direction of the shift (to or from subnet)
-    const getShiftDirection = () => {
-        if (!isSubnetShift || !quote) return null;
-        const destinationToken = quote.path[quote.path.length - 1];
-        return destinationToken.type === 'SUBNET' ? 'to-subnet' : 'from-subnet';
-    };
-
-    const shiftDirection = getShiftDirection();
-
     // For clearer UI terminology
     let operationType: string;
     if (isSubnetToSubnet) {
         operationType = 'Subnet Swap';
     } else if (isSubnetShift) {
-        operationType = shiftDirection === 'to-subnet' ? 'Deposit' : 'Withdraw';
+        operationType = 'Move';
     } else {
         operationType = 'Swap';
     }
@@ -241,7 +234,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                     <div className="text-sm text-ink font-medium">Route Efficiency</div>
                     <div className="text-xs text-ink-muted mt-1">
                         {isSubnetShift
-                            ? (shiftDirection === 'to-subnet' ? 'Deposit to subnet' : 'Withdraw from suburb')
+                            ? (shiftDirection === 'to-subnet' ? 'Straight onto Blaze' : 'Straight back to Stacks')
                             : (securityLevel === 'high' ? 'Direct route' : securityLevel === 'medium' ? 'Optimized path' : 'Smart routing')
                         }
                     </div>
@@ -362,7 +355,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                                         {formatTokenAmount(Number(quote.amountOut * 0.99), selectedToToken.decimals || 0)} {selectedToToken.symbol}
                                     </div>
                                     <div className="text-xs text-ink-muted">
-                                        {isSubnetToSubnet ? 'Min. swapped' : isSubnetShift ? `Min. ${operationType.toLowerCase()}ed` : 'Min. received'}
+                                        {isSubnetToSubnet ? 'Min. swapped' : isSubnetShift ? 'Min. moved' : 'Min. received'}
                                     </div>
                                 </div>
                             </div>
@@ -573,9 +566,9 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                                                             : 'text-success '
                                                         }`}>
                                                         {isSubnetToSubnet
-                                                            ? 'Subnet Destination'
+                                                            ? 'On Blaze'
                                                             : isSubnetShift
-                                                                ? (shiftDirection === 'to-subnet' ? 'Subnet Destination' : 'Mainnet Destination')
+                                                                ? (shiftDirection === 'to-subnet' ? 'On Blaze' : 'On Stacks')
                                                                 : 'Destination'
                                                         }
                                                     </span>
