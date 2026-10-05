@@ -4,6 +4,7 @@ import React, { Suspense } from 'react';
 import { WalletProvider } from '@/contexts/wallet-context';
 import { TokenPriceProvider } from '@/contexts/token-price-context';
 import { WalletBalanceProvider } from '@/contexts/wallet-balance-context';
+import { BalanceNotices } from '@/components/balances/BalanceNotices';
 import { TokenMetadataProvider } from '@/contexts/token-metadata-context';
 import { SubnetTokensProvider } from '@/contexts/subnet-tokens-context';
 import type { TokenCacheData } from '@/lib/contract-registry-adapter';
@@ -29,6 +30,7 @@ function TokenAwareProviders({ children, initialTokens }: { children: React.Reac
             <TokenMetadataProvider initialTokens={initialTokens}>
                 <SubnetTokensProvider>
                     <WalletBalanceProvider>
+                        <BalanceNotices />
                         {children}
                     </WalletBalanceProvider>
                 </SubnetTokensProvider>

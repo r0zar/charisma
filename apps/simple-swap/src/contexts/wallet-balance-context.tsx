@@ -2,15 +2,41 @@
 
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { AccountBalancesResponse } from '@repo/polyglot';
-import { fetchAddressBalances } from '@/lib/balances';
+import { getBalances, watchBalances, type BalanceSheet } from 'blaze-sdk';
 import { formatTokenAmount } from '@/lib/swap-utils';
 import { useTokenMetadata } from './token-metadata-context';
 import { useSubnetTokens } from './subnet-tokens-context';
-import type { BulkBalanceResponse } from '@repo/tokens';
 import { isListedSubnet, pairOf } from '@/lib/subnet-pairs';
+
+/**
+ * Balances everywhere in Swap are instant balances: each watched wallet keeps one live stream open to the balance
+ * service (blaze-sdk watchBalances), so a number moves the moment something happens, with no polling. Each token's
+ * number is what's ready to use: settled on the chain, plus what's on its way, less what signed orders hold (it can
+ * go negative when orders promise more than the wallet holds). The sheets behind the numbers explain them.
+ */
+
+/** A sheet in the shape Swap's balance helpers read: each token's ready-to-use amount */
+function toAccountBalances(sheet: BalanceSheet): AccountBalancesResponse {
+  const ready = (token: string) => sheet.tokens[token]?.ready ?? '0';
+  const fungible_tokens: AccountBalancesResponse['fungible_tokens'] = {};
+  for (const [token, part] of Object.entries(sheet.tokens)) {
+    // A token whose chain balance couldn't be read is left out; the provider reports it in `error`
+    if (token === '.stx' || part.ready === null) continue;
+    fungible_tokens[token] = { balance: part.ready, total_sent: '0', total_received: '0' };
+  }
+  return { stx: { balance: ready('.stx'), total_sent: '0', total_received: '0' }, fungible_tokens, non_fungible_tokens: {} };
+}
+
+/** Tokens a sheet couldn't read, as one message */
+const unreadable = (sheet: BalanceSheet) => {
+  const failed = Object.entries(sheet.tokens).filter(([, t]) => t.error).map(([token]) => token.split('.')[1] ?? token);
+  return failed.length ? `Couldn't read ${failed.join(', ')} from the chain; those balances are missing until it can` : null;
+};
 
 interface WalletBalanceContextType {
   balances: Record<string, AccountBalancesResponse>;
+  /** The live balance sheet behind each watched wallet's numbers */
+  sheets: Record<string, BalanceSheet>;
   isLoading: boolean;
   error: string | null;
   lastUpdate: number;
@@ -36,103 +62,38 @@ const WalletBalanceContext = createContext<WalletBalanceContextType | undefined>
 
 interface WalletBalanceProviderProps {
   children: ReactNode;
-  refreshInterval?: number;
-  initialBalances?: Record<string, AccountBalancesResponse>;
-  initialServiceBalances?: BulkBalanceResponse;
 }
 
-export function WalletBalanceProvider({
-  children,
-  refreshInterval = 60000,
-  initialBalances,
-  initialServiceBalances
-}: WalletBalanceProviderProps) {
-  const [balances, setBalances] = useState<Record<string, AccountBalancesResponse>>(initialBalances || {});
-  const [isLoading, setIsLoading] = useState(false);
+export function WalletBalanceProvider({ children }: WalletBalanceProviderProps) {
+  const [sheets, setSheets] = useState<Record<string, BalanceSheet>>({});
   const [error, setError] = useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = useState(Date.now());
   const [watchedAddresses, setWatchedAddresses] = useState<string[]>([]);
 
+  const balances: Record<string, AccountBalancesResponse> = Object.fromEntries(
+    Object.entries(sheets).map(([address, sheet]) => [address, toAccountBalances(sheet)])
+  );
+  const isLoading = watchedAddresses.some(address => !sheets[address]);
+
   const { tokens, getTokenDecimals } = useTokenMetadata();
   const { getSubnetContractId } = useSubnetTokens();
-
-  // Use refs to track active requests and prevent duplicates
-  const activeRequests = useRef(new Set<string>());
-  const intervalRef = useRef<NodeJS.Timeout | undefined>();
 
   const isValidStacksAddress = (address: string): boolean => {
     return Boolean(address && (address.startsWith('SP') || address.startsWith('ST')));
   };
 
-  // Helper function to convert balance service data to AccountBalancesResponse format
-  const convertServiceBalancesToAccountResponse = (
-    address: string,
-    serviceBalances: Record<string, string>
-  ): AccountBalancesResponse => {
-    const fungible_tokens: Record<string, any> = {};
-
-    Object.entries(serviceBalances).forEach(([contractId, balance]) => {
-      if (balance !== '0') {
-        fungible_tokens[contractId] = {
-          balance: balance,
-          total_sent: '0',
-          total_received: balance,
-        };
-      }
-    });
-
-    return {
-      stx: {
-        balance: serviceBalances['STX'] || '0',
-        total_sent: '0',
-        total_received: serviceBalances['STX'] || '0',
-        total_fees_sent: '0',
-        total_miner_rewards_received: '0',
-        lock_tx_id: '',
-        locked: '0',
-        lock_height: 0,
-        burnchain_lock_height: 0,
-        burnchain_unlock_height: 0
-      },
-      fungible_tokens,
-      non_fungible_tokens: {}
-    };
+  const receive = (address: string, sheet: BalanceSheet) => {
+    setSheets(prev => ({ ...prev, [address]: sheet }));
+    setLastUpdate(Date.now());
+    setError(unreadable(sheet));
   };
 
+  /** Reads the sheets once more; live streams already keep them current, so this is rarely needed */
   const refreshBalances = async (addresses?: string[]) => {
-    const addressesToUpdate = (addresses || watchedAddresses).filter(
-      (address) => isValidStacksAddress(address) && !activeRequests.current.has(address)
-    );
-    if (addressesToUpdate.length === 0) return;
-
-    setIsLoading(true);
-    setError(null);
-    addressesToUpdate.forEach((address) => activeRequests.current.add(address));
-
-    try {
-      const results = await Promise.allSettled(
-        addressesToUpdate.map(async (address) => ({ address, balanceData: await fetchAddressBalances(address) }))
-      );
-
-      const newBalances = { ...balances };
-      const failures: string[] = [];
-      results.forEach((result) => {
-        if (result.status === 'fulfilled') {
-          newBalances[result.value.address] = result.value.balanceData;
-        } else {
-          failures.push(result.reason instanceof Error ? result.reason.message : String(result.reason));
-        }
-      });
-
-      setBalances(newBalances);
-      setLastUpdate(Date.now());
-      if (failures.length > 0) {
-        setError(failures.join('; '));
-      }
-    } finally {
-      addressesToUpdate.forEach((address) => activeRequests.current.delete(address));
-      setIsLoading(false);
-    }
+    const targets = (addresses || watchedAddresses).filter(isValidStacksAddress);
+    const results = await Promise.allSettled(targets.map(async address => receive(address, await getBalances(address))));
+    const failures = results.flatMap(r => (r.status === 'rejected' ? [r.reason instanceof Error ? r.reason.message : String(r.reason)] : []));
+    if (failures.length) setError(failures.join('; '));
   };
 
   const getBalance = (address: string): AccountBalancesResponse | null => {
@@ -296,81 +257,23 @@ export function WalletBalanceProvider({
 
   const removeWalletAddress = (address: string) => {
     setWatchedAddresses(prev => prev.filter(addr => addr !== address));
-    setBalances(prev => {
-      const newBalances = { ...prev };
-      delete newBalances[address];
-      return newBalances;
+    setSheets(prev => {
+      const { [address]: _gone, ...rest } = prev;
+      return rest;
     });
   };
 
-  // Process initial service balance data
+  // One live stream per watched wallet: the balance service pushes each change as it happens
   useEffect(() => {
-    if (initialServiceBalances?.success && initialServiceBalances.data) {
-
-      const processedBalances: Record<string, AccountBalancesResponse> = {};
-
-      Object.entries(initialServiceBalances.data).forEach(([address, serviceBalances]) => {
-        processedBalances[address] = convertServiceBalancesToAccountResponse(address, serviceBalances);
-
-        // Auto-add the address to watched list
-        setWatchedAddresses(prev => {
-          if (!prev.includes(address)) {
-            return [...prev, address];
-          }
-          return prev;
-        });
-      });
-
-      setBalances(prev => ({ ...prev, ...processedBalances }));
-      setLastUpdate(Date.now());
-
-    }
-  }, [initialServiceBalances]);
-
-
-  // Set up polling for balance updates
-  useEffect(() => {
-    if (watchedAddresses.length > 0) {
-      // Clear existing interval
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-
-      // Set up new interval
-      intervalRef.current = setInterval(() => {
-        refreshBalances();
-      }, refreshInterval);
-
-      // Initial refresh
-      refreshBalances();
-    } else {
-      // Clear interval if no addresses to watch
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = undefined;
-      }
-    }
-
-    // Cleanup on unmount or when dependencies change
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [watchedAddresses.length, refreshInterval]); // Only depend on length to avoid infinite loops
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-      activeRequests.current.clear();
-    };
-  }, []);
+    const stops = watchedAddresses.map(address =>
+      watchBalances(address, sheet => receive(address, sheet), { onProblem: problem => setError(problem.message) })
+    );
+    return () => stops.forEach(stop => stop());
+  }, [watchedAddresses.join(',')]);
 
   const contextValue: WalletBalanceContextType = {
     balances,
+    sheets,
     isLoading,
     error,
     lastUpdate,

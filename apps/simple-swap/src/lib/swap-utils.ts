@@ -18,6 +18,8 @@ export function formatCompactNumber(num: number): string {
 }
 
 export function formatTokenAmount(amount: number, decimals: number): string {
+    // Instant balances go negative when signed orders promise more than the wallet holds
+    if (amount < 0) return `-${formatTokenAmount(-amount, decimals)}`;
     const balance = amount / Math.pow(10, decimals);
 
     // Use consistent formatting logic with balance feed

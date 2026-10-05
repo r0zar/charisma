@@ -6,7 +6,6 @@ import SwapInterfaceContent from '@/components/swap-interface/swap-interface-con
 import { Header } from '@/components/layout/header';
 import { SwapTokensProvider, useSwapTokens } from '@/contexts/swap-tokens-context';
 import { OrderConditionsProvider } from '@/contexts/order-conditions-context';
-import { WalletBalanceProvider } from '@/contexts/wallet-balance-context';
 import { SwapInformationSidebar } from '@/components/swap-interface/swap-information-sidebar';
 import { RouteIntelligenceSidebar } from '@/components/swap-interface/route-intelligence-sidebar';
 import { X, BarChart3, Info } from 'lucide-react';
@@ -16,7 +15,6 @@ import { RouterTradingProvider } from '@/contexts/router-trading-context';
 interface SwapPageClientProps {
     tokens: any[];
     searchParams: { [key: string]: string | string[] | undefined };
-    initialBalances?: any; // Initial balances for the wallet
 }
 
 // Wrapper component that provides OrderConditionsProvider with tokens from SwapTokensProvider
@@ -39,7 +37,7 @@ function SwapPageWithProviders({ children }: { children: React.ReactNode }) {
     );
 }
 
-export default function SwapPageClient({ tokens, searchParams, initialBalances }: SwapPageClientProps) {
+export default function SwapPageClient({ tokens, searchParams }: SwapPageClientProps) {
     const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
     const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
 
@@ -55,8 +53,6 @@ export default function SwapPageClient({ tokens, searchParams, initialBalances }
 
     return (
         <SwapTokensProvider initialTokens={tokens} searchParams={urlSearchParams}>
-            {/* Wrap with balance provider that has initial balance data */}
-            <WalletBalanceProvider initialServiceBalances={initialBalances}>
                 <SwapPageWithProviders>
                     <div className="relative flex flex-col h-screen">
                         <Header />
@@ -173,7 +169,6 @@ export default function SwapPageClient({ tokens, searchParams, initialBalances }
                     </div>
                     <Footer className="mt-0" />
                 </SwapPageWithProviders>
-            </WalletBalanceProvider>
         </SwapTokensProvider>
     );
 }

@@ -15,7 +15,9 @@ import { formatTokenAmount, formatCompactNumber } from '@/lib/swap-utils';
 import { useWallet } from '@/contexts/wallet-context';
 import { BalanceTooltip } from '@/components/ui/tooltip';
 import BalanceSourceSwitch from './BalanceSourceSwitch';
-import { rowBlazeVersion } from '@/lib/subnet-pairs';
+import { pairOf, rowBlazeVersion } from '@/lib/subnet-pairs';
+import { AnimatedAmount } from '@/components/balances/AnimatedAmount';
+import { BalanceGlance } from '@/components/balances/BalanceGlance';
 
 export default function TokenOutputSection() {
     const [showChart, setShowChart] = useState(false);
@@ -60,7 +62,7 @@ export default function TokenOutputSection() {
     const listedSubnet = subnetDisplayTokens.find(t => t.base === selectedToToken?.contractId)?.contractId;
 
     // Calculate compact balance display and tooltip content
-    const { compactBalance, tooltipData } = React.useMemo(() => {
+    const { tooltipData } = React.useMemo(() => {
         if (!address || !selectedToToken) return { compactBalance: '0', tooltipData: { mainnet: '0', activeLabel: 'Mainnet', subnet: undefined } };
 
         // Check if this token has a subnet version
@@ -86,6 +88,14 @@ export default function TokenOutputSection() {
     }, [address, selectedToToken, getFormattedMainnetBalance, getFormattedSubnetBalance, subnetDisplayTokens, useSubnetTo]);
 
     const outputAmount = quote && selectedToToken ? formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 6) : "0.00";
+
+    // The balance where the output lands: the token on Stacks, or its Blaze subnet(s)
+    const landsOnSubnet = useSubnetTo && !!listedSubnet;
+    const toPair = pairOf(listedSubnet);
+    const shownTokens = landsOnSubnet ? (toPair ? [toPair.v1, toPair.v2] : [listedSubnet!]) : selectedToToken ? [selectedToToken.contractId] : [];
+    const decimals = selectedToToken?.decimals ?? 6;
+    const shownBalance = !address || !selectedToToken ? 0
+        : landsOnSubnet ? getSubnetBalance(address, listedSubnet!) : getTokenBalance(address, selectedToToken.contractId);
 
     const handleSelectToken = (t: TokenCacheData) => {
         console.log("Selected TO token:", t.symbol);
@@ -153,13 +163,18 @@ export default function TokenOutputSection() {
                         </div>
 
                         <div className="text-right flex-shrink-0">
-                            <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} activeLabel={tooltipData.activeLabel} side="bottom">
-                                <div className="cursor-help">
-                                    <div className="text-sm font-semibold text-ink">
-                                        {compactBalance} {selectedToToken.symbol}
+                            <div className="flex items-center justify-end gap-1.5">
+                                <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} activeLabel={tooltipData.activeLabel} side="bottom">
+                                    <div className="cursor-help">
+                                        <div className="text-sm font-semibold text-ink">
+                                            <AnimatedAmount key={shownTokens.join()} value={shownBalance} format={n => formatTokenAmount(n, decimals)} /> {selectedToToken.symbol}
+                                        </div>
                                     </div>
-                                </div>
-                            </BalanceTooltip>
+                                </BalanceTooltip>
+                                {address && (
+                                    <BalanceGlance address={address} tokens={shownTokens} base={selectedToToken.contractId} symbol={selectedToToken.symbol} decimals={decimals} />
+                                )}
+                            </div>
                         </div>
                     </div>
 

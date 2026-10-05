@@ -15,6 +15,8 @@ import { BalanceTooltip } from '@/components/ui/tooltip';
 import BalanceSourceSwitch from './BalanceSourceSwitch';
 import { formatCompactNumber, formatTokenAmount } from '@/lib/swap-utils';
 import { pairOf, rowBlazeVersion } from '@/lib/subnet-pairs';
+import { AnimatedAmount } from '@/components/balances/AnimatedAmount';
+import { BalanceGlance } from '@/components/balances/BalanceGlance';
 
 export default function TokenInputSection() {
     const [showChart, setShowChart] = useState(false);
@@ -54,7 +56,7 @@ export default function TokenInputSection() {
     const baseContractId = getBaseContractId(selectedFromToken);
     
     // Calculate compact balance display and tooltip content
-    const { compactBalance, tooltipData, rawActiveBalance } = React.useMemo(() => {
+    const { tooltipData, rawActiveBalance } = React.useMemo(() => {
         if (!address || !baseContractId) return { compactBalance: '0', tooltipData: { mainnet: '0', activeLabel: 'Mainnet', subnet: undefined }, rawActiveBalance: 0 };
 
         const rawMainnetBalance = getTokenBalance(address, baseContractId);
@@ -94,6 +96,11 @@ export default function TokenInputSection() {
         ? [['Blaze v1', fromPair.v1], ['Blaze v2', fromPair.v2]]
             .map(([part, subnet]) => ({ label: part, amount: formatTokenAmount(getSubnetBalanceExact(address, subnet), fromPair.decimals) }))
         : undefined;
+
+    // The contracts behind the shown balance: the token on Stacks, or its Blaze subnet(s)
+    const paysFromSubnet = useSubnetFrom && !!listedSubnet;
+    const shownTokens = paysFromSubnet ? (fromPair ? [fromPair.v1, fromPair.v2] : [listedSubnet!]) : baseContractId ? [baseContractId] : [];
+    const decimals = selectedFromToken?.decimals ?? 6;
 
     // Determine which tokens to show and other props based on mode
     const label = 'You send';
@@ -192,13 +199,18 @@ export default function TokenInputSection() {
                         </div>
 
                         <div className="text-right flex-shrink-0">
-                            <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} subnetParts={splitParts} activeLabel={tooltipData.activeLabel} side="bottom">
-                                <div className="cursor-help">
-                                    <div className="text-sm font-semibold text-ink">
-                                        {compactBalance} {selectedFromToken.symbol}
+                            <div className="flex items-center justify-end gap-1.5">
+                                <BalanceTooltip mainnet={tooltipData.mainnet} subnet={tooltipData.subnet} subnetParts={splitParts} activeLabel={tooltipData.activeLabel} side="bottom">
+                                    <div className="cursor-help">
+                                        <div className="text-sm font-semibold text-ink">
+                                            <AnimatedAmount key={shownTokens.join()} value={rawActiveBalance} format={n => formatTokenAmount(n, decimals)} /> {selectedFromToken.symbol}
+                                        </div>
                                     </div>
-                                </div>
-                            </BalanceTooltip>
+                                </BalanceTooltip>
+                                {address && baseContractId && (
+                                    <BalanceGlance address={address} tokens={shownTokens} base={baseContractId} symbol={selectedFromToken.symbol} decimals={decimals} />
+                                )}
+                            </div>
 
                             {/* Quick Balance Actions */}
                             <div className="flex items-center gap-1 mt-2">

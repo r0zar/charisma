@@ -4,11 +4,12 @@ import { Flame } from 'lucide-react';
 import type { BlazeVersion } from 'blaze-sdk';
 import { formatCompactNumber } from '@/lib/swap-utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { AnimatedAmount } from '@/components/balances/AnimatedAmount';
 
 /** Launchpad's subnet maker, opened with the token already chosen */
 const deploySubnetUrl = (tokenId: string) => `https://launchpad.charisma.rocks/templates/subnet-wrapper?token=${encodeURIComponent(tokenId)}`;
 
-const compact = (formatted: string) => formatCompactNumber(Number(formatted.replace(/,/g, '')));
+const amountOf = (formatted: string) => Number(formatted.replace(/,/g, ''));
 
 /** The Stacks mark: two bars, split by an X */
 const StacksMark = ({ className = '' }: { className?: string }) => (
@@ -80,7 +81,9 @@ export default function BalanceSourceSwitch({ label, subnet, onChange, wallet, s
                     ? <Flame className={`h-3 w-3 ${active ? `${flame} fill-current` : ''}`} />
                     : <StacksMark className="h-3 w-3" />}
                 <span className="font-medium">{isSubnet ? 'Blaze' : 'Stacks'}</span>
-                {balance !== undefined && <span className="font-mono text-ink-muted">{compact(balance)}</span>}
+                {balance !== undefined && (
+                    <AnimatedAmount value={amountOf(balance)} format={formatCompactNumber} className="font-mono text-ink-muted" />
+                )}
             </button>
         );
     };
