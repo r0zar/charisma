@@ -1,8 +1,6 @@
 // @ts-ignore: vercel/kv runtime import without types
 import { kv } from '@vercel/kv';
-import { createHash } from 'node:crypto';
-import { Cl, encodeStructuredDataBytes, getAddressFromPublicKey, publicKeyFromSignatureRsv } from '@stacks/transactions';
-import { blazeDomain, blazeVersionOf } from 'blaze-sdk';
+import { intentSigner } from '../blaze-signer';
 
 /**
  * Every successful trade through Charisma's routers, read from the chain (Hiro) and kept in KV, one key per
@@ -66,17 +64,7 @@ async function orderSigner(inRepr: string, router: string): Promise<string> {
   const token = principalIn(inRepr, 'token');
   const uuid = inRepr.match(/\(uuid "([^"]+)"\)/)?.[1];
   if (!amount || !signature || !token || !uuid) throw new Error(`Can't read the signed order in ${inRepr.slice(0, 80)}`);
-  const message = Cl.tuple({
-    contract: Cl.principal(token),
-    intent: Cl.stringAscii('TRANSFER_TOKENS'),
-    opcode: Cl.none(),
-    amount: Cl.some(Cl.uint(BigInt(amount))),
-    target: Cl.some(Cl.principal(router)),
-    uuid: Cl.stringAscii(uuid),
-  });
-  const domain = blazeDomain(await blazeVersionOf(token));
-  const hash = createHash('sha256').update(encodeStructuredDataBytes({ message, domain })).digest('hex');
-  return getAddressFromPublicKey(publicKeyFromSignatureRsv(hash, signature), 'mainnet');
+  return intentSigner({ signature, contract: token, intent: 'TRANSFER_TOKENS', amount: BigInt(amount), target: router, uuid });
 }
 
 const principalIn = (repr: string, field: string) => repr.match(new RegExp(`\\(${field} '([A-Z0-9]+\\.[a-zA-Z0-9-]+)\\)`))?.[1];

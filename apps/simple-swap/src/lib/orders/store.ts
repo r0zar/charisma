@@ -2,10 +2,17 @@
 
 import { LimitOrder, NewOrderRequest } from './types';
 import { orderHandle } from './public';
+import { activeKey, isActive, ORDERS_KEY } from './active';
 // @ts-ignore: vercel/kv runtime import without types
 import { kv } from '@vercel/kv';
 
-const HASH_KEY = 'orders'; // Redis hash holding order JSON blobs
+const HASH_KEY = ORDERS_KEY; // Redis hash holding order JSON blobs
+
+/** Every write goes through here, so the per-owner index of orders that can still spend stays in step */
+async function save(order: LimitOrder): Promise<void> {
+    await kv.hset(HASH_KEY, { [order.uuid]: JSON.stringify(order) });
+    await (isActive(order) ? kv.sadd(activeKey(order.owner), order.uuid) : kv.srem(activeKey(order.owner), order.uuid));
+}
 
 export async function addOrder(req: NewOrderRequest): Promise<LimitOrder> {
     // Validate strategy metadata for Twitter strategies
@@ -31,7 +38,7 @@ export async function addOrder(req: NewOrderRequest): Promise<LimitOrder> {
         status: 'open',
         createdAt: new Date().toISOString(),
     };
-    await kv.hset(HASH_KEY, { [order.uuid]: JSON.stringify(order) });
+    await save(order);
     return order;
 }
 
@@ -154,7 +161,7 @@ export async function cancelOrder(uuid: string): Promise<LimitOrder | undefined>
     if (order.status === 'open') {
         order.status = 'cancelled';
         order.cancelledAt = new Date().toISOString();
-        await kv.hset(HASH_KEY, { [uuid]: JSON.stringify(order) });
+        await save(order);
     }
     return order;
 }
@@ -166,7 +173,7 @@ export async function expireOrder(uuid: string): Promise<LimitOrder | undefined>
     if (order.status === 'open' || order.status === 'broadcasted') {
         order.status = 'cancelled';
         order.cancelledAt = new Date().toISOString();
-        await kv.hset(HASH_KEY, { [uuid]: JSON.stringify(order) });
+        await save(order);
     }
     return order;
 }
@@ -178,7 +185,7 @@ export async function broadcastOrder(uuid: string, txid: string): Promise<LimitO
         order.status = 'broadcasted';
         order.txid = txid;
         order.broadcastedAt = new Date().toISOString();
-        await kv.hset(HASH_KEY, { [uuid]: JSON.stringify(order) });
+        await save(order);
     }
     return order;
 }
@@ -194,7 +201,7 @@ export async function reopenOrder(uuid: string): Promise<LimitOrder | undefined>
         order.status = 'open';
         delete order.txid;
         delete order.broadcastedAt;
-        await kv.hset(HASH_KEY, { [uuid]: JSON.stringify(order) });
+        await save(order);
     }
     return order;
 }
@@ -214,7 +221,7 @@ export async function confirmOrder(uuid: string, blockHeight?: number, blockTime
         order.blockHeight = blockHeight;
         order.blockTime = blockTime;
         order.confirmedAt = new Date().toISOString();
-        await kv.hset(HASH_KEY, { [uuid]: JSON.stringify(order) });
+        await save(order);
         console.log(`[ORDERS] ✅ Order ${uuid} successfully updated to confirmed status`);
     } else {
         console.warn(`[ORDERS] Cannot confirm order ${uuid}: current status is '${order.status}', expected 'broadcasted' or 'filled'`);
@@ -236,7 +243,7 @@ export async function failOrder(uuid: string, reason: string): Promise<LimitOrde
         order.status = 'failed';
         order.failedAt = new Date().toISOString();
         order.failureReason = reason;
-        await kv.hset(HASH_KEY, { [uuid]: JSON.stringify(order) });
+        await save(order);
         console.log(`[ORDERS] ❌ Order ${uuid} successfully updated to failed status`);
     } else {
         console.warn(`[ORDERS] Cannot fail order ${uuid}: current status is '${order.status}', expected 'broadcasted' or 'filled'`);
@@ -251,5 +258,5 @@ export async function fillOrder(uuid: string, txid: string): Promise<LimitOrder 
 }
 
 export async function updateOrder(order: LimitOrder): Promise<void> {
-    await kv.hset(HASH_KEY, { [order.uuid]: JSON.stringify(order) });
+    await save(order);
 } 

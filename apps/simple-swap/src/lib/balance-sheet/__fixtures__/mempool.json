@@ -1,0 +1,1227 @@
+{
+ "note": "Real Charisma transactions from mainnet (Oct 2026), trimmed to what decode reads, replayed as if still waiting to be mined",
+ "txs": [
+  {
+   "tx_id": "0x5af1dc0b2831ecd141b553f33ad7b870983dfced5f4066ca15af697e4000a0f2",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1791222253,
+   "sender_address": "SP2Z2CBMGWB9MQZAF5Z8X56KS69XRV3SJF4WKJ7J9",
+   "sponsored": false,
+   "fee_rate": "2999",
+   "nonce": 1483,
+   "post_condition_mode": "deny",
+   "post_conditions": [
+    {
+     "principal": {
+      "type_id": "principal_standard",
+      "address": "SP2Z2CBMGWB9MQZAF5Z8X56KS69XRV3SJF4WKJ7J9"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "10500000",
+     "type": "stx"
+    }
+   ],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop",
+    "function_name": "swap-1",
+    "function_args": [
+     {
+      "hex": "0x0100000000000000000000000000989680",
+      "repr": "u10000000",
+      "name": "amount",
+      "type": "uint"
+     },
+     {
+      "hex": "0x0c00000002066f70636f64650a02000000100500000000000000000000000000000004706f6f6c0616bf584905755be35f11b96c2691fd9c3fc64f4b160e7374782d7375626c696e6b2d7632",
+      "repr": "(tuple (opcode (some 0x05000000000000000000000000000000)) (pool 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-sublink-v2))",
+      "name": "hop-1",
+      "type": "(tuple (opcode (optional (buff 16))) (pool trait_reference))"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok (list (tuple (dk u0) (dx u10000000) (dy u10000000))))"
+   }
+  },
+  {
+   "tx_id": "0x5184d3de67cb539dccdf4374a0bcc78e49e1474a1dc1bb4d41682c0d4cba1a1c",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1791218821,
+   "sender_address": "SP1202DRPN7M3EBS9G0ZFZG8C1DD5Q7Q2RAF01TWR",
+   "sponsored": false,
+   "fee_rate": "10000",
+   "nonce": 9867,
+   "post_condition_mode": "deny",
+   "post_conditions": [
+    {
+     "principal": {
+      "type_id": "principal_standard",
+      "address": "SP1202DRPN7M3EBS9G0ZFZG8C1DD5Q7Q2RAF01TWR"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "2100000",
+     "type": "stx"
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SM1FKXGNZJWSTWDWXQZJNF7B5TV5ZB235JTCXYXKD",
+      "contract_name": "dlmm-pool-stx-sbtc-v-1-bps-15"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "858",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "sbtc-token",
+      "contract_address": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4",
+      "contract_name": "sbtc-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_standard",
+      "address": "SP1202DRPN7M3EBS9G0ZFZG8C1DD5Q7Q2RAF01TWR"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "949",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "sbtc-token",
+      "contract_address": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4",
+      "contract_name": "sbtc-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2KGJEAZRDVK78ZWTRGSDE11A1VMZVEATNQFZ73C",
+      "contract_name": "world-peace-sbtc-v1"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "684260895059",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "WPS",
+      "contract_address": "SP14J806BWEPQAXVA0G6RYZN7GNA126B7JFRRYTEM",
+      "contract_name": "world-peace-stacks-stxcity"
+     }
+    }
+   ],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop",
+    "function_name": "swap-2",
+    "function_args": [
+     {
+      "hex": "0x01000000000000000000000000001e8480",
+      "repr": "u2000000",
+      "name": "amount",
+      "type": "uint"
+     },
+     {
+      "hex": "0x0c00000002066f70636f64650a02000000100000000000000000000000000000000004706f6f6c0616bf584905755be35f11b96c2691fd9c3fc64f4b1610626974666c6f772d7374782d73627463",
+      "repr": "(tuple (opcode (some 0x00000000000000000000000000000000)) (pool 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitflow-stx-sbtc))",
+      "name": "hop-1",
+      "type": "(tuple (opcode (optional (buff 16))) (pool trait_reference))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f64650a02000000100000000000000000000000000000000004706f6f6c0616a709395fc37733a3fcd62196b82150774fedcad513776f726c642d70656163652d736274632d7631",
+      "repr": "(tuple (opcode (some 0x00000000000000000000000000000000)) (pool 'SP2KGJEAZRDVK78ZWTRGSDE11A1VMZVEATNQFZ73C.world-peace-sbtc-v1))",
+      "name": "hop-2",
+      "type": "(tuple (opcode (optional (buff 16))) (pool trait_reference))"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok (list (tuple (dk u0) (dx u2000000) (dy u904)) (tuple (dk u0) (dx u894) (dy u720274626378))))"
+   }
+  },
+  {
+   "tx_id": "0xb58f61bfb1379694801029981e4a5afc78962fda4a16b679d34462b6f384ff82",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1791171482,
+   "sender_address": "SP1202DRPN7M3EBS9G0ZFZG8C1DD5Q7Q2RAF01TWR",
+   "sponsored": false,
+   "fee_rate": "10000",
+   "nonce": 9783,
+   "post_condition_mode": "deny",
+   "post_conditions": [
+    {
+     "principal": {
+      "type_id": "principal_standard",
+      "address": "SP1202DRPN7M3EBS9G0ZFZG8C1DD5Q7Q2RAF01TWR"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "36540000000",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "SHARK",
+      "contract_address": "SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS",
+      "contract_name": "shark-coin-stxcity"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS",
+      "contract_name": "stxshark"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "9998410",
+     "type": "stx"
+    }
+   ],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop",
+    "function_name": "swap-1",
+    "function_args": [
+     {
+      "hex": "0x010000000000000000000000081a3ddc00",
+      "repr": "u34800000000",
+      "name": "amount",
+      "type": "uint"
+     },
+     {
+      "hex": "0x0c00000002066f70636f64650a02000000100100000000000000000000000000000004706f6f6c0616674528fab7caaffc9c31fa7252557ce9529cc60108737478736861726b",
+      "repr": "(tuple (opcode (some 0x01000000000000000000000000000000)) (pool 'SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS.stxshark))",
+      "name": "hop-1",
+      "type": "(tuple (opcode (optional (buff 16))) (pool trait_reference))"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok (list (tuple (dk u0) (dx u33060000000) (dy u10524643))))"
+   }
+  },
+  {
+   "tx_id": "0xd6bc84d251655ce91fce3c92c2bf51b0b05252463503fa53a97b8d89cb9ffe2a",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1791227556,
+   "sender_address": "SP3619DGWH08262BJAG0NPFHZQDPN4TKMXHC0ZQDN",
+   "sponsored": false,
+   "fee_rate": "1305",
+   "nonce": 479,
+   "post_condition_mode": "deny",
+   "post_conditions": [
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "x-multihop-v2"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "328683724999",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "welshcorgicoin",
+      "contract_address": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G",
+      "contract_name": "welshcorgicoin-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "welsh-token-subnet-v1"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "322175136386",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "welshcorgicoin",
+      "contract_address": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G",
+      "contract_name": "welshcorgicoin-token"
+     }
+    }
+   ],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v2",
+    "function_name": "x-swap-2",
+    "function_args": [
+     {
+      "hex": "0x0c0000000406616d6f756e740100000000000000000000004bc51b09a5097369676e6174757265020000004131e5cc8d733dc6285b187458ef654d882396c2917676202f58e870627b88f4a82f7cd40e6ee98c51d1c00b67811833bfa274deacb7954f42a152a15b90cfbe590005746f6b656e0616bf584905755be35f11b96c2691fd9c3fc64f4b161577656c73682d746f6b656e2d7375626e65742d763104757569640d0000002431373837623436382d663531622d343133662d383434662d363236643434613236323433",
+      "repr": "(tuple (amount u325429430693) (signature 0x31e5cc8d733dc6285b187458ef654d882396c2917676202f58e870627b88f4a82f7cd40e6ee98c51d1c00b67811833bfa274deacb7954f42a152a15b90cfbe5900) (token 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v1) (uuid \"1787b468-f51b-413f-844f-626d44a26243\"))",
+      "name": "in",
+      "type": "(tuple (amount uint) (signature (buff 65)) (token trait_reference) (uuid (string-ascii 36)))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000106057661756c740616617955542390241f74f143a71d43414acc12c44d0d77656c73682d7375626c696e6b",
+      "repr": "(tuple (opcode 0x06) (vault 'SP1GQJNAM4E8287VMY51TE7A3855CR4P49QYYP9GS.welsh-sublink))",
+      "name": "hop-1",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000105057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b161077656c73682d7375626c696e6b2d7632",
+      "repr": "(tuple (opcode 0x05) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-sublink-v2))",
+      "name": "hop-2",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c0000000202746f0516bf584905755be35f11b96c2691fd9c3fc64f4b1605746f6b656e0616bf584905755be35f11b96c2691fd9c3fc64f4b161577656c73682d746f6b656e2d7375626e65742d7632",
+      "repr": "(tuple (to 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS) (token 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v2))",
+      "name": "out",
+      "type": "(tuple (to principal) (token trait_reference))"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok (list (tuple (dk u0) (dx u325429430693) (dy u325429430693)) (tuple (dk u0) (dx u325429430693) (dy u325429430693))))"
+   }
+  },
+  {
+   "tx_id": "0x073fc94aa619a3e9187e1f68cb5420780731b3769e6e99705a8aeba933f167ba",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1791227556,
+   "sender_address": "SP3619DGWH08262BJAG0NPFHZQDPN4TKMXHC0ZQDN",
+   "sponsored": false,
+   "fee_rate": "1305",
+   "nonce": 478,
+   "post_condition_mode": "deny",
+   "post_conditions": [
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "x-multihop-v2"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "968211",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "sbtc-token",
+      "contract_address": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4",
+      "contract_name": "sbtc-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "sbtc-token-subnet-v1"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "949038",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "sbtc-token",
+      "contract_address": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4",
+      "contract_name": "sbtc-token"
+     }
+    }
+   ],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v2",
+    "function_name": "x-swap-2",
+    "function_args": [
+     {
+      "hex": "0x0c0000000406616d6f756e7401000000000000000000000000000ea0a1097369676e6174757265020000004141e30095f9c6d59c84840822897f037b2602544faaca885bee1bc06c712058f40936682d2e6fc983f3ee04cffeec61c7ff416afa84fba532c7e80a71facdf6710005746f6b656e0616bf584905755be35f11b96c2691fd9c3fc64f4b1614736274632d746f6b656e2d7375626e65742d763104757569640d0000002437306666356430652d656165332d343239612d613233642d366137623139366233313462",
+      "repr": "(tuple (amount u958625) (signature 0x41e30095f9c6d59c84840822897f037b2602544faaca885bee1bc06c712058f40936682d2e6fc983f3ee04cffeec61c7ff416afa84fba532c7e80a71facdf67100) (token 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v1) (uuid \"70ff5d0e-eae3-429a-a23d-6a7b196b314b\"))",
+      "name": "in",
+      "type": "(tuple (amount uint) (signature (buff 65)) (token trait_reference) (uuid (string-ascii 36)))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000106057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b160d626c617a652d626974636f696e",
+      "repr": "(tuple (opcode 0x06) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-bitcoin))",
+      "name": "hop-1",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000105057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b160f736274632d7375626c696e6b2d7632",
+      "repr": "(tuple (opcode 0x05) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-sublink-v2))",
+      "name": "hop-2",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c0000000202746f0516bf584905755be35f11b96c2691fd9c3fc64f4b1605746f6b656e0616bf584905755be35f11b96c2691fd9c3fc64f4b1614736274632d746f6b656e2d7375626e65742d7632",
+      "repr": "(tuple (to 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS) (token 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v2))",
+      "name": "out",
+      "type": "(tuple (to principal) (token trait_reference))"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok (list (tuple (dk u0) (dx u958625) (dy u958625)) (tuple (dk u0) (dx u958625) (dy u958625))))"
+   }
+  },
+  {
+   "tx_id": "0xad9b53e50e0e7c2701a70a03a1c2180ab9db8dc85dec2d15abce44c522853b56",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1791222886,
+   "sender_address": "SP3619DGWH08262BJAG0NPFHZQDPN4TKMXHC0ZQDN",
+   "sponsored": false,
+   "fee_rate": "1791",
+   "nonce": 477,
+   "post_condition_mode": "deny",
+   "post_conditions": [
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "x-multihop-v2"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "144285",
+     "type": "stx"
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "stx-subnet-v2"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "141428",
+     "type": "stx"
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SM1FKXGNZJWSTWDWXQZJNF7B5TV5ZB235JTCXYXKD",
+      "contract_name": "dlmm-pool-zest-stx-v-2-bps-50"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "300264",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "zest",
+      "contract_address": "SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7",
+      "contract_name": "zest-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "x-multihop-v2"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "300264",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "zest",
+      "contract_address": "SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7",
+      "contract_name": "zest-token"
+     }
+    }
+   ],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v2",
+    "function_name": "x-swap-2",
+    "function_args": [
+     {
+      "hex": "0x0c0000000406616d6f756e740100000000000000000000000000022e09097369676e61747572650200000041d0da741551fa25077c59830d536897f11580d4d35d76856a10ff8645a9d59cdd0ff0a54e1ee61d95a0234cf2abad11e2ea8bacaea163924788626fd842d57c720005746f6b656e0616bf584905755be35f11b96c2691fd9c3fc64f4b160d7374782d7375626e65742d763204757569640d0000002466323231356262382d316635352d343765652d623066662d363639316466653437353934",
+      "repr": "(tuple (amount u142857) (signature 0xd0da741551fa25077c59830d536897f11580d4d35d76856a10ff8645a9d59cdd0ff0a54e1ee61d95a0234cf2abad11e2ea8bacaea163924788626fd842d57c7200) (token 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-subnet-v2) (uuid \"f2215bb8-1f55-47ee-b0ff-6691dfe47594\"))",
+      "name": "in",
+      "type": "(tuple (amount uint) (signature (buff 65)) (token trait_reference) (uuid (string-ascii 36)))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000106057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b160e7374782d7375626c696e6b2d7632",
+      "repr": "(tuple (opcode 0x06) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-sublink-v2))",
+      "name": "hop-1",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000101057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b160d6665656c696e672d7a65737479",
+      "repr": "(tuple (opcode 0x01) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.feeling-zesty))",
+      "name": "hop-2",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c0000000202746f0516be262e90e2d34bfd4f2fd1d29a79327b8d8f327905746f6b656e06165423cdfe275d8bb19862b0cf342c616a7a18c8420a7a6573742d746f6b656e",
+      "repr": "(tuple (to 'SP2Z2CBMGWB9MQZAF5Z8X56KS69XRV3SJF4WKJ7J9) (token 'SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.zest-token))",
+      "name": "out",
+      "type": "(tuple (to principal) (token trait_reference))"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok (list (tuple (dk u0) (dx u142857) (dy u142857)) (tuple (dk u0) (dx u142857) (dy u303297))))"
+   }
+  },
+  {
+   "tx_id": "0xd2e0b24cd8a7d243bc688ff26fb8bff57f4402057237d930d334cbc95ec1a912",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1790873561,
+   "sender_address": "SP3619DGWH08262BJAG0NPFHZQDPN4TKMXHC0ZQDN",
+   "sponsored": false,
+   "fee_rate": "1113",
+   "nonce": 475,
+   "post_condition_mode": "deny",
+   "post_conditions": [
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "x-multihop-v1"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "65960144",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "charisma",
+      "contract_address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "charisma-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "x-multihop-v1"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "15658476",
+     "type": "stx"
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "charisma-token-subnet-v1"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "64654003",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "charisma",
+      "contract_address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "charisma-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "charismatic-flow"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "15348407",
+     "type": "stx"
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SM1FKXGNZJWSTWDWXQZJNF7B5TV5ZB235JTCXYXKD",
+      "contract_name": "dlmm-pool-stx-sbtc-v-1-bps-15"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "6941",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "sbtc-token",
+      "contract_address": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4",
+      "contract_name": "sbtc-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "x-multihop-v1"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "6941",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "sbtc-token",
+      "contract_address": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4",
+      "contract_name": "sbtc-token"
+     }
+    }
+   ],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1",
+    "function_name": "x-swap-3",
+    "function_args": [
+     {
+      "hex": "0x0c0000000406616d6f756e740100000000000000000000000003e481c2097369676e61747572650200000041138941d4877331a43b93e40cbddc84ab0b178bf244ec276673a8a692fd6556a8402b38d045a84ba447ee9765dc5aa231b714095e664ea30a315dd2f8722dbe300105746f6b656e0616bf584905755be35f11b96c2691fd9c3fc64f4b16186368617269736d612d746f6b656e2d7375626e65742d763104757569640d0000002433613433613166312d386330652d343961302d626239382d616663386666353365613139",
+      "repr": "(tuple (amount u65307074) (signature 0x138941d4877331a43b93e40cbddc84ab0b178bf244ec276673a8a692fd6556a8402b38d045a84ba447ee9765dc5aa231b714095e664ea30a315dd2f8722dbe3001) (token 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1) (uuid \"3a43a1f1-8c0e-49a0-bb98-afc8ff53ea19\"))",
+      "name": "in",
+      "type": "(tuple (amount uint) (signature (buff 65)) (token trait_reference) (uuid (string-ascii 36)))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000106057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b16117375622d6c696e6b2d7661756c742d7637",
+      "repr": "(tuple (opcode 0x06) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sub-link-vault-v7))",
+      "name": "hop-1",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000101057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b16106368617269736d617469632d666c6f77",
+      "repr": "(tuple (opcode 0x01) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-flow))",
+      "name": "hop-2",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000100057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b1610626974666c6f772d7374782d73627463",
+      "repr": "(tuple (opcode 0x00) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitflow-stx-sbtc))",
+      "name": "hop-3",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c0000000202746f0516bf584905755be35f11b96c2691fd9c3fc64f4b1605746f6b656e0614f6decc7cfff2a413bd7cd4f53c25ad7fd1899acc0a736274632d746f6b656e",
+      "repr": "(tuple (to 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS) (token 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token))",
+      "name": "out",
+      "type": "(tuple (to principal) (token trait_reference))"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok (list (tuple (dk u0) (dx u65307074) (dy u65307074)) (tuple (dk u0) (dx u64327467) (dy u15503442)) (tuple (dk u0) (dx u15503442) (dy u7012))))"
+   }
+  },
+  {
+   "tx_id": "0x1acf41a922a58a89b20a5f4c2aad3c2320f23394e436a9e8ce683b2c0a6cf198",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1790732233,
+   "sender_address": "SP3619DGWH08262BJAG0NPFHZQDPN4TKMXHC0ZQDN",
+   "sponsored": false,
+   "fee_rate": "1876980",
+   "nonce": 474,
+   "post_condition_mode": "deny",
+   "post_conditions": [
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "x-multihop-v1"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "391367674",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "susdh",
+      "contract_address": "SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG",
+      "contract_name": "susdh-token-v1"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "x-multihop-v1"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "33018482117",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "welshcorgicoin",
+      "contract_address": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G",
+      "contract_name": "welshcorgicoin-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "x-multihop-v1"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "66626409",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "charisma",
+      "contract_address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "charisma-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "susdh-token-subnet-v1"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "383617819",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "susdh",
+      "contract_address": "SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG",
+      "contract_name": "susdh-token-v1"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "welsh-susdh-amm-lp-v1"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "32364650788",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "welshcorgicoin",
+      "contract_address": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G",
+      "contract_name": "welshcorgicoin-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "charismatic-corgi-liquidity"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "65307074",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "charisma",
+      "contract_address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "charisma-token"
+     }
+    }
+   ],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1",
+    "function_name": "x-swap-4",
+    "function_args": [
+     {
+      "hex": "0x0c0000000406616d6f756e74010000000000000000000000001718ab8b097369676e6174757265020000004150018a04672b8db1920923288ae98608fdb042a655ec11b5f57b93bcadf6a0cd6eb1c7c04c0051ca393ac7ceab00c319b3c4be65d74328c4d450fb063550ddeb0105746f6b656e0616bf584905755be35f11b96c2691fd9c3fc64f4b161573757364682d746f6b656e2d7375626e65742d763104757569640d0000002464393835623166622d613633332d343132632d616164372d333566383932663834616162",
+      "repr": "(tuple (amount u387492747) (signature 0x50018a04672b8db1920923288ae98608fdb042a655ec11b5f57b93bcadf6a0cd6eb1c7c04c0051ca393ac7ceab00c319b3c4be65d74328c4d450fb063550ddeb01) (token 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.susdh-token-subnet-v1) (uuid \"d985b1fb-a633-412c-aad7-35f892f84aab\"))",
+      "name": "in",
+      "type": "(tuple (amount uint) (signature (buff 65)) (token trait_reference) (uuid (string-ascii 36)))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000106057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b160c73746162696c6974792d7631",
+      "repr": "(tuple (opcode 0x06) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stability-v1))",
+      "name": "hop-1",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000101057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b161577656c73682d73757364682d616d6d2d6c702d7631",
+      "repr": "(tuple (opcode 0x01) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-susdh-amm-lp-v1))",
+      "name": "hop-2",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000101057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b161b6368617269736d617469632d636f7267692d6c6971756964697479",
+      "repr": "(tuple (opcode 0x01) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-corgi-liquidity))",
+      "name": "hop-3",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000105057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b16117375622d6c696e6b2d7661756c742d7637",
+      "repr": "(tuple (opcode 0x05) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sub-link-vault-v7))",
+      "name": "hop-4",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c0000000202746f0516bf584905755be35f11b96c2691fd9c3fc64f4b1605746f6b656e0616bf584905755be35f11b96c2691fd9c3fc64f4b16186368617269736d612d746f6b656e2d7375626e65742d7631",
+      "repr": "(tuple (to 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS) (token 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1))",
+      "name": "out",
+      "type": "(tuple (to principal) (token trait_reference))"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok (list (tuple (dk u0) (dx u387492747) (dy u387492747)) (tuple (dk u0) (dx u383617819) (dy u32691566453)) (tuple (dk u0) (dx u31056988130) (dy u65966742)) (tuple (dk u0) (dx u65966742) (dy u65966742))))"
+   }
+  },
+  {
+   "tx_id": "0x0ada3d8f224d40f701c26bccff508f7b36868bb55f086d605ecbba597cddcccd",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1790648384,
+   "sender_address": "SP3619DGWH08262BJAG0NPFHZQDPN4TKMXHC0ZQDN",
+   "sponsored": false,
+   "fee_rate": "542129",
+   "nonce": 473,
+   "post_condition_mode": "deny",
+   "post_conditions": [
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "x-multihop-v1"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "1010",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "sbtc-token",
+      "contract_address": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4",
+      "contract_name": "sbtc-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "x-multihop-v1"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "2722311",
+     "type": "stx"
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "x-multihop-v1"
+     },
+     "condition_code": "sent_less_than_or_equal_to",
+     "amount": "6125215172",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "welshcorgicoin",
+      "contract_address": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G",
+      "contract_name": "welshcorgicoin-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "sbtc-token-subnet-v1"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "990",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "sbtc-token",
+      "contract_address": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4",
+      "contract_name": "sbtc-token"
+     }
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "satoshis-private-key"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "2668404",
+     "type": "stx"
+    },
+    {
+     "principal": {
+      "type_id": "principal_contract",
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "welsh-community-lp"
+     },
+     "condition_code": "sent_greater_than_or_equal_to",
+     "amount": "6003923783",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "welshcorgicoin",
+      "contract_address": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G",
+      "contract_name": "welshcorgicoin-token"
+     }
+    }
+   ],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1",
+    "function_name": "x-swap-4",
+    "function_args": [
+     {
+      "hex": "0x0c0000000406616d6f756e7401000000000000000000000000000003e8097369676e61747572650200000041ede28a08f602c1dd0966fa0b1d2b1364584c3c91a54dd9e613248b95409927c176b3c59f28d7237fe4bb3185073e5ab384aa72de9e812d08cf8c4670d196b1420105746f6b656e0616bf584905755be35f11b96c2691fd9c3fc64f4b1614736274632d746f6b656e2d7375626e65742d763104757569640d0000002464663533313636352d316465322d343962642d386163312d343131313365623862646434",
+      "repr": "(tuple (amount u1000) (signature 0xede28a08f602c1dd0966fa0b1d2b1364584c3c91a54dd9e613248b95409927c176b3c59f28d7237fe4bb3185073e5ab384aa72de9e812d08cf8c4670d196b14201) (token 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v1) (uuid \"df531665-1de2-49bd-8ac1-41113eb8bdd4\"))",
+      "name": "in",
+      "type": "(tuple (amount uint) (signature (buff 65)) (token trait_reference) (uuid (string-ascii 36)))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000106057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b160d626c617a652d626974636f696e",
+      "repr": "(tuple (opcode 0x06) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-bitcoin))",
+      "name": "hop-1",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000100057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b16147361746f736869732d707269766174652d6b6579",
+      "repr": "(tuple (opcode 0x00) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.satoshis-private-key))",
+      "name": "hop-2",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000100057661756c740616bf584905755be35f11b96c2691fd9c3fc64f4b161277656c73682d636f6d6d756e6974792d6c70",
+      "repr": "(tuple (opcode 0x00) (vault 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-community-lp))",
+      "name": "hop-3",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c00000002066f70636f6465020000000105057661756c740616617955542390241f74f143a71d43414acc12c44d0d77656c73682d7375626c696e6b",
+      "repr": "(tuple (opcode 0x05) (vault 'SP1GQJNAM4E8287VMY51TE7A3855CR4P49QYYP9GS.welsh-sublink))",
+      "name": "hop-4",
+      "type": "(tuple (opcode (buff 16)) (vault trait_reference))"
+     },
+     {
+      "hex": "0x0c0000000202746f0516bf584905755be35f11b96c2691fd9c3fc64f4b1605746f6b656e0616bf584905755be35f11b96c2691fd9c3fc64f4b161577656c73682d746f6b656e2d7375626e65742d7631",
+      "repr": "(tuple (to 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS) (token 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v1))",
+      "name": "out",
+      "type": "(tuple (to principal) (token trait_reference))"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok (list (tuple (dk u0) (dx u1000) (dy u1000)) (tuple (dk u0) (dx u999) (dy u2695358)) (tuple (dk u0) (dx u2641450) (dy u6064569478)) (tuple (dk u0) (dx u6064569478) (dy u6064569478))))"
+   }
+  },
+  {
+   "tx_id": "0x5db4f00778e07f52e292de1677154bdb0903d6816defcc3c348720426590d4aa",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1751748694,
+   "sender_address": "SP1GQJNAM4E8287VMY51TE7A3855CR4P49QYYP9GS",
+   "sponsored": false,
+   "fee_rate": "3000",
+   "nonce": 5635,
+   "post_condition_mode": "allow",
+   "post_conditions": [],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1",
+    "function_name": "withdraw",
+    "function_args": [
+     {
+      "hex": "0x0100000000000000000000000000365359",
+      "repr": "u3560281",
+      "name": "amount",
+      "type": "uint"
+     },
+     {
+      "hex": "0x09",
+      "repr": "none",
+      "name": "recipient",
+      "type": "(optional principal)"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok true)"
+   }
+  },
+  {
+   "tx_id": "0x18db1d3b0eb36fc3be9eb617584c153c22385856f23371f04c4e7524e9eab239",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1751746877,
+   "sender_address": "SP1GQJNAM4E8287VMY51TE7A3855CR4P49QYYP9GS",
+   "sponsored": false,
+   "fee_rate": "3000",
+   "nonce": 5634,
+   "post_condition_mode": "deny",
+   "post_conditions": [
+    {
+     "principal": {
+      "type_id": "principal_standard",
+      "address": "SP1GQJNAM4E8287VMY51TE7A3855CR4P49QYYP9GS"
+     },
+     "condition_code": "sent_equal_to",
+     "amount": "3560281",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "charisma",
+      "contract_address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "charisma-token"
+     }
+    }
+   ],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1",
+    "function_name": "deposit",
+    "function_args": [
+     {
+      "hex": "0x0100000000000000000000000000365359",
+      "repr": "u3560281",
+      "name": "amount",
+      "type": "uint"
+     },
+     {
+      "hex": "0x09",
+      "repr": "none",
+      "name": "recipient",
+      "type": "(optional principal)"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok true)"
+   }
+  },
+  {
+   "tx_id": "0x67c11fae1e4d27ab018b6a893cc9dfa27addf9e8624c96f1cf84f5cceec40e19",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1749749851,
+   "sender_address": "SP3TYVHF3QNK95KP3XQXQQT4Q6V87ZEY9P3F7DHJ1",
+   "sponsored": false,
+   "fee_rate": "269",
+   "nonce": 5,
+   "post_condition_mode": "deny",
+   "post_conditions": [
+    {
+     "principal": {
+      "type_id": "principal_standard",
+      "address": "SP3TYVHF3QNK95KP3XQXQQT4Q6V87ZEY9P3F7DHJ1"
+     },
+     "condition_code": "sent_equal_to",
+     "amount": "80366495",
+     "type": "fungible",
+     "asset": {
+      "asset_name": "charisma",
+      "contract_address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "contract_name": "charisma-token"
+     }
+    }
+   ],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1",
+    "function_name": "deposit",
+    "function_args": [
+     {
+      "hex": "0x0100000000000000000000000004ca4b9f",
+      "repr": "u80366495",
+      "name": "amount",
+      "type": "uint"
+     },
+     {
+      "hex": "0x09",
+      "repr": "none",
+      "name": "recipient",
+      "type": "(optional principal)"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok true)"
+   }
+  },
+  {
+   "tx_id": "0x071556762c6a1b4ef1695d745e109b5451b24510ee9a278da0dee8f4f85b03fa",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1755432449,
+   "sender_address": "SP1GQJNAM4E8287VMY51TE7A3855CR4P49QYYP9GS",
+   "sponsored": false,
+   "fee_rate": "10000",
+   "nonce": 6983,
+   "post_condition_mode": "allow",
+   "post_conditions": [],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v1",
+    "function_name": "withdraw",
+    "function_args": [
+     {
+      "hex": "0x010000000000000000000000003b9aca00",
+      "repr": "u1000000000",
+      "name": "amount",
+      "type": "uint"
+     },
+     {
+      "hex": "0x09",
+      "repr": "none",
+      "name": "recipient",
+      "type": "(optional principal)"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok true)"
+   }
+  },
+  {
+   "tx_id": "0xd19d958fd0cb836340225fe2379c2e34c17aad252e64a5ef3a370f5c8879b9d1",
+   "tx_type": "contract_call",
+   "tx_status": "pending",
+   "receipt_time": 1747267826,
+   "sender_address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+   "sponsored": false,
+   "fee_rate": "3000",
+   "nonce": 16400,
+   "post_condition_mode": "allow",
+   "post_conditions": [],
+   "contract_call": {
+    "contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v1",
+    "function_name": "transfer",
+    "function_args": [
+     {
+      "hex": "0x0100000000000000000000000000000001",
+      "repr": "u1",
+      "name": "amount",
+      "type": "uint"
+     },
+     {
+      "hex": "0x0516bf584905755be35f11b96c2691fd9c3fc64f4b16",
+      "repr": "'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "name": "from",
+      "type": "principal"
+     },
+     {
+      "hex": "0x0516cc14b61c881023097254015b3e3fbb6d526a74ec",
+      "repr": "'SP3619DGWH08262BJAG0NPFHZQDPN4TKMXHC0ZQDN",
+      "name": "to",
+      "type": "principal"
+     },
+     {
+      "hex": "0x09",
+      "repr": "none",
+      "name": "memo",
+      "type": "(optional (buff 34))"
+     }
+    ]
+   },
+   "tx_result": {
+    "repr": "(ok true)"
+   }
+  }
+ ],
+ "vaults": [
+  {
+   "contractId": "SP1GQJNAM4E8287VMY51TE7A3855CR4P49QYYP9GS.welsh-sublink",
+   "tokenA": {
+    "contractId": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token"
+   },
+   "tokenB": {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v1"
+   }
+  },
+  {
+   "contractId": "SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS.stxshark",
+   "tokenA": {
+    "contractId": ".stx"
+   },
+   "tokenB": {
+    "contractId": "SP1KMAA7TPZ5AZZ4W67X74MJNFKMN576604CWNBQS.shark-coin-stxcity"
+   }
+  },
+  {
+   "contractId": "SP2KGJEAZRDVK78ZWTRGSDE11A1VMZVEATNQFZ73C.world-peace-sbtc-v1",
+   "tokenA": {
+    "contractId": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token"
+   },
+   "tokenB": {
+    "contractId": "SP14J806BWEPQAXVA0G6RYZN7GNA126B7JFRRYTEM.world-peace-stacks-stxcity"
+   }
+  },
+  {
+   "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitflow-stx-sbtc",
+   "tokenA": {
+    "contractId": ".stx"
+   },
+   "tokenB": {
+    "contractId": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token"
+   }
+  },
+  {
+   "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.blaze-bitcoin",
+   "tokenA": {
+    "contractId": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token"
+   },
+   "tokenB": {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v1"
+   }
+  },
+  {
+   "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-corgi-liquidity",
+   "tokenA": {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token"
+   },
+   "tokenB": {
+    "contractId": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token"
+   }
+  },
+  {
+   "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charismatic-flow",
+   "tokenA": {
+    "contractId": ".stx"
+   },
+   "tokenB": {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token"
+   }
+  },
+  {
+   "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.feeling-zesty",
+   "tokenA": {
+    "contractId": "SP1A27KFY4XERQCCRCARCYD1CC5N7M6688BSYADJ7.zest-token"
+   },
+   "tokenB": {
+    "contractId": ".stx"
+   }
+  },
+  {
+   "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.satoshis-private-key",
+   "tokenA": {
+    "contractId": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token"
+   },
+   "tokenB": {
+    "contractId": ".stx"
+   }
+  },
+  {
+   "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-sublink-v2",
+   "tokenA": {
+    "contractId": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token"
+   },
+   "tokenB": {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v2"
+   }
+  },
+  {
+   "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stability-v1",
+   "tokenA": {
+    "contractId": "SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.susdh-token-v1"
+   },
+   "tokenB": {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.susdh-token-subnet-v1"
+   }
+  },
+  {
+   "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-sublink-v2",
+   "tokenA": {
+    "contractId": ".stx"
+   },
+   "tokenB": {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-subnet-v2"
+   }
+  },
+  {
+   "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sub-link-vault-v7",
+   "tokenA": {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token"
+   },
+   "tokenB": {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1"
+   }
+  },
+  {
+   "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-community-lp",
+   "tokenA": {
+    "contractId": ".stx"
+   },
+   "tokenB": {
+    "contractId": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token"
+   }
+  },
+  {
+   "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-sublink-v2",
+   "tokenA": {
+    "contractId": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token"
+   },
+   "tokenB": {
+    "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v2"
+   }
+  },
+  {
+   "contractId": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-susdh-amm-lp-v1",
+   "tokenA": {
+    "contractId": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token"
+   },
+   "tokenB": {
+    "contractId": "SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.susdh-token-v1"
+   }
+  }
+ ],
+ "bases": {
+  "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token",
+  "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v1": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token",
+  "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v1": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
+  "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.susdh-token-subnet-v1": "SPN5AKG35QZSK2M8GAMR4AFX45659RJHDW353HSG.susdh-token-v1",
+  "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v2": "SP3NE50GEXFG9SZGTT51P40X2CKYSZ5CC4ZTZ7A2G.welshcorgicoin-token",
+  "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v2": "SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token",
+  "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-subnet-v2": ".stx"
+ }
+}

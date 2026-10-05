@@ -1,5 +1,6 @@
 import { listOrders, fillOrder, updateOrder, cancelOrder } from './store';
 import { LEGACY_ROUTER, LimitOrder } from './types';
+import { isExit } from './active';
 import { fetchTokenType } from './token-type';
 import { getQuote } from '@/app/actions';
 import { sendOrderExecutedNotification } from '@/lib/notifications/order-executed-handler';
@@ -346,9 +347,6 @@ async function releaseLock(uuid: string): Promise<void> {
  * Loops through all open orders and executes any that meet their price condition.
  * Returns the UUIDs of all orders that were filled during this run.
  */
-/** An exit that spends the same funds as its siblings: Zesty's target/safety, or any order marked metadata.oco. */
-const isExit = (o: LimitOrder) =>
-    (o.strategyType === 'zesty' && o.metadata?.zesty?.role !== 'convert') || o.metadata?.oco === true;
 
 /**
  * Exits of one trade (a target and a safety net) spend the same funds:

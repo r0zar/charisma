@@ -72,6 +72,7 @@
     "@next/eslint-plugin-next": "^15.3.5",
     "@repo/eslint-config": "workspace:*",
     "@repo/typescript-config": "workspace:*",
+    "@stacks/stacks-blockchain-api-types": "^7.14.1",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^24",
     "@types/react": "^19",
