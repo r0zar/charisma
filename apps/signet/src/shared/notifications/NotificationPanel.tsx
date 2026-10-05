@@ -8,7 +8,7 @@
  */
 import { useState, type MouseEvent, type ReactNode } from 'react'
 import { animated, to, useSpring } from '@react-spring/web'
-import { colors, tint } from '~shared/styles/theme'
+import { colors, glow, tint } from '~shared/styles/theme'
 
 export interface NotificationAction {
   id: string
@@ -39,7 +39,7 @@ const TILT = 0.03 // degrees per pixel from the card's center
 const css = (color: string) => `
   @keyframes signet-card-in { from { opacity: 0; transform: translate(-50%, -50px) } to { opacity: 1; transform: translate(-50%, 0) } }
   @keyframes signet-card-float { 0%, 100% { transform: translateY(0) } 50% { transform: translateY(-5px) } }
-  @keyframes signet-card-corner { 0%, 100% { opacity: 0.4; box-shadow: 0 0 5px ${tint(color, 0.53)} } 50% { opacity: 1; box-shadow: 0 0 15px ${tint(color, 0.67)} } }
+  @keyframes signet-card-corner { 0%, 100% { opacity: 0.4; box-shadow: 0 0 5px ${glow(color, 0.53)} } 50% { opacity: 1; box-shadow: 0 0 15px ${glow(color, 0.67)} } }
   @keyframes signet-card-glitch { 0%, 100% { opacity: 0.3 } 50% { opacity: 0.5 } }
   @keyframes signet-card-shimmer { from { transform: translateX(-100%) } to { transform: translateX(200%) } }
   .signet-card-btn { transition: transform 0.15s ease, box-shadow 0.15s ease; }
@@ -66,7 +66,7 @@ function Corner({ color, position, delay }: { color: string; position: 'tl' | 't
 }
 
 export default function NotificationPanel({ notification, onDismiss, onApprove, onReject, approveHold }: NotificationPanelProps) {
-  const color = notification.color || colors.cyber
+  const color = notification.color || colors.accent
   const [hovering, setHovering] = useState(false)
   const [tilt, setTilt] = useState({ x: 0, y: 0 })
 
@@ -111,13 +111,13 @@ export default function NotificationPanel({ notification, onDismiss, onApprove, 
             overflow: 'hidden',
             transform: to([spring.rotateX, spring.rotateY, spring.scale], (x, y, s) => `rotateX(${x}deg) rotateY(${y}deg) scale(${s})`),
             boxShadow: hovering
-              ? `0 20px 50px rgba(0,0,0,0.9), 0 0 25px ${tint(color, 0.67)}, 0 0 10px ${tint(color, 0.4)}`
-              : `0 10px 30px rgba(0,0,0,0.8), 0 0 15px ${tint(color, 0.27)}, 0 0 5px ${tint(color, 0.13)}`,
+              ? `0 20px 50px color-mix(in srgb, #000 calc(90% * var(--shade)), transparent), 0 0 25px ${glow(color, 0.67)}, 0 0 10px ${glow(color, 0.4)}`
+              : `0 10px 30px color-mix(in srgb, #000 calc(80% * var(--shade)), transparent), 0 0 15px ${glow(color, 0.27)}, 0 0 5px ${glow(color, 0.13)}`,
             transition: 'box-shadow 0.2s ease'
           }}
         >
           <div style={{
-            background: `linear-gradient(160deg, ${colors.spaceBlack} 0%, ${colors.spaceDark} 100%)`,
+            background: `linear-gradient(160deg, ${colors.bg} 0%, ${colors.surfaceRaised} 100%)`,
             border: `1px solid ${tint(color, 0.67)}`,
             borderRadius: '6px',
             padding: '2px',
@@ -130,7 +130,7 @@ export default function NotificationPanel({ notification, onDismiss, onApprove, 
                 inset: 0,
                 borderRadius: '6px',
                 border: `1px solid ${tint(color, 0.53)}`,
-                boxShadow: `inset 0 0 1px ${tint(color, 0.27)}`,
+                boxShadow: `inset 0 0 1px ${glow(color, 0.27)}`,
                 mixBlendMode: 'screen',
                 pointerEvents: 'none',
                 animation: 'signet-card-glitch 2s ease-in-out infinite',
@@ -142,7 +142,7 @@ export default function NotificationPanel({ notification, onDismiss, onApprove, 
             <Corner color={color} position="bl" delay={1} />
             <Corner color={color} position="br" delay={1.5} />
 
-            <div style={{ background: 'rgba(1, 4, 9, 0.9)', padding: '15px', borderRadius: '4px' }}>
+            <div style={{ background: 'color-mix(in srgb, var(--bg) 90%, transparent)', padding: '15px', borderRadius: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   {notification.customIcon && (
@@ -150,14 +150,14 @@ export default function NotificationPanel({ notification, onDismiss, onApprove, 
                       {notification.customIcon}
                     </div>
                   )}
-                  <div style={{ fontFamily: 'monospace', fontWeight: 'bold', color, fontSize: '12px' }}>{notification.title}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 'bold', color, fontSize: '12px' }}>{notification.title}</div>
                 </div>
                 <button
                   type="button"
                   className="signet-card-btn"
                   onClick={onDismiss}
                   aria-label="Dismiss"
-                  style={{ background: 'transparent', border: 'none', color: colors.white, cursor: 'pointer', fontSize: '14px', width: '20px', height: '20px', padding: 0 }}
+                  style={{ background: 'transparent', border: 'none', color: colors.ink, cursor: 'pointer', fontSize: '14px', width: '20px', height: '20px', padding: 0 }}
                 >
                   ×
                 </button>
@@ -172,16 +172,16 @@ export default function NotificationPanel({ notification, onDismiss, onApprove, 
               }}>
                 {/* Shimmer along the top border */}
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '1px', overflow: 'hidden', background: `linear-gradient(90deg, transparent 0%, ${color} 50%, transparent 100%)`, opacity: 0.8 }}>
-                  <div style={{ width: '50%', height: '100%', background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.8) 50%, transparent 100%)', animation: 'signet-card-shimmer 2s linear infinite' }} />
+                  <div style={{ width: '50%', height: '100%', background: 'linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--ink) 80%, transparent) 50%, transparent 100%)', animation: 'signet-card-shimmer 2s linear infinite' }} />
                 </div>
-                <div style={{ color: colors.white, fontSize: '12px', fontFamily: 'Inter, system-ui, sans-serif', padding: '5px 10px', wordBreak: 'break-word' }}>
+                <div style={{ color: colors.ink, fontSize: '12px', fontFamily: 'var(--font-sans)', padding: '5px 10px', wordBreak: 'break-word' }}>
                   {notification.message}
                 </div>
               </div>
 
               <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
                 {notification.actions.map(action => {
-                  const actionColor = action.color || (action.action === 'approve' ? colors.neonGreen : action.action === 'reject' ? colors.neonRed : color)
+                  const actionColor = action.color || (action.action === 'approve' ? colors.success : action.action === 'reject' ? colors.danger : color)
                   const held = action.action === 'approve' && !!approveHold
                   return (
                     <div

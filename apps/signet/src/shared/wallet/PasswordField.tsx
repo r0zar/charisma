@@ -2,6 +2,7 @@
  * Password box that shows each typed character as a random alien symbol.
  */
 import { useRef } from 'react';
+import { colors, tint } from '~shared/styles/theme';
 
 export function PasswordField({ value, onChange, onEnter, placeholder, label }: {
   value: string;
@@ -18,11 +19,11 @@ export function PasswordField({ value, onChange, onEnter, placeholder, label }: 
       style={{
         position: 'relative',
         height: '60px',
-        background: 'linear-gradient(180deg, rgba(1, 4, 9, 0.9) 0%, rgba(1, 4, 9, 0.7) 100%)',
-        border: '1px solid rgba(125, 249, 255, 0.4)',
+        background: 'linear-gradient(180deg, color-mix(in srgb, var(--bg) 90%, transparent) 0%, color-mix(in srgb, var(--bg) 70%, transparent) 100%)',
+        border: '1px solid color-mix(in srgb, var(--hud-accent) 40%, transparent)',
         borderRadius: '6px',
         padding: '8px 12px',
-        boxShadow: '0 0 15px rgba(125, 249, 255, 0.2) inset',
+        boxShadow: '0 0 15px color-mix(in srgb, var(--hud-accent) calc(20% * var(--glow)), transparent) inset',
         overflow: 'hidden',
         cursor: 'text',
         transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
@@ -39,7 +40,7 @@ export function PasswordField({ value, onChange, onEnter, placeholder, label }: 
           marginLeft: `${Math.min(value.length * 12, 120)}px`,
           width: '2px',
           height: '24px',
-          background: 'rgba(125, 249, 255, 0.8)',
+          background: 'color-mix(in srgb, var(--hud-accent) 80%, transparent)',
           animation: 'blink 1s infinite'
         }}></div>
       )}
@@ -56,7 +57,7 @@ export function PasswordField({ value, onChange, onEnter, placeholder, label }: 
       }}>
         {value.length === 0 ? (
           <span style={{
-            color: 'rgba(125, 249, 255, 0.3)',
+            color: 'color-mix(in srgb, var(--hud-accent) 30%, transparent)',
             fontSize: '14px',
             fontStyle: 'italic'
           }}>
@@ -95,13 +96,13 @@ export function PasswordField({ value, onChange, onEnter, placeholder, label }: 
 
             return (
               <span key={index} style={{
-                color: `rgba(125, 249, 255, ${0.7 + (index % 5) * 0.06})`,
+                color: tint(colors.accent, 0.7 + (index % 5) * 0.06),
                 fontSize: '20px',
                 fontWeight: 'bold',
                 display: 'inline-block',
                 width: '22px',
                 textAlign: 'center',
-                textShadow: '0 0 5px rgba(125, 249, 255, 0.6)',
+                textShadow: '0 0 5px color-mix(in srgb, var(--hud-accent) calc(60% * var(--glow)), transparent)',
                 animation: 'pulse 1.5s infinite',
                 animationDelay: `${index * 0.1}s`
               }}>
@@ -136,14 +137,14 @@ export function PasswordField({ value, onChange, onEnter, placeholder, label }: 
           zIndex: 1
         }}
         onFocus={(e) => {
-          e.target.parentElement.style.borderColor = 'rgba(125, 249, 255, 0.8)';
-          e.target.parentElement.style.boxShadow = '0 0 15px rgba(125, 249, 255, 0.3), 0 0 5px rgba(125, 249, 255, 0.5) inset';
+          e.target.parentElement.style.borderColor = 'color-mix(in srgb, var(--hud-accent) 80%, transparent)';
+          e.target.parentElement.style.boxShadow = '0 0 15px color-mix(in srgb, var(--hud-accent) calc(30% * var(--glow)), transparent), 0 0 5px color-mix(in srgb, var(--hud-accent) calc(50% * var(--glow)), transparent) inset';
           // Add subtle animation to the container when focused
           e.target.parentElement.style.animation = 'glow 1.5s infinite alternate';
         }}
         onBlur={(e) => {
-          e.target.parentElement.style.borderColor = 'rgba(125, 249, 255, 0.4)';
-          e.target.parentElement.style.boxShadow = '0 0 15px rgba(125, 249, 255, 0.2) inset';
+          e.target.parentElement.style.borderColor = 'color-mix(in srgb, var(--hud-accent) 40%, transparent)';
+          e.target.parentElement.style.boxShadow = '0 0 15px color-mix(in srgb, var(--hud-accent) calc(20% * var(--glow)), transparent) inset';
           // Remove the animation when blurred
           e.target.parentElement.style.animation = 'none';
         }}

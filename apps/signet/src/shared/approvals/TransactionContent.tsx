@@ -52,8 +52,8 @@ function describe(pc: PostConditionWire, signer: string | null) {
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", padding: "4px 0", fontSize: "11px" }}>
-      <span style={{ color: colors.steel }}>{label}</span>
-      <span style={{ color: "#f8f8f2", textAlign: "right", wordBreak: "break-all" }}>{children}</span>
+      <span style={{ color: colors.inkMuted }}>{label}</span>
+      <span style={{ color: "var(--ink)", textAlign: "right", wordBreak: "break-all" }}>{children}</span>
     </div>
   )
 }
@@ -61,8 +61,8 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 const box = {
   margin: "10px 0",
   padding: "6px 10px",
-  background: "rgba(125, 249, 255, 0.05)",
-  border: "1px solid rgba(125, 249, 255, 0.2)",
+  background: "color-mix(in srgb, var(--hud-accent) 5%, transparent)",
+  border: "1px solid color-mix(in srgb, var(--hud-accent) 20%, transparent)",
   borderRadius: "4px",
 } as const
 
@@ -102,8 +102,8 @@ export function TransactionContent({ origin, address, method, params }: {
       </div>
 
       {!isTransfer && (
-        <div style={{ ...box, borderColor: allowMode ? colors.neonRed : "rgba(54, 199, 88, 0.4)" }}>
-          <div style={{ fontSize: "11px", fontWeight: "bold", color: allowMode ? colors.neonRed : colors.neonGreen, marginBottom: "4px" }}>
+        <div style={{ ...box, borderColor: allowMode ? colors.danger : "color-mix(in srgb, var(--success) 40%, transparent)" }}>
+          <div style={{ fontSize: "11px", fontWeight: "bold", color: allowMode ? colors.danger : colors.success, marginBottom: "4px" }}>
             {allowMode
               ? "⚠ Any of your tokens could move (allow mode)"
               : postConditions.length ? "Only these transfers can happen:" : "No tokens can leave your wallet"}
@@ -114,7 +114,7 @@ export function TransactionContent({ origin, address, method, params }: {
         </div>
       )}
 
-      <div style={{ fontSize: "11px", color: colors.steel }}>
+      <div style={{ fontSize: "11px", color: colors.inkMuted }}>
         {address ? `Sent from ${short(address)}. ` : ""}Network fee is set automatically.
       </div>
     </div>

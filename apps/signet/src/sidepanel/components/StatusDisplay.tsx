@@ -4,7 +4,7 @@
  */
 
 import { useSpring, animated, config, useSpringRef, useChain } from "@react-spring/web"
-import { colors, tint } from '../../shared/styles/theme'
+import { colors, glow, tint } from '../../shared/styles/theme'
 import { useDiagnostics } from "./diagnostics-context"
 import { useCallback, useEffect, useRef, useState } from "react"
 
@@ -16,13 +16,12 @@ interface StatusDotProps {
 
 // Status indicator dot with spring physics
 function StatusDot({ isLoading, error, activity = 0 }: StatusDotProps) {
-  // Default and active colors
-  const idleColor = error ? '#FF4E4E' : colors.cyber;
-  const activeColor = error ? '#FF8888' : '#80E6FF';
+  // The dot's color; a fresh check flashes it brighter (colors stay out of springs, so a theme switch shows at once)
+  const idleColor = error ? colors.danger : colors.accent;
 
   // Glow spring - pulses once when activity changes to 10
   const glowSpring = useSpring({
-    // Map activity to color and glow - more dramatic pulse
+    // Map activity to a brightness flash and glow - more dramatic pulse
     colorProgress: activity === 10 ? 1 : 0,
     boxShadowSpread: activity === 10 ? 10 : 2,
     // Only reset when activity is set to max
@@ -47,19 +46,17 @@ function StatusDot({ isLoading, error, activity = 0 }: StatusDotProps) {
         width: '8px',
         height: '8px',
         borderRadius: '50%',
-        // Interpolate between colors based on activity
-        backgroundColor: glowSpring.colorProgress.to({
-          range: [0, 0.5, 1],
-          output: [idleColor, activeColor, idleColor]
-        }),
+        // Brighter at the middle of a pulse
+        backgroundColor: idleColor,
+        filter: glowSpring.colorProgress.to({ range: [0, 0.5, 1], output: [1, 1.5, 1] }).to(b => `brightness(${b})`),
         boxShadow: glowSpring.boxShadowSpread.to(
-          s => `0 0 ${s}px ${tint(idleColor, 0.53)}`
+          s => `0 0 ${s}px ${glow(idleColor, 0.53)}`
         ),
         // Only rotate if loading
         transform: loadingSpring.rotate.to(r =>
           isLoading ? `rotate(${r}deg)` : 'none'
         ),
-        border: isLoading ? '1px solid rgba(255,255,255,0.5)' : 'none'
+        border: isLoading ? '1px solid color-mix(in srgb, var(--ink) 50%, transparent)' : 'none'
       }}
     />
   );
@@ -96,7 +93,7 @@ function AnimatedDigit({ digit, index, totalDigits }: AnimatedDigitProps & { tot
   // Compute color based on position - creates a gradient effect
   // Brightest for the rapidly changing digit
   const brightness = 0.7 + (index * 0.02);
-  const digitColor = `rgba(125, 249, 255, ${brightness})`;
+  const digitColor = tint(colors.accent, brightness);
 
   return (
     <span
@@ -105,8 +102,8 @@ function AnimatedDigit({ digit, index, totalDigits }: AnimatedDigitProps & { tot
         width: '0.55em', // Slightly narrower to fit all digits
         textAlign: 'center',
         color: digitColor,
-        textShadow: `0 0 4px ${tint(digitColor, 0.53)}`,
-        fontFamily: 'monospace',
+        textShadow: `0 0 4px ${glow(digitColor, 0.53)}`,
+        fontFamily: 'var(--font-mono)',
         fontWeight: 'bold',
         position: 'relative', // For proper stacking
         fontSize: '10px'
@@ -190,14 +187,11 @@ export function StatusDisplay() {
 
   // Fixed border properties that don't animate
   const borderColor = error
-    ? 'rgba(255, 78, 78, 0.6)'
-    : 'rgba(125, 249, 255, 0.3)';
+    ? 'color-mix(in srgb, var(--danger) 60%, transparent)'
+    : 'color-mix(in srgb, var(--hud-accent) 30%, transparent)';
 
-  // Container glow animation tied to activity
-  const containerSpring = useSpring({
-    boxShadow: activity.activity.to(a => `0 0 ${5 + Math.min(a, 10)}px rgba(125, 249, 255, 0.2)`),
-    config: { tension: 120, friction: 14 }
-  });
+  // Container glow tied to activity
+  const containerGlow = activity.activity.to(a => `0 0 ${5 + Math.min(a, 10)}px ${glow(colors.accent, 0.2)}`);
 
   // Manual reset tracking for shimmer effect
   const [shimmerKey, setShimmerKey] = useState(0);
@@ -228,7 +222,7 @@ export function StatusDisplay() {
 
   return (
     <animated.div style={{
-      background: `linear-gradient(90deg, rgba(13, 17, 23, 0.9) 0%, rgba(125, 249, 255, 0.05) 50%, rgba(13, 17, 23, 0.9) 100%)`,
+      background: `linear-gradient(90deg, color-mix(in srgb, var(--bg) 90%, transparent) 0%, color-mix(in srgb, var(--hud-accent) 5%, transparent) 50%, color-mix(in srgb, var(--bg) 90%, transparent) 100%), ${colors.chrome}`,
       padding: '2px 12px', // Reduced padding for more compact design
       display: 'flex',
       justifyContent: 'space-between',
@@ -236,9 +230,9 @@ export function StatusDisplay() {
       position: 'relative',
       overflow: 'hidden',
       borderBottom: `1px solid ${borderColor}`,
-      boxShadow: containerSpring.boxShadow,
+      boxShadow: containerGlow,
       height: '28px' // Fixed height for consistency
-    }}>
+    }} className="hud-chrome">
       {/* Horizontal shimmer effect - only visible when active */}
       <animated.div style={{
         position: 'absolute',
@@ -246,7 +240,7 @@ export function StatusDisplay() {
         left: 0,
         width: '100%',
         height: '100%',
-        background: 'linear-gradient(90deg, transparent 0%, rgba(125, 249, 255, 0.08) 50%, transparent 100%)',
+        background: 'linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--hud-accent) 8%, transparent) 50%, transparent 100%)',
         opacity: activity.activity.to(a => a > 0 ? 0.7 : 0),
         pointerEvents: 'none',
         transform: shimmerSpring.x.to(x => `translateX(${x}%)`)
@@ -260,9 +254,9 @@ export function StatusDisplay() {
           fontSize: '12px',
           fontWeight: 'bold',
           // Fixed color that never changes for SIGNET
-          color: error ? '#FF4E4E' : '#7DF9FF',
+          color: error ? 'var(--danger)' : 'var(--hud-accent)',
           // Very subtle fixed text shadow
-          textShadow: '0 0 4px rgba(125, 249, 255, 0.2)',
+          textShadow: '0 0 4px color-mix(in srgb, var(--hud-accent) calc(20% * var(--glow)), transparent)',
           letterSpacing: '0.5px',
         }}>
           BLAZE
@@ -273,12 +267,12 @@ export function StatusDisplay() {
       <div style={{
         display: 'flex',
         alignItems: 'center',
-        background: 'rgba(0, 0, 0, 0.3)',
+        background: 'color-mix(in srgb, #000 calc(30% * var(--shade)), transparent)',
         padding: '2px 6px', // Smaller padding
         borderRadius: '2px',
-        border: '1px solid rgba(125, 249, 255, 0.15)',
-        boxShadow: 'inset 0 0 4px rgba(125, 249, 255, 0.05)',
-        fontFamily: 'monospace',
+        border: '1px solid color-mix(in srgb, var(--hud-accent) 15%, transparent)',
+        boxShadow: 'inset 0 0 4px color-mix(in srgb, var(--hud-accent) calc(5% * var(--glow)), transparent)',
+        fontFamily: 'var(--font-mono)',
         fontSize: '11px' // Smaller font
       }}>
         {(() => {

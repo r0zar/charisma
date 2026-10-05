@@ -1,6 +1,7 @@
 import React from 'react';
 import { PermissionLevel, BannerType } from './types';
 import { permissionLevelColors, bannerBgColors, bannerBorderColors, commonStyles } from './styles';
+import { glow } from '~shared/styles/theme';
 
 // Permission level indicator component
 interface PermissionLevelIndicatorProps {
@@ -20,12 +21,12 @@ export const PermissionLevelIndicator: React.FC<PermissionLevelIndicatorProps> =
         height: '8px',
         borderRadius: '50%',
         backgroundColor: permissionLevelColors[level],
-        boxShadow: `0 0 8px ${permissionLevelColors[level]}aa`,
+        boxShadow: `0 0 8px ${glow(permissionLevelColors[level], 0.67)}`,
         animation: 'pulse 2s infinite'
       }}></div>
       <div style={{
         fontSize: '10px',
-        fontFamily: 'monospace',
+        fontFamily: 'var(--font-mono)',
         color: permissionLevelColors[level],
         textTransform: 'uppercase',
         letterSpacing: '1px',
@@ -53,7 +54,7 @@ export const OriginBanner: React.FC<OriginBannerProps> = ({ origin, type, messag
       margin: '12px 0',
       fontSize: '11px'
     }}>
-      <strong style={{ color: '#fff' }}>{origin}</strong> {message}
+      <strong style={{ color: 'var(--ink)' }}>{origin}</strong> {message}
     </div>
   );
 };

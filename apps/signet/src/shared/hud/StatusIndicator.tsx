@@ -1,4 +1,5 @@
 import { useSpring, animated } from "@react-spring/web";
+import { glow } from "~shared/styles/theme";
 
 interface StatusIndicatorProps {
   color: string;
@@ -8,8 +9,7 @@ interface StatusIndicatorProps {
 export const StatusIndicator = ({ color, value = 0 }: StatusIndicatorProps) => {
   // The value prop represents activity level (0-10)
   const glowSpring = useSpring({
-    color,
-    textShadow: `0 0 ${Math.max(0, value)}px ${color}`,
+    blur: Math.max(0, value),
     scale: 1 + (value / 50),
     config: { tension: 300, friction: 10 }
   });
@@ -17,7 +17,8 @@ export const StatusIndicator = ({ color, value = 0 }: StatusIndicatorProps) => {
   return (
     <animated.span
       style={{
-        ...glowSpring,
+        color,
+        textShadow: glowSpring.blur.to(b => `0 0 ${b}px ${glow(color, 1)}`),
         fontSize: '6px',
         display: 'inline-block',
         transform: glowSpring.scale.to(s => `scale(${s})`)

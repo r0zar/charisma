@@ -35,10 +35,10 @@ const label = (token: TokenBalance) => token.meta?.symbol ?? token.contractId.sp
 function TokenIcon({ token }: { token: TokenBalance }) {
   const [broken, setBroken] = useState(false);
   if (token.meta?.image && !broken) {
-    return <img src={token.meta.image} alt="" width={24} height={24} onError={() => setBroken(true)} style={{ borderRadius: '50%', flexShrink: 0, boxShadow: '0 0 6px rgba(125, 249, 255, 0.35)' }} />;
+    return <img src={token.meta.image} alt="" width={24} height={24} onError={() => setBroken(true)} style={{ borderRadius: '50%', flexShrink: 0, boxShadow: '0 0 6px color-mix(in srgb, var(--hud-accent) calc(35% * var(--glow)), transparent)' }} />;
   }
   return (
-    <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(125, 249, 255, 0.5)', color: colors.cyber, fontSize: '11px', fontFamily: 'monospace', fontWeight: 'bold' }}>
+    <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid color-mix(in srgb, var(--hud-accent) 50%, transparent)', color: colors.accent, fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
       {label(token).charAt(0).toUpperCase()}
     </div>
   );
@@ -50,7 +50,7 @@ function Bone({ width, height, round }: { width: number | string; height: number
     <div style={{
       width, height, flexShrink: 0,
       borderRadius: round ? '50%' : '2px',
-      background: 'linear-gradient(90deg, rgba(125, 249, 255, 0.06) 25%, rgba(125, 249, 255, 0.16) 50%, rgba(125, 249, 255, 0.06) 75%)',
+      background: 'linear-gradient(90deg, color-mix(in srgb, var(--hud-accent) 6%, transparent) 25%, color-mix(in srgb, var(--hud-accent) 16%, transparent) 50%, color-mix(in srgb, var(--hud-accent) 6%, transparent) 75%)',
       backgroundSize: '200% 100%',
       animation: 'signet-bone 1.4s ease-in-out infinite'
     }} />
@@ -121,7 +121,7 @@ function SendForm({ token, onDone, onCancel }: { token: TokenBalance; onDone: ()
     return (
       <>
         <HudLine tone="green">SENT · CONFIRMS IN A FEW MINUTES</HudLine>
-        <a href={`https://explorer.hiro.so/txid/${id}?chain=mainnet`} target="_blank" rel="noopener noreferrer" style={{ color: colors.cyber, fontFamily: 'monospace', fontSize: '8px' }}>VIEW ON EXPLORER ↗</a>
+        <a href={`https://explorer.hiro.so/txid/${id}?chain=mainnet`} target="_blank" rel="noopener noreferrer" style={{ color: colors.accent, fontFamily: 'var(--font-mono)', fontSize: '8px' }}>VIEW ON EXPLORER ↗</a>
         <HudButton onClick={onDone}>Done</HudButton>
       </>
     );
@@ -209,12 +209,12 @@ export function TransferTab() {
                 >
                   <TokenIcon token={token} />
                   <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ color: colors.cyber, fontWeight: 'bold', fontSize: '12px' }}>{label(token)}</span>
-                    <span style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(token.meta?.name ?? token.contractId).toUpperCase()}</span>
+                    <span style={{ color: colors.accent, fontWeight: 'bold', fontSize: '12px' }}>{label(token)}</span>
+                    <span style={{ color: 'color-mix(in srgb, var(--ink) 45%, transparent)', fontSize: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(token.meta?.name ?? token.contractId).toUpperCase()}</span>
                   </span>
                   <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                    <span style={{ color: '#fff', fontSize: '12px' }}>{token.meta ? formatUnits(token.balance, token.meta.decimals) : `${token.balance} U`}</span>
-                    <span style={{ color: valueOf(token) === null ? 'rgba(255, 255, 255, 0.3)' : 'rgba(54, 199, 88, 0.85)', fontSize: '9px' }}>
+                    <span style={{ color: colors.ink, fontSize: '12px' }}>{token.meta ? formatUnits(token.balance, token.meta.decimals) : `${token.balance} U`}</span>
+                    <span style={{ color: valueOf(token) === null ? 'color-mix(in srgb, var(--ink) 30%, transparent)' : 'color-mix(in srgb, var(--success) 85%, transparent)', fontSize: '9px' }}>
                       {prices ? (valueOf(token) === null ? '—' : usd(valueOf(token)!)) : ''}
                     </span>
                   </span>
@@ -235,7 +235,7 @@ export function TransferTab() {
       >
         <HudPanel
           title="BALANCES"
-          right={<button type="button" onClick={load} title="Refresh" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'monospace', fontSize: '9px', padding: 0 }}>↻</button>}
+          right={<button type="button" onClick={load} title="Refresh" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '9px', padding: 0 }}>↻</button>}
         >
           {error && <div role="alert"><HudLine tone="red">{error}</HudLine></div>}
           {priceError && <div role="alert"><HudLine tone="amber">Prices unavailable: {priceError}</HudLine></div>}
@@ -243,7 +243,7 @@ export function TransferTab() {
           <div>
             {listed.map(row)}
             {unlisted.length > 0 && (
-              <div className="hud-row is-clickable" onClick={() => setShowUnlisted(open => !open)} style={{ padding: '8px 6px', color: 'rgba(255, 204, 0, 0.8)', fontSize: '8px', fontWeight: 'bold' }}>
+              <div className="hud-row is-clickable" onClick={() => setShowUnlisted(open => !open)} style={{ padding: '8px 6px', color: 'color-mix(in srgb, var(--warning) 80%, transparent)', fontSize: '8px', fontWeight: 'bold' }}>
                 <span style={{ flex: 1 }}>{showUnlisted ? '▾' : '▸'} UNLISTED ({unlisted.length}) · NOT ON CHARISMA'S TOKEN LIST, MAY BE SCAMS</span>
               </div>
             )}

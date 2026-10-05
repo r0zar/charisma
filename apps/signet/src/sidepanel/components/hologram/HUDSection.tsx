@@ -2,6 +2,7 @@ import { useSpring, animated, config } from "@react-spring/web";
 import type { ReactNode } from "react";
 import { HexPattern } from "~shared/hud/HexPattern";
 import { StatusIndicator } from "~shared/hud/StatusIndicator";
+import { colors, glow, tint } from "~shared/styles/theme";
 
 interface Position {
   top?: string;
@@ -25,7 +26,7 @@ interface HUDSectionProps {
 export const HUDSection = ({
   title,
   value,
-  color = "rgba(125, 249, 255, 0.8)",
+  color = tint(colors.accent, 0.8),
   position,
   width,
   height,
@@ -34,8 +35,7 @@ export const HUDSection = ({
 }: HUDSectionProps) => {
   // Spring animation for highlight effects 
   const highlightSpring = useSpring({
-    borderColor: color,
-    boxShadow: `0 0 ${Math.max(0, activity)}px ${color.replace('0.8', '0.2')}`,
+    blur: Math.max(0, activity),
     config: { tension: 120, friction: 14 }
   });
   
@@ -50,7 +50,8 @@ export const HUDSection = ({
     <animated.div
       style={{
         ...fadeInSpring,
-        ...highlightSpring,
+        borderColor: color,
+        boxShadow: highlightSpring.blur.to(b => `0 0 ${b}px ${glow(color, 0.25)}`),
         position: 'absolute',
         ...position,
         width,
@@ -76,7 +77,7 @@ export const HUDSection = ({
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        fontFamily: 'monospace'
+        fontFamily: 'var(--font-mono)'
       }}>
         <span>{title}</span>
         {/* Status indicator with spring animation */}
@@ -87,8 +88,8 @@ export const HUDSection = ({
       <div style={{
         padding: '4px',
         fontSize: '10px',
-        color: 'rgba(255, 255, 255, 0.9)',
-        fontFamily: 'monospace',
+        color: 'color-mix(in srgb, var(--ink) 90%, transparent)',
+        fontFamily: 'var(--font-mono)',
         letterSpacing: '0.5px',
         height: 'calc(100% - 16px)',
         display: 'flex',

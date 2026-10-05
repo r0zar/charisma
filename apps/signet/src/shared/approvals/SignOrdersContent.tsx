@@ -13,9 +13,9 @@ import { colors } from "~shared/styles/theme"
 
 /** Routers and what they allow once they hold a signed order */
 const ROUTERS: Record<string, { text: string; color: string }> = {
-  [MULTIHOP_CONTRACT_ID]: { text: "Only to you", color: colors.neonGreen },
-  [MULTIHOP_V1_CONTRACT_ID]: { text: "Only to you", color: colors.neonGreen },
-  [LEGACY_MULTIHOP_CONTRACT_ID]: { text: "Wherever the submitter chooses", color: colors.neonRed },
+  [MULTIHOP_CONTRACT_ID]: { text: "Only to you", color: colors.success },
+  [MULTIHOP_V1_CONTRACT_ID]: { text: "Only to you", color: colors.success },
+  [LEGACY_MULTIHOP_CONTRACT_ID]: { text: "Wherever the submitter chooses", color: colors.danger },
 }
 
 const shortName = (principal: string) => principal.split(".").pop() ?? principal
@@ -30,8 +30,8 @@ function optional(value: ClarityValue | undefined): ClarityValue | null {
 function Row({ label, children, color }: { label: string; children: ReactNode; color?: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", padding: "4px 0", fontSize: "11px" }}>
-      <span style={{ color: colors.steel }}>{label}</span>
-      <span style={{ color: color ?? "#f8f8f2", textAlign: "right", wordBreak: "break-all" }}>{children}</span>
+      <span style={{ color: colors.inkMuted }}>{label}</span>
+      <span style={{ color: color ?? "var(--ink)", textAlign: "right", wordBreak: "break-all" }}>{children}</span>
     </div>
   )
 }
@@ -73,7 +73,7 @@ export function SignOrdersContent({ origin, address, messages }: { origin: strin
       <PermissionLevelIndicator level={PermissionLevel.SENSITIVE} />
       <OriginBanner origin={origin} type={BannerType.WARNING} message={`wants you to sign ${orders.length.toLocaleString("en-US")} subnet orders`} />
 
-      <div style={{ margin: "10px 0", padding: "6px 10px", background: "rgba(125, 249, 255, 0.05)", border: "1px solid rgba(125, 249, 255, 0.2)", borderRadius: "4px" }}>
+      <div style={{ margin: "10px 0", padding: "6px 10px", background: "color-mix(in srgb, var(--hud-accent) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--hud-accent) 20%, transparent)", borderRadius: "4px" }}>
         <Row label="Orders">{orders.length.toLocaleString("en-US")}</Row>
         {[...totals].map(([contract, total]) => {
           const token = meta[contract]
@@ -86,14 +86,14 @@ export function SignOrdersContent({ origin, address, messages }: { origin: strin
         {[...routers].map(id => {
           const router = ROUTERS[id]
           return (
-            <Row key={id} label="Payout" color={router?.color ?? colors.neonOrange}>
+            <Row key={id} label="Payout" color={router?.color ?? colors.warning}>
               {router ? `${router.text} (${shortName(id)})` : `Handled by ${shortName(id)}`}
             </Row>
           )
         })}
       </div>
 
-      <div style={{ fontSize: "11px", color: colors.steel }}>
+      <div style={{ fontSize: "11px", color: colors.inkMuted }}>
         {address ? `Signs as ${address.slice(0, 6)}…${address.slice(-4)}. ` : ""}
         Anyone holding these signatures can run each order once.
       </div>

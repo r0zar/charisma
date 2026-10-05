@@ -15,7 +15,8 @@
     "./favicons/*": "./favicons/*",
     "./components.css": "./components/components.css",
     "./specimens.json": "./components/specimens.json",
-    "./react": "./react/index.ts"
+    "./react": "./react/index.ts",
+    "./react/theme-script": "./react/theme-script.ts"
   },
   "files": [
     "tokens.css",

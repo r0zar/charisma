@@ -23,8 +23,8 @@ export const SignMessageContent: React.FC<{ origin: string; address: string | nu
         overflowY: 'auto',
         padding: '8px 10px',
         margin: '10px 0',
-        background: 'rgba(125, 249, 255, 0.05)',
-        border: '1px solid rgba(125, 249, 255, 0.2)',
+        background: 'color-mix(in srgb, var(--hud-accent) 5%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--hud-accent) 20%, transparent)',
         borderRadius: '4px',
         fontSize: '11px',
         whiteSpace: 'pre-wrap',
@@ -38,8 +38,8 @@ export const SignMessageContent: React.FC<{ origin: string; address: string | nu
       <FeatureExplanation
         icon={
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 20H21" stroke="#FF9500" strokeWidth="1.5" strokeLinecap="round" />
-            <path d="M16.5 3.5A2.1 2.1 0 0 1 19.5 6.5L7 19L3 20L4 16L16.5 3.5Z" stroke="#FF9500" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M12 20H21" style={{ stroke: "var(--warning)" }} strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M16.5 3.5A2.1 2.1 0 0 1 19.5 6.5L7 19L3 20L4 16L16.5 3.5Z" style={{ stroke: "var(--warning)" }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         }
         text={address ? `Signs as ${address.slice(0, 6)}…${address.slice(-4)}` : 'Signs with your active account'}
@@ -48,7 +48,7 @@ export const SignMessageContent: React.FC<{ origin: string; address: string | nu
       <FeatureExplanation
         icon={
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M12 22S20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" stroke="#FF9500" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M12 22S20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" style={{ stroke: "var(--warning)" }} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         }
         text="Signing a message doesn't move funds"

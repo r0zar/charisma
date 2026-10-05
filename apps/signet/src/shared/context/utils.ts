@@ -31,11 +31,11 @@ function showNotification(message: string, isSuccess: boolean = true): void {
   notification.style.left = '50%';
   notification.style.transform = 'translateX(-50%)';
   notification.style.padding = '10px 20px';
-  notification.style.backgroundColor = isSuccess ? 'rgba(54, 199, 88, 0.9)' : 'rgba(255, 78, 78, 0.9)';
-  notification.style.color = 'white';
+  notification.style.backgroundColor = isSuccess ? 'var(--success-fill)' : 'var(--danger-fill)';
+  notification.style.color = 'var(--on-fill)';
   notification.style.borderRadius = '4px';
   notification.style.zIndex = '999999';
-  notification.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)';
+  notification.style.boxShadow = '0 2px 10px color-mix(in srgb, #000 calc(20% * var(--shade)), transparent)';
   document.body.appendChild(notification);
 
   // Remove the message after 3 seconds

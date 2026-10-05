@@ -31,7 +31,7 @@ export const ScanLine = ({ trigger }: ScanLineProps) => {
         left: 0,
         width: '100%',
         height: '3px',
-        background: 'linear-gradient(90deg, transparent 0%, rgba(125, 249, 255, 0.7) 50%, transparent 100%)',
+        background: 'linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--hud-accent) 70%, transparent) 50%, transparent 100%)',
         zIndex: 100,
         pointerEvents: 'none',
         opacity: scanSpring.opacity,

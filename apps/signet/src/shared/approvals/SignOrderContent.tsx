@@ -12,9 +12,9 @@ import { colors } from "~shared/styles/theme"
 
 /** Routers and what they allow once they hold a signed order */
 const ROUTERS: Record<string, { text: string; color: string }> = {
-  [MULTIHOP_CONTRACT_ID]: { text: "Only to you", color: colors.neonGreen },
-  [MULTIHOP_V1_CONTRACT_ID]: { text: "Only to you", color: colors.neonGreen },
-  [LEGACY_MULTIHOP_CONTRACT_ID]: { text: "Wherever the submitter chooses", color: colors.neonRed },
+  [MULTIHOP_CONTRACT_ID]: { text: "Only to you", color: colors.success },
+  [MULTIHOP_V1_CONTRACT_ID]: { text: "Only to you", color: colors.success },
+  [LEGACY_MULTIHOP_CONTRACT_ID]: { text: "Wherever the submitter chooses", color: colors.danger },
 }
 
 const BLAZE_NAME = Cl.prettyPrint(BLAZE_V1_DOMAIN.value.name).replace(/"/g, "")
@@ -30,8 +30,8 @@ function optional(value: ClarityValue | undefined): ClarityValue | null {
 function Row({ label, children, color }: { label: string; children: ReactNode; color?: string }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", padding: "4px 0", fontSize: "11px" }}>
-      <span style={{ color: colors.steel }}>{label}</span>
-      <span style={{ color: color ?? "#f8f8f2", textAlign: "right", wordBreak: "break-all" }}>{children}</span>
+      <span style={{ color: colors.inkMuted }}>{label}</span>
+      <span style={{ color: color ?? "var(--ink)", textAlign: "right", wordBreak: "break-all" }}>{children}</span>
     </div>
   )
 }
@@ -49,9 +49,9 @@ function BlazeOrder({ fields }: { fields: Record<string, ClarityValue> }) {
       <Row label="Action">{Cl.prettyPrint(fields.intent).replace(/"/g, "")}</Row>
       <Row label="Token">{shortName(contract.replace(/^'/, ""))}</Row>
       {amount && <Row label="Amount (smallest units)">{Cl.prettyPrint(amount).replace(/^u/, "")}</Row>}
-      {targetId && sendsTo && <Row label="Sends to" color={colors.neonRed}>{targetId}</Row>}
+      {targetId && sendsTo && <Row label="Sends to" color={colors.danger}>{targetId}</Row>}
       {targetId && !sendsTo && (
-        <Row label="Payout" color={router?.color ?? colors.neonOrange}>
+        <Row label="Payout" color={router?.color ?? colors.warning}>
           {router ? `${router.text} (${shortName(targetId)})` : `Handled by ${shortName(targetId)}`}
         </Row>
       )}
@@ -76,7 +76,7 @@ export function SignOrderContent({ origin, address, message, domain }: {
       <PermissionLevelIndicator level={PermissionLevel.SENSITIVE} />
       <OriginBanner origin={origin} type={BannerType.WARNING} message={isBlaze ? "wants you to sign a subnet order" : `wants you to sign data for ${appName}`} />
 
-      <div style={{ margin: "10px 0", padding: "6px 10px", background: "rgba(125, 249, 255, 0.05)", border: "1px solid rgba(125, 249, 255, 0.2)", borderRadius: "4px" }}>
+      <div style={{ margin: "10px 0", padding: "6px 10px", background: "color-mix(in srgb, var(--hud-accent) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--hud-accent) 20%, transparent)", borderRadius: "4px" }}>
         {isBlaze
           ? <BlazeOrder fields={(data as TupleCV).value} />
           : data.type === "tuple"
@@ -84,7 +84,7 @@ export function SignOrderContent({ origin, address, message, domain }: {
             : <Row label="Data">{Cl.prettyPrint(data)}</Row>}
       </div>
 
-      <div style={{ fontSize: "11px", color: colors.steel }}>
+      <div style={{ fontSize: "11px", color: colors.inkMuted }}>
         {address ? `Signs as ${address.slice(0, 6)}…${address.slice(-4)}. ` : ""}
         {isBlaze ? "Anyone holding this signature can run this order once." : "Only sign data you recognize."}
       </div>

@@ -4,7 +4,7 @@
  */
 
 import { useSpring, animated, config, useSpringRef, useChain } from "@react-spring/web"
-import { colors } from "../../shared/styles/theme"
+import { colors, glow, tint } from "../../shared/styles/theme"
 import { useDiagnostics } from "./diagnostics-context"
 import { useState, useEffect, useRef, useMemo } from "react"
 
@@ -45,20 +45,13 @@ function RefreshButton({ onClick, isLoading, activity = 0 }: RefreshButtonProps)
     ref: pulseRef
   });
 
+  // Background and glow by state; colors stay out of springs, so a theme switch shows at once
+  const background = tint(colors.accent, isLoading ? 0.05 : isHovered ? 0.15 : 0.1);
+  const glowBase = isLoading ? 10 : isHovered ? 12 : 0;
+  const glowAlpha = isLoading ? 0.15 : isHovered ? 0.2 : 0.1;
+
   // Button spring animation with improved state transitions
   const buttonSpring = useSpring({
-    // Background transitions between states with increased glow on activity
-    background: isLoading
-      ? 'rgba(125, 249, 255, 0.05)'
-      : isHovered
-        ? 'rgba(125, 249, 255, 0.15)'
-        : 'rgba(125, 249, 255, 0.1)',
-    // Dynamic box shadow based on activity and state
-    boxShadow: isLoading
-      ? `0 0 ${10 + pulseSpring.glow.get()}px rgba(125, 249, 255, 0.15)`
-      : isHovered
-        ? `0 0 ${12 + pulseSpring.glow.get()}px rgba(125, 249, 255, 0.2)`
-        : `0 0 ${pulseSpring.glow.get()}px rgba(125, 249, 255, 0.1)`,
     // Scale effect on hover and activity
     scale: pulseSpring.scale.to(s =>
       isHovered && !isLoading ? s * 1.02 : s
@@ -89,21 +82,21 @@ function RefreshButton({ onClick, isLoading, activity = 0 }: RefreshButtonProps)
       onClick={isLoading ? undefined : onClick}
       disabled={isLoading}
       style={{
-        background: buttonSpring.background,
-        boxShadow: buttonSpring.boxShadow,
+        background,
+        boxShadow: pulseSpring.glow.to(g => `0 0 ${Math.max(0, glowBase + g)}px ${glow(colors.accent, glowAlpha)}`),
         transform: buttonSpring.scale.to(s => `scale(${s})`),
-        border: '1px solid rgba(125, 249, 255, 0.3)',
+        border: '1px solid color-mix(in srgb, var(--hud-accent) 30%, transparent)',
         borderRadius: '4px',
         padding: '8px 16px',
         fontSize: '11px',
-        color: isLoading ? 'rgba(125, 249, 255, 0.7)' : colors.cyber,
+        color: isLoading ? 'color-mix(in srgb, var(--hud-accent) 70%, transparent)' : colors.accent,
         cursor: isLoading ? 'default' : 'pointer',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: '8px',
         outline: 'none',
-        transition: 'border-color 0.3s ease'
+        transition: 'border-color 0.3s ease, background 0.2s ease'
       }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -124,8 +117,8 @@ function RefreshButton({ onClick, isLoading, activity = 0 }: RefreshButtonProps)
             width: '12px',
             height: '12px',
             borderRadius: '50%',
-            border: '2px solid rgba(125, 249, 255, 0.1)',
-            borderTop: '2px solid rgba(125, 249, 255, 0.8)',
+            border: '2px solid color-mix(in srgb, var(--hud-accent) 10%, transparent)',
+            borderTop: '2px solid color-mix(in srgb, var(--hud-accent) 80%, transparent)',
             transform: spinnerSpring.rotation.to(r => `rotate(${r}deg)`),
             opacity: spinnerSpring.opacity,
             position: 'absolute',
@@ -148,13 +141,13 @@ function RefreshButton({ onClick, isLoading, activity = 0 }: RefreshButtonProps)
         >
           <path
             d="M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3"
-            stroke={colors.cyber}
+            stroke={colors.accent}
             strokeWidth="2"
             strokeLinecap="round"
           />
           <path
             d="M12 8L16 3L20 8"
-            stroke={colors.cyber}
+            stroke={colors.accent}
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -215,12 +208,12 @@ export function SystemMetrics() {
     return () => clearInterval(decay);
   }, [txQueueSize, subnetCount, isLoading]);
 
-  // Glow animation for container
-  const containerSpring = useSpring({
-    boxShadow: `0 5px 15px rgba(0, 0, 0, 0.3), inset 0 0 ${Math.max(0, activity)}px rgba(125, 249, 255, 0.1)`,
-    borderTop: `1px solid rgba(125, 249, 255, ${0.3 + (activity * 0.02)})`,
-    config: { tension: 170, friction: 26 }
-  });
+  // Glow for the container, brighter with activity (it decays in steps; the transition smooths them)
+  const containerStyle = {
+    boxShadow: `0 5px 15px color-mix(in srgb, #000 calc(30% * var(--shade)), transparent), inset 0 0 ${Math.max(0, activity)}px ${glow(colors.accent, 0.1)}`,
+    borderTop: `1px solid ${tint(colors.accent, 0.3 + (activity * 0.02))}`,
+    transition: 'box-shadow 0.3s ease, border-color 0.3s ease'
+  };
 
   // Handle refresh click
   const handleRefreshClick = () => {
@@ -233,11 +226,9 @@ export function SystemMetrics() {
     rotation: counter * 2, // Slow rotation
     scale: 1 + Math.sin(counter * 0.05) * 0.05, // Subtle pulse
     opacity: txQueueSize > 0 ? 0.8 : 0.4,
-    color: txQueueSize > 0 ?
-      'rgba(255, 204, 0, 0.8)' :
-      'rgba(125, 249, 255, 0.6)',
     config: { tension: 120, friction: 14 }
   });
+  const indicatorColor = txQueueSize > 0 ? tint(colors.warning, 0.8) : tint(colors.accent, 0.6);
 
   // Timestamp display that updates with counter
   const timestamp = useMemo(() => {
@@ -252,19 +243,18 @@ export function SystemMetrics() {
       bottom: 0,
       left: 0,
       right: 0,
-      background: 'linear-gradient(180deg, rgba(13, 17, 23, 0.9) 0%, #0D1117 100%)',
+      background: 'linear-gradient(180deg, color-mix(in srgb, var(--bg) 90%, transparent) 0%, var(--bg) 100%)',
       padding: '10px 12px',
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
-      borderTop: containerSpring.borderTop,
-      boxShadow: containerSpring.boxShadow,
+      ...containerStyle,
       zIndex: 2
-    }}>
+    }} className="hud-chrome">
       {/* System readout with real metrics */}
       <div style={{
         fontSize: '9px',
-        color: 'rgba(255, 255, 255, 0.7)',
+        color: 'color-mix(in srgb, var(--ink) 70%, transparent)',
         display: 'flex',
         alignItems: 'center',
         gap: '12px'
@@ -274,8 +264,8 @@ export function SystemMetrics() {
           width: '8px',
           height: '8px',
           borderRadius: '50%',
-          backgroundColor: indicatorSpring.color,
-          boxShadow: indicatorSpring.color.to(c => `0 0 6px ${c}`),
+          backgroundColor: indicatorColor,
+          boxShadow: `0 0 6px ${glow(indicatorColor, 1)}`,
           opacity: indicatorSpring.opacity,
           transform: indicatorSpring.scale.to(s => `scale(${s})`),
         }} />
@@ -283,7 +273,7 @@ export function SystemMetrics() {
         {/* System time & metrics */}
         <div style={{
           opacity: txQueueSize > 0 ? 0.9 : 0.6,
-          fontFamily: 'monospace'
+          fontFamily: 'var(--font-mono)'
         }}>
           <div>{timestamp}</div>
           {subnetCount > 0 && (
@@ -306,14 +296,14 @@ export function SystemMetrics() {
       {txQueueSize > 0 && (
         <animated.div style={{
           fontSize: '10px',
-          color: 'rgba(255, 204, 0, 0.8)',
+          color: 'color-mix(in srgb, var(--warning) 80%, transparent)',
           fontWeight: 'bold',
           marginLeft: '12px',
           padding: '2px 8px',
-          background: 'rgba(255, 204, 0, 0.1)',
-          border: '1px solid rgba(255, 204, 0, 0.3)',
+          background: 'color-mix(in srgb, var(--warning) 10%, transparent)',
+          border: '1px solid color-mix(in srgb, var(--warning) 30%, transparent)',
           borderRadius: '10px',
-          boxShadow: `0 0 ${Math.max(2, activity)}px rgba(255, 204, 0, 0.3)`,
+          boxShadow: `0 0 ${Math.max(2, activity)}px color-mix(in srgb, var(--warning) calc(30% * var(--glow)), transparent)`,
           display: 'flex',
           alignItems: 'center',
           gap: '4px'

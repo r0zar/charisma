@@ -3,29 +3,29 @@ import { colors } from '~shared/styles/theme';
 
 // Permission level colors
 export const permissionLevelColors = {
-  [PermissionLevel.INFO]: "#36C758",
-  [PermissionLevel.SENSITIVE]: "#FF9500",
-  [PermissionLevel.CRITICAL]: "#FF3B30"
+  [PermissionLevel.INFO]: "var(--success)",
+  [PermissionLevel.SENSITIVE]: "var(--warning)",
+  [PermissionLevel.CRITICAL]: "var(--danger)"
 };
 
 // Banner colors
 export const bannerBgColors = {
-  [BannerType.INFO]: 'rgba(54, 199, 88, 0.08)',
-  [BannerType.WARNING]: 'rgba(255, 149, 0, 0.08)',
-  [BannerType.CRITICAL]: 'rgba(255, 59, 48, 0.1)'
+  [BannerType.INFO]: 'color-mix(in srgb, var(--success) 8%, transparent)',
+  [BannerType.WARNING]: 'color-mix(in srgb, var(--warning) 8%, transparent)',
+  [BannerType.CRITICAL]: 'color-mix(in srgb, var(--danger) 10%, transparent)'
 };
 
 export const bannerBorderColors = {
-  [BannerType.INFO]: colors.neonGreen,
-  [BannerType.WARNING]: colors.neonOrange,
-  [BannerType.CRITICAL]: colors.neonRed
+  [BannerType.INFO]: colors.success,
+  [BannerType.WARNING]: colors.warning,
+  [BannerType.CRITICAL]: colors.danger
 };
 
 // Common styles
 export const commonStyles = {
   contentContainer: {
-    color: '#f8f8f2',
-    fontFamily: 'monospace'
+    color: 'var(--ink)',
+    fontFamily: 'var(--font-mono)'
   },
   
   explanationContainer: {
@@ -48,13 +48,13 @@ export const commonStyles = {
   },
   
   featureText: {
-    color: '#f8f8f2'
+    color: 'var(--ink)'
   },
   
   operationTypeContainer: {
-    fontFamily: 'monospace',
-    color: colors.cyber,
-    background: 'rgba(125, 249, 255, 0.05)',
+    fontFamily: 'var(--font-mono)',
+    color: colors.accent,
+    background: 'color-mix(in srgb, var(--hud-accent) 5%, transparent)',
     padding: '4px 8px',
     marginTop: '5px',
     borderRadius: '2px',
@@ -66,7 +66,7 @@ export const commonStyles = {
   checkboxContainer: {
     marginTop: '15px',
     padding: '8px',
-    background: 'rgba(125, 249, 255, 0.05)',
+    background: 'color-mix(in srgb, var(--hud-accent) 5%, transparent)',
     borderRadius: '4px'
   },
   
@@ -74,7 +74,7 @@ export const commonStyles = {
     display: 'flex',
     alignItems: 'center',
     fontSize: '10px',
-    color: '#8C9CA8',
+    color: 'var(--ink-muted)',
     gap: '6px'
   }
 };

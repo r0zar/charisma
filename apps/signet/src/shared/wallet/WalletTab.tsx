@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { useSignetContext } from '~shared/context/SignetContext';
 import { saveEncryptedWalletBackup, sendMessage } from '~shared/context/utils';
-import { colors } from '~shared/styles/theme';
+import { applyTheme, colors, readTheme, type ThemeChoice } from '~shared/styles/theme';
 import { HudButton, HudLabel, HudLine, HudPanel, HudScreen, HudStat } from '~shared/hud';
 import { PasswordField } from './PasswordField';
 
@@ -159,14 +159,14 @@ function NewSeed({ onDone, onBack }: { onDone: (seedPhraseId: string) => void; o
         <HudLine tone="amber">Anyone who sees them controls your funds. Blaze Wallet can't recover them</HudLine>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', margin: '4px 0' }}>
           {words.map((word, i) => (
-            <div key={i} style={{ display: 'flex', gap: '6px', padding: '5px 6px', border: '1px solid rgba(255, 204, 0, 0.3)', borderRadius: '2px', background: 'rgba(0, 0, 0, 0.35)', fontSize: '10px' }}>
-              <span style={{ color: 'rgba(255, 255, 255, 0.4)', minWidth: '16px', textAlign: 'right' }}>{i + 1}</span>
-              <span style={{ color: '#fff', fontWeight: 'bold' }}>{word}</span>
+            <div key={i} style={{ display: 'flex', gap: '6px', padding: '5px 6px', border: '1px solid color-mix(in srgb, var(--warning) 30%, transparent)', borderRadius: '2px', background: 'color-mix(in srgb, #000 calc(35% * var(--shade)), transparent)', fontSize: '10px' }}>
+              <span style={{ color: 'color-mix(in srgb, var(--ink) 40%, transparent)', minWidth: '16px', textAlign: 'right' }}>{i + 1}</span>
+              <span style={{ color: colors.ink, fontWeight: 'bold' }}>{word}</span>
             </div>
           ))}
         </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '9px', color: 'rgba(255, 255, 255, 0.8)' }}>
-          <input type="checkbox" checked={wroteDown} onChange={e => setWroteDown(e.target.checked)} style={{ accentColor: 'rgb(255, 204, 0)' }} />
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '9px', color: 'color-mix(in srgb, var(--ink) 80%, transparent)' }}>
+          <input type="checkbox" checked={wroteDown} onChange={e => setWroteDown(e.target.checked)} style={{ accentColor: 'var(--warning)' }} />
           I WROTE ALL 24 WORDS DOWN, IN ORDER
         </label>
         <HudButton tone="amber" onClick={() => setStep('confirm')} disabled={!wroteDown}>Continue</HudButton>
@@ -221,9 +221,35 @@ function NewAccount({ seedPhraseId, onDone, onBack }: { seedPhraseId: string; on
   );
 }
 
+const THEMES: { choice: ThemeChoice; label: string; title: string }[] = [
+  { choice: 'system', label: 'System', title: 'Follow this device' },
+  { choice: 'light', label: 'Light', title: 'Light · Bitcoin' },
+  { choice: 'dark', label: 'Dark', title: 'Dark · RPG' },
+];
+
+/** The theme for every wallet page and approval card: follow the device, Light · Bitcoin or Dark · RPG */
+function ThemePicker() {
+  const [current, setCurrent] = useState<ThemeChoice>(readTheme);
+  const pick = (choice: ThemeChoice) => { applyTheme(choice); setCurrent(choice); };
+  return (
+    <HudStat
+      label="THEME"
+      value={
+        <span style={{ display: 'inline-flex', gap: '4px' }}>
+          {THEMES.map(({ choice, label, title }) => (
+            <HudButton key={choice} tone={current === choice ? 'cyan' : 'steel'} aria-pressed={current === choice} title={title} onClick={() => pick(choice)}>
+              {label}
+            </HudButton>
+          ))}
+        </span>
+      }
+    />
+  );
+}
+
 function BackLink({ onClick }: { onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'monospace', fontSize: '8px', fontWeight: 'bold', padding: 0 }}>
+    <button type="button" onClick={onClick} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '8px', fontWeight: 'bold', padding: 0 }}>
       ← BACK
     </button>
   );
@@ -289,7 +315,7 @@ export function WalletTab() {
                 <>
                   <HudStat label="NAME" value={accountLabel(currentAccount.name)} tone="green" />
                   <HudStat label="ADDRESS" value={short(currentAccount.stxAddress)} />
-                  <div style={{ color: 'rgba(255, 255, 255, 0.45)', fontSize: '8px', wordBreak: 'break-all', marginTop: '4px', paddingTop: '8px', borderTop: '1px dashed rgba(125, 249, 255, 0.12)' }}>{currentAccount.stxAddress}</div>
+                  <div style={{ color: 'color-mix(in srgb, var(--ink) 45%, transparent)', fontSize: '8px', wordBreak: 'break-all', marginTop: '4px', paddingTop: '8px', borderTop: '1px dashed color-mix(in srgb, var(--hud-accent) 12%, transparent)' }}>{currentAccount.stxAddress}</div>
                 </>
               ) : (
                 <HudLine tone="amber">No active account. Add one from a seed phrase below</HudLine>
@@ -303,7 +329,7 @@ export function WalletTab() {
                 return (
                   <div key={phrase.id}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '2px 0 8px' }}>
-                      <span style={{ flex: 1, color: colors.cyber, fontWeight: 'bold', fontSize: '9px' }}>⬡ {phrase.name.toUpperCase()}</span>
+                      <span style={{ flex: 1, color: colors.accent, fontWeight: 'bold', fontSize: '9px' }}>⬡ {phrase.name.toUpperCase()}</span>
                       <HudButton onClick={() => newAccountFor(phrase.id)}>+ Acct</HudButton>
                       <HudButton
                         tone="red"
@@ -315,10 +341,10 @@ export function WalletTab() {
                     </div>
                     {phraseAccounts.map(account => (
                       <div key={account.id} className={`hud-row${account.isActive ? ' is-active' : ''}`} style={{ padding: '9px 6px' }}>
-                        <span style={{ color: account.isActive ? colors.neonGreen : colors.cyber, fontWeight: 'bold', minWidth: '64px' }}>{accountLabel(account.name)}</span>
-                        <span style={{ flex: 1, color: 'rgba(255, 255, 255, 0.55)' }}>{short(account.stxAddress)}</span>
+                        <span style={{ color: account.isActive ? colors.success : colors.accent, fontWeight: 'bold', minWidth: '64px' }}>{accountLabel(account.name)}</span>
+                        <span style={{ flex: 1, color: 'color-mix(in srgb, var(--ink) 55%, transparent)' }}>{short(account.stxAddress)}</span>
                         {account.isActive
-                          ? <span style={{ color: colors.neonGreen, fontSize: '8px', fontWeight: 'bold' }}>● ACTIVE</span>
+                          ? <span style={{ color: colors.success, fontSize: '8px', fontWeight: 'bold' }}>● ACTIVE</span>
                           : <HudButton onClick={() => run(async () => { await activateAccount(account.id); await refreshWalletState(); })}>Use</HudButton>}
                       </div>
                     ))}
@@ -334,6 +360,7 @@ export function WalletTab() {
             <HudPanel title="VAULT" tone="steel" pattern={false} gap={8}>
               <HudStat label="ENCRYPTION" value="AES-GCM · PBKDF2" />
               <HudStat label="AUTO-LOCK" value="15 MIN IDLE" />
+              <ThemePicker />
               <ErrorLine error={error} />
               <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
                 <HudButton tone="green" grow onClick={() => run(saveEncryptedWalletBackup)}>Export</HudButton>

@@ -168,8 +168,8 @@ export function ConsoleView() {
       style={{
         // Fade and rise in once, after the hologram
         animation: 'signet-console-in 0.5s ease-out 0.6s both',
-        background: 'rgba(1, 4, 9, 0.8)',
-        border: '1px solid rgba(125, 249, 255, 0.3)',
+        background: 'color-mix(in srgb, var(--bg) 80%, transparent)',
+        border: '1px solid color-mix(in srgb, var(--hud-accent) 30%, transparent)',
         borderRadius: '2px',
         padding: '12px',
         position: 'relative',
@@ -223,7 +223,7 @@ export function ConsoleView() {
           left: 0,
           width: '100%',
           height: '2px',
-          background: 'linear-gradient(90deg, transparent 0%, rgba(125, 249, 255, 0.6) 50%, transparent 100%)',
+          background: 'linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--hud-accent) 60%, transparent) 50%, transparent 100%)',
           opacity: 0.6
         }}
       >
@@ -232,7 +232,7 @@ export function ConsoleView() {
             animation: 'signet-console-shimmer 2.5s linear infinite',
             width: '30%',
             height: '100%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.8) 50%, transparent 100%)'
+            background: 'linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--ink) 80%, transparent) 50%, transparent 100%)'
           }}
         />
       </div>
@@ -252,7 +252,7 @@ export function ConsoleView() {
           right: '0px',
           width: '2px',
           height: '100%',
-          background: 'rgba(125, 249, 255, 0.15)'
+          background: 'color-mix(in srgb, var(--hud-accent) 15%, transparent)'
         }} />
         <div style={{
           position: 'absolute',
@@ -260,7 +260,7 @@ export function ConsoleView() {
           right: '0px',
           width: '10px',
           height: '2px',
-          background: 'rgba(125, 249, 255, 0.15)'
+          background: 'color-mix(in srgb, var(--hud-accent) 15%, transparent)'
         }} />
         <div style={{
           position: 'absolute',
@@ -268,7 +268,7 @@ export function ConsoleView() {
           right: '0px',
           width: '15px',
           height: '2px',
-          background: 'rgba(125, 249, 255, 0.15)'
+          background: 'color-mix(in srgb, var(--hud-accent) 15%, transparent)'
         }} />
         <div style={{
           position: 'absolute',
@@ -276,7 +276,7 @@ export function ConsoleView() {
           right: '0px',
           width: '5px',
           height: '2px',
-          background: 'rgba(125, 249, 255, 0.15)'
+          background: 'color-mix(in srgb, var(--hud-accent) 15%, transparent)'
         }} />
       </div>
 
@@ -287,7 +287,7 @@ export function ConsoleView() {
         left: 0,
         width: '100%',
         height: '100%',
-        background: 'repeating-linear-gradient(0deg, rgba(125, 249, 255, 0.03) 0px, rgba(125, 249, 255, 0.03) 1px, transparent 1px, transparent 2px)',
+        background: 'repeating-linear-gradient(0deg, color-mix(in srgb, var(--hud-accent) 3%, transparent) 0px, color-mix(in srgb, var(--hud-accent) 3%, transparent) 1px, transparent 1px, transparent 2px)',
         pointerEvents: 'none'
       }} />
 
@@ -333,7 +333,7 @@ export function ConsoleView() {
             />
 
             {/* Create a scan line effect - using rect with clipPath instead of feRect */}
-            <feFlood floodColor="#36C758" floodOpacity="0.3" result="SCAN_COLOR" />
+            <feFlood style={{ floodColor: "var(--success)" }} floodOpacity="0.3" result="SCAN_COLOR" />
             <feOffset in="SourceGraphic" dx="0" dy={scanlinePos as unknown as number} result="SCAN_OFFSET" />
             <feComposite operator="in" in="SCAN_COLOR" in2="SCAN_OFFSET" result="SCAN" />
 
@@ -362,15 +362,15 @@ export function ConsoleView() {
 
       {/* Console text with glitch effect and typing animation */}
       <animated.div style={{
-        fontFamily: 'monospace',
+        fontFamily: 'var(--font-mono)',
         fontSize: '10px',
-        color: '#36C758', /* Green text */
+        color: 'var(--success)', /* Green text */
         margin: 0,
         height: '100%',
         overflow: 'auto',
         lineHeight: '1.4',
         scrollbarWidth: 'thin',
-        scrollbarColor: 'rgba(125, 249, 255, 0.3) rgba(1, 4, 9, 0.5)',
+        scrollbarColor: 'color-mix(in srgb, var(--hud-accent) 30%, transparent) color-mix(in srgb, var(--bg) 50%, transparent)',
         filter: 'url(#glitch-effect)',
         fontWeight: 500, /* Slightly bolder for better readability */
         letterSpacing: '0.2px' /* Subtle letter spacing for readability */
@@ -379,11 +379,11 @@ export function ConsoleView() {
         {displayedText.map((line, index) => (
           <div key={index}>
             {line.startsWith('[ERROR]') ? (
-              <span style={{ color: '#FF4E4E' }}>{line}</span>
+              <span style={{ color: 'var(--danger)' }}>{line}</span>
             ) : line.startsWith('[SIGNER]') ? (
-              <span style={{ color: '#36C758' }}>{line}</span>
+              <span style={{ color: 'var(--success)' }}>{line}</span>
             ) : line.includes('RECENT ACTIVITY:') ? (
-              <span style={{ color: '#FFCC00' }}>{line}</span>
+              <span style={{ color: 'var(--warning)' }}>{line}</span>
             ) : (
               line
             )}

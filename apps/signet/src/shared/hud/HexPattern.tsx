@@ -41,11 +41,6 @@ export const HexPattern = ({ color, activity = 0 }: HexPatternProps) => {
       loop: true
     });
     
-    // Derive borderColor from opacity
-    const borderColor = spring.opacity.to(
-      o => color.replace('0.8', (0.2 + o * 0.3).toFixed(2))
-    );
-    
     return (
       <animated.div
         style={{
@@ -59,7 +54,7 @@ export const HexPattern = ({ color, activity = 0 }: HexPatternProps) => {
           transform: spring.scale.to(s => `rotate(45deg) scale(${s})`),
           borderWidth: '1px',
           borderStyle: 'solid',
-          borderColor
+          borderColor: color
         }}
       />
     );

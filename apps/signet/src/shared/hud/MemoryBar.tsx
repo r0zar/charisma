@@ -1,4 +1,5 @@
 import { useSpring, animated } from "@react-spring/web";
+import { glow } from "~shared/styles/theme";
 
 interface MemoryBarProps {
   value: number;
@@ -15,7 +16,7 @@ export const MemoryBar = ({ value, color, max = 100, activity = 0 }: MemoryBarPr
   const barSpring = useSpring({
     width: `${percent}%`,
     // Add a subtle glow based on activity level
-    boxShadow: `0 0 ${Math.max(4, activity)}px ${color}`,
+    blur: Math.max(4, activity),
     // Use natural physics for the transition
     config: {
       tension: 140,
@@ -28,7 +29,7 @@ export const MemoryBar = ({ value, color, max = 100, activity = 0 }: MemoryBarPr
     <div style={{
       width: '100%',
       height: '6px',
-      background: 'rgba(0, 0, 0, 0.3)',
+      background: 'color-mix(in srgb, #000 calc(30% * var(--shade)), transparent)',
       borderRadius: '2px',
       overflow: 'hidden',
       marginTop: '2px',
@@ -36,7 +37,8 @@ export const MemoryBar = ({ value, color, max = 100, activity = 0 }: MemoryBarPr
     }}>
       <animated.div
         style={{
-          ...barSpring,
+          width: barSpring.width,
+          boxShadow: barSpring.blur.to(b => `0 0 ${b}px ${glow(color, 1)}`),
           height: '100%',
           background: color,
           position: 'absolute',

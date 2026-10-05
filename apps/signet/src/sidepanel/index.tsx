@@ -2,8 +2,12 @@
  * The side panel: the wallet itself. Opened from the Signet toolbar icon, out of reach of web pages.
  */
 import { useState, type ReactNode } from "react"
-import { colors, keyframes } from "../shared/styles/theme"
+import "@repo/brand/tokens.css"
+import "@repo/brand/fonts.css"
+import { applySavedTheme, colors, glow, keyframes } from "../shared/styles/theme"
 import "../shared/styles/style.css"
+
+applySavedTheme()
 
 import { SignetProvider, useSignetContext } from "~shared/context/SignetContext"
 import { WalletTab } from "~shared/wallet/WalletTab"
@@ -54,15 +58,15 @@ function SidePanel() {
         height: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        background: 'linear-gradient(180deg, #0D1117 0%, #010409 100%)',
+        background: colors.bg,
         overflow: 'hidden',
         boxSizing: 'border-box',
-        color: '#fff',
-        fontFamily: 'Inter, system-ui, sans-serif',
+        color: colors.ink,
+        fontFamily: 'var(--font-sans)',
       }}
     >
       {tabs.length > 1 && (
-        <div style={{ display: 'flex', borderBottom: '1px solid rgba(125, 249, 255, 0.2)', flexShrink: 0 }}>
+        <div className="hud-chrome" style={{ display: 'flex', background: colors.chrome, borderBottom: '1px solid color-mix(in srgb, var(--hud-accent) 20%, transparent)', flexShrink: 0 }}>
           {tabs.map(name => (
             <button
               key={name}
@@ -75,11 +79,11 @@ function SidePanel() {
                 display: 'flex',
                 justifyContent: 'center',
                 padding: '12px 0',
-                background: tab === name ? 'rgba(125, 249, 255, 0.08)' : 'transparent',
+                background: tab === name ? 'color-mix(in srgb, var(--hud-accent) 8%, transparent)' : 'transparent',
                 border: 'none',
-                borderBottom: tab === name ? `2px solid ${colors.cyber}` : '2px solid transparent',
-                color: tab === name ? colors.cyber : colors.steel,
-                filter: tab === name ? `drop-shadow(0 0 4px ${colors.cyber})` : 'none',
+                borderBottom: tab === name ? `2px solid ${colors.accent}` : '2px solid transparent',
+                color: tab === name ? colors.accent : colors.inkMuted,
+                filter: tab === name ? `drop-shadow(0 0 4px ${glow(colors.accent, 1)})` : 'none',
                 cursor: 'pointer',
               }}
             >

@@ -1,76 +1,55 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap");
+/*
+ * Blaze Wallet on the Charisma brand. The brand's tokens.css and fonts.css are imported by each page entry;
+ * these are the wallet's own pieces on top of them.
+ */
 
-/* Variables */
+/* Realm knobs: neon glows and deep shadows by night (Dark · RPG), flat paper by day (Light · Bitcoin) */
+:root,
+[data-theme="dark"] {
+  --glow: 1;
+  --shade: 1;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --glow: 0;
+    --shade: 0.2;
+  }
+}
+[data-theme="light"] {
+  --glow: 0;
+  --shade: 0.2;
+}
+
+/* The HUD's tint: the brand's accent text color, crimson by night and Stacks orange by day */
 :root {
-  --background: 0 0% 0%;
-  --foreground: 210 40% 98%;
-  --card: 0 0% 5%;
-  --card-foreground: 210 40% 96.1%;
-  --border: 0 0% 20%;
-  --input: 0 0% 20%;
-  --primary: 0.99 83% 41%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 0.99 47.4% 11.2%;
-  --accent: 0.99 83% 41%;
-  --accent-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 12%;
-  --muted-foreground: 215 20.2% 75%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --ring: 215 20.2% 65.1%;
-  --radius: 0.5rem;
-  --shimmer-from: -100%;
-  --shimmer-to: 100%;
+  --hud-accent: var(--accent-text);
+}
+
+/* Header and footer bars on the brand's chrome (black in both realms): the HUD inside reads the chrome's colors */
+.hud-chrome {
+  --hud-accent: var(--chrome-accent);
+  --ink: var(--on-chrome);
+  --ink-muted: var(--on-chrome-muted);
+  --bg: var(--chrome);
+  color: var(--on-chrome);
 }
 
 body {
-  margin: 0px
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
 }
 
-/* Animations */
-@keyframes signet-shimmer {
-  0% { transform: translateX(var(--shimmer-from)); }
-  100% { transform: translateX(var(--shimmer-to)); }
+/* Everything clickable shows it */
+button:not(:disabled),
+[role="button"],
+select,
+label:has(input[type="checkbox"]) {
+  cursor: pointer;
 }
 
-@keyframes signet-pulse-glow {
-  0%, 100% { opacity: 0.8; box-shadow: 0 0 5px rgba(125, 249, 255, 0.5); }
-  50% { opacity: 1; box-shadow: 0 0 15px rgba(125, 249, 255, 0.8); }
-}
-
-@keyframes scanline {
-  0% { top: 0; }
-  50% { top: 100%; }
-  100% { top: 0; }
-}
-
-/* Class-based utilities with signet- prefix */
-.signet-animate-shimmer {
-  animation: signet-shimmer 2s infinite;
-}
-
-.signet-animate-pulse-glow {
-  animation: signet-pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-.signet-glass-effect {
-  background: linear-gradient(180deg, rgba(17, 17, 27, 0.05) 0%, rgba(17, 17, 27, 0.2) 100%);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Utility classes */
-.signet-hide-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-
-.signet-hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Enhanced cyber scrollbar styling */
+/* Scrollbars in the HUD's tint */
 .signet-scrollbar::-webkit-scrollbar {
   width: 5px !important;
   height: 5px !important;
@@ -78,161 +57,102 @@ body {
 }
 
 .signet-scrollbar::-webkit-scrollbar-track {
-  background: rgba(1, 4, 9, 0.6) !important;
+  background: color-mix(in srgb, var(--bg) 60%, transparent) !important;
   border-radius: 2px !important;
   margin: 3px 0 !important;
 }
 
 .signet-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(125, 249, 255, 0.5) !important;
+  background: color-mix(in srgb, var(--hud-accent) 50%, transparent) !important;
   border-radius: 2px !important;
   transition: all 0.2s ease !important;
-  border: 1px solid rgba(125, 249, 255, 0.2) !important;
+  border: 1px solid color-mix(in srgb, var(--hud-accent) 20%, transparent) !important;
 }
 
 .signet-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(125, 249, 255, 0.8) !important;
-  box-shadow: 0 0 10px rgba(125, 249, 255, 0.5) !important;
+  background: color-mix(in srgb, var(--hud-accent) 80%, transparent) !important;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--hud-accent) calc(50% * var(--glow)), transparent) !important;
 }
 
 .signet-scrollbar::-webkit-scrollbar-corner {
   background: transparent !important;
 }
 
-/* Pulsing effect on hover */
-.signet-scrollbar:hover::-webkit-scrollbar-thumb {
-  animation: signet-pulse-glow 2s infinite;
-}
-
-/* Firefox scrollbar styling */
 .signet-scrollbar {
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(125, 249, 255, 0.5) rgba(1, 4, 9, 0.6) !important;
-}
-
-.signet-logo-shadow {
-  filter: drop-shadow(0px 0px 10px rgba(0, 0, 0, 0.25));
-}
-
-.signet-container {
-  position: fixed;
-  z-index: 9999;
-  /* font-family: 'Inter', sans-serif; */
-  color: white;
-  box-sizing: border-box;
-}
-
-/* Component styles */
-.signet-btn-gradient {
-  background: linear-gradient(90deg, #c1121f 0%, #ff4d6d 100%);
-  border: none;
-  transition: all 0.2s ease;
-}
-
-.signet-btn-gradient:hover {
-  background: linear-gradient(90deg, #a8101b 0%, #e64361 100%);
-  box-shadow: 0 4px 12px rgba(193, 18, 31, 0.3);
-}
-
-.signet-card {
-  background-color: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: var(--radius);
-  backdrop-filter: blur(4px);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-}
-
-.signet-card:hover {
-  border-color: rgba(193, 18, 31, 0.2);
-  box-shadow: 0 8px 24px rgba(193, 18, 31, 0.1);
-}
-
-.signet-glass-card {
-  background: linear-gradient(180deg, rgba(17, 17, 27, 0.05) 0%, rgba(17, 17, 27, 0.2) 100%);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
-  border-radius: var(--radius);
-  transition: all 0.2s ease;
-}
-
-.signet-glass-card:hover {
-  border-color: rgba(193, 18, 31, 0.2);
-  box-shadow: 0 8px 24px rgba(193, 18, 31, 0.1);
+  scrollbar-color: color-mix(in srgb, var(--hud-accent) 50%, transparent) color-mix(in srgb, var(--bg) 60%, transparent) !important;
 }
 
 /* ── HUD kit: the Diagnostics look for every tab ──────────────────────────── */
-/* Tint any control with --hud-c (an "r, g, b" triple), e.g. style={{ '--hud-c': '125, 249, 255' }} */
+/* Tint any control with --hud-c (a color), e.g. style={{ '--hud-c': 'var(--success)' }} */
 
 .hud-grid {
   background-image:
-    linear-gradient(to right, rgba(125, 249, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(125, 249, 255, 0.05) 1px, transparent 1px);
+    linear-gradient(to right, color-mix(in srgb, var(--hud-accent) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--hud-accent) 6%, transparent) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
 .hud-label {
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 8px;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--ink-muted);
 }
 
 .hud-text {
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.5px;
-  color: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
 }
 
 .hud-btn {
-  --hud-c: 125, 249, 255;
-  font-family: monospace;
+  --hud-c: var(--hud-accent);
+  font-family: var(--font-mono);
   font-size: 8px;
-  font-weight: bold;
+  font-weight: 500;
   letter-spacing: 0.5px;
   text-transform: uppercase;
   padding: 4px 8px;
   border-radius: 2px;
-  border: 1px solid rgba(var(--hud-c), 0.45);
-  background: rgba(var(--hud-c), 0.06);
-  color: rgba(var(--hud-c), 0.9);
-  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--hud-c) 45%, transparent);
+  background: color-mix(in srgb, var(--hud-c) 6%, transparent);
+  color: var(--hud-c);
   white-space: nowrap;
   transition: box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 .hud-btn:hover:not(:disabled) {
-  background: rgba(var(--hud-c), 0.14);
-  border-color: rgba(var(--hud-c), 0.9);
-  color: rgb(var(--hud-c));
-  box-shadow: 0 0 6px rgba(var(--hud-c), 0.4);
-  text-shadow: 0 0 4px rgba(var(--hud-c), 0.7);
+  background: color-mix(in srgb, var(--hud-c) 14%, transparent);
+  border-color: var(--hud-c);
+  box-shadow: 0 0 6px color-mix(in srgb, var(--hud-c) calc(40% * var(--glow)), transparent);
+  text-shadow: 0 0 4px color-mix(in srgb, var(--hud-c) calc(70% * var(--glow)), transparent);
 }
 .hud-btn:disabled {
   opacity: 0.35;
-  cursor: default;
 }
 
 .hud-input {
   width: 100%;
   box-sizing: border-box;
-  font-family: monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.5px;
   padding: 6px 8px;
   border-radius: 2px;
-  border: 1px solid rgba(125, 249, 255, 0.3);
-  background: rgba(1, 4, 9, 0.85);
-  color: rgb(125, 249, 255);
+  border: 1px solid color-mix(in srgb, var(--hud-accent) 30%, transparent);
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  color: var(--ink);
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.hud-input::placeholder { color: rgba(125, 249, 255, 0.35); }
+.hud-input::placeholder { color: var(--ink-faint); }
 .hud-input:focus {
-  border-color: rgba(125, 249, 255, 0.8);
-  box-shadow: 0 0 8px rgba(125, 249, 255, 0.3), inset 0 0 5px rgba(125, 249, 255, 0.15);
+  border-color: color-mix(in srgb, var(--hud-accent) 80%, transparent);
+  box-shadow:
+    0 0 8px color-mix(in srgb, var(--hud-accent) calc(30% * var(--glow)), transparent),
+    inset 0 0 5px color-mix(in srgb, var(--hud-accent) calc(15% * var(--glow)), transparent);
 }
 
 /* Table-style rows, like the hologram's lists */
@@ -241,13 +161,13 @@ body {
   align-items: center;
   gap: 8px;
   padding: 5px 4px;
-  border-bottom: 1px dashed rgba(125, 249, 255, 0.12);
-  font-family: monospace;
+  border-bottom: 1px dashed color-mix(in srgb, var(--hud-accent) 14%, transparent);
+  font-family: var(--font-mono);
   font-size: 9px;
   transition: background 0.15s ease;
 }
 .hud-row:last-child { border-bottom: none; }
 .hud-row.is-clickable { cursor: pointer; }
 .hud-row.is-clickable:hover,
-.hud-row.is-open { background: rgba(125, 249, 255, 0.06); }
-.hud-row.is-active { background: rgba(54, 199, 88, 0.06); }
+.hud-row.is-open { background: color-mix(in srgb, var(--hud-accent) 6%, transparent); }
+.hud-row.is-active { background: color-mix(in srgb, var(--success) 7%, transparent); }

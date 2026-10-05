@@ -11,12 +11,16 @@ import NotificationPanel from "~shared/notifications/NotificationPanel"
 import { ConnectContent } from "~shared/approvals/ConnectContent"
 import { SignMessageContent } from "~shared/approvals/SignMessageContent"
 import { CustomIcons } from "~shared/approvals/parts/Icons"
-import { colors } from "~shared/styles/theme"
 import type { ApprovalRequest } from "~background/lib/provider"
 import { SignOrderContent } from "~shared/approvals/SignOrderContent"
 import { SignOrdersContent } from "~shared/approvals/SignOrdersContent"
 import { TransactionContent } from "~shared/approvals/TransactionContent"
+import "@repo/brand/tokens.css"
+import "@repo/brand/fonts.css"
+import { applySavedTheme, colors } from "~shared/styles/theme"
 import "~shared/styles/style.css"
+
+applySavedTheme()
 
 const [requestId, mode] = location.hash.slice(1).split("&")
 // Signet's own window, never a frame: a site that frames this page with "&window" still gets the visibility check
@@ -35,7 +39,7 @@ function cardFor(details: Details) {
     return {
       title: details.method === "stx_transferStx" ? "SEND STX" : "RUN TRANSACTION",
       approve: "SEND",
-      color: colors.neonRed,
+      color: colors.danger,
       content: <TransactionContent origin={details.origin} address={details.address} method={details.method} params={details.params as Record<string, any>} />
     }
   }
@@ -44,7 +48,7 @@ function cardFor(details: Details) {
     return {
       title: "SIGN ORDER",
       approve: "SIGN",
-      color: colors.neonOrange,
+      color: colors.warning,
       content: <SignOrderContent origin={details.origin} address={details.address} message={message} domain={domain} />
     }
   }
@@ -53,7 +57,7 @@ function cardFor(details: Details) {
     return {
       title: `SIGN ${messages.length.toLocaleString("en-US")} ORDERS`,
       approve: "SIGN ALL",
-      color: colors.neonOrange,
+      color: colors.warning,
       content: <SignOrdersContent origin={details.origin} address={details.address} messages={messages} />
     }
   }
@@ -62,14 +66,14 @@ function cardFor(details: Details) {
     return {
       title: "SIGN MESSAGE",
       approve: "SIGN",
-      color: colors.neonOrange,
+      color: colors.warning,
       content: <SignMessageContent origin={details.origin} address={details.address} message={message} />
     }
   }
   return {
     title: "CONNECT REQUEST",
     approve: "CONNECT",
-    color: colors.cyber,
+    color: colors.accent,
     content: <ConnectContent origin={details.origin} address={details.address} />
   }
 }
@@ -141,11 +145,12 @@ export default function Approve() {
   const hold = !details?.unlocked ? "UNLOCK WALLET FIRST" : !visible ? "CHECKING…" : undefined
 
   return (
-    <div ref={frame} onPointerDownCapture={() => { if (!visible) restart() }} style={{ position: "fixed", inset: 0, fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div ref={frame} onPointerDownCapture={() => { if (!visible) restart() }} style={{ position: "fixed", inset: 0, fontFamily: "var(--font-sans)" }}>
       {/* Transparent over the site; Signet's dark background in its own window */}
-      <style>{`html, body { margin: 0; background: ${inWindow ? "#010409" : "transparent"}; }`}</style>
+      {/* Over the site: transparent, in the color scheme the frame was given (a mismatch would paint it opaque) */}
+      <style>{inWindow ? "html, body { margin: 0; background: var(--bg); }" : "html { color-scheme: normal !important; } html, body { margin: 0; background: transparent; }"}</style>
       {!details && error && (
-        <div style={{ margin: "20px auto", width: "360px", padding: "12px", background: "#010409", border: `1px solid ${colors.neonRed}`, color: colors.neonRed, fontSize: "12px", borderRadius: "6px" }}>
+        <div style={{ margin: "20px auto", width: "360px", padding: "12px", background: "var(--bg)", border: `1px solid ${colors.danger}`, color: colors.danger, fontSize: "12px", borderRadius: "6px" }}>
           {error}
         </div>
       )}
@@ -169,12 +174,12 @@ export default function Approve() {
                     Something is covering this card. Continue in a Blaze Wallet window ›
                   </Note>
                 )}
-                {error && <div style={{ color: colors.neonRed, fontSize: "11px", marginTop: "8px" }}>{error}</div>}
+                {error && <div style={{ color: colors.danger, fontSize: "11px", marginTop: "8px" }}>{error}</div>}
               </>
             ),
             actions: [
-              { id: "reject", label: "DENY", action: "reject", color: colors.neonRed },
-              { id: "approve", label: card.approve, action: "approve", color: colors.neonGreen }
+              { id: "reject", label: "DENY", action: "reject", color: colors.danger },
+              { id: "approve", label: card.approve, action: "approve", color: colors.success }
             ]
           }}
           onDismiss={() => decide(false)}
@@ -190,7 +195,7 @@ function Note({ children, onClick }: { children: ReactNode; onClick: () => void 
   return (
     <div
       onClick={onClick}
-      style={{ marginTop: "10px", fontSize: "11px", color: colors.cyber, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px" }}
+      style={{ marginTop: "10px", fontSize: "11px", color: colors.accent, cursor: "pointer", textDecoration: "underline", textUnderlineOffset: "3px" }}
     >
       {children}
     </div>
