@@ -205,9 +205,9 @@ export async function setCachedStatus(txid: string, info: TransactionInfo): Prom
  * Real-time transaction status check with timeout
  */
 export async function realTimeCheck(txid: string): Promise<StatusResponse> {
-    // Check if already cached
+    // A final answer never changes, so the cache can give it
     const cached = await getCachedStatus(txid);
-    if (cached) {
+    if (cached && isFinalStatus(cached.status)) {
         return {
             txid,
             status: cached.status,
@@ -216,6 +216,17 @@ export async function realTimeCheck(txid: string): Promise<StatusResponse> {
             fromCache: true,
             checkedAt: cached.lastChecked
         };
+    }
+
+    // "Pending" goes stale the moment its block lands: ask the chain once more instead of repeating it
+    if (cached) {
+        const fresh = await checkTransactionStatus(txid);
+        // Hiro briefly losing sight of a transaction it reported pending isn't news: keep the last answer
+        if (fresh.status !== 'not_found') {
+            await setCachedStatus(txid, { ...cached, status: fresh.status, blockHeight: fresh.blockHeight, blockTime: fresh.blockTime, lastChecked: Date.now(), checkCount: cached.checkCount + 1 });
+        }
+        const status = fresh.status === 'not_found' ? cached.status : fresh.status;
+        return { txid, status, blockHeight: fresh.blockHeight, blockTime: fresh.blockTime, fromCache: false, checkedAt: Date.now() };
     }
     
     // Try to get status with timeout
