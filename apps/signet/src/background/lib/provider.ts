@@ -41,8 +41,12 @@ const pending = new Map<string, Pending>()
 /** Most orders one bulk approval may sign (a year of hourly buys is under 9,000) */
 const MAX_BULK = 10_000
 
-/** The Blaze protocol's SIP-018 domain (blaze-sdk's BLAZE_V1_DOMAIN), serialized */
-const BLAZE_DOMAIN = Cl.serialize(Cl.tuple({ name: Cl.stringAscii("BLAZE_PROTOCOL"), version: Cl.stringAscii("v1.0"), "chain-id": Cl.uint(1) }))
+/**
+ * The Blaze protocol's SIP-018 domains, serialized: blaze-sdk's BLAZE_V1_DOMAIN and BLAZE_V2_DOMAIN. Written out
+ * here because blaze-sdk's entry pulls in @stacks/connect, which a service worker can't load.
+ */
+const blazeDomain = (version: string) => Cl.serialize(Cl.tuple({ name: Cl.stringAscii("BLAZE_PROTOCOL"), version: Cl.stringAscii(version), "chain-id": Cl.uint(1) }))
+const BLAZE_DOMAINS = [blazeDomain("v1.0"), blazeDomain("v2.0")]
 
 const CONNECT_METHODS = ["getAddresses", "stx_getAddresses", "wallet_connect"]
 const TX_METHODS = ["stx_transferStx", "stx_callContract"]
@@ -182,7 +186,7 @@ async function handleRpc(message: { id: string; method: string; params?: unknown
     if (!(await askUser(request, sender))) return fail(UserRejection, "User rejected the signature")
     const account = await wallet.getCurrentAccount()
     if (!account) return fail(InternalError, "Blaze Wallet has no active account")
-    // SIP-018 structured data, the format blaze-v1 recovers signers from
+    // SIP-018 structured data, the format Blaze recovers signers from
     const signature = signStructuredData({ ...parsed, privateKey: account.privateKey })
     return reply({ signature, publicKey: account.publicKey })
   }
@@ -201,7 +205,7 @@ async function handleRpc(message: { id: string; method: string; params?: unknown
       return fail(InvalidParams, `Could not read the orders: ${(error as Error).message}`)
     }
     // Only Blaze orders: the card can say exactly what each one does
-    if (Cl.serialize(parsed.domain) !== BLAZE_DOMAIN) {
+    if (!BLAZE_DOMAINS.includes(Cl.serialize(parsed.domain))) {
       return fail(InvalidParams, "blaze_signStructuredMessages only signs Blaze protocol orders")
     }
     if (!(await askUser(request, sender))) return fail(UserRejection, "User rejected the signatures")

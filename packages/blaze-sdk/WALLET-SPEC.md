@@ -43,7 +43,7 @@ const { rule } = await request('blaze_requestAutoApprove', { subnet, intents, ma
 - **Subnet**: a Blaze token contract whose token-cache metadata has `type: "SUBNET"`; its `base` is the
   on-chain token it holds 1:1 (e.g. `sbtc-token-subnet-v1` → `sbtc-token`).
 - **Blaze message**: a SIP-018 structured message with domain
-  `{ name: "BLAZE_PROTOCOL", version: "v1.0", chain-id: u1 }` and message
+  `{ name: "BLAZE_PROTOCOL", version: "v1.0" | "v2.0", chain-id: u1 }` (the subnet's Blaze version) and message
   `{ contract, intent, opcode?, amount?, target?, uuid }`, signed via `stx_signStructuredMessage`.
 
 ## Methods
@@ -80,10 +80,10 @@ interface AutoApproveRule {
 **A message is auto-signed only when all of these hold**, otherwise the normal approval appears:
 
 1. The request comes from the rule's `origin`, and the rule hasn't expired or been revoked.
-2. The domain is the Blaze v1 domain.
+2. The domain is the Blaze domain for the subnet's version (v1.0 or v2.0).
 3. `message.contract` is the rule's `subnet` and `message.intent` is in `intents`.
 4. `message.amount` is present and ≤ `maxPerMessage`, and `spent + amount` ≤ `maxTotal`.
-5. `message.target`, if present, is a router that pays out only to the signer (`x-multihop-v1`). Messages
+5. `message.target`, if present, is a router that pays out only to the signer (`x-multihop-v2` or `x-multihop-v1`). Messages
    whose payout the submitter chooses (e.g. `x-multihop-rc9`) are never auto-signed.
 
 The wallet adds `amount` to `spent` for every auto-signed message, and keeps a record the person can review.
@@ -115,7 +115,7 @@ per message. (Not "multi-signature": in Stacks that means several signers on one
 
 ```
 params: {
-  domain: string      // hex-serialized Clarity tuple; must be the Blaze domain
+  domain: string      // hex-serialized Clarity tuple; must be a Blaze domain (v1.0 or v2.0)
   messages: string[]  // hex-serialized Blaze messages, at most 10,000
 }
 result: { signatures: string[], publicKey: string }   // SIP-018 signatures, same order as messages
