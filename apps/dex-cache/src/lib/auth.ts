@@ -1,82 +1,24 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { getAddressFromPublicKey } from '@stacks/transactions';
-import { verifyMessageSignatureRsv } from '@stacks/encryption';
+import { verifySignedRequestWithTimestamp } from 'blaze-sdk';
 
-// The message that the admin must sign
-// Using a constant string simplifies things for now.
-// Consider adding a timestamp or nonce for replay protection if needed.
-const ADMIN_AUTH_MESSAGE = "dex-cache-admin-access";
+/** What the admin signs, with a timestamp (blaze-sdk's signedFetchWithTimestamp); a signature is good for 5 minutes */
+export const ADMIN_AUTH_MESSAGE = "dex-cache-admin-access";
 
 type ApiHandler = (req: NextRequest, context: any) => Promise<NextResponse> | NextResponse;
 
 /**
- * Higher-Order Function to wrap API route handlers with admin authentication.
- * Checks for 'x-public-key' and 'x-signature' headers.
- * Verifies the signature against the ADMIN_AUTH_MESSAGE and compares
- * the derived address to the ADMIN_WALLET_ADDRESS environment variable.
+ * Wraps an API route so only the admin wallet can call it. The request carries x-signature, x-public-key and
+ * x-timestamp over {message: ADMIN_AUTH_MESSAGE, timestamp}: it expires after 5 minutes and can't be dated in the
+ * future, so a captured signature can't be replayed later.
  */
 export function withAdminAuth(handler: ApiHandler): ApiHandler {
     return async (req: NextRequest, context: any) => {
         const adminAddress = process.env.ADMIN_WALLET_ADDRESS || 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
-
-        if (!adminAddress) {
-            console.error("ADMIN_WALLET_ADDRESS environment variable is not set.");
-            return NextResponse.json(
-                { status: 'error', message: 'Server configuration error.' },
-                { status: 500 }
-            );
+        const auth = await verifySignedRequestWithTimestamp(req, { message: ADMIN_AUTH_MESSAGE, expectedAddress: adminAddress });
+        if (!auth.ok) {
+            console.warn(`Admin access refused for ${req.nextUrl.pathname}: ${auth.error}`);
+            return NextResponse.json({ status: 'error', message: auth.error }, { status: auth.status });
         }
-
-        const signature = req.headers.get('x-signature');
-        const publicKey = req.headers.get('x-public-key');
-
-        if (!signature || !publicKey) {
-            return NextResponse.json(
-                { status: 'error', message: 'Missing authentication headers (x-public-key, x-signature)' },
-                { status: 401 }
-            );
-        }
-
-        try {
-            // Verify the signature
-            const isValidSig = verifyMessageSignatureRsv({
-                message: ADMIN_AUTH_MESSAGE,
-                publicKey: publicKey,
-                signature: signature,
-            });
-
-            if (!isValidSig) {
-                console.warn(`Invalid admin signature received. PubKey: ${publicKey.substring(0, 10)}...`);
-                return NextResponse.json(
-                    { status: 'error', message: 'Invalid signature' },
-                    { status: 401 }
-                );
-            }
-
-            // Derive address from public key
-            // Assuming Mainnet - adjust if necessary (e.g., TransactionVersion.Testnet)
-            const signerAddress = getAddressFromPublicKey(publicKey, 'mainnet');
-
-            // Check if the signer is the configured admin
-            if (signerAddress !== adminAddress) {
-                console.warn(`Unauthorized admin access attempt by address: ${signerAddress}`);
-                return NextResponse.json(
-                    { status: 'error', message: 'Unauthorized' },
-                    { status: 403 }
-                );
-            }
-
-            // If all checks pass, proceed to the original handler
-            console.log(`Admin access granted to ${signerAddress} for ${req.nextUrl.pathname}`);
-            return handler(req, context);
-
-        } catch (error) {
-            console.error("Error during admin authentication:", error);
-            const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
-            return NextResponse.json(
-                { status: 'error', message: `Authentication error: ${errorMessage}` },
-                { status: 500 }
-            );
-        }
+        return handler(req, context);
     };
-} 
+}

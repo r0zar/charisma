@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { connect, request } from "@stacks/connect";
+import { signedFetchWithTimestamp } from "blaze-sdk";
 
 // Define the admin auth message
 const ADMIN_AUTH_MESSAGE = "dex-cache-admin-access";
@@ -141,41 +142,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
     };
 
-    // New function: Signs admin message and wraps fetch
+    // Admin requests carry a timestamped signature, good for 5 minutes (lib/auth.ts checks it), so it can't be replayed
     const fetchWithAdminAuth = async (url: string, options: RequestInit = {}): Promise<Response> => {
         if (!walletState.connected) {
             throw new Error("Admin action requires connected wallet.");
         }
-
-        console.log("Attempting admin-authenticated fetch...");
-        try {
-            // Sign the predefined admin message
-            const signatureResult = await signMessage(ADMIN_AUTH_MESSAGE);
-
-            if (!signatureResult || !signatureResult.signature || !signatureResult.publicKey) {
-                throw new Error("Failed to obtain admin signature from wallet.");
-            }
-
-            // Prepare headers
-            const headers = new Headers(options.headers);
-            headers.set('x-public-key', signatureResult.publicKey);
-            headers.set('x-signature', signatureResult.signature);
-
-            console.log(`Executing fetch to ${url} with admin auth headers.`);
-            // Execute fetch with augmented headers
-            return await fetch(url, {
-                ...options,
-                headers,
-            });
-
-        } catch (error) {
-            console.error("Error during admin-authenticated fetch:", error);
-            // Rethrow or handle appropriately (e.g., return a custom Response)
-            if (error instanceof Error) {
-                throw new Error(`Admin Auth Fetch Error: ${error.message}`);
-            }
-            throw new Error("Unknown error during admin-authenticated fetch.");
-        }
+        return signedFetchWithTimestamp(url, { ...options, message: ADMIN_AUTH_MESSAGE });
     };
 
     const contextValue: AppContextType = {

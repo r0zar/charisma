@@ -14,7 +14,7 @@ import { Plus, AlertCircle, Loader2, CheckCircle, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { getTokenMetadata } from '@/app/actions';
 import { debounce } from 'lodash';
-import { signedFetch } from 'blaze-sdk';
+import { signedFetchWithTimestamp } from 'blaze-sdk';
 
 interface AddNewPoolDialogProps {
     isOpen: boolean;
@@ -246,7 +246,7 @@ export default function AddNewPoolDialog({ isOpen, onOpenChange }: AddNewPoolDia
             console.log('Request body:', requestBody);
 
             // Call the confirm API endpoint
-            const response = await signedFetch(`/api/v1/admin/vaults/${contractId}/confirm`, {
+            const response = await signedFetchWithTimestamp(`/api/v1/admin/vaults/${contractId}/confirm`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
