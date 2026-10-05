@@ -8,20 +8,15 @@ import { BalanceNotices } from '@/components/balances/BalanceNotices';
 import { TokenMetadataProvider } from '@/contexts/token-metadata-context';
 import { SubnetTokensProvider } from '@/contexts/subnet-tokens-context';
 import type { TokenCacheData } from '@/lib/contract-registry-adapter';
-import { LiquidOrbit } from '@/components/ui/liquid-orbit';
 
 interface ClientProvidersProps {
     children: React.ReactNode;
     initialTokens?: TokenCacheData[];
 }
 
-// Shown while the app's providers start up, before the page can draw
+// Shown for a moment while the app's providers start up: a quiet page, not an animation
 function GlobalLoadingSpinner() {
-    return (
-        <div className="fixed inset-0 bg-surface-raised backdrop-blur-sm z-50 flex items-center justify-center">
-            <LiquidOrbit caption="Loading" />
-        </div>
-    );
+    return <div className="fixed inset-0 z-50 bg-bg" aria-busy="true" />;
 }
 
 function TokenAwareProviders({ children, initialTokens }: { children: React.ReactNode; initialTokens?: TokenCacheData[] }) {
