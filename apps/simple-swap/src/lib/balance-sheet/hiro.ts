@@ -4,6 +4,7 @@ import type {
     MempoolTransactionListResponse,
     ServerStatusResponse,
     Transaction,
+    TransactionResults,
 } from '@stacks/stacks-blockchain-api-types';
 import { Cl, ClarityType } from '@stacks/transactions';
 
@@ -27,7 +28,7 @@ async function hiro<T>(path: string, init: RequestInit = {}): Promise<T> {
 
 /** The newest Stacks block's height */
 export async function tipHeight(): Promise<number> {
-    const status = await hiro<ServerStatusResponse>('/extended/v1/status');
+    const status = await hiro<ServerStatusResponse>('/extended');
     if (!status.chain_tip) throw new Error('Hiro sent no chain tip');
     return status.chain_tip.block_height;
 }
@@ -43,6 +44,16 @@ export async function mempool(): Promise<MempoolTransaction[]> {
     // A transaction mined between pages can shift one onto two pages
     const seen = new Set<string>();
     return [first, ...rest].flatMap(page => page.results).filter(tx => !seen.has(tx.tx_id) && !!seen.add(tx.tx_id));
+}
+
+/** Every transaction mined in one block, with its token events */
+export async function blockTransactions(height: number): Promise<Transaction[]> {
+    const first = await hiro<TransactionResults>(`/extended/v2/blocks/${height}/transactions?limit=${PAGE}`);
+    const rest = await Promise.all(
+        Array.from({ length: Math.max(0, Math.ceil(first.total / PAGE) - 1) }, (_, i) =>
+            hiro<TransactionResults>(`/extended/v2/blocks/${height}/transactions?limit=${PAGE}&offset=${(i + 1) * PAGE}`)),
+    );
+    return [first, ...rest].flatMap(page => page.results);
 }
 
 /** A transaction by id, mined or waiting; null when Hiro hasn't seen it */

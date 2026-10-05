@@ -29,7 +29,8 @@ const FAILED_SHOWN_MS = 5 * 60_000;
 interface Seen { at: number; entries: BalanceEntry[] }
 interface TxStatus { status: string; block?: number }
 
-async function tip(): Promise<number> {
+/** The newest block, shared for a couple of seconds */
+export async function tip(): Promise<number> {
     const kept = await kv.get<number>(TIP_KEY);
     if (kept) return kept;
     const height = await tipHeight();

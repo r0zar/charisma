@@ -4,6 +4,7 @@ import { fetchMetadata, type TokenCacheData } from '@repo/tokens';
 import { fetchVaults, quoteVault, type Vault } from 'dexterity-sdk';
 import { intentSigner } from '../blaze-signer';
 import { effectsOf, STX, type DecodeDeps, type Effect } from './decode';
+import { changed } from './changes';
 import { mempool } from './hiro';
 
 /**
@@ -87,5 +88,11 @@ export async function pendingTxs(): Promise<PendingTx[]> {
         }
     }));
     await kv.set(SNAPSHOT_KEY, { at: Date.now(), txs: decoded } satisfies Snapshot, { px: KEEP_MS });
+
+    // Wallets whose pending transactions just arrived or left: live screens showing them re-work their balances
+    const now = new Set(decoded.map(tx => tx.txid));
+    const arrived = decoded.filter(tx => !known.has(tx.txid));
+    const left = (kept?.txs ?? []).filter(tx => !now.has(tx.txid));
+    await changed([...arrived, ...left].flatMap(tx => tx.effects.flatMap(e => [e.address, ...(e.counterparty ? [e.counterparty] : [])])));
     return decoded;
 }

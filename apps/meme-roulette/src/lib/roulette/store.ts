@@ -58,6 +58,16 @@ const UNLOCK = `if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call(
 
 const parse = <T>(v: unknown): T => (typeof v === 'string' ? JSON.parse(v) : v) as T;
 
+/**
+ * A bet sets CHA aside, so the player's live balance screens (Swap's instant balances, which read bets from this same
+ * KV) re-work their numbers. The key belongs to apps/simple-swap/src/lib/balance-sheet/changes.ts.
+ */
+async function balanceChanged(user: string): Promise<void> {
+    const key = `balance-sheet:version:${user}`;
+    await kv.incr(key);
+    await kv.expire(key, 3600);
+}
+
 export const kvStore: Store = {
     async getConfig() {
         const saved = await kv.get<RouletteConfig>(K.config);
@@ -90,9 +100,14 @@ export const kvStore: Store = {
         return v ? parse<Bet>(v) : null;
     },
     async addBet(roundId, bet) {
-        return (await kv.hsetnx(K.bets(roundId), bet.uuid, JSON.stringify(bet))) === 1;
+        const added = (await kv.hsetnx(K.bets(roundId), bet.uuid, JSON.stringify(bet))) === 1;
+        if (added) await balanceChanged(bet.user);
+        return added;
     },
-    async putBet(roundId, bet) { await kv.hset(K.bets(roundId), { [bet.uuid]: JSON.stringify(bet) }); },
+    async putBet(roundId, bet) {
+        await kv.hset(K.bets(roundId), { [bet.uuid]: JSON.stringify(bet) });
+        await balanceChanged(bet.user);
+    },
     history: limit => kv.zrange<string[]>(K.history, 0, limit - 1, { rev: true }),
     async addHistory(id, endsAt) { await kv.zadd(K.history, { score: endsAt, member: id }); },
     async lock(ttlMs) {

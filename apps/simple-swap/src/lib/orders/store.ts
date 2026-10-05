@@ -3,15 +3,20 @@
 import { LimitOrder, NewOrderRequest } from './types';
 import { orderHandle } from './public';
 import { activeKey, isActive, ORDERS_KEY } from './active';
+import { changed } from '../balance-sheet/changes';
 // @ts-ignore: vercel/kv runtime import without types
 import { kv } from '@vercel/kv';
 
 const HASH_KEY = ORDERS_KEY; // Redis hash holding order JSON blobs
 
-/** Every write goes through here, so the per-owner index of orders that can still spend stays in step */
+/**
+ * Every write goes through here, so the per-owner index of orders that can still spend stays in step, and a live
+ * balance screen for the owner sees the change at once
+ */
 async function save(order: LimitOrder): Promise<void> {
     await kv.hset(HASH_KEY, { [order.uuid]: JSON.stringify(order) });
     await (isActive(order) ? kv.sadd(activeKey(order.owner), order.uuid) : kv.srem(activeKey(order.owner), order.uuid));
+    await changed([order.owner]);
 }
 
 export async function addOrder(req: NewOrderRequest): Promise<LimitOrder> {

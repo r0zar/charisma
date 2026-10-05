@@ -1,4 +1,4 @@
-import type { MempoolTransaction, PostCondition, PostConditionFungible, PostConditionStx } from '@stacks/stacks-blockchain-api-types';
+import type { MempoolTransaction, PostCondition, PostConditionFungible, PostConditionStx, Transaction } from '@stacks/stacks-blockchain-api-types';
 import { Cl, ClarityType, type ClarityValue } from '@stacks/transactions';
 import { MULTIHOP_CONTRACT_IDS, WRAPPED_STX_CONTRACT_ID } from 'blaze-sdk';
 import { defaultConfig, OPCODES, type Vault } from 'dexterity-sdk';
@@ -20,6 +20,9 @@ const STX_WRAPPERS: Record<string, (amount: bigint) => bigint> = {
     'SP3K8BC0PPEVCV7NZ6QSRWPQ2JE9E5B6N3PA0KBR9.token-wstx': amount => (amount * 1_000_000n) / 100_000_000n,
     [WRAPPED_STX_CONTRACT_ID]: amount => amount,
 };
+
+/** A transaction waiting to be mined, or one already mined (the same fields describe what it does) */
+export type Tx = MempoolTransaction | Transaction;
 
 /** What one transaction will do to one wallet's balance of one token */
 export interface Effect {
@@ -67,7 +70,7 @@ const aToB = (opcode: number) => opcode === OPCODES.SWAP_A_TO_B || opcode === OP
 /** The token a vault's side holds, in the wallet's terms (STX as ".stx") */
 const tokenId = (contractId: string) => (contractId === 'stx' || contractId === STX ? STX : contractId);
 
-export async function effectsOf(tx: MempoolTransaction, deps: DecodeDeps): Promise<Effect[]> {
+export async function effectsOf(tx: Tx, deps: DecodeDeps): Promise<Effect[]> {
     const effects: Effect[] = [];
     // Whoever pays the fee pays it whether or not the rest works out
     const payer = tx.sponsored && tx.sponsor_address ? tx.sponsor_address : tx.sender_address;
@@ -90,7 +93,7 @@ const transfer = (token: string, from: string, to: string, amount: bigint, kind:
     { address: to, token, kind, amount, counterparty: from },
 ];
 
-async function callEffects(contract: string, fn: string, args: Args, positional: ClarityValue[], tx: MempoolTransaction, deps: DecodeDeps): Promise<Effect[]> {
+async function callEffects(contract: string, fn: string, args: Args, positional: ClarityValue[], tx: Tx, deps: DecodeDeps): Promise<Effect[]> {
     const sender = tx.sender_address;
 
     // SIP-10 transfer (subnets keep the same shape): amount, from, to, memo
@@ -193,7 +196,7 @@ function routeMin(legs: Leg[], output: string, postConditions: PostCondition[], 
 }
 
 /** A wallet swap through the multihop router: the sender pays the first hop's token and gets the last hop's */
-async function walletSwap(args: Args, tx: MempoolTransaction, deps: DecodeDeps): Promise<Effect[]> {
+async function walletSwap(args: Args, tx: Tx, deps: DecodeDeps): Promise<Effect[]> {
     const amount = uint(args.amount);
     const legs = legsOf(args, 'pool', deps);
     if (amount === undefined || !legs) return [];
@@ -207,7 +210,7 @@ async function walletSwap(args: Args, tx: MempoolTransaction, deps: DecodeDeps):
 }
 
 /** A Blaze order run by a solver: the signer pays from their subnet, and `out.to` gets the output */
-async function orderSwap(router: string, args: Args, tx: MempoolTransaction, deps: DecodeDeps): Promise<Effect[]> {
+async function orderSwap(router: string, args: Args, tx: Tx, deps: DecodeDeps): Promise<Effect[]> {
     const input = tuple(args.in), out = tuple(args.out);
     const token = principal(input?.token), amount = uint(input?.amount), signature = buffer(input?.signature), uuid = ascii(input?.uuid);
     const to = principal(out?.to), output = principal(out?.token);
@@ -220,7 +223,7 @@ async function orderSwap(router: string, args: Args, tx: MempoolTransaction, dep
     ];
 }
 
-async function swapOutput(to: string, output: string, legs: Leg[], amount: bigint, tx: MempoolTransaction, deps: DecodeDeps): Promise<Effect[]> {
+async function swapOutput(to: string, output: string, legs: Leg[], amount: bigint, tx: Tx, deps: DecodeDeps): Promise<Effect[]> {
     const min = routeMin(legs, output, tx.post_conditions, deps);
     const likely = (await quoteRoute(legs, amount, deps)) ?? min;
     if (likely === undefined) return [];
