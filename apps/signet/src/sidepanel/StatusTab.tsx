@@ -26,8 +26,6 @@ function Speed({ ms }: { ms: number }) {
 export function StatusTab() {
   const { diag, loading, error, refresh } = useDiagnostics()
   const held = diag?.subnets.filter(subnet => subnet.balance && subnet.balance !== "0") ?? []
-  const failed = diag?.subnets.filter(subnet => subnet.balance === null) ?? []
-  const messy = diag?.subnets.filter(subnet => subnet.issues.length > 0) ?? []
   const lockMinutes = diag?.account.lockExpiresAt ? Math.max(0, Math.ceil((diag.account.lockExpiresAt - Date.now()) / 60000)) : null
   const state = error ? { text: "Error", tone: "danger" } : !diag ? { text: "Checking", tone: "warning" } : { text: "Live", tone: "success" }
 
@@ -60,8 +58,6 @@ export function StatusTab() {
 
       <Card title="Blaze subnets" right={diag && <span className="cx-pill cx-pill-plain">{diag.subnets.length}</span>}>
         <Kv label="Holding your funds">{diag ? held.length : "—"}</Kv>
-        {messy.length > 0 && <Kv label="Need tidier details" tone="warning">{messy.length}</Kv>}
-        {failed.length > 0 && <Kv label="Couldn't read" tone="danger">{failed.length}</Kv>}
         {diag && (
           held.length > 0 ? (
             <div style={{ marginTop: "8px" }}>

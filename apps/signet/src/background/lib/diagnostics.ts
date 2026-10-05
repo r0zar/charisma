@@ -15,11 +15,8 @@ export interface SubnetDiagnostic {
   decimals: number
   /** The on-chain token it holds, when the token cache says */
   base: string | null
-  /** This account's balance in smallest units, or null when the read failed (see error) */
+  /** This account's balance in smallest units, or null when the read failed (logged for developers) */
   balance: string | null
-  error?: string
-  /** Metadata problems worth cleaning up */
-  issues: string[]
 }
 
 export interface Diagnostics {
@@ -43,15 +40,6 @@ async function timed<T>(work: () => Promise<T>): Promise<{ value: T; latencyMs: 
   const start = performance.now()
   const value = await work()
   return { value, latencyMs: Math.round(performance.now() - start) }
-}
-
-function issuesOf(token: { contractId: string; symbol: string; base?: string | null }) {
-  const name = token.contractId.split(".")[1]
-  const issues: string[] = []
-  if (!token.base) issues.push("doesn't say which token it holds")
-  if (!token.symbol || token.symbol === name) issues.push("no proper symbol")
-  if (/-rc\d+$/.test(name)) issues.push("older release")
-  return issues
 }
 
 async function subnetBalance(contractId: string, address: string): Promise<string> {
@@ -84,11 +72,13 @@ export async function getDiagnostics(): Promise<Diagnostics> {
   const subnetTokens = cache.value.filter(token => token.type === "SUBNET")
   const subnets = await inBatches(subnetTokens, 4, async (token): Promise<SubnetDiagnostic> => {
     const base = (token as { base?: string | null }).base ?? null
-    const entry = { contractId: token.contractId, symbol: token.symbol, decimals: token.decimals, base, issues: issuesOf({ ...token, base }) }
+    const entry = { contractId: token.contractId, symbol: token.symbol, decimals: token.decimals, base }
     try {
       return { ...entry, balance: await subnetBalance(token.contractId, account.stxAddress) }
     } catch (error) {
-      return { ...entry, balance: null, error: (error as Error).message }
+      // A subnet that can't be read is a token-cache data bug for developers to fix, not news for the user
+      console.error(`[signet] Couldn't read ${token.contractId}'s balance: ${(error as Error).message}`)
+      return { ...entry, balance: null }
     }
   })
 

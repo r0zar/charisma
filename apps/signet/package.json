@@ -2,7 +2,7 @@
   "name": "signet-signer",
   "displayName": "Blaze Wallet",
   "version": "0.2.0",
-  "description": "The Blaze wallet for Stacks: connect to any Stacks app, sign and send, with Blaze subnets built in.",
+  "description": "Do more on Stacks. Sign once for limit orders and scheduled buys that run on their own, settled on-chain and paid only to you.",
   "author": "Charisma Labs",
   "scripts": {
     "build": "plasmo build",
@@ -43,7 +43,7 @@
   },
   "manifest": {
     "name": "Blaze Wallet",
-    "description": "The Blaze wallet for Stacks: connect to any Stacks app, sign and send, with Blaze subnets built in.",
+    "description": "Do more on Stacks. Sign once for limit orders and scheduled buys that run on their own, settled on-chain and paid only to you.",
     "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnSZTHNAdsOJq1A3Ii/DOZ+Y7xb9KI2Qz1JxNRQty6cLIXA4sm+OwD/tiPgvHJI5zdGXcR+hz9ChnWJLfCp3ju+lRFEJ0Y1cqbVRVN/m7rhp9x/IAFf37uIF2nnb5W3aBeYJzW0r3Kf8SUWvnUvfqYc5mbO1UXi6znHxFmiwekDoXlozDKzT/MSKxTHd1D9yBV0Ht5BCUSNmBPvrZRlbWkotC8rnlbpcWCpYUc7kTmllI9oNnNdgdLbZW3tXnB9KHZubyjK+FM+Ub6IWk0ewlZPHif3PwjSI9KZJWOgtRNSQJ6+JuMJOEGuqGVBQ1xd4Ljv34fC/EYcMeKVghD/5pZwIDAQAB",
     "permissions": [
       "storage",

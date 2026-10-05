@@ -7,7 +7,7 @@ Upload `build/blaze-wallet-chrome.zip` (made by `pnpm package:store` in apps/sig
 **Name:** Blaze Wallet
 
 **Summary** (132 characters max):
-> The wallet for Stacks and Blaze subnets. Connect to any Stacks app, sign and send, and see exactly what you approve.
+> Do more on Stacks. Sign once for limit orders and scheduled buys that run on their own, settled on-chain and paid only to you.
 
 **Category:** Tools (or Productivity; pick in the dashboard)
 
@@ -15,28 +15,25 @@ Upload `build/blaze-wallet-chrome.zip` (made by `pnpm package:store` in apps/sig
 
 **Description:**
 
-> Blaze Wallet is a Stacks wallet that lives in Chrome's side panel, built by Charisma for Stacks apps and Blaze subnets.
+> Blaze Wallet upgrades how you use Stacks. It does everything a Stacks wallet does, and adds Blaze: sign an order once and it runs on its own when its moment comes, settled on-chain and paid only to you. Built by Charisma, it lives in Chrome's side panel.
 >
-> CONNECT TO ANY STACKS APP
+> SIGN ONCE, IT RUNS ON ITS OWN
+> Limit orders and scheduled buys are signed ahead of time and run when their price or time arrives. Approve a whole plan, like a month of buys, with one card that shows how many orders there are, the total they can spend, and that they can only pay you.
+>
+> FAST WHERE IT CAN BE, ON-CHAIN WHERE IT COUNTS
+> Blaze subnets move tokens as signed messages and settle every trade on the Stacks blockchain. The Status tab shows the network, Charisma's token list, and every Blaze subnet with your balance on each, read straight from the chain.
+>
+> WORKS WITH ANY STACKS APP
 > Blaze Wallet speaks the standard Stacks wallet language, so it shows up in any app's "Connect wallet" list. Connect, sign messages, send STX and tokens, and run contract calls.
->
-> APPROVALS NOBODY CAN FAKE
-> Every request opens a sealed approval card that the website can't read or click. Approve stays locked until the card has been fully visible, so a site can't trick you by covering it.
->
-> KNOW EXACTLY WHAT YOU SIGN
-> Blaze subnet orders are shown in plain words: the action, the token, the amount, and who can be paid. Transactions list exactly which tokens can leave your wallet, and warn loudly when a site asks for more.
->
-> A WHOLE PLAN, ONE APPROVAL
-> Sign many Blaze orders at once, like a month of scheduled buys. One card shows how many there are, the total they can spend, and that they can only pay you.
 >
 > EVERY TOKEN, ONE VIEW
 > Balances with logos and dollar values. Sends allow exactly the amount you choose. Tokens that aren't on Charisma's token list, like scam airdrops, are tucked away and can't be sent by mistake.
 >
-> YOUR KEYS STAY WITH YOU
-> Your seed phrase and keys are encrypted in your browser with your password and never sent anywhere. The wallet locks itself after 15 minutes idle. New seed phrases must be written down and confirmed before they're saved.
+> KNOW EXACTLY WHAT YOU SIGN
+> Orders are shown in plain words: the action, the token, the amount, and who can be paid. Transactions list exactly which tokens can leave your wallet, and warn loudly when a site asks for more. Every request opens a sealed card the website can't read, cover or click.
 >
-> LIVE NETWORK VIEW
-> The Status tab shows the Stacks network, Charisma's token list, and every Blaze subnet with your balance on each, read straight from the blockchain.
+> YOUR KEYS STAY YOURS
+> Your seed phrase and keys are encrypted in your browser with your password and never sent anywhere. The wallet locks itself after 15 minutes idle. New seed phrases must be written down and confirmed before they're saved.
 >
 > LIGHT OR DARK
 > Charisma's Light · Bitcoin and Dark · RPG looks. Blaze Wallet follows your device, or pick one in the Vault.
