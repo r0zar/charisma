@@ -1,7 +1,6 @@
 /**
  * Send a transaction (stx_transferStx, stx_callContract): what it does and exactly what can leave the wallet.
  */
-import type { ReactNode } from "react"
 import {
   Cl,
   FungibleConditionCode,
@@ -13,10 +12,9 @@ import {
   type PostConditionPrincipalWire,
   type PostConditionWire
 } from "@stacks/transactions"
-import { OriginBanner, PermissionLevelIndicator } from "./parts/UIComponents"
-import { BannerType, PermissionLevel } from "./parts/types"
-import { commonStyles } from "./parts/styles"
-import { colors } from "~shared/styles/theme"
+import { RequestHeader } from "./parts/UIComponents"
+import { PermissionLevel } from "./parts/types"
+import { Kv } from "~shared/ui"
 
 const short = (text: string) => (text.length > 16 ? `${text.slice(0, 6)}…${text.slice(-4)}` : text)
 const stx = (micro: bigint | string | number) => `${(Number(micro) / 1e6).toLocaleString("en-US", { maximumFractionDigits: 6 })} STX`
@@ -49,22 +47,6 @@ function describe(pc: PostConditionWire, signer: string | null) {
   return `${sender} ${sends ? verb : sender === "You" ? "keep" : "keeps"} ${pc.asset.assetName.content} ${Cl.prettyPrint(pc.assetName)}`
 }
 
-function Row({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", padding: "4px 0", fontSize: "11px" }}>
-      <span style={{ color: colors.inkMuted }}>{label}</span>
-      <span style={{ color: "var(--ink)", textAlign: "right", wordBreak: "break-all" }}>{children}</span>
-    </div>
-  )
-}
-
-const box = {
-  margin: "10px 0",
-  padding: "6px 10px",
-  background: "color-mix(in srgb, var(--hud-accent) 5%, transparent)",
-  border: "1px solid color-mix(in srgb, var(--hud-accent) 20%, transparent)",
-  borderRadius: "4px",
-} as const
 
 export function TransactionContent({ origin, address, method, params }: {
   origin: string
@@ -77,24 +59,23 @@ export function TransactionContent({ origin, address, method, params }: {
   const allowMode = !isTransfer && params.postConditionMode === "allow"
 
   return (
-    <div style={commonStyles.contentContainer}>
-      <PermissionLevelIndicator level={PermissionLevel.CRITICAL} />
-      <OriginBanner origin={origin} type={BannerType.CRITICAL} message={isTransfer ? "wants you to send STX" : "wants you to run a transaction"} />
+    <div className="w-approval">
+      <RequestHeader level={PermissionLevel.CRITICAL} origin={origin} message={isTransfer ? "wants you to send STX" : "wants you to run a transaction"} />
 
-      <div style={box}>
+      <div className="cx-pane">
         {isTransfer ? (
           <>
-            <Row label="Send">{stx(params.amount)}</Row>
-            <Row label="To">{params.recipient}</Row>
-            {params.memo && <Row label="Memo">{params.memo}</Row>}
+            <Kv label="Send">{stx(params.amount)}</Kv>
+            <Kv label="To">{params.recipient}</Kv>
+            {params.memo && <Kv label="Memo">{params.memo}</Kv>}
           </>
         ) : (
           <>
-            <Row label="Contract">{params.contract.split(".")[1]} ({short(params.contract.split(".")[0])})</Row>
-            <Row label="Function">{params.functionName}</Row>
-            <div className="signet-scrollbar" style={{ maxHeight: "90px", overflowY: "auto" }}>
+            <Kv label="Contract">{params.contract.split(".")[1]} ({short(params.contract.split(".")[0])})</Kv>
+            <Kv label="Function">{params.functionName}</Kv>
+            <div style={{ maxHeight: "90px", overflowY: "auto" }}>
               {((params.functionArgs ?? []) as string[]).map((arg, i) => (
-                <Row key={i} label={`Arg ${i + 1}`}>{Cl.prettyPrint(Cl.deserialize(arg))}</Row>
+                <Kv key={i} label={`Arg ${i + 1}`}>{Cl.prettyPrint(Cl.deserialize(arg))}</Kv>
               ))}
             </div>
           </>
@@ -102,21 +83,21 @@ export function TransactionContent({ origin, address, method, params }: {
       </div>
 
       {!isTransfer && (
-        <div style={{ ...box, borderColor: allowMode ? colors.danger : "color-mix(in srgb, var(--success) 40%, transparent)" }}>
-          <div style={{ fontSize: "11px", fontWeight: "bold", color: allowMode ? colors.danger : colors.success, marginBottom: "4px" }}>
+        <div className="cx-pane" style={{ background: `var(--${allowMode ? "danger" : "success"}-soft)`, borderColor: "transparent" }}>
+          <div style={{ fontWeight: 700, color: `var(--${allowMode ? "danger" : "success"})`, marginBottom: postConditions.length ? "4px" : 0 }}>
             {allowMode
               ? "⚠ Any of your tokens could move (allow mode)"
               : postConditions.length ? "Only these transfers can happen:" : "No tokens can leave your wallet"}
           </div>
           {postConditions.map((pc, i) => (
-            <div key={i} style={{ fontSize: "11px", padding: "2px 0" }}>• {describe(pc, address)}</div>
+            <div key={i} style={{ padding: "2px 0", color: "var(--ink-body)" }}>• {describe(pc, address)}</div>
           ))}
         </div>
       )}
 
-      <div style={{ fontSize: "11px", color: colors.inkMuted }}>
+      <p className="w-note">
         {address ? `Sent from ${short(address)}. ` : ""}Network fee is set automatically.
-      </div>
+      </p>
     </div>
   )
 }

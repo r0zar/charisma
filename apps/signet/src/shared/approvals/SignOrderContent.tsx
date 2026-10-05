@@ -2,19 +2,17 @@
  * Sign structured data (SIP-018): what the order does, in plain words.
  * Blaze orders (Charisma subnets) get a readable summary, including who the funds can be paid out to.
  */
-import type { ReactNode } from "react"
 import { Cl, type ClarityValue, type TupleCV } from "@stacks/transactions"
-import { OriginBanner, PermissionLevelIndicator } from "./parts/UIComponents"
-import { BannerType, PermissionLevel } from "./parts/types"
-import { commonStyles } from "./parts/styles"
+import { RequestHeader } from "./parts/UIComponents"
+import { PermissionLevel } from "./parts/types"
 import { BLAZE_V1_DOMAIN, LEGACY_MULTIHOP_CONTRACT_ID, MULTIHOP_CONTRACT_ID, MULTIHOP_V1_CONTRACT_ID } from "blaze-sdk"
-import { colors } from "~shared/styles/theme"
+import { Kv } from "~shared/ui"
 
 /** Routers and what they allow once they hold a signed order */
-const ROUTERS: Record<string, { text: string; color: string }> = {
-  [MULTIHOP_CONTRACT_ID]: { text: "Only to you", color: colors.success },
-  [MULTIHOP_V1_CONTRACT_ID]: { text: "Only to you", color: colors.success },
-  [LEGACY_MULTIHOP_CONTRACT_ID]: { text: "Wherever the submitter chooses", color: colors.danger },
+const ROUTERS: Record<string, { text: string; tone: "success" | "danger" }> = {
+  [MULTIHOP_CONTRACT_ID]: { text: "Only to you", tone: "success" },
+  [MULTIHOP_V1_CONTRACT_ID]: { text: "Only to you", tone: "success" },
+  [LEGACY_MULTIHOP_CONTRACT_ID]: { text: "Wherever the submitter chooses", tone: "danger" },
 }
 
 const BLAZE_NAME = Cl.prettyPrint(BLAZE_V1_DOMAIN.value.name).replace(/"/g, "")
@@ -27,14 +25,6 @@ function optional(value: ClarityValue | undefined): ClarityValue | null {
   return value.type === "some" ? value.value : value
 }
 
-function Row({ label, children, color }: { label: string; children: ReactNode; color?: string }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", gap: "12px", padding: "4px 0", fontSize: "11px" }}>
-      <span style={{ color: colors.inkMuted }}>{label}</span>
-      <span style={{ color: color ?? "var(--ink)", textAlign: "right", wordBreak: "break-all" }}>{children}</span>
-    </div>
-  )
-}
 
 function BlazeOrder({ fields }: { fields: Record<string, ClarityValue> }) {
   const contract = Cl.prettyPrint(fields.contract)
@@ -46,16 +36,16 @@ function BlazeOrder({ fields }: { fields: Record<string, ClarityValue> }) {
   const sendsTo = target?.type === "address"
   return (
     <>
-      <Row label="Action">{Cl.prettyPrint(fields.intent).replace(/"/g, "")}</Row>
-      <Row label="Token">{shortName(contract.replace(/^'/, ""))}</Row>
-      {amount && <Row label="Amount (smallest units)">{Cl.prettyPrint(amount).replace(/^u/, "")}</Row>}
-      {targetId && sendsTo && <Row label="Sends to" color={colors.danger}>{targetId}</Row>}
+      <Kv label="Action">{Cl.prettyPrint(fields.intent).replace(/"/g, "")}</Kv>
+      <Kv label="Token">{shortName(contract.replace(/^'/, ""))}</Kv>
+      {amount && <Kv label="Amount (smallest units)">{Cl.prettyPrint(amount).replace(/^u/, "")}</Kv>}
+      {targetId && sendsTo && <Kv label="Sends to" tone="danger">{targetId}</Kv>}
       {targetId && !sendsTo && (
-        <Row label="Payout" color={router?.color ?? colors.warning}>
+        <Kv label="Payout" tone={router?.tone ?? "warning"}>
           {router ? `${router.text} (${shortName(targetId)})` : `Handled by ${shortName(targetId)}`}
-        </Row>
+        </Kv>
       )}
-      <Row label="Order ID">{Cl.prettyPrint(fields.uuid).replace(/"/g, "")}</Row>
+      <Kv label="Order ID">{Cl.prettyPrint(fields.uuid).replace(/"/g, "")}</Kv>
     </>
   )
 }
@@ -72,22 +62,21 @@ export function SignOrderContent({ origin, address, message, domain }: {
   const isBlaze = appName === BLAZE_NAME && data.type === "tuple"
 
   return (
-    <div style={commonStyles.contentContainer}>
-      <PermissionLevelIndicator level={PermissionLevel.SENSITIVE} />
-      <OriginBanner origin={origin} type={BannerType.WARNING} message={isBlaze ? "wants you to sign a subnet order" : `wants you to sign data for ${appName}`} />
+    <div className="w-approval">
+      <RequestHeader level={PermissionLevel.SENSITIVE} origin={origin} message={isBlaze ? "wants you to sign a subnet order" : `wants you to sign data for ${appName}`} />
 
-      <div style={{ margin: "10px 0", padding: "6px 10px", background: "color-mix(in srgb, var(--hud-accent) 5%, transparent)", border: "1px solid color-mix(in srgb, var(--hud-accent) 20%, transparent)", borderRadius: "4px" }}>
+      <div className="cx-pane">
         {isBlaze
           ? <BlazeOrder fields={(data as TupleCV).value} />
           : data.type === "tuple"
-            ? Object.entries((data as TupleCV).value).map(([key, value]) => <Row key={key} label={key}>{Cl.prettyPrint(value)}</Row>)
-            : <Row label="Data">{Cl.prettyPrint(data)}</Row>}
+            ? Object.entries((data as TupleCV).value).map(([key, value]) => <Kv key={key} label={key}>{Cl.prettyPrint(value)}</Kv>)
+            : <Kv label="Data">{Cl.prettyPrint(data)}</Kv>}
       </div>
 
-      <div style={{ fontSize: "11px", color: colors.inkMuted }}>
+      <p className="w-note">
         {address ? `Signs as ${address.slice(0, 6)}…${address.slice(-4)}. ` : ""}
         {isBlaze ? "Anyone holding this signature can run this order once." : "Only sign data you recognize."}
-      </div>
+      </p>
     </div>
   )
 }

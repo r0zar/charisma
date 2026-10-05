@@ -1315,6 +1315,9 @@ importers:
       blaze-sdk:
         specifier: workspace:*
         version: link:../../packages/blaze-sdk
+      lucide-react:
+        specifier: ^0.525.0
+        version: 0.525.0(react@18.2.0)
       plasmo:
         specifier: ^0.89.4
         version: 0.89.5(@swc/core@1.13.1(@swc/helpers@0.5.17))(@swc/helpers@0.5.17)(ejs@3.1.10)(handlebars@4.7.8)(lodash@4.17.21)(mustache@4.2.0)(postcss@8.5.6)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(relateurl@0.2.7)(terser@5.43.1)(ts-node@10.9.2(@swc/core@1.13.1(@swc/helpers@0.5.17))(@types/node@20.11.5)(typescript@5.3.3))
@@ -32370,6 +32373,10 @@ snapshots:
       yallist: 4.0.0
 
   lru-cache@7.18.3: {}
+
+  lucide-react@0.525.0(react@18.2.0):
+    dependencies:
+      react: 18.2.0
 
   lucide-react@0.525.0(react@19.1.0):
     dependencies:

@@ -1,5 +1,5 @@
 /**
- * Real Diagnostics data for the header, footer and hologram, loaded from the background. Each check is about
+ * Real status checks for the Status tab, loaded from the background. Each check is about
  * 20 Hiro reads, so it refreshes every 5 minutes and only while the side panel is visible (Hiro rate-limits).
  */
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"

@@ -1,44 +1,16 @@
 /*
- * Blaze Wallet on the Charisma brand. The brand's tokens.css and fonts.css are imported by each page entry;
- * these are the wallet's own pieces on top of them.
+ * Blaze Wallet in Charisma's app look. Each page entry imports @repo/brand's tokens.css, fonts.css and
+ * components.css (the cx- widgets Swap is drawn with); these are the wallet's own pieces on top.
  */
 
-/* Realm knobs: neon glows and deep shadows by night (Dark · RPG), flat paper by day (Light · Bitcoin) */
-:root,
-[data-theme="dark"] {
-  --glow: 1;
-  --shade: 1;
-}
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme]) {
-    --glow: 0;
-    --shade: 0.2;
-  }
-}
-[data-theme="light"] {
-  --glow: 0;
-  --shade: 0.2;
-}
-
-/* The HUD's tint: the brand's accent text color, crimson by night and Stacks orange by day */
-:root {
-  --hud-accent: var(--accent-text);
-}
-
-/* Header and footer bars on the brand's chrome (black in both realms): the HUD inside reads the chrome's colors */
-.hud-chrome {
-  --hud-accent: var(--chrome-accent);
-  --ink: var(--on-chrome);
-  --ink-muted: var(--on-chrome-muted);
-  --bg: var(--chrome);
-  color: var(--on-chrome);
+html,
+body {
+  height: 100%;
 }
 
 body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 22px;
 }
 
 /* Everything clickable shows it */
@@ -49,125 +21,265 @@ label:has(input[type="checkbox"]) {
   cursor: pointer;
 }
 
-/* Scrollbars in the HUD's tint */
-.signet-scrollbar::-webkit-scrollbar {
-  width: 5px !important;
-  height: 5px !important;
-  background-color: transparent !important;
+input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: none;
 }
 
-.signet-scrollbar::-webkit-scrollbar-track {
-  background: color-mix(in srgb, var(--bg) 60%, transparent) !important;
-  border-radius: 2px !important;
-  margin: 3px 0 !important;
-}
-
-.signet-scrollbar::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--hud-accent) 50%, transparent) !important;
-  border-radius: 2px !important;
-  transition: all 0.2s ease !important;
-  border: 1px solid color-mix(in srgb, var(--hud-accent) 20%, transparent) !important;
-}
-
-.signet-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: color-mix(in srgb, var(--hud-accent) 80%, transparent) !important;
-  box-shadow: 0 0 10px color-mix(in srgb, var(--hud-accent) calc(50% * var(--glow)), transparent) !important;
-}
-
-.signet-scrollbar::-webkit-scrollbar-corner {
-  background: transparent !important;
-}
-
-.signet-scrollbar {
-  scrollbar-width: thin !important;
-  scrollbar-color: color-mix(in srgb, var(--hud-accent) 50%, transparent) color-mix(in srgb, var(--bg) 60%, transparent) !important;
-}
-
-/* ── HUD kit: the Diagnostics look for every tab ──────────────────────────── */
-/* Tint any control with --hud-c (a color), e.g. style={{ '--hud-c': 'var(--success)' }} */
-
-.hud-grid {
-  background-image:
-    linear-gradient(to right, color-mix(in srgb, var(--hud-accent) 6%, transparent) 1px, transparent 1px),
-    linear-gradient(to bottom, color-mix(in srgb, var(--hud-accent) 6%, transparent) 1px, transparent 1px);
-  background-size: 20px 20px;
-}
-
-.hud-label {
-  font-family: var(--font-mono);
-  font-size: 8px;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--ink-muted);
-}
-
-.hud-text {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.5px;
+/* ── Side panel shell ─────────────────────────────── */
+.w-app {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
   color: var(--ink);
+  overflow: hidden;
 }
 
-.hud-btn {
-  --hud-c: var(--hud-accent);
-  font-family: var(--font-mono);
-  font-size: 8px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  padding: 4px 8px;
-  border-radius: 2px;
-  border: 1px solid color-mix(in srgb, var(--hud-c) 45%, transparent);
-  background: color-mix(in srgb, var(--hud-c) 6%, transparent);
-  color: var(--hud-c);
-  white-space: nowrap;
-  transition: box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-}
-.hud-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--hud-c) 14%, transparent);
-  border-color: var(--hud-c);
-  box-shadow: 0 0 6px color-mix(in srgb, var(--hud-c) calc(40% * var(--glow)), transparent);
-  text-shadow: 0 0 4px color-mix(in srgb, var(--hud-c) calc(70% * var(--glow)), transparent);
-}
-.hud-btn:disabled {
-  opacity: 0.35;
+/* The header bar on the brand's chrome (black in both realms), with the tabs */
+.w-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 52px;
+  padding: 0 8px;
+  background: var(--chrome);
+  color: var(--on-chrome);
+  border-bottom: 1px solid var(--line);
 }
 
-.hud-input {
+.w-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--on-chrome-muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  transition: color 0.15s ease;
+}
+.w-tab:hover { color: var(--on-chrome); }
+.w-tab[aria-current="page"] { color: var(--chrome-accent); }
+
+.w-chrome-btn {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  border: 1px solid transparent;
+  color: var(--on-chrome-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.w-chrome-btn:hover { color: var(--on-chrome); border-color: var(--on-chrome-muted); }
+
+/* The page: by night a faint grid and a crimson glow (the brand's texture), by day plain paper */
+.w-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background-image:
+    radial-gradient(120% 60% at 50% 0%, var(--bg-glow), transparent 70%),
+    linear-gradient(var(--texture) 1px, transparent 1px),
+    linear-gradient(90deg, var(--texture) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
+  background-attachment: local;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.w-page {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Cards ────────────────────────────────────────── */
+.w-app .cx-card,
+.w-app .cx-pane {
+  padding: 16px;
+}
+
+.w-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.w-card-head h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 700;
+}
+
+.w-stack { display: flex; flex-direction: column; gap: 12px; }
+.w-actions { display: flex; gap: 8px; }
+.w-actions > * { flex: 1; }
+
+/* A list inside a card: rows split by soft lines */
+.w-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line-soft);
+}
+.w-row:first-child { border-top: 0; }
+.w-row-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.w-row-main strong { font-size: 15px; line-height: 20px; }
+.w-row-main span { font-size: 13px; line-height: 18px; color: var(--ink-muted); }
+
+/* ── Text ─────────────────────────────────────────── */
+.w-mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.w-address { font-family: var(--font-mono); font-size: 13px; line-height: 18px; color: var(--ink-body); word-break: break-all; }
+.w-note { margin: 0; font-size: 13px; line-height: 19px; color: var(--ink-muted); }
+.w-error { margin: 0; font-size: 13px; line-height: 19px; color: var(--danger); }
+.w-warning { margin: 0; font-size: 13px; line-height: 19px; color: var(--warning); }
+.w-total { font-family: var(--font-mono); font-size: 32px; line-height: 38px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+
+/* ── Buttons ──────────────────────────────────────── */
+.w-app .cx-btn { height: 40px; padding: 0 16px; }
+.w-app .cx-btn.w-btn-sm { height: 32px; padding: 0 12px; font-size: 13px; }
+.cx-btn.w-btn-danger { color: var(--danger); }
+.cx-btn.w-btn-danger:hover { background: var(--danger-soft); border-color: var(--danger); }
+
+/* ── Inputs ───────────────────────────────────────── */
+.w-field { display: flex; flex-direction: column; gap: 6px; }
+.w-field > span { font-size: 13px; line-height: 18px; font-weight: 600; color: var(--ink-body); }
+
+.w-input {
   width: 100%;
   box-sizing: border-box;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.5px;
-  padding: 6px 8px;
-  border-radius: 2px;
-  border: 1px solid color-mix(in srgb, var(--hud-accent) 30%, transparent);
-  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  height: 44px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
   color: var(--ink);
+  font: inherit;
+  font-size: 15px;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.hud-input::placeholder { color: var(--ink-faint); }
-.hud-input:focus {
-  border-color: color-mix(in srgb, var(--hud-accent) 80%, transparent);
-  box-shadow:
-    0 0 8px color-mix(in srgb, var(--hud-accent) calc(30% * var(--glow)), transparent),
-    inset 0 0 5px color-mix(in srgb, var(--hud-accent) calc(15% * var(--glow)), transparent);
-}
+.w-input::placeholder { color: var(--ink-faint); }
+.w-input:focus { border-color: var(--accent-line); box-shadow: 0 0 0 3px var(--accent-soft); }
+.w-input.w-mono { font-size: 14px; }
+textarea.w-input { height: auto; padding: 10px 14px; resize: none; line-height: 22px; }
 
-/* Table-style rows, like the hologram's lists */
-.hud-row {
+/* An input with a button inside it (show password, max amount) */
+.w-input-wrap { position: relative; display: flex; }
+.w-input-wrap .w-input { padding-right: 76px; }
+.w-input-wrap .cx-chip { position: absolute; right: 7px; top: 7px; height: 30px; }
+
+/* ── Seed words ───────────────────────────────────── */
+.w-words { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.w-word {
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-soft);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 16px;
+}
+.w-word i { font-style: normal; color: var(--ink-faint); min-width: 16px; text-align: right; }
+
+.w-check { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-body); }
+
+/* ── Locked screen ────────────────────────────────── */
+.w-lock {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+  padding: 24px 16px;
+  box-sizing: border-box;
+}
+.w-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+.w-brand-mark {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-lg);
+  background: var(--accent);
+  color: var(--on-accent);
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 4px;
-  border-bottom: 1px dashed color-mix(in srgb, var(--hud-accent) 14%, transparent);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  transition: background 0.15s ease;
+  justify-content: center;
+  box-shadow: var(--shadow-cta);
 }
-.hud-row:last-child { border-bottom: none; }
-.hud-row.is-clickable { cursor: pointer; }
-.hud-row.is-clickable:hover,
-.hud-row.is-open { background: color-mix(in srgb, var(--hud-accent) 6%, transparent); }
-.hud-row.is-active { background: color-mix(in srgb, var(--success) 7%, transparent); }
+.w-brand h1 { margin: 0; font-size: 24px; line-height: 30px; font-weight: 700; }
+.w-brand p { margin: 0; font-size: 14px; color: var(--ink-muted); }
+
+/* ── Label and value lines ─────────────────────────── */
+.w-app .cx-kv { padding: 7px 0; }
+/* Words, not numbers: the value keeps the reading font */
+.w-app .cx-kv.w-kv-text > :last-child { font-family: inherit; font-size: 14px; text-align: right; }
+.w-app .cx-progress { margin-top: 2px; }
+
+/* ── Approval cards (over a site, or in their own window) ─ */
+.w-card {
+  width: 440px;
+  max-width: calc(100vw - 32px);
+  box-sizing: border-box;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-overlay);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 20px;
+}
+.w-card-title { display: flex; align-items: center; gap: 10px; }
+.w-card-title h1 { flex: 1; margin: 0; font-size: 18px; line-height: 24px; font-weight: 700; }
+.w-card-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: var(--on-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.w-card .cx-btn { height: 44px; }
+
+.w-approval { display: flex; flex-direction: column; gap: 12px; }
+.w-approval .cx-pane { padding: 10px 14px; }
+.w-approval .cx-kv { align-items: flex-start; }
+.w-approval .cx-kv > :first-child { flex: none; }
+.w-approval .cx-kv > :last-child { min-width: 0; text-align: right; word-break: break-all; }
+.w-origin {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line-soft);
+  color: var(--ink-body);
+  word-break: break-word;
+}
+.w-origin strong { color: var(--ink); font-family: var(--font-mono); font-weight: 500; font-size: 13px; }
+.w-feature { display: flex; align-items: center; gap: 10px; color: var(--ink-body); }
+.w-feature svg { flex: none; }

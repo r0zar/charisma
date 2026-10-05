@@ -35,7 +35,7 @@ function showNotification(message: string, isSuccess: boolean = true): void {
   notification.style.color = 'var(--on-fill)';
   notification.style.borderRadius = '4px';
   notification.style.zIndex = '999999';
-  notification.style.boxShadow = '0 2px 10px color-mix(in srgb, #000 calc(20% * var(--shade)), transparent)';
+  notification.style.boxShadow = 'var(--shadow-overlay)';
   document.body.appendChild(notification);
 
   // Remove the message after 3 seconds

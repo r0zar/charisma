@@ -1,11 +1,11 @@
 /**
- * TransferTab - the active account's tokens (STX and every SIP-10 it holds), and sending them.
+ * TransferTab (Tokens) - the active account's tokens (STX and every SIP-10 it holds), and sending them.
  */
 import { useEffect, useState } from 'react';
+import { ChevronDown, ChevronRight, ExternalLink, RefreshCw } from 'lucide-react';
 import { useSignetContext } from '~shared/context/SignetContext';
 import { sendMessage } from '~shared/context/utils';
-import { colors } from '~shared/styles/theme';
-import { HudButton, HudLabel, HudLine, HudPanel, HudScreen, HudStat } from '~shared/hud';
+import { Card, ErrorText, Kv } from '~shared/ui';
 import type { TokenBalance } from '~background/lib/tokens';
 
 /** Raw smallest units → "1,234.5678" */
@@ -34,48 +34,30 @@ const label = (token: TokenBalance) => token.meta?.symbol ?? token.contractId.sp
 
 function TokenIcon({ token }: { token: TokenBalance }) {
   const [broken, setBroken] = useState(false);
-  if (token.meta?.image && !broken) {
-    return <img src={token.meta.image} alt="" width={24} height={24} onError={() => setBroken(true)} style={{ borderRadius: '50%', flexShrink: 0, boxShadow: '0 0 6px color-mix(in srgb, var(--hud-accent) calc(35% * var(--glow)), transparent)' }} />;
-  }
   return (
-    <div style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid color-mix(in srgb, var(--hud-accent) 50%, transparent)', color: colors.accent, fontSize: '11px', fontFamily: 'var(--font-mono)', fontWeight: 'bold' }}>
-      {label(token).charAt(0).toUpperCase()}
-    </div>
+    <span className="cx-token">
+      {token.meta?.image && !broken
+        ? <img src={token.meta.image} alt="" onError={() => setBroken(true)} />
+        : label(token).charAt(0).toUpperCase()}
+    </span>
   );
 }
 
-/** A shimmering bar standing in for text or an icon while balances load */
-function Bone({ width, height, round }: { width: number | string; height: number; round?: boolean }) {
-  return (
-    <div style={{
-      width, height, flexShrink: 0,
-      borderRadius: round ? '50%' : '2px',
-      background: 'linear-gradient(90deg, color-mix(in srgb, var(--hud-accent) 6%, transparent) 25%, color-mix(in srgb, var(--hud-accent) 16%, transparent) 50%, color-mix(in srgb, var(--hud-accent) 6%, transparent) 75%)',
-      backgroundSize: '200% 100%',
-      animation: 'signet-bone 1.4s ease-in-out infinite'
-    }} />
-  );
-}
-
-/** Placeholder rows shaped like token rows */
+/** Placeholder rows shaped like token rows, while balances load */
 function TokenSkeletons() {
   return (
-    <>
-      <style>{'@keyframes signet-bone { from { background-position: 200% 0 } to { background-position: -200% 0 } }'}</style>
-      {[48, 36, 42, 30].map((nameWidth, i) => (
-        <div key={i} className="hud-row" style={{ padding: '10px 6px', gap: '10px' }}>
-          <Bone width={24} height={24} round />
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
-            <Bone width={nameWidth} height={11} />
-            <Bone width={nameWidth * 1.8} height={7} />
+    <div className="cx-list" aria-label="Loading balances">
+      {[48, 36, 42].map((nameWidth, i) => (
+        <div key={i} className="cx-token-row" style={{ cursor: 'default' }}>
+          <span className="cx-skeleton" style={{ width: 32, height: 32, borderRadius: '50%' }} />
+          <div className="cx-token-row-name" style={{ gap: 6 }}>
+            <span className="cx-skeleton" style={{ width: nameWidth, height: 12 }} />
+            <span className="cx-skeleton" style={{ width: nameWidth * 1.8, height: 10 }} />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
-            <Bone width={64} height={11} />
-            <Bone width={40} height={7} />
-          </div>
+          <span className="cx-skeleton" style={{ width: 64, height: 12 }} />
         </div>
       ))}
-    </>
+    </div>
   );
 }
 
@@ -114,50 +96,62 @@ function SendForm({ token, onDone, onCancel }: { token: TokenBalance; onDone: ()
     }
   };
 
-  const errorLine = error && <div role="alert"><HudLine tone="red">{error}</HudLine></div>;
-
   if (txid) {
     const id = txid.startsWith('0x') ? txid : `0x${txid}`;
     return (
-      <>
-        <HudLine tone="green">SENT · CONFIRMS IN A FEW MINUTES</HudLine>
-        <a href={`https://explorer.hiro.so/txid/${id}?chain=mainnet`} target="_blank" rel="noopener noreferrer" style={{ color: colors.accent, fontFamily: 'var(--font-mono)', fontSize: '8px' }}>VIEW ON EXPLORER ↗</a>
-        <HudButton onClick={onDone}>Done</HudButton>
-      </>
+      <Card title={`${label(token)} sent`}>
+        <div className="w-stack">
+          <p className="w-note">It confirms on Stacks in a few minutes.</p>
+          <a className="cx-btn" href={`https://explorer.hiro.so/txid/${id}?chain=mainnet`} target="_blank" rel="noopener noreferrer">
+            View on explorer <ExternalLink size={14} aria-hidden />
+          </a>
+          <button type="button" className="cx-btn cx-btn-primary" onClick={onDone}>Done</button>
+        </div>
+      </Card>
     );
   }
 
   if (review) {
     return (
-      <>
-        <HudStat label="SEND" value={`${formatUnits(review, decimals)} ${label(token)}`} />
-        <HudStat label="TO" value={recipient.trim()} />
-        <HudStat label="FEE" value="AUTO" tone="steel" />
-        {token.contractId !== '.stx' && <HudStat label="GUARD" value="EXACT AMOUNT ONLY" tone="green" />}
-        {errorLine}
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <HudButton tone="steel" grow onClick={() => setReview(null)} disabled={busy}>Back</HudButton>
-          <HudButton tone="green" grow onClick={send} disabled={busy}>{busy ? 'Sending…' : 'Send'}</HudButton>
+      <Card title={`Send ${label(token)}`}>
+        <Kv label="Send">{formatUnits(review, decimals)} {label(token)}</Kv>
+        <Kv label="To"><span className="w-address">{recipient.trim()}</span></Kv>
+        <Kv label="Network fee">Set automatically</Kv>
+        {token.contractId !== '.stx' && <Kv label="Safety" tone="success">Exactly this amount, nothing else</Kv>}
+        <div className="w-stack" style={{ marginTop: '12px' }}>
+          <ErrorText error={error} />
+          <div className="w-actions">
+            <button type="button" className="cx-btn" onClick={() => setReview(null)} disabled={busy}>Back</button>
+            <button type="button" className="cx-btn cx-btn-primary" onClick={send} disabled={busy}>
+              {busy && <span className="cx-spinner" aria-hidden />} {busy ? 'Sending…' : 'Send'}
+            </button>
+          </div>
         </div>
-      </>
+      </Card>
     );
   }
 
   return (
-    <>
-      <HudLabel>Recipient</HudLabel>
-      <input className="hud-input" placeholder="SP…" value={recipient} onChange={e => setRecipient(e.target.value)} aria-label="Recipient address" />
-      <HudLabel>Amount</HudLabel>
-      <div style={{ display: 'flex', gap: '6px' }}>
-        <input className="hud-input" placeholder={`0.0 ${label(token)}`} inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} aria-label="Amount" />
-        <HudButton onClick={() => setAmount(formatUnits(token.balance, decimals).replace(/,/g, ''))}>Max</HudButton>
+    <Card title={`Send ${label(token)}`}>
+      <div className="w-stack">
+        <label className="w-field" htmlFor="send-to">
+          <span>Recipient</span>
+          <input id="send-to" className="w-input w-mono" placeholder="SP…" value={recipient} onChange={e => setRecipient(e.target.value)} spellCheck={false} />
+        </label>
+        <label className="w-field" htmlFor="send-amount">
+          <span>Amount</span>
+          <div className="w-input-wrap">
+            <input id="send-amount" className="w-input w-mono" placeholder={`0.0 ${label(token)}`} inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} />
+            <button type="button" className="cx-chip" onClick={() => setAmount(formatUnits(token.balance, decimals).replace(/,/g, ''))}>Max</button>
+          </div>
+        </label>
+        <ErrorText error={error} />
+        <div className="w-actions">
+          <button type="button" className="cx-btn" onClick={onCancel}>Cancel</button>
+          <button type="button" className="cx-btn cx-btn-primary" onClick={toReview}>Review</button>
+        </div>
       </div>
-      {errorLine}
-      <div style={{ display: 'flex', gap: '6px' }}>
-        <HudButton tone="steel" grow onClick={onCancel}>Cancel</HudButton>
-        <HudButton grow onClick={toReview}>Review</HudButton>
-      </div>
-    </>
+    </Card>
   );
 }
 
@@ -195,71 +189,72 @@ export function TransferTab() {
 
   useEffect(load, [currentAccount?.stxAddress]);
 
-  /** One token row; unlisted tokens can't be opened for sending */
+  /** One token row; unlisted and unknown tokens can't be opened for sending */
   const row = (token: TokenBalance) => {
-              const key = `${token.contractId}::${token.asset}`;
-              const open = selected === key;
-              return (
-                <div
-                  key={key}
-                  className={`hud-row${token.meta && token.listed ? ' is-clickable' : ''}${open ? ' is-open' : ''}`}
-                  style={{ padding: '10px 6px', gap: '10px' }}
-                  onClick={() => token.meta && token.listed && setSelected(open ? null : key)}
-                  title={!token.listed ? 'Not on Charisma\'s token list: hidden from sends' : token.meta ? `Send ${label(token)}` : 'Unknown token: shown in smallest units, not sendable here'}
-                >
-                  <TokenIcon token={token} />
-                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ color: colors.accent, fontWeight: 'bold', fontSize: '12px' }}>{label(token)}</span>
-                    <span style={{ color: 'color-mix(in srgb, var(--ink) 45%, transparent)', fontSize: '8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(token.meta?.name ?? token.contractId).toUpperCase()}</span>
-                  </span>
-                  <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                    <span style={{ color: colors.ink, fontSize: '12px' }}>{token.meta ? formatUnits(token.balance, token.meta.decimals) : `${token.balance} U`}</span>
-                    <span style={{ color: valueOf(token) === null ? 'color-mix(in srgb, var(--ink) 30%, transparent)' : 'color-mix(in srgb, var(--success) 85%, transparent)', fontSize: '9px' }}>
-                      {prices ? (valueOf(token) === null ? '—' : usd(valueOf(token)!)) : ''}
-                    </span>
-                  </span>
-                </div>
-              );
-            };
-
-  const selectedToken = balances?.find(token => `${token.contractId}::${token.asset}` === selected);
+    const key = `${token.contractId}::${token.asset}`;
+    const open = selected === key;
+    const sendable = !!token.meta && token.listed;
+    const value = valueOf(token);
+    return (
+      <div key={key} className="w-stack" style={{ gap: '8px' }}>
+        <div
+          className="cx-token-row"
+          role={sendable ? 'button' : undefined}
+          tabIndex={sendable ? 0 : undefined}
+          aria-selected={open}
+          style={sendable ? undefined : { cursor: 'default' }}
+          onClick={() => sendable && setSelected(open ? null : key)}
+          onKeyDown={e => { if (sendable && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setSelected(open ? null : key); } }}
+          title={!token.listed ? 'Not on Charisma\'s token list: hidden from sends' : token.meta ? `Send ${label(token)}` : 'Unknown token: shown in smallest units, not sendable here'}
+        >
+          <TokenIcon token={token} />
+          <div className="cx-token-row-name">
+            <strong>{label(token)}</strong>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{token.meta?.name ?? token.contractId}</span>
+          </div>
+          <div className="cx-token-row-bal">
+            {token.meta ? formatUnits(token.balance, token.meta.decimals) : `${token.balance} units`}
+            <span>{prices ? (value === null ? '—' : usd(value)) : ''}</span>
+          </div>
+        </div>
+        {open && token.meta && <SendForm token={token} onCancel={() => setSelected(null)} onDone={() => { setSelected(null); load(); }} />}
+      </div>
+    );
+  };
 
   return (
-    <div style={{ padding: '8px' }}>
-      <HudScreen
-        title="TOKENS"
-        stats={[
-          { label: 'HELD', value: balances ? listed.length : '…' },
-          { label: 'VALUE', value: balances && prices ? usd(total) : '…', tone: 'green' }
-        ]}
+    <div className="w-page">
+      <Card
+        right={
+          <button type="button" className="cx-btn w-btn-sm" onClick={load} title="Refresh balances">
+            <RefreshCw size={14} aria-hidden /> Refresh
+          </button>
+        }
+        title="Tokens"
       >
-        <HudPanel
-          title="BALANCES"
-          right={<button type="button" onClick={load} title="Refresh" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: '9px', padding: 0 }}>↻</button>}
-        >
-          {error && <div role="alert"><HudLine tone="red">{error}</HudLine></div>}
-          {priceError && <div role="alert"><HudLine tone="amber">Prices unavailable: {priceError}</HudLine></div>}
-          {!balances && !error && <TokenSkeletons />}
-          <div>
-            {listed.map(row)}
-            {unlisted.length > 0 && (
-              <div className="hud-row is-clickable" onClick={() => setShowUnlisted(open => !open)} style={{ padding: '8px 6px', color: 'color-mix(in srgb, var(--warning) 80%, transparent)', fontSize: '8px', fontWeight: 'bold' }}>
-                <span style={{ flex: 1 }}>{showUnlisted ? '▾' : '▸'} UNLISTED ({unlisted.length}) · NOT ON CHARISMA'S TOKEN LIST, MAY BE SCAMS</span>
-              </div>
-            )}
-            {showUnlisted && unlisted.map(row)}
-          </div>
-          {balances && prices && priced.length < listed.length && (
-            <HudLine tone="steel">{listed.length - priced.length} without a price · value covers priced tokens</HudLine>
-          )}
-        </HudPanel>
+        <div className="cx-label">Total value</div>
+        <div className="w-total">{balances && prices ? usd(total) : '…'}</div>
+        <p className="w-note">
+          {balances ? `${listed.length} token${listed.length === 1 ? '' : 's'}` : 'Loading balances…'}
+          {balances && prices && priced.length < listed.length ? ` · ${listed.length - priced.length} without a price` : ''}
+        </p>
+      </Card>
 
-        {selectedToken?.meta && (
-          <HudPanel key={selected} title={`SEND ${label(selectedToken)}`} tone="amber">
-            <SendForm token={selectedToken} onCancel={() => setSelected(null)} onDone={() => { setSelected(null); load(); }} />
-          </HudPanel>
-        )}
-      </HudScreen>
+      <ErrorText error={error} />
+      {priceError && <p className="w-warning" role="alert">Prices unavailable: {priceError}</p>}
+      {!balances && !error && <TokenSkeletons />}
+      {balances && (
+        <div className="cx-list">
+          {listed.map(row)}
+          {unlisted.length > 0 && (
+            <button type="button" className="cx-btn cx-btn-quiet" style={{ justifyContent: 'flex-start', height: 'auto', padding: '10px 12px', whiteSpace: 'normal', textAlign: 'left' }} onClick={() => setShowUnlisted(open => !open)} aria-expanded={showUnlisted}>
+              {showUnlisted ? <ChevronDown size={16} aria-hidden /> : <ChevronRight size={16} aria-hidden />}
+              <span>Unlisted ({unlisted.length}) · not on Charisma's token list, may be scams</span>
+            </button>
+          )}
+          {showUnlisted && unlisted.map(row)}
+        </div>
+      )}
     </div>
   );
 }

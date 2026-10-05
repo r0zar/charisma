@@ -1,23 +1,22 @@
 /**
- * The side panel: the wallet itself. Opened from the Signet toolbar icon, out of reach of web pages.
+ * The side panel: the wallet itself. Opened from the Blaze Wallet toolbar icon, out of reach of web pages.
  */
-import { useState, type ReactNode } from "react"
+import { useState } from "react"
+import { Activity, Coins, Lock, Wallet, type LucideIcon } from "lucide-react"
 import "@repo/brand/tokens.css"
 import "@repo/brand/fonts.css"
-import { applySavedTheme, colors, glow, keyframes } from "../shared/styles/theme"
+import "@repo/brand/components.css"
+import { applySavedTheme } from "../shared/styles/theme"
 import "../shared/styles/style.css"
-
-applySavedTheme()
 
 import { SignetProvider, useSignetContext } from "~shared/context/SignetContext"
 import { WalletTab } from "~shared/wallet/WalletTab"
 import { TransferTab } from "~shared/tabs/TransferTab"
-import { StatusDisplay } from "./components/StatusDisplay"
-import { HologramDisplay } from "./components/HologramDisplay"
-import { ConsoleView } from "./components/ConsoleView"
-import { SystemMetrics } from "./components/SystemMetrics"
+import { StatusTab } from "./StatusTab"
 import { DiagnosticsProvider } from "./components/diagnostics-context"
 import { ErrorBoundary } from "./ErrorBoundary"
+
+applySavedTheme()
 
 const SidePanelWithProvider = () => (
   <SignetProvider>
@@ -27,112 +26,47 @@ const SidePanelWithProvider = () => (
 
 export default SidePanelWithProvider
 
-const PAGES = {
-  WALLET: WalletTab,
-  TRANSFER: TransferTab,
-  DIAGNOSTICS: Diagnostics,
-}
-type Tab = keyof typeof PAGES
-
-/** Line icons (Feather paths) for the tab bar */
-const ICONS: Record<Tab, ReactNode> = {
-  WALLET: <><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4z" /></>,
-  TRANSFER: <><path d="M22 2L11 13" /><path d="M22 2l-7 20-4-9-9-4 20-7z" /></>,
-  DIAGNOSTICS: <path d="M22 12h-4l-3 9L9 3l-3 9H2" />,
-}
+const TABS = {
+  wallet: { label: "Wallet", icon: Wallet, Page: WalletTab },
+  tokens: { label: "Tokens", icon: Coins, Page: TransferTab },
+  status: { label: "Status", icon: Activity, Page: StatusTab },
+} satisfies Record<string, { label: string; icon: LucideIcon; Page: () => JSX.Element }>
+type Tab = keyof typeof TABS
 
 function SidePanel() {
-  const { isWalletInitialized, currentAccount } = useSignetContext()
-  const [tab, setTab] = useState<Tab>('WALLET')
-  // Locked: only the wallet (unlock). Transfers and diagnostics need an active account.
+  const { isWalletInitialized, currentAccount, endSession } = useSignetContext()
+  const [tab, setTab] = useState<Tab>("wallet")
+  // Locked: only the wallet (unlock). Tokens and status need an active account.
   const unlocked = isWalletInitialized && !!currentAccount
-  const tabs: Tab[] = unlocked ? ['WALLET', 'TRANSFER', 'DIAGNOSTICS'] : ['WALLET']
-  const Page = PAGES[tabs.includes(tab) ? tab : 'WALLET']
+  const { Page } = TABS[unlocked ? tab : "wallet"]
 
   return (
-    <div
-      style={{
-        margin: '0px',
-        position: 'relative',
-        width: '100%',
-        height: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        background: colors.bg,
-        overflow: 'hidden',
-        boxSizing: 'border-box',
-        color: colors.ink,
-        fontFamily: 'var(--font-sans)',
-      }}
-    >
-      {tabs.length > 1 && (
-        <div className="hud-chrome" style={{ display: 'flex', background: colors.chrome, borderBottom: '1px solid color-mix(in srgb, var(--hud-accent) 20%, transparent)', flexShrink: 0 }}>
-          {tabs.map(name => (
-            <button
-              key={name}
-              type="button"
-              onClick={() => setTab(name)}
-              title={name.charAt(0) + name.slice(1).toLowerCase()}
-              aria-label={name.charAt(0) + name.slice(1).toLowerCase()}
-              style={{
-                flex: 1,
-                display: 'flex',
-                justifyContent: 'center',
-                padding: '12px 0',
-                background: tab === name ? 'color-mix(in srgb, var(--hud-accent) 8%, transparent)' : 'transparent',
-                border: 'none',
-                borderBottom: tab === name ? `2px solid ${colors.accent}` : '2px solid transparent',
-                color: tab === name ? colors.accent : colors.inkMuted,
-                filter: tab === name ? `drop-shadow(0 0 4px ${glow(colors.accent, 1)})` : 'none',
-                cursor: 'pointer',
-              }}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                {ICONS[name]}
-              </svg>
-            </button>
-          ))}
-        </div>
+    <div className="w-app">
+      {unlocked && (
+        <nav className="w-header" aria-label="Blaze Wallet">
+          {(Object.keys(TABS) as Tab[]).map(name => {
+            const { label, icon: Icon } = TABS[name]
+            return (
+              <button key={name} type="button" className="w-tab" aria-current={tab === name ? "page" : undefined} onClick={() => setTab(name)}>
+                <Icon size={16} aria-hidden /> {label}
+              </button>
+            )
+          })}
+          <button type="button" className="w-chrome-btn" onClick={() => endSession()} title="Lock the wallet" aria-label="Lock the wallet">
+            <Lock size={16} aria-hidden />
+          </button>
+        </nav>
       )}
-
-      {unlocked ? (
-        // The Diagnostics frame on every tab: live header, mesh background, footer
-        <DiagnosticsProvider>
-          <StatusDisplay />
-          <div className="hud-grid signet-scrollbar" style={{ flex: 1, minHeight: 0, overflowY: Page === Diagnostics ? 'hidden' : 'auto', position: 'relative', paddingBottom: FOOTER_HEIGHT }}>
-            <ErrorBoundary key={tab}>
-              <Page />
-            </ErrorBoundary>
-          </div>
-          <SystemMetrics />
-          <style>
-            {keyframes.slideInUp}
-            {keyframes.slideInRight}
-            {keyframes.shimmer}
-            {keyframes.scanLine}
-            {keyframes.spin}
-          </style>
-        </DiagnosticsProvider>
-      ) : (
-        <div className="hud-grid signet-scrollbar" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-          <ErrorBoundary key={tab}>
-            <Page />
-          </ErrorBoundary>
-        </div>
-      )}
-    </div>
-  )
-}
-
-/** Space kept clear at the bottom of each tab for the footer (SystemMetrics) */
-const FOOTER_HEIGHT = '48px'
-
-/** The hologram, on real data: Stacks network, Blaze subnets and your balances on them, and the lock timer */
-function Diagnostics() {
-  return (
-    <div style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
-      <HologramDisplay />
-      <ConsoleView />
+      <main className="w-main">
+        {unlocked ? (
+          // Status checks run once per unlock (and every 5 minutes), not on every tab switch
+          <DiagnosticsProvider>
+            <ErrorBoundary key={tab}><Page /></ErrorBoundary>
+          </DiagnosticsProvider>
+        ) : (
+          <ErrorBoundary key={tab}><Page /></ErrorBoundary>
+        )}
+      </main>
     </div>
   )
 }
