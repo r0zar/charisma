@@ -13,8 +13,9 @@ export const config: PlasmoCSConfig = {
   run_at: "document_start"
 }
 
+/** The Blaze flame (store-assets/icon.svg), shown in a site's "connect wallet" list */
 const ICON = `data:image/svg+xml;base64,${btoa(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="28" fill="#010409"/><path d="M64 16 106 40v48L64 112 22 88V40z" fill="none" stroke="#7DF9FF" stroke-width="6" stroke-linejoin="round"/><path d="M64 36c3 10 14 15 14 30 0 9-6 16-14 16s-14-7-14-16c0-6 3-10 6-13 0 6 2 9 5 10-1-11 3-20 3-27z" fill="#7DF9FF"/><path d="M64 60c2 6 7 8 7 14 0 4-3 7-7 7s-7-3-7-7c0-3 1-5 3-6 0 3 1 4 2 4 0-5 2-8 2-12z" fill="#010409"/></svg>'
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7a45"/><stop offset=".45" stop-color="#ec3d03"/><stop offset="1" stop-color="#c1121f"/></linearGradient></defs><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" fill="url(#g)" transform="translate(-14.32 -17.58) scale(6.5263)"/></svg>'
 )}`
 
 const provider = {
