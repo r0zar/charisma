@@ -22,10 +22,16 @@ and the [design notes](https://github.com/r0zar/charisma/blob/main/packages/clar
 | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-sublink-v2` | Moves sBTC in and out of the v2 subnet |
 | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-subnet-v2` | STX on Blaze v2. STX isn't a SIP-010 token, so deposits and withdrawals use `stx-transfer?`; everything signed inside works like any other subnet |
 | `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-sublink-v2` | Moves STX in and out of the STX subnet |
+| `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.usdcx-token-subnet-v2` | USDCx on Blaze v2. USDCx never had a v1 subnet |
 
 CHA, WELSH and sBTC hold most of the money in subnets, so they moved first. STX is new to Blaze, and on v2 from day
-one, so anyone who just holds STX can set a triggered swap without leaving it. Every other subnet stays on v1 and keeps
-working. Its owner can deploy a v2 subnet and sublink from [Launchpad](https://launchpad.charisma.rocks/templates).
+one, so anyone who just holds STX can set a triggered swap without leaving it.
+
+On Oct 5, 2026 every other v1 subnet got a v2 successor too, each with a sublink named the same way
+(`<name>-token-subnet-v2` and `<name>-sublink-v2`): DMT (`dmt`), $ROO (`roo`), LEO (`leo`), PEPE (`pepe`), ZEST (`zest`),
+aeUSDC (`aeusdc`), USDA (`usda`), USDh (`usdh`), sUSDh (`susdh`), WPS (`wps`), NOT (`nope`), SKULL (`skull`) and
+HOOT (`hoot`), all deployed by `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS`. The v1 subnets keep working. A token
+with no subnet at all can get one from [Launchpad](https://launchpad.charisma.rocks/templates).
 
 ## What changed
 

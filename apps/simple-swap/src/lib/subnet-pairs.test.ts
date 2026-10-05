@@ -1,16 +1,23 @@
 import { describe, expect, it } from 'vitest';
+import { SUBNET_V2_OF, USDCX_SUBNET_V2_CONTRACT_ID } from 'blaze-sdk';
 import { SUBNET_PAIRS, isListedSubnet, landingSubnet, pairOf, planSpend } from './subnet-pairs';
 
 const P = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
 const [CHA, WELSH, SBTC] = SUBNET_PAIRS;
 
-describe('CHA, WELSH and sBTC across Blaze v1 and v2', () => {
+describe('Subnets across Blaze v1 and v2', () => {
     it('pairs each v1 subnet with its v2 successor', () => {
-        expect(SUBNET_PAIRS.map(p => [p.symbol, p.v1, p.v2])).toEqual([
+        expect(SUBNET_PAIRS.slice(0, 3).map(p => [p.symbol, p.v1, p.v2])).toEqual([
             ['CHA', `${P}.charisma-token-subnet-v1`, `${P}.charisma-token-subnet-v2`],
             ['WELSH', `${P}.welsh-token-subnet-v1`, `${P}.welsh-token-subnet-v2`],
             ['sBTC', `${P}.sbtc-token-subnet-v1`, `${P}.sbtc-token-subnet-v2`],
         ]);
+        expect(pairOf(`${P}.leo-token-subnet-v1`)?.v2).toBe(`${P}.leo-token-subnet-v2`);
+    });
+
+    it('has a pair for every v1 subnet the SDK knows a successor for', () => {
+        expect(SUBNET_PAIRS.map(p => p.v1).sort()).toEqual(Object.keys(SUBNET_V2_OF).sort());
+        for (const p of SUBNET_PAIRS) expect(SUBNET_V2_OF[p.v1]).toBe(p.v2);
     });
 
     it('spends the old subnet first', () => {
@@ -45,7 +52,8 @@ describe('CHA, WELSH and sBTC across Blaze v1 and v2', () => {
         expect(planSpend(WELSH, 50n, 0n, 100n).source).toBe(WELSH.v2);
         expect(pairOf(SBTC.v2)).toBe(SBTC);
         expect(pairOf(WELSH.v1)).toBe(WELSH);
-        expect(pairOf(`${P}.leo-token-subnet-v1`)).toBeNull();
+        // a subnet with one version (USDCx only ever had v2) has no pair
+        expect(pairOf(USDCX_SUBNET_V2_CONTRACT_ID)).toBeNull();
         expect(pairOf(null)).toBeNull();
     });
 
@@ -56,6 +64,6 @@ describe('CHA, WELSH and sBTC across Blaze v1 and v2', () => {
             expect(landingSubnet(p.v1)).toBe(p.v2);
             expect(landingSubnet(p.v2)).toBe(p.v2);
         }
-        expect(landingSubnet(`${P}.leo-token-subnet-v1`)).toBe(`${P}.leo-token-subnet-v1`);
+        expect(landingSubnet(USDCX_SUBNET_V2_CONTRACT_ID)).toBe(USDCX_SUBNET_V2_CONTRACT_ID);
     });
 });

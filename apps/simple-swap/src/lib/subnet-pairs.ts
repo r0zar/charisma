@@ -2,8 +2,8 @@ import { CHARISMA_SUBNET_V2_CONTRACT_ID, SBTC_SUBNET_V2_CONTRACT_ID, SUBNET_V2_O
 import { fromUnits } from './units';
 
 /**
- * During the Blaze v2 migration (packages/clarity/contracts/drafts/BLAZE-V2.md) CHA, WELSH and sBTC each live in two
- * subnets:
+ * During the Blaze v2 migration (packages/clarity/contracts/drafts/BLAZE-V2.md) every token that had a v1 subnet lives
+ * in two subnets (CHA, WELSH and sBTC first; the rest since 2026-10-05):
  * - v1: where existing balances are; it keeps working, and is spent first
  * - v2: where new deposits and anything paid into the subnet land
  * Swap shows each pair as one subnet entry with one combined balance. The v1 contract id stands for that entry,
@@ -25,6 +25,20 @@ export const SUBNET_PAIRS: SubnetPair[] = [
     pair(CHARISMA_SUBNET_V2_CONTRACT_ID, 'CHA', 6, 1_000_000n),
     pair(WELSH_SUBNET_V2_CONTRACT_ID, 'WELSH', 6, 1_000_000n),
     pair(SBTC_SUBNET_V2_CONTRACT_ID, 'sBTC', 8, 1_000n),
+    // the upgrade is offered from one whole token on v1
+    pair('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dmt-token-subnet-v2', 'DMT', 6, 1_000_000n),
+    pair('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.roo-token-subnet-v2', '$ROO', 6, 1_000_000n),
+    pair('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.leo-token-subnet-v2', 'LEO', 6, 1_000_000n),
+    pair('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.pepe-token-subnet-v2', 'PEPE', 3, 1_000n),
+    pair('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.zest-token-subnet-v2', 'ZEST', 6, 1_000_000n),
+    pair('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.aeusdc-token-subnet-v2', 'aeUSDC', 6, 1_000_000n),
+    pair('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.usda-token-subnet-v2', 'USDA', 6, 1_000_000n),
+    pair('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.usdh-token-subnet-v2', 'USDh', 8, 100_000_000n),
+    pair('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.susdh-token-subnet-v2', 'sUSDh', 8, 100_000_000n),
+    pair('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.wps-token-subnet-v2', 'WPS', 6, 1_000_000n),
+    pair('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.nope-token-subnet-v2', 'NOT', 0, 1n),
+    pair('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.skull-token-subnet-v2', 'SKULL', 6, 1_000_000n),
+    pair('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hoot-token-subnet-v2', 'HOOT', 6, 1_000_000n),
 ];
 
 /** The pair a subnet belongs to, from either side, or null for a subnet with one version */

@@ -38,14 +38,34 @@ export const SBTC_SUBLINK_V2_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0
 /** STX on Blaze v2 (native STX in, stx-transfer? out), and its sublink. There's no v1 STX subnet */
 export const STX_SUBNET_V2_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-subnet-v2";
 export const STX_SUBLINK_V2_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.stx-sublink-v2";
-/** Each Blaze v1 subnet that has a Blaze v2 successor, and that successor */
+/** USDCx on Blaze v2. It never had a v1 subnet */
+export const USDCX_SUBNET_V2_CONTRACT_ID = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.usdcx-token-subnet-v2";
+/**
+ * Each Blaze v1 subnet that has a Blaze v2 successor, and that successor. Every v2 subnet comes with a sublink
+ * named after it (`<name>-sublink-v2`) that moves the base token in and out.
+ */
 export const SUBNET_V2_OF: Record<string, string> = {
     "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token-subnet-v1": CHARISMA_SUBNET_V2_CONTRACT_ID,
     "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welsh-token-subnet-v1": WELSH_SUBNET_V2_CONTRACT_ID,
     "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.sbtc-token-subnet-v1": SBTC_SUBNET_V2_CONTRACT_ID,
+    // Upgraded 2026-10-05: every other v1 subnet
+    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dmtoken-subnet": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.dmt-token-subnet-v2",
+    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.kangaroo-subnet": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.roo-token-subnet-v2",
+    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.leo-token-subnet-v1": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.leo-token-subnet-v2",
+    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.pepe-token-subnet-v1": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.pepe-token-subnet-v2",
+    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.zest-token-subnet": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.zest-token-subnet-v2",
+    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.token-aeusdc-subnet": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.aeusdc-token-subnet-v2",
+    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.usda-token-subnet": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.usda-token-subnet-v2",
+    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.usdh-token-v1-subnet": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.usdh-token-subnet-v2",
+    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.susdh-token-subnet-v1": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.susdh-token-subnet-v2",
+    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.nope-subnet": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.nope-token-subnet-v2",
+    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.skullcoin-stxcity-subnet": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.skull-token-subnet-v2",
+    "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hooter-the-owl-subnet": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.hoot-token-subnet-v2",
+    // World Peace Stacks' v1 subnet was deployed by its own team; Charisma deployed the v2
+    "SP2KGJEAZRDVK78ZWTRGSDE11A1VMZVEATNQFZ73C.world-peace-stacks-stxcity-subnet": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.wps-token-subnet-v2",
 };
 /** Every Blaze v2 subnet Charisma deployed */
-export const BLAZE_V2_SUBNETS = [...Object.values(SUBNET_V2_OF), STX_SUBNET_V2_CONTRACT_ID];
+export const BLAZE_V2_SUBNETS = [...Object.values(SUBNET_V2_OF), STX_SUBNET_V2_CONTRACT_ID, USDCX_SUBNET_V2_CONTRACT_ID];
 
 // Token constants for STX handling
 export const STX_CONTRACT_ID = ".stx";
