@@ -18,6 +18,7 @@ import { useTokenPrices } from '@/hooks/useTokenPrices';
 import { useLeaderboard } from '@/hooks/useLeaderboard';
 import TokenAmountDisplay from '@/components/TokenAmountDisplay';
 import HistoricSpinResults from '@/components/HistoricSpinResults';
+import { RoundHistory } from '@/components/game/RoundHistory';
 import AchievementBadges from '@/components/AchievementBadges';
 import { TwitterShareButton } from '@/components/ui/TwitterShareButton';
 
@@ -395,7 +396,8 @@ const LeaderboardComponent = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="history" className="mt-0">
+        <TabsContent value="history" className="mt-0 space-y-6">
+          <RoundHistory />
           <HistoricSpinResults />
         </TabsContent>
 

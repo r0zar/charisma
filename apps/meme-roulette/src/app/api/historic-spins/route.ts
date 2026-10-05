@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { listTokens } from 'dexterity-sdk';
+import { kvStore } from '@/lib/roulette/store';
 
 export interface HistoricSpinResult {
     roundId: string;
@@ -29,10 +30,12 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '50');
         const offset = parseInt(searchParams.get('offset') || '0');
 
-        // Fetch round IDs from the sorted set, most recent first
-        const roundIds: string[] = await kv.zrange('historic:rounds', -(offset + limit), -1, { rev: true });
-        const total = await kv.zcard('historic:rounds');
-        const pagedRoundIds = roundIds.slice(-limit).reverse();
+        // Rounds from the first version of the game. The new engine copies its rounds here too (the leaderboard
+        // reads them); those are listed, with replays, by /api/rounds, so they're left out.
+        const newWheel = new Set(await kvStore.history(1000));
+        const allIds: string[] = (await kv.zrange<string[]>('historic:rounds', 0, -1, { rev: true })).filter(id => !newWheel.has(id));
+        const total = allIds.length;
+        const pagedRoundIds = allIds.slice(offset, offset + limit);
 
         // Fetch all tokens for winner info enrichment
         const tokens = await listTokens();

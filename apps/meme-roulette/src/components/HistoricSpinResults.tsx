@@ -80,10 +80,10 @@ const HistoricSpinResults = () => {
                     <div>
                         <h2 className="text-base sm:text-lg font-semibold font-display flex items-center gap-2 mb-2">
                             <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-accent-text" />
-                            Historic Spin Results
+                            Before the new wheel
                         </h2>
                         <p className="text-sm text-muted-foreground">
-                            Complete history of all meme roulette rounds and their winners
+                            Rounds from the first version of the game. These can't be replayed.
                         </p>
                     </div>
                     <div className="flex items-center gap-3 text-xs">
