@@ -2,6 +2,7 @@
  * Small pieces of Charisma's app look (@repo/brand's cx- widgets, as in Swap) shared by the wallet's screens.
  */
 import type { ReactNode } from "react"
+import flameIcon from "data-base64:~assets/blaze-flame.svg"
 
 /** A card with an optional title row */
 export function Card({ title, right, children }: { title?: string; right?: ReactNode; children: ReactNode }) {
@@ -16,6 +17,11 @@ export function Card({ title, right, children }: { title?: string; right?: React
       {children}
     </section>
   )
+}
+
+/** The official Blaze Wallet flame: the same art as the toolbar icon */
+export function BlazeFlame({ size }: { size: number }) {
+  return <img src={flameIcon} width={size} height={size} alt="" style={{ display: "block", flex: "none" }} />
 }
 
 /** One label and value line; values read as numbers (mono) unless `text` */

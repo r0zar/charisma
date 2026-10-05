@@ -215,17 +215,6 @@ textarea.w-input { height: auto; padding: 10px 14px; resize: none; line-height: 
   box-sizing: border-box;
 }
 .w-brand { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
-.w-brand-mark {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-lg);
-  background: var(--accent);
-  color: var(--on-accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow-cta);
-}
 .w-brand h1 { margin: 0; font-size: 24px; line-height: 30px; font-weight: 700; }
 .w-brand p { margin: 0; font-size: 14px; color: var(--ink-muted); }
 
@@ -254,17 +243,6 @@ textarea.w-input { height: auto; padding: 10px 14px; resize: none; line-height: 
 }
 .w-card-title { display: flex; align-items: center; gap: 10px; }
 .w-card-title h1 { flex: 1; margin: 0; font-size: 18px; line-height: 24px; font-weight: 700; }
-.w-card-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: var(--on-accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-}
 .w-card .cx-btn { height: 44px; }
 
 .w-approval { display: flex; flex-direction: column; gap: 12px; }

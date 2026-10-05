@@ -8,7 +8,8 @@
  */
 import { useState, type MouseEvent, type ReactNode } from 'react'
 import { animated, to, useSpring } from '@react-spring/web'
-import { Flame, X } from 'lucide-react'
+import { X } from 'lucide-react'
+import { BlazeFlame } from '~shared/ui'
 
 interface NotificationPanelProps {
   title: string
@@ -66,7 +67,7 @@ export default function NotificationPanel({ title, children, approveLabel, onApp
           style={{ transform: to([spring.rotateX, spring.rotateY, spring.scale], (x, y, s) => `rotateX(${x}deg) rotateY(${y}deg) scale(${s})`) }}
         >
           <div className="w-card-title">
-            <span className="w-card-mark"><Flame size={18} strokeWidth={2.2} aria-hidden /></span>
+            <BlazeFlame size={30} />
             <h1>{title}</h1>
             <button type="button" className="cx-btn cx-btn-quiet w-btn-sm" onClick={onReject} aria-label="Deny and close" style={{ width: '32px', padding: 0 }}>
               <X size={16} aria-hidden />

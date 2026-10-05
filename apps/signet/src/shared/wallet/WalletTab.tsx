@@ -2,11 +2,11 @@
  * WalletTab - lock and unlock, seed phrases, accounts, and the vault's settings.
  */
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Check, Copy, Flame } from 'lucide-react';
+import { ArrowLeft, Check, Copy } from 'lucide-react';
 import { useSignetContext } from '~shared/context/SignetContext';
 import { saveEncryptedWalletBackup, sendMessage } from '~shared/context/utils';
 import { applyTheme, readTheme, type ThemeChoice } from '~shared/styles/theme';
-import { Card, ErrorText, Kv, short } from '~shared/ui';
+import { BlazeFlame, Card, ErrorText, Kv, short } from '~shared/ui';
 import { PasswordField } from './PasswordField';
 
 type View = 'accounts' | 'newSeed' | 'importSeed' | 'newAccount';
@@ -38,7 +38,7 @@ function UnlockView() {
   return (
     <div className="w-lock">
       <div className="w-brand">
-        <div className="w-brand-mark"><Flame size={30} strokeWidth={2.2} aria-hidden /></div>
+        <BlazeFlame size={72} />
         <h1>Blaze Wallet</h1>
         <p>{hasWallet ? 'Locked. Enter your password to continue.' : 'Choose a password to protect this wallet.'}</p>
       </div>
