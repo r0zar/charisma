@@ -37,6 +37,8 @@ interface WalletBalanceContextType {
   balances: Record<string, AccountBalancesResponse>;
   /** The live balance sheet behind each watched wallet's numbers */
   sheets: Record<string, BalanceSheet>;
+  /** Hears every new sheet for a wallet as it arrives; returns the way to stop */
+  onSheet: (address: string, listener: (sheet: BalanceSheet) => void) => () => void;
   isLoading: boolean;
   error: string | null;
   lastUpdate: number;
@@ -82,10 +84,19 @@ export function WalletBalanceProvider({ children }: WalletBalanceProviderProps) 
     return Boolean(address && (address.startsWith('SP') || address.startsWith('ST')));
   };
 
+  const listeners = useRef(new Map<string, Set<(sheet: BalanceSheet) => void>>());
+
   const receive = (address: string, sheet: BalanceSheet) => {
     setSheets(prev => ({ ...prev, [address]: sheet }));
     setLastUpdate(Date.now());
     setError(unreadable(sheet));
+    for (const listener of listeners.current.get(address) ?? []) listener(sheet);
+  };
+
+  const onSheet = (address: string, listener: (sheet: BalanceSheet) => void) => {
+    const set = listeners.current.get(address) ?? listeners.current.set(address, new Set()).get(address)!;
+    set.add(listener);
+    return () => { set.delete(listener); };
   };
 
   /** Reads the sheets once more; live streams already keep them current, so this is rarely needed */
@@ -274,6 +285,7 @@ export function WalletBalanceProvider({ children }: WalletBalanceProviderProps) 
   const contextValue: WalletBalanceContextType = {
     balances,
     sheets,
+    onSheet,
     isLoading,
     error,
     lastUpdate,

@@ -58,12 +58,21 @@ export interface FailedTx {
     entries: BalanceEntry[];
 }
 
+/** A transaction that landed in a block and settled into the balance */
+export interface ConfirmedTx {
+    txid: string;
+    block: number;
+    at: number;
+}
+
 export interface BalanceSheet {
     address: string;
     /** The Stacks block the settled balances were read at */
     block: number;
     at: number;
     tokens: Record<string, TokenSheet>;
+    /** Confirmed in the last few minutes: the same push that settles a balance says which transaction did it */
+    confirmed: ConfirmedTx[];
     /** Failed or dropped in the last few minutes */
     failed: FailedTx[];
 }

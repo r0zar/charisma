@@ -68,7 +68,7 @@ export async function liveDeps(): Promise<DecodeDeps> {
     };
 }
 
-const store = ({ amount, min, ...rest }: Effect): StoredEffect => ({ ...rest, amount: amount.toString(), ...(min !== undefined && { min: min.toString() }) });
+export const store = ({ amount, min, ...rest }: Effect): StoredEffect => ({ ...rest, amount: amount.toString(), ...(min !== undefined && { min: min.toString() }) });
 
 /** The mempool, decoded: from the shared snapshot while it's fresh, otherwise read again (reusing what's decoded) */
 export async function pendingTxs(): Promise<PendingTx[]> {

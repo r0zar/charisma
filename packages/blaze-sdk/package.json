@@ -1,6 +1,6 @@
 {
   "name": "blaze-sdk",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Blaze: SIP-018 signed intents on Stacks. Sign triggered swaps, verify signed requests, read subnet balances, and watch instant balances.",
   "license": "MIT",
   "author": "rozar",

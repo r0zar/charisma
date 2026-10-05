@@ -264,9 +264,16 @@ export async function realTimeCheck(txid: string): Promise<StatusResponse> {
                 };
             }
             
-            // If not found or still pending, continue trying (might not be broadcasted yet)
-            if (result.status === 'not_found' || result.status === 'pending') {
-                console.log(`[TX-MONITOR] Transaction ${txid} ${result.status === 'not_found' ? 'not found' : 'still pending'}, attempt ${attempts}/${maxAttempts}`);
+            // Pending is an answer: say so now (callers poll), rather than holding the request until the block lands
+            if (result.status === 'pending') {
+                await setCachedStatus(txid, { txid, status: 'pending', addedAt: Date.now(), lastChecked: Date.now(), checkCount: attempts });
+                await addToQueue([txid]);
+                return { txid, status: 'pending', fromCache: false, checkedAt: Date.now() };
+            }
+
+            // Not found yet: it may only just have been sent, so keep trying for a while before calling it missing
+            if (result.status === 'not_found') {
+                console.log(`[TX-MONITOR] Transaction ${txid} not found, attempt ${attempts}/${maxAttempts}`);
                 
                 // Wait before next check if we haven't reached max attempts and still have time
                 if (attempts < maxAttempts && Date.now() - startTime < REAL_TIME_TIMEOUT - 5000) {

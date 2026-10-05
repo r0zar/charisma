@@ -3,8 +3,9 @@ import { kv } from '@vercel/kv';
 import { betHolds, orderHolds, type Hold } from './holds';
 import { tipHeight, transaction } from './hiro';
 import { pendingTxs, subnetBases, type PendingTx } from './mempool';
+import { noteConfirmed, noteFailed, recentlyFinished } from './finished';
 import { settledBalances } from './settled';
-import type { BalanceEntry, BalanceSheet, FailedTx, TokenSheet } from './types';
+import type { BalanceEntry, BalanceSheet, ConfirmedTx, FailedTx, TokenSheet } from './types';
 
 /**
  * An address's instant balances: what the chain has settled, plus everything on its way (from the mempool) and
@@ -18,13 +19,10 @@ import type { BalanceEntry, BalanceSheet, FailedTx, TokenSheet } from './types';
 
 const TIP_KEY = 'balance-sheet:tip';
 const seenKey = (address: string) => `balance-sheet:seen:${address}`;
-const failedKey = (address: string) => `balance-sheet:failed:${address}`;
 const statusKey = (txid: string) => `balance-sheet:status:${txid}`;
 
 /** How long a sent transaction Hiro can't find yet still counts (it can take a moment to show up) */
 const UNSEEN_GRACE_MS = 60_000;
-/** How long a failure stays on the sheet */
-const FAILED_SHOWN_MS = 5 * 60_000;
 
 interface Seen { at: number; entries: BalanceEntry[] }
 interface TxStatus { status: string; block?: number }
@@ -59,7 +57,7 @@ function fate(status: TxStatus, block: number, sentAt: number): 'pending' | 'set
 }
 
 /** This address's side of each pending transaction, one entry per transaction, token and kind */
-function entriesFor(txs: PendingTx[], address: string): Map<string, BalanceEntry[]> {
+export function entriesFor(txs: PendingTx[], address: string): Map<string, BalanceEntry[]> {
     const byTx = new Map<string, BalanceEntry[]>();
     for (const tx of txs) {
         const mine = new Map<string, BalanceEntry>();
@@ -101,6 +99,7 @@ export async function balanceSheet(address: string): Promise<BalanceSheet> {
 
     // Transactions that left the mempool since the last look
     const failed: FailedTx[] = [];
+    const confirmed: ConfirmedTx[] = [];
     const forget: string[] = [];
     // Tokens a just-settled transaction touched: read fresh, even a subnet the wallet didn't hold before
     const justSettled: string[] = [];
@@ -110,13 +109,13 @@ export async function balanceSheet(address: string): Promise<BalanceSheet> {
         if (outcome === 'pending') return void pending.set(txid, entries);
         forget.push(txid);
         if (outcome === 'failed') failed.push({ txid, status: status.status, at: Date.now(), entries });
-        else justSettled.push(...entries.map(e => e.token));
+        else {
+            confirmed.push({ txid, block: status.block ?? block, at: Date.now() });
+            justSettled.push(...entries.map(e => e.token));
+        }
     }));
     if (forget.length) await kv.hdel(seenKey(address), ...forget);
-    if (failed.length) {
-        await kv.hset(failedKey(address), Object.fromEntries(failed.map(f => [f.txid, f])));
-        await kv.expire(failedKey(address), 600);
-    }
+    await Promise.all([noteFailed(address, failed), noteConfirmed(address, confirmed)]);
 
     // A sent order or bet whose transaction isn't in the mempool: keep its hold only while the chain hasn't ruled on it
     const holds = (await Promise.all([...orders, ...bets].map(async ({ sentAt, ...hold }: Hold) => {
@@ -151,9 +150,6 @@ export async function balanceSheet(address: string): Promise<BalanceSheet> {
         };
     }
 
-    const recentFailures = Object.values((await kv.hgetall<Record<string, FailedTx>>(failedKey(address))) ?? {})
-        .filter(f => Date.now() - f.at < FAILED_SHOWN_MS)
-        .sort((a, b) => b.at - a.at);
-
-    return { address, block, at: Date.now(), tokens, failed: recentFailures };
+    const finished = await recentlyFinished(address);
+    return { address, block, at: Date.now(), tokens, confirmed: finished.confirmed, failed: finished.failed };
 }

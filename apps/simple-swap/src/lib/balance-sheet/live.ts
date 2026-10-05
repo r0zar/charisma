@@ -2,10 +2,11 @@
 import { kv } from '@vercel/kv';
 import type { Transaction } from '@stacks/stacks-blockchain-api-types';
 import { changed, versions, watched, watching } from './changes';
-import { effectsOf } from './decode';
+import { effectsOf, type Effect } from './decode';
+import { noteConfirmed, noteFailed } from './finished';
 import { blockTransactions } from './hiro';
-import { liveDeps, pendingTxs } from './mempool';
-import { balanceSheet, tip } from './sheet';
+import { liveDeps, pendingTxs, store } from './mempool';
+import { balanceSheet, entriesFor, tip } from './sheet';
 import type { BalanceSheet } from './types';
 
 /**
@@ -38,8 +39,9 @@ let busy = false;
 const digestOf = (sheet: BalanceSheet) => JSON.stringify([sheet.tokens, sheet.failed.map(f => f.txid)]);
 
 /** Wallets a mined transaction touched: its token events (any app), its fee payer, and Blaze subnet moves */
-async function touchedBy(tx: Transaction, deps: Awaited<ReturnType<typeof liveDeps>>): Promise<string[]> {
+async function touchedBy(tx: Transaction, deps: Awaited<ReturnType<typeof liveDeps>>): Promise<{ addresses: string[]; effects: Effect[] }> {
     const addresses = [tx.sender_address, ...(tx.sponsor_address ? [tx.sponsor_address] : [])];
+    let effects: Effect[] = [];
     for (const event of 'events' in tx ? tx.events : []) {
         if (event.event_type === 'stx_asset' || event.event_type === 'fungible_token_asset') {
             if (event.asset.sender) addresses.push(event.asset.sender);
@@ -48,13 +50,22 @@ async function touchedBy(tx: Transaction, deps: Awaited<ReturnType<typeof liveDe
     }
     // Subnet balances live in a map, not a token, so they leave no token events: decoding finds them
     try {
-        for (const e of await effectsOf(tx, { ...deps, quote: async () => null })) {
-            addresses.push(e.address, ...(e.counterparty ? [e.counterparty] : []));
-        }
+        effects = await effectsOf(tx, { ...deps, quote: async () => null });
+        for (const e of effects) addresses.push(e.address, ...(e.counterparty ? [e.counterparty] : []));
     } catch (error) {
         console.error(`[balance-sheet] Couldn't read ${tx.tx_id} in its block: ${(error as Error).message}`);
     }
-    return addresses;
+    return { addresses, effects };
+}
+
+/** A watched wallet's transaction in a new block: confirmed, or failed (with what snapped back) */
+async function finished(tx: Transaction, height: number, touched: { addresses: string[]; effects: Effect[] }, watch: Set<string>) {
+    const mine = [...new Set(touched.addresses)].filter(a => watch.has(a));
+    await Promise.all(mine.map(address => {
+        if (tx.tx_status === 'success') return noteConfirmed(address, [{ txid: tx.tx_id, block: height, at: Date.now() }]);
+        const pending = { txid: tx.tx_id, at: Date.now(), effects: touched.effects.map(store) };
+        return noteFailed(address, [{ txid: tx.tx_id, status: tx.tx_status, at: Date.now(), entries: entriesFor([pending], address).get(tx.tx_id) ?? [] }]);
+    }));
 }
 
 /** Flags watched wallets touched by blocks mined since the last scan */
@@ -67,8 +78,11 @@ async function scanBlocks(): Promise<void> {
     if (!watch.size) return;
     const deps = await liveDeps();
     for (let h = Math.max(last + 1, height - MAX_BLOCKS + 1); h <= height; h++) {
-        const touched = await Promise.all((await blockTransactions(h)).map(tx => touchedBy(tx, deps)));
-        await changed(touched.flat(), watch);
+        const txs = await blockTransactions(h);
+        const touched = await Promise.all(txs.map(tx => touchedBy(tx, deps)));
+        // Say which transactions finished before the wallets re-work, so the same push carries both
+        await Promise.all(txs.map((tx, i) => finished(tx, h, touched[i], watch)));
+        await changed(touched.flatMap(t => t.addresses), watch);
     }
 }
 
