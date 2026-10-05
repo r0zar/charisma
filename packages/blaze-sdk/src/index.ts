@@ -1,5 +1,6 @@
 export * from './intent';
 export * from './balances';
+export * from './balance-sheet';
 export * from './constants';
 export * from './version';
 export * from './solvers';

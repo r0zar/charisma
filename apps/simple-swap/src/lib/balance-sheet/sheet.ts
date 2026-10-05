@@ -2,7 +2,7 @@
 import { kv } from '@vercel/kv';
 import { betHolds, orderHolds, type Hold } from './holds';
 import { tipHeight, transaction } from './hiro';
-import { pendingTxs, type PendingTx } from './mempool';
+import { pendingTxs, subnetBases, type PendingTx } from './mempool';
 import { settledBalances } from './settled';
 import type { BalanceEntry, BalanceSheet, FailedTx, TokenSheet } from './types';
 
@@ -126,7 +126,10 @@ export async function balanceSheet(address: string): Promise<BalanceSheet> {
     }))).filter((h): h is BalanceEntry => h !== null);
 
     const entries = [...[...pending.values()].flat(), ...holds];
-    const settled = await settledBalances(address, block, [...new Set([...entries.map(e => e.token), ...justSettled])]);
+    const [settled, bases] = await Promise.all([
+        settledBalances(address, block, [...new Set([...entries.map(e => e.token), ...justSettled])]),
+        subnetBases(),
+    ]);
 
     const tokens: Record<string, TokenSheet> = {};
     const ids = new Set([...Object.keys(settled.balances), ...Object.keys(settled.errors), ...entries.map(e => e.token)]);
@@ -136,7 +139,9 @@ export async function balanceSheet(address: string): Promise<BalanceSheet> {
         const onChain = error ? null : (settled.balances[token] ?? '0');
         const pendingSum = sum(mine.filter(e => e.stage === 'pending'));
         const held = sum(mine.filter(e => e.stage === 'hold'));
+        const base = bases.get(token);
         tokens[token] = {
+            ...(base && { base }),
             settled: onChain,
             ...(error && { error }),
             pending: pendingSum.toString(),

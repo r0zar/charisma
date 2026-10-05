@@ -36,7 +36,8 @@ const LIST_MS = 10 * 60_000;
 let tokens: { at: number; baseOf: Map<string, string> } | undefined;
 let vaults: { at: number; byId: Map<string, Vault> } | undefined;
 
-async function subnetBases(): Promise<Map<string, string>> {
+/** Each Blaze subnet's base token (".stx" for STX), from the token list */
+export async function subnetBases(): Promise<Map<string, string>> {
     if (!tokens || Date.now() - tokens.at > LIST_MS) {
         const list: TokenCacheData[] = await fetchMetadata();
         if (!list.length) throw new Error("The token list came back empty, so Blaze subnets can't be recognised");

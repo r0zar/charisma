@@ -33,6 +33,22 @@ const { onChainBalance } = await getUserTokenBalance(
 ); // reads the token's get-balance on-chain; throws if the chain can't be read
 ```
 
+## Instant balances
+
+A wallet's balances the moment something happens: transactions waiting to be mined, swaps at their likely amount,
+signed orders held. Charisma's balance service reads the chain itself and pushes changes (no polling).
+
+```ts
+import { watchBalances, combineSubnets } from 'blaze-sdk';
+
+const stop = watchBalances('SP…your-address', sheet => {
+  const totals = combineSubnets(sheet); // one number per token, Stacks and Blaze added together
+  // sheet.tokens[contractId].entries explains every pending change and hold
+}, { onProblem: error => console.warn(error.message) });
+```
+
+`getBalances(address)` reads it once. Full guide: https://docs.charisma.rocks/docs/blaze-api/instant-balances
+
 ## Signed requests
 
 `signedFetch(url, { message })` and `signedFetchWithTimestamp(url, { message })` sign with the user's wallet and send
