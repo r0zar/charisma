@@ -26,7 +26,7 @@ export const APP_GROUPS: { title: string; apps: App[] }[] = [
   },
   {
     title: 'Wallet', apps: [
-      { name: 'Blaze Wallet', href: 'https://wallet.charisma.rocks', line: 'The wallet for Blaze', soon: true },
+      { name: 'Blaze Wallet', href: 'https://wallet.charisma.rocks', line: 'Do more on Stacks' },
       { name: 'Tokemon', href: 'https://bots.charisma.rocks', line: 'Your trading bots', soon: true },
     ],
   },

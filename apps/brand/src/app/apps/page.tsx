@@ -14,7 +14,7 @@ const APPS = [
   ['Charisma Docs', 'docs.charisma.rocks', 'App lockup', 'Developer documentation.'],
   ['Charisma TX Monitor', 'tx.charisma.rocks', 'App lockup', 'Transaction-status API.'],
   ['Zesty', 'zesty.charisma.rocks', 'Endorsed', 'Bet on ZEST up or down in three taps. The reference for Light · Bitcoin.'],
-  ['Blaze Wallet', 'wallet.charisma.rocks', 'Endorsed', 'The wallet for Stacks and Blaze subnets. Coming soon to the Chrome Web Store.'],
+  ['Blaze Wallet', 'wallet.charisma.rocks', 'Endorsed', 'The wallet for Stacks and Blaze subnets: sign once for orders that run on their own. In the Chrome Web Store.'],
   ['Meme Roulette', 'lol.charisma.rocks', 'Endorsed', 'A group token pump game.'],
   ['Tokemon', 'bots.charisma.rocks', 'Endorsed', 'Trading-bot manager. Coming soon.'],
   ['Lakehouse', 'lakehouse.charisma.rocks', 'Endorsed', '3D graph of the Stacks network, plus a data API.'],
