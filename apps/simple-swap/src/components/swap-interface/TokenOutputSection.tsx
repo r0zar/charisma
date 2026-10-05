@@ -16,7 +16,7 @@ import { useWallet } from '@/contexts/wallet-context';
 import { BalanceTooltip } from '@/components/ui/tooltip';
 import BalanceSourceSwitch from './BalanceSourceSwitch';
 import { pairOf, rowBlazeVersion } from '@/lib/subnet-pairs';
-import { AnimatedAmount } from '@/components/balances/AnimatedAmount';
+import { AnimatedAmount } from '@repo/brand/react';
 import { BalanceGlance } from '@/components/balances/BalanceGlance';
 
 export default function TokenOutputSection() {

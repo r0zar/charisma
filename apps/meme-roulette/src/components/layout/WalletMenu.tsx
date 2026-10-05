@@ -11,10 +11,11 @@ import { useWallet } from '@/contexts/wallet-context';
 import { formatUnits, shortAddress } from '@/lib/format';
 import { useRound } from '@/hooks/useRound';
 import { CHA_SUBNET_V1, subnetOf } from '@/lib/roulette/subnets';
+import { AnimatedAmount } from '@repo/brand/react';
 
 /** The header's one wallet control: Connect, or your playable CHA. Everything else lives in its side panel. */
 export function WalletMenu() {
-    const { address, connected, connectWallet, disconnectWallet, isConnecting, mainnetBalance, subnetBalance, subnetBalances, balanceLoading, subnetBalanceLoading, upgradeToV2, refreshBalances } = useWallet();
+    const { address, connected, connectWallet, disconnectWallet, isConnecting, mainnetBalance, subnetBalance, subnetBalances, balanceLoading, subnetBalanceLoading, upgradeToV2 } = useWallet();
     const { payload } = useRound();
     const [open, setOpen] = useState(false);
     const [upgrading, setUpgrading] = useState(false);
@@ -28,12 +29,13 @@ export function WalletMenu() {
         );
     }
 
-    const playable = subnetBalanceLoading ? '…' : formatUnits(subnetBalance, 6, true);
-    // Blaze v1 CHA not riding on a bet that still has to execute can move to v2
+    const playable = subnetBalanceLoading ? '…' : <AnimatedAmount value={Number(subnetBalance)} format={n => formatUnits(n, 6, true)} />;
+    // Blaze v1 CHA can move to v2, except what bets still have to spend: the instant balance already sets that aside,
+    // and the bets are named here only so the upgrade explains itself
+    const v1 = BigInt(subnetBalances.v1 || '0');
+    const upgradable = v1 > 0n ? v1 : 0n;
     const pendingV1 = [...(payload?.myBets ?? [])].filter(b => subnetOf(b) === CHA_SUBNET_V1 && ['placed', 'sending', 'sent'].includes(b.status))
         .reduce((sum, b) => sum + BigInt(b.amount), 0n);
-    const v1 = BigInt(subnetBalances.v1 || '0');
-    const upgradable = v1 > pendingV1 ? v1 - pendingV1 : 0n;
 
     async function upgrade() {
         setUpgrading(true);
@@ -41,7 +43,6 @@ export function WalletMenu() {
             const txid = await upgradeToV2(upgradable);
             setUpgradeTx(txid);
             toast.success('Upgrade on its way', { description: `${formatUnits(upgradable)} CHA is moving to Blaze v2.` });
-            setTimeout(refreshBalances, 15_000);
         } catch (e) {
             toast.error('Upgrade failed', { description: e instanceof Error ? e.message : String(e) });
         } finally {

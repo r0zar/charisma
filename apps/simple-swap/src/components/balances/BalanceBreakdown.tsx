@@ -7,7 +7,7 @@ import { useBalances, useWalletBalances } from '@/contexts/wallet-balance-contex
 import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import { usePrices } from '@/contexts/token-price-context';
 import { formatTokenAmount } from '@/lib/swap-utils';
-import { AnimatedAmount } from './AnimatedAmount';
+import { AnimatedAmount } from '@repo/brand/react';
 import { rollup } from './rollup';
 
 type Tokens = ReturnType<typeof useTokenMetadata>['tokens'];

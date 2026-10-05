@@ -4,7 +4,7 @@ import { Flame } from 'lucide-react';
 import type { BlazeVersion } from 'blaze-sdk';
 import { formatCompactNumber } from '@/lib/swap-utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AnimatedAmount } from '@/components/balances/AnimatedAmount';
+import { AnimatedAmount } from '@repo/brand/react';
 
 /** Launchpad's subnet maker, opened with the token already chosen */
 const deploySubnetUrl = (tokenId: string) => `https://launchpad.charisma.rocks/templates/subnet-wrapper?token=${encodeURIComponent(tokenId)}`;

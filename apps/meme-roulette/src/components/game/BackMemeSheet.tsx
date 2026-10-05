@@ -15,7 +15,8 @@ import { TokenLogo } from './TokenLogo';
 import { betsIn, potOf } from './screen';
 import type { PublicRound } from '@/lib/roulette/types';
 import { SharePickButton } from './SharePickButton';
-import { CHA_SUBNET_V1, CHA_SUBNET_V2, subnetOf, type ChaSubnet } from '@/lib/roulette/subnets';
+import { CHA_SUBNET_V1, CHA_SUBNET_V2 } from '@/lib/roulette/subnets';
+import { AnimatedAmount } from '@repo/brand/react';
 
 const PRESETS = [10, 25, 50, 100];
 const ONE_CHA = 1_000_000n;
@@ -28,7 +29,7 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
     now: number;
     initialToken?: string;
 }) {
-    const { connected, address, connectWallet, isConnecting, subnetBalance, subnetBalances, subnetBalanceLoading, placeBet, refreshBalances } = useWallet();
+    const { connected, address, connectWallet, isConnecting, subnetBalance, subnetBalances, subnetBalanceLoading, placeBet } = useWallet();
     const { tokens, byId, loading: tokensLoading, error: tokensError } = useTokens();
     const { payload, refresh } = useRound();
     const [query, setQuery] = useState('');
@@ -41,22 +42,12 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
 
     useEffect(() => { if (open) { setError(null); setBacked(null); if (initialToken) setTokenId(initialToken); } }, [open, initialToken]);
 
-    // after a top-up swap, watch the balance until the CHA lands
-    useEffect(() => {
-        if (!topUpTx) return;
-        const id = setInterval(refreshBalances, 10_000);
-        return () => clearInterval(id);
-    }, [topUpTx]);
-
     const isOpen = !!round && round.status === 'live' && now >= round.opensAt && now < round.locksAt;
     // two CHA subnets, one balance: each bet spends one of them, old (v1) first
     const mine = round ? betsIn(round, payload?.myBets).filter(b => b.status !== 'excluded') : [];
-    const freeIn = (subnet: ChaSubnet, held: string) => {
-        const used = mine.filter(b => subnetOf(b) === subnet).reduce((s, b) => s + BigInt(b.amount), 0n);
-        const bal = BigInt(held || '0');
-        return bal > used ? bal - used : 0n;
-    };
-    const freeV1 = freeIn(CHA_SUBNET_V1, subnetBalances.v1), freeV2 = freeIn(CHA_SUBNET_V2, subnetBalances.v2);
+    // Balances are instant: this round's bets (and any open orders) are already set aside, so what's there is free
+    const freeIn = (ready: string) => (BigInt(ready || '0') > 0n ? BigInt(ready) : 0n);
+    const freeV1 = freeIn(subnetBalances.v1), freeV2 = freeIn(subnetBalances.v2);
     const free = freeV1 + freeV2;
     const committed = mine.reduce((s, b) => s + BigInt(b.amount), 0n);
     const amount = toMicro(amountText);
@@ -128,8 +119,10 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
                     ) : (
                         <div className="rounded-lg border border-line bg-surface p-3 text-sm">
                             <div className="flex items-center justify-between">
-                                <span className="text-ink-muted">Your subnet CHA</span>
-                                <span className="font-mono font-semibold">{subnetBalanceLoading ? "…" : `${formatUnits(subnetBalance)} CHA`}</span>
+                                <span className="text-ink-muted">Ready to play</span>
+                                <span className="font-mono font-semibold">
+                                    {subnetBalanceLoading ? "…" : <><AnimatedAmount value={Number(subnetBalance)} format={n => formatUnits(n)} /> CHA</>}
+                                </span>
                             </div>
                             {committed > 0n && (
                                 <div className="mt-1 flex items-center justify-between text-ink-muted">

@@ -6,7 +6,9 @@ export function formatUnits(base: string | number | bigint, decimals = 6, compac
     if (compact && Math.abs(n) >= 10_000) {
         return new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 1 }).format(n);
     }
-    return n.toLocaleString(undefined, { maximumFractionDigits: n >= 100 ? 0 : n >= 1 ? 2 : 6 });
+    // Instant balances can go below zero (orders promising more than the wallet holds): size the digits by magnitude
+    const size = Math.abs(n);
+    return n.toLocaleString(undefined, { maximumFractionDigits: size >= 100 ? 0 : size >= 1 ? 2 : 6 });
 }
 
 /** whole CHA → micro-CHA, or null when the text isn't a positive number */

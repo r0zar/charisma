@@ -4,7 +4,7 @@ import React, { createContext, useState, useContext, useEffect, ReactNode, useRe
 import { connect, request } from "@stacks/connect";
 import type { AddressEntry } from "@stacks/connect/dist/types/methods";
 import { v4 as uuidv4 } from 'uuid';
-import { signIntentWithWallet, MULTIHOP_CONTRACT_ID, MULTIHOP_V2_CONTRACT_ID, getUserTokenBalance } from "blaze-sdk";
+import { signIntentWithWallet, MULTIHOP_CONTRACT_ID, MULTIHOP_V2_CONTRACT_ID, getBalances, watchBalances, type BalanceSheet } from "blaze-sdk";
 import { CHA_SUBNET_V1, CHA_SUBNET_V2, type ChaSubnet } from '@/lib/roulette/subnets';
 import { fetchQuote, Router, loadVaults, buildSwapTransaction, Route } from 'dexterity-sdk';
 import type { PublicBet } from '@/lib/roulette/types';
@@ -64,13 +64,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const [connected, setConnected] = useState(false);
     const [address, setAddress] = useState('');
     const [isConnecting, setIsConnecting] = useState(false);
-    const [stxBalance, setStxBalance] = useState('0');
-    const [mainnetBalance, setMainnetBalance] = useState('0');
-    const [subnetBalances, setSubnetBalances] = useState({ v1: '0', v2: '0' });
+    // Instant balances (blaze-sdk watchBalances): pushed the moment anything changes, each one what's ready to use,
+    // so this round's bets and any open orders are already set aside
+    const [sheet, setSheet] = useState<BalanceSheet | null>(null);
+    /** A token's ready-to-use balance; null while it isn't known (not read yet, or the chain couldn't be read) */
+    const readyOf = (token: string): string | null => (!sheet ? null : sheet.tokens[token] ? sheet.tokens[token].ready : '0');
+    const [mainnetReady, v1Ready, v2Ready, stxReady] = [MAINNET_CHA_CONTRACT_ID, CHA_SUBNET_V1, CHA_SUBNET_V2, '.stx'].map(readyOf);
+    const stxBalance = stxReady ?? '0';
+    const mainnetBalance = mainnetReady ?? '0';
+    const subnetBalances = { v1: v1Ready ?? '0', v2: v2Ready ?? '0' };
     const subnetBalance = (BigInt(subnetBalances.v1) + BigInt(subnetBalances.v2)).toString();
-    const [balanceLoading, setBalanceLoading] = useState(false);
-    const [subnetBalanceLoading, setSubnetBalanceLoading] = useState(false);
-    const [stxBalanceLoading, setStxBalanceLoading] = useState(false);
+    const balanceLoading = mainnetReady === null;
+    const subnetBalanceLoading = v1Ready === null || v2Ready === null;
+    const stxBalanceLoading = stxReady === null;
 
     const quoteRef = useRef<any>(null);
     const routerRef = useRef<Router>(new Router({
@@ -93,10 +99,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
             if (mainnetAddress) {
                 setConnected(true);
                 setAddress(mainnetAddress);
-                // Fetch initial balances
-                fetchMainnetBalance(mainnetAddress);
-                fetchSubnetBalance(mainnetAddress);
-                fetchStxBalance(mainnetAddress);
             }
         }
     }, []);
@@ -116,10 +118,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 console.log("[WalletContext] Found mainnet address:", mainnetAddress);
                 setConnected(true);
                 setAddress(mainnetAddress);
-                // Fetch initial balances
-                fetchMainnetBalance(mainnetAddress);
-                fetchSubnetBalance(mainnetAddress);
-                fetchStxBalance(mainnetAddress);
             } else {
                 console.warn("[WalletContext] Mainnet address not found in connect() result index 2.");
             }
@@ -136,67 +134,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('addresses');
         setAddress('');
         setConnected(false);
-        setMainnetBalance('0');
-        setSubnetBalances({ v1: '0', v2: '0' });
-        setStxBalance('0');
+        setSheet(null);
     };
 
-    // helper to fetch mainnet balance
-    const fetchMainnetBalance = async (userAddress: string) => {
-        console.log(`[WalletContext] Fetching Mainnet Charisma balance for ${userAddress}...`);
-        if (!userAddress) return;
-        setBalanceLoading(true);
-        try {
-            const data = await getUserTokenBalance(MAINNET_CHA_CONTRACT_ID, userAddress);
-            setMainnetBalance(data.preconfirmationBalance);
-        } catch (err) {
-            console.error('Failed to fetch Mainnet Charisma balance:', err);
-        } finally {
-            setBalanceLoading(false);
-        }
-    };
-
-    // both CHA subnets, read on-chain: what the game checks bets against
-    const fetchSubnetBalance = async (userAddress: string) => {
-        if (!userAddress) return;
-        setSubnetBalanceLoading(true);
-        try {
-            const [v1, v2] = await Promise.all([CHA_SUBNET_V1, CHA_SUBNET_V2].map(subnet => getUserTokenBalance(subnet, userAddress)));
-            setSubnetBalances({ v1: v1.preconfirmationBalance, v2: v2.preconfirmationBalance });
-        } catch (err) {
-            console.error('Subnet CHA balance unavailable:', err);
-        } finally {
-            setSubnetBalanceLoading(false);
-        }
-    };
-
-    // helper to fetch STX balance
-    const fetchStxBalance = async (userAddress: string) => {
-        if (!userAddress) return;
-        setStxBalanceLoading(true);
-        try {
-            // Use Stacks API - adjust endpoint for mainnet/testnet if needed
-            const response = await fetch(`https://api.mainnet.hiro.so/extended/v1/address/${userAddress}/stx`);
-            if (!response.ok) {
-                throw new Error(`STX Balance API Error: ${response.statusText}`);
-            }
-            const data = await response.json();
-            setStxBalance(data.balance || '0'); // Balance is in micro-STX
-        } catch (err) {
-            console.error('Failed to fetch STX balance:', err);
-            setStxBalance('0'); // Reset balance on error
-        } finally {
-            setStxBalanceLoading(false);
-        }
-    };
-
-    // Whenever address changes (including after first mount), refresh balance
+    // One live stream for the connected wallet's balances
     useEffect(() => {
-        if (connected && address) {
-            fetchMainnetBalance(address);
-            fetchSubnetBalance(address);
-            fetchStxBalance(address);
-        }
+        if (!connected || !address) return;
+        return watchBalances(address, setSheet, { onProblem: problem => console.error('[WalletContext] Balances:', problem.message) });
     }, [connected, address]);
 
     // a bet is a signed TRANSFER_TOKENS intent for one CHA subnet, targeted at the multihop router
@@ -217,7 +161,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         });
         const payload = await response.json().catch(() => ({ error: `The game answered ${response.status}` }));
         if (!response.ok) throw new Error(payload.error ?? `The game answered ${response.status}`);
-        fetchSubnetBalance(address);
         return payload.bet as PublicBet;
     };
 
@@ -236,11 +179,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         return payload.txid as string;
     };
 
+    /** Reads the balances once more; the live stream already keeps them current, so this is rarely needed */
     const refreshBalances = () => {
         if (!address) return;
-        fetchMainnetBalance(address);
-        fetchSubnetBalance(address);
-        fetchStxBalance(address);
+        getBalances(address).then(setSheet, error => console.error('[WalletContext] Balances:', error.message));
     };
 
     const getQuote = async (from: string, to: string, amount: number) => {
