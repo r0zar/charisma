@@ -15,7 +15,12 @@ export const config: PlasmoCSConfig = {
 window.addEventListener("message", async (event: MessageEvent) => {
   if (event.source !== window || event.data?.source !== "signet-provider") return
   const { id, method, params } = event.data
-  const response = await chrome.runtime.sendMessage({ type: "signet-rpc", id, method, params })
+  // Always answer, so the site never waits forever: a failure becomes a JSON-RPC error
+  const response = await chrome.runtime.sendMessage({ type: "signet-rpc", id, method, params }).catch((error: Error) => ({
+    jsonrpc: "2.0",
+    id,
+    error: { code: -32603, message: `Blaze Wallet could not answer: ${error.message}` }
+  }))
   window.postMessage({ source: "signet-bridge", id, response }, "*")
 })
 

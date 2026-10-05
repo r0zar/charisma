@@ -16,7 +16,6 @@ export interface WalletState {
 
 export interface WalletActions {
   initializeWallet: (password: string) => Promise<boolean>
-  createSeedPhrase: (name: string) => Promise<SeedPhrase | null>
   importSeedPhrase: (name: string, phrase: string) => Promise<SeedPhrase | null>
   getAllSeedPhrases: () => Promise<SeedPhrase[]>
   deleteSeedPhrase: (id: string) => Promise<boolean>
@@ -105,27 +104,6 @@ export function useWalletSlice(
       return result;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to initialize wallet";
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
-  // Create a new seed phrase
-  const createSeedPhrase = async (name: string): Promise<SeedPhrase | null> => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await sendMessage<SeedPhrase | null>("createSeedPhrase", { name });
-      if (result) {
-        // Update state with new seed phrase
-        setSeedPhrases(prev => [...prev, result]);
-      }
-      return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to create seed phrase";
       setError(errorMessage);
       throw err;
     } finally {
@@ -387,7 +365,6 @@ export function useWalletSlice(
 
     // Actions
     initializeWallet,
-    createSeedPhrase,
     importSeedPhrase,
     getAllSeedPhrases,
     deleteSeedPhrase,

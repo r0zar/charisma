@@ -25,6 +25,10 @@ const requireString = (value: unknown, what: string) => {
  */
 const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
   try {
+    // Only the wallet's own pages, never a script running inside a website (Chrome sets the origin, not the page)
+    if (req.sender?.id !== chrome.runtime.id || req.sender.origin !== new URL(chrome.runtime.getURL("")).origin) {
+      throw new Error("Only Blaze Wallet's own pages can use the wallet");
+    }
     const { action, data } = req.body as MessageRequest;
     // Log the action only: bodies can carry passwords and seed phrases
     console.log(`Handling: ${action}`);
@@ -58,10 +62,6 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
         break;
 
       // Seed phrases
-      case "createSeedPhrase":
-        response = withoutWords(await wallet.createNewSeedPhrase(requireString(data?.name, "seed phrase name")));
-        break;
-
       case "importSeedPhrase":
         response = withoutWords(await wallet.importSeedPhrase(
           requireString(data?.name, "seed phrase name"),
@@ -134,6 +134,7 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
         if (typeof data?.contractId !== "string" || typeof data?.recipient !== "string" || typeof data?.amount !== "string") {
           throw new Error("Invalid send: contractId, recipient and amount are required");
         }
+        await wallet.keepAwake();
         response = await tokens.sendToken(data);
         break;
 

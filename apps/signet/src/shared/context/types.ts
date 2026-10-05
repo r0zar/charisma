@@ -8,7 +8,6 @@ export type MessageAction =
   | "resetWallet"
   | "exportWalletData"
   // Seed phrases
-  | "createSeedPhrase"
   | "importSeedPhrase"
   | "generateSeedWords"
   | "getAllSeedPhrases"

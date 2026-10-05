@@ -13,7 +13,8 @@ import {
   makeContractCall,
   makeSTXTokenTransfer,
   signMessageHashRsv,
-  signStructuredData
+  signStructuredData,
+  type ClarityValue
 } from "@stacks/transactions"
 import * as wallet from "./wallet"
 import { hiroClient } from "./hiro"
@@ -48,14 +49,28 @@ const MAX_BULK = 10_000
 const blazeDomain = (version: string) => Cl.serialize(Cl.tuple({ name: Cl.stringAscii("BLAZE_PROTOCOL"), version: Cl.stringAscii(version), "chain-id": Cl.uint(1) }))
 const BLAZE_DOMAINS = [blazeDomain("v1.0"), blazeDomain("v2.0")]
 
+/** blaze-sdk's SIGNER_ONLY_ROUTERS (x-multihop-v2, x-multihop-v1): they pay out only to whoever signed the order */
+const SIGNER_ONLY_ROUTERS = [
+  "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v2",
+  "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1"
+]
+
+/** A swap order, as blaze-sdk's signTriggeredSwaps makes them: an amount, spent only through a router that pays the signer */
+function isSwapOrder(message: ClarityValue) {
+  if (message.type !== "tuple") return false
+  const { intent, opcode, amount, target } = message.value
+  return intent?.type === "ascii" && intent.value === "TRANSFER_TOKENS"
+    && opcode?.type === "none"
+    && amount?.type === "some" && amount.value.type === "uint"
+    && target?.type === "some" && target.value.type === "contract" && SIGNER_ONLY_ROUTERS.includes(target.value.value)
+}
+
 const CONNECT_METHODS = ["getAddresses", "stx_getAddresses", "wallet_connect"]
 const TX_METHODS = ["stx_transferStx", "stx_callContract"]
 
 /** Transaction params as @stacks/connect sends them: Clarity args and post conditions hex-serialized */
 interface TxParams {
   network?: string
-  fee?: string | number
-  nonce?: string | number
   sponsored?: boolean
   recipient?: string
   amount?: string | number
@@ -71,6 +86,10 @@ interface TxParams {
 function readTx(method: string, p: TxParams) {
   if (p.network && p.network !== "mainnet") throw new Error("Blaze Wallet only works on mainnet for now")
   if (p.sponsored) throw new Error("Blaze Wallet doesn't support sponsored transactions yet")
+  // Only the words the card shows: the library also reads other values (e.g. 1) as allow mode
+  if (p.postConditionMode !== undefined && p.postConditionMode !== "allow" && p.postConditionMode !== "deny") {
+    throw new Error('postConditionMode must be "allow" or "deny"')
+  }
   const postConditions = (p.postConditions ?? []).map(pc => {
     if (typeof pc !== "string") throw new Error("Post conditions must be hex-serialized")
     return deserializePostConditionWire(pc)
@@ -99,16 +118,36 @@ function readTx(method: string, p: TxParams) {
 
 const toHex = (bytes: Uint8Array) => Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("")
 
-/** Ask the user in the tab that made the request; resolves with their answer. */
+/**
+ * Ask the user in the tab that made the request; resolves with their answer. One card per tab at a time,
+ * so a site can't stack them up.
+ */
 function askUser(request: ApprovalRequest, sender: chrome.runtime.MessageSender): Promise<boolean> {
   const requestId = crypto.randomUUID()
   const tabId = sender.tab!.id!
   const frameId = sender.frameId ?? 0
-  return new Promise(resolve => {
+  if ([...pending.values()].some(p => p.tabId === tabId)) {
+    return Promise.reject(new Error("Blaze Wallet is already asking you something in this tab: answer that first"))
+  }
+  return new Promise((resolve, reject) => {
     pending.set(requestId, { ...request, tabId, frameId, decide: resolve })
-    chrome.tabs.sendMessage(tabId, { type: "signet-show-approval", requestId }, { frameId })
+    chrome.tabs.sendMessage(tabId, { type: "signet-show-approval", requestId }, { frameId }).catch(error => {
+      pending.delete(requestId)
+      reject(new Error(`Blaze Wallet couldn't show its approval card in this tab: ${error.message}`))
+    })
   })
 }
+
+/** A tab that closes or loads a new page with a card open has said no */
+function rejectTab(tabId: number) {
+  for (const [requestId, request] of pending) {
+    if (request.tabId !== tabId) continue
+    pending.delete(requestId)
+    request.decide(false)
+  }
+}
+chrome.tabs.onRemoved.addListener(rejectTab)
+chrome.tabs.onUpdated.addListener((tabId, change) => { if (change.status === "loading") rejectTab(tabId) })
 
 async function handleRpc(message: { id: string; method: string; params?: unknown }, sender: chrome.runtime.MessageSender) {
   const reply = (result: unknown) => ({ jsonrpc: "2.0", id: message.id, result })
@@ -136,13 +175,8 @@ async function handleRpc(message: { id: string; method: string; params?: unknown
     const account = await wallet.getCurrentAccount()
     if (!account) return fail(InternalError, "Blaze Wallet has no active account")
 
-    const common = {
-      senderKey: account.privateKey,
-      network: "mainnet" as const,
-      client: hiroClient,
-      ...(params.fee !== undefined && { fee: BigInt(params.fee) }),
-      ...(params.nonce !== undefined && { nonce: BigInt(params.nonce) })
-    }
+    // The wallet sets the fee and nonce itself, as the card says: a site's fee or nonce is ignored
+    const common = { senderKey: account.privateKey, network: "mainnet" as const, client: hiroClient }
     const transaction = tx.kind === "transfer"
       ? await makeSTXTokenTransfer({ ...common, recipient: tx.recipient, amount: tx.amount, memo: tx.memo })
       : await makeContractCall({
@@ -204,9 +238,12 @@ async function handleRpc(message: { id: string; method: string; params?: unknown
     } catch (error) {
       return fail(InvalidParams, `Could not read the orders: ${(error as Error).message}`)
     }
-    // Only Blaze orders: the card can say exactly what each one does
+    // Only Blaze swap orders: the card sums what they can spend, and each can pay out only to the signer
     if (!BLAZE_DOMAINS.includes(Cl.serialize(parsed.domain))) {
       return fail(InvalidParams, "blaze_signStructuredMessages only signs Blaze protocol orders")
+    }
+    if (!parsed.messages.every(isSwapOrder)) {
+      return fail(InvalidParams, "blaze_signStructuredMessages only signs swap orders that pay out to the signer (TRANSFER_TOKENS with an amount, through x-multihop-v2 or x-multihop-v1)")
     }
     if (!(await askUser(request, sender))) return fail(UserRejection, "User rejected the signatures")
     const account = await wallet.getCurrentAccount()
@@ -233,6 +270,8 @@ async function handleApproval(message: { action: string; requestId: string; appr
     }
     case "decide":
       pending.delete(message.requestId)
+      // Approving is activity: it keeps the wallet from locking for another 15 minutes
+      if (message.approved) await wallet.keepAwake()
       request.decide(!!message.approved)
       chrome.tabs.sendMessage(request.tabId, { type: "signet-hide-approval", requestId: message.requestId }, { frameId: request.frameId })
       return true

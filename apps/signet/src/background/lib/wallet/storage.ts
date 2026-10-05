@@ -2,7 +2,7 @@
  * The vault: wallet state encrypted with a key derived from the password (PBKDF2-SHA256 → AES-GCM).
  *
  * The password is never stored. While unlocked, the derived key sits in chrome.storage.session:
- * memory only, readable by the background alone, gone when the browser closes, and cleared after
+ * memory only, out of content scripts' reach, gone when the browser closes, and cleared after
  * 15 idle minutes. A wrong password fails AES-GCM authentication and is rejected.
  */
 import type { SeedPhrase, Account, WalletState } from './types';
@@ -63,15 +63,18 @@ async function startSession(key: CryptoKey): Promise<void> {
   await chrome.storage.session.set({ [UNLOCKED_KEY]: unlocked });
 }
 
-/** The unlocked key, sliding the auto-lock forward. Throws when locked. */
-async function sessionKey(): Promise<CryptoKey> {
+/**
+ * The unlocked key. Throws when locked. `active` slides the auto-lock forward: only things the person
+ * does (changes, sends, approvals) count, never reads, so an open panel or a busy site can't keep it unlocked.
+ */
+async function sessionKey(active = false): Promise<CryptoKey> {
   const { [UNLOCKED_KEY]: unlocked } = (await chrome.storage.session.get(UNLOCKED_KEY)) as { [UNLOCKED_KEY]?: Unlocked };
   if (!unlocked) throw new Error('Wallet is locked');
   if (Date.now() > unlocked.expiresAt) {
     await lock();
     throw new Error('Wallet locked after 15 minutes of inactivity');
   }
-  await chrome.storage.session.set({ [UNLOCKED_KEY]: { ...unlocked, expiresAt: Date.now() + LOCK_AFTER_MS } });
+  if (active) await chrome.storage.session.set({ [UNLOCKED_KEY]: { ...unlocked, expiresAt: Date.now() + LOCK_AFTER_MS } });
   return crypto.subtle.importKey('raw', fromBase64(unlocked.key), 'AES-GCM', true, ['encrypt', 'decrypt']);
 }
 
@@ -115,6 +118,11 @@ export async function unlockOrCreate(password: string): Promise<void> {
   await startSession(key);
 }
 
+/** The person did something: keep the wallet unlocked for another 15 minutes. Throws when locked. */
+export async function keepAwake(): Promise<void> {
+  await sessionKey(true);
+}
+
 /** When the wallet locks itself if left idle (ms since epoch), or null when locked. Doesn't extend the timer. */
 export async function lockExpiresAt(): Promise<number | null> {
   const { [UNLOCKED_KEY]: unlocked } = (await chrome.storage.session.get(UNLOCKED_KEY)) as { [UNLOCKED_KEY]?: Unlocked };
@@ -135,7 +143,7 @@ export async function getWalletState(): Promise<WalletState> {
 async function saveWalletState(state: WalletState): Promise<void> {
   const vault = await readVault();
   if (!vault) throw new Error('No wallet yet');
-  await encrypt(await sessionKey(), vault.salt, state);
+  await encrypt(await sessionKey(true), vault.salt, state);
 }
 
 /** The encrypted vault as stored, for backup: it opens only with the password. */

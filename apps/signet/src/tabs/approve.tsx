@@ -2,8 +2,9 @@
  * The sealed approval: a Signet page shown in a frame over the site (or in its own window).
  *
  * The site can't read or click inside it. Approve is held until Chrome's visibility check
- * (IntersectionObserver v2) has seen the whole frame uncovered and unfaded for a full second,
- * so a site can't trick you by laying something over it.
+ * (IntersectionObserver v2) has seen the whole card, fully on screen, uncovered and unfaded for a full
+ * second, so a site can't trick you by laying something over it or sliding most of it away. Every click
+ * while it's held starts that second again, so rapid clicking can't land on Approve the moment it opens.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import NotificationPanel from "~shared/notifications/NotificationPanel"
@@ -18,7 +19,8 @@ import { TransactionContent } from "~shared/approvals/TransactionContent"
 import "~shared/styles/style.css"
 
 const [requestId, mode] = location.hash.slice(1).split("&")
-const inWindow = mode === "window"
+// Signet's own window, never a frame: a site that frames this page with "&window" still gets the visibility check
+const inWindow = mode === "window" && window.top === window
 const SEEN_FOR_MS = 1000
 const FALLBACK_AFTER_MS = 4000
 
@@ -78,23 +80,27 @@ async function ask<T>(action: string, extra: object = {}): Promise<T> {
   return response.result
 }
 
-/** True once `target` has been fully visible for SEEN_FOR_MS. In Signet's own window there's nothing to cover it. */
-function useProvenVisible(target: React.RefObject<HTMLElement>) {
+/**
+ * True once `target` has been entirely on screen and uncovered for SEEN_FOR_MS, counted from when `ready`
+ * (the card is drawn). `restart` starts the count again. In Signet's own window there's nothing to cover it.
+ */
+function useProvenVisible(target: React.RefObject<HTMLElement>, ready: boolean) {
   const [proven, setProven] = useState(inWindow)
+  const [restarts, setRestarts] = useState(0)
   useEffect(() => {
-    if (inWindow || !target.current) return
+    if (inWindow || !ready || !target.current) return
     let timer: ReturnType<typeof setTimeout>
+    setProven(false)
     const observer = new IntersectionObserver(([entry]) => {
       clearTimeout(timer)
       setProven(false)
-      if ((entry as IntersectionObserverEntry & { isVisible?: boolean }).isVisible) {
-        timer = setTimeout(() => setProven(true), SEEN_FOR_MS)
-      }
-    }, { threshold: [0], trackVisibility: true, delay: 100 } as IntersectionObserverInit)
+      const visible = (entry as IntersectionObserverEntry & { isVisible?: boolean }).isVisible
+      if (visible && entry.intersectionRatio >= 1) timer = setTimeout(() => setProven(true), SEEN_FOR_MS)
+    }, { threshold: [1], trackVisibility: true, delay: 100 } as IntersectionObserverInit)
     observer.observe(target.current)
     return () => { observer.disconnect(); clearTimeout(timer) }
-  }, [])
-  return proven
+  }, [ready, restarts])
+  return { proven, restart: () => setRestarts(n => n + 1) }
 }
 
 export default function Approve() {
@@ -103,7 +109,7 @@ export default function Approve() {
   const [error, setError] = useState<string | null>(null)
   const [stuck, setStuck] = useState(false)
   const [windowId, setWindowId] = useState<number>()
-  const visible = useProvenVisible(frame)
+  const { proven: visible, restart } = useProvenVisible(frame, !!details)
 
   // Load the request; while the wallet is locked, check again every second
   useEffect(() => {
@@ -135,7 +141,7 @@ export default function Approve() {
   const hold = !details?.unlocked ? "UNLOCK WALLET FIRST" : !visible ? "CHECKING…" : undefined
 
   return (
-    <div ref={frame} style={{ position: "fixed", inset: 0, fontFamily: "Inter, system-ui, sans-serif" }}>
+    <div ref={frame} onPointerDownCapture={() => { if (!visible) restart() }} style={{ position: "fixed", inset: 0, fontFamily: "Inter, system-ui, sans-serif" }}>
       {/* Transparent over the site; Signet's dark background in its own window */}
       <style>{`html, body { margin: 0; background: ${inWindow ? "#010409" : "transparent"}; }`}</style>
       {!details && error && (

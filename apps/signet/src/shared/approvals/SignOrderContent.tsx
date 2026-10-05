@@ -42,12 +42,15 @@ function BlazeOrder({ fields }: { fields: Record<string, ClarityValue> }) {
   const target = optional(fields.target)
   const targetId = target ? Cl.prettyPrint(target).replace(/^'/, "") : null
   const router = targetId ? ROUTERS[targetId] : null
+  // A plain address, not a router contract: the funds go straight to it
+  const sendsTo = target?.type === "address"
   return (
     <>
       <Row label="Action">{Cl.prettyPrint(fields.intent).replace(/"/g, "")}</Row>
       <Row label="Token">{shortName(contract.replace(/^'/, ""))}</Row>
       {amount && <Row label="Amount (smallest units)">{Cl.prettyPrint(amount).replace(/^u/, "")}</Row>}
-      {targetId && (
+      {targetId && sendsTo && <Row label="Sends to" color={colors.neonRed}>{targetId}</Row>}
+      {targetId && !sendsTo && (
         <Row label="Payout" color={router?.color ?? colors.neonOrange}>
           {router ? `${router.text} (${shortName(targetId)})` : `Handled by ${shortName(targetId)}`}
         </Row>

@@ -19,7 +19,8 @@ import {
   getActiveAccount,
   deleteAccount,
   deleteWallet,
-  lockExpiresAt
+  lockExpiresAt,
+  keepAwake
 } from './storage';
 
 import {
@@ -63,17 +64,6 @@ export async function endSession(): Promise<boolean> {
  */
 export function generateSeedWords(): string {
   return generateSeedPhrase();
-}
-
-/**
- * Generate and store a new seed phrase
- */
-export async function createNewSeedPhrase(name: string): Promise<SeedPhrase | null> {
-  // Generate a new random seed phrase
-  const phrase = generateSeedPhrase();
-
-  // Store it securely
-  return await addSeedPhrase(name, phrase);
 }
 
 /**
@@ -155,6 +145,7 @@ export {
   hasWallet,
   exportVault,
   lockExpiresAt,
+  keepAwake,
   getSeedPhrase,
   getAllSeedPhrases,
   deleteSeedPhrase,
