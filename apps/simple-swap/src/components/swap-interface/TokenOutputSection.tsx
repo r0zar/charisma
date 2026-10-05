@@ -165,14 +165,15 @@ export default function TokenOutputSection() {
 
                     {/* Where it lands, the token's price, and the price impact */}
                     <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-line">
-                        {hasSubnetChoice && (
+                        {(hasSubnetChoice || (selectedToToken && selectedToToken.type !== 'SUBNET')) && (
                             <BalanceSourceSwitch
                                 label="Receive to"
-                                subnet={isSubnetSelected}
+                                subnet={hasSubnetChoice ? isSubnetSelected : false}
                                 onChange={setUseSubnetTo}
                                 wallet={address ? tooltipData.mainnet : undefined}
                                 subnetBalance={address ? tooltipData.subnet : undefined}
                                 blazeVersion={rowBlazeVersion(listedSubnet)}
+                                missingSubnet={hasSubnetChoice ? undefined : { tokenId: selectedToToken!.contractId, symbol: selectedToToken!.symbol }}
                             />
                         )}
                         <span className="ml-auto text-xs text-ink-muted">

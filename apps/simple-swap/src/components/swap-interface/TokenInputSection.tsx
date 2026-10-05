@@ -226,14 +226,15 @@ export default function TokenInputSection() {
 
                     {/* Where it's paid from, and the token's price */}
                     <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-line">
-                        {hasSubnetChoice && (
+                        {(hasSubnetChoice || (selectedFromToken && selectedFromToken.type !== 'SUBNET')) && (
                             <BalanceSourceSwitch
                                 label="Pay from"
-                                subnet={isSubnetSelected}
+                                subnet={hasSubnetChoice ? isSubnetSelected : false}
                                 onChange={setUseSubnetFrom}
                                 wallet={address ? tooltipData.mainnet : undefined}
                                 subnetBalance={address ? tooltipData.subnet : undefined}
                                 blazeVersion={rowBlazeVersion(listedSubnet)}
+                                missingSubnet={hasSubnetChoice ? undefined : { tokenId: selectedFromToken!.contractId, symbol: selectedFromToken!.symbol }}
                                 lockedReason={isToggleDisabled ? 'Orders pay from Blaze' : undefined}
                             />
                         )}

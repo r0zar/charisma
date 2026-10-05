@@ -3,6 +3,10 @@
 import { Flame } from 'lucide-react';
 import type { BlazeVersion } from 'blaze-sdk';
 import { formatCompactNumber } from '@/lib/swap-utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+/** Launchpad's subnet maker, opened with the token already chosen */
+const deploySubnetUrl = (tokenId: string) => `https://launchpad.charisma.rocks/templates/subnet-wrapper?token=${encodeURIComponent(tokenId)}`;
 
 const compact = (formatted: string) => formatCompactNumber(Number(formatted.replace(/,/g, '')));
 
@@ -16,9 +20,10 @@ const StacksMark = ({ className = '' }: { className?: string }) => (
 /**
  * Where a token comes from (or lands): Stacks, or Blaze (the token's subnet). Both are the user's own balance, moved
  * only by their signature, so the halves are named as equals. The same switch on both sides of a swap, and each half
- * shows its balance, so the choice explains itself.
+ * shows its balance, so the choice explains itself. A token with no subnet still shows the switch: Stacks, and a greyed
+ * Blaze half that says so and links to Launchpad to deploy one.
  */
-export default function BalanceSourceSwitch({ label, subnet, onChange, wallet, subnetBalance, blazeVersion, lockedReason }: {
+export default function BalanceSourceSwitch({ label, subnet, onChange, wallet, subnetBalance, blazeVersion, lockedReason, missingSubnet }: {
     label: string;
     subnet: boolean;
     onChange: (subnet: boolean) => void;
@@ -28,8 +33,33 @@ export default function BalanceSourceSwitch({ label, subnet, onChange, wallet, s
     blazeVersion: BlazeVersion;
     /** Set when only Blaze works here; the Stacks half is then disabled with this as its reason */
     lockedReason?: string;
+    /** Set when the token has no subnet: Stacks is the only choice, and the Blaze half offers to deploy one */
+    missingSubnet?: { tokenId: string; symbol: string };
 }) {
     const option = (isSubnet: boolean) => {
+        if (isSubnet && missingSubnet) {
+            return (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <a
+                                href={deploySubnetUrl(missingSubnet.tokenId)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-disabled="true"
+                                className="flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 py-1 text-xs text-ink-faint transition-colors hover:text-ink-muted"
+                            >
+                                <Flame className="h-3 w-3" />
+                                <span className="font-medium">Blaze</span>
+                            </a>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs px-3 py-2 leading-relaxed">
+                            There isn&apos;t a Blaze subnet for {missingSubnet.symbol} yet. Click to deploy one on Launchpad.
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            );
+        }
         const active = subnet === isSubnet;
         const disabled = !!lockedReason && !isSubnet;
         const flame = blazeVersion === 2 ? 'text-blaze-v2' : 'text-blaze';

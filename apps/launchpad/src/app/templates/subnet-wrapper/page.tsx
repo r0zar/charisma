@@ -688,6 +688,12 @@ export default function SubnetWrapperWizard() {
         nextStep();
     };
 
+    // A link can name the token (Swap's "deploy one" for a token without a subnet): ?token=SP….contract
+    useEffect(() => {
+        const token = new URLSearchParams(window.location.search).get('token');
+        if (token && /^S[PM][0-9A-Z]+\.[a-zA-Z][\w-]*$/.test(token)) handleSelectToken(token);
+    }, []);
+
     // Validation function
     const validateForm = () => {
         try {
