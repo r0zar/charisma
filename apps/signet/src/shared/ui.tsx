@@ -40,6 +40,8 @@ export function ErrorText({ error }: { error: string | null }) {
 
 /** Smallest units as whole tokens, exactly: 1500000 with 6 decimals is "1.5" */
 export function formatUnits(raw: bigint, decimals: number): string {
+  // Instant balances go below zero when signed orders promise more than the wallet holds
+  if (BigInt(raw) < 0n) return `-${formatUnits(-BigInt(raw), decimals)}`
   const text = raw.toString().padStart(decimals + 1, "0")
   const whole = text.slice(0, text.length - decimals)
   const fraction = text.slice(text.length - decimals).replace(/0+$/, "")

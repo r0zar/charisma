@@ -123,7 +123,8 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
 
       // Balances and sends
       case "getWalletBalances":
-        response = await tokens.getWalletBalances();
+        // The side panel passes the sheet its live stream just received; otherwise one is read
+        response = await tokens.getWalletBalances(data?.sheet && typeof data.sheet.address === "string" && typeof data.sheet.tokens === "object" ? data.sheet : undefined);
         break;
 
       case "getUsdPrices":

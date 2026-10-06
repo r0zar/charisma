@@ -1,14 +1,17 @@
 /**
- * The active account's regular (on-chain) balances, and sending them from the wallet.
- * Balances come from Hiro; names, decimals and logos from Charisma's token cache (@repo/tokens).
+ * The active account's balances, and sending them from the wallet. Balances are instant: Charisma's balance service
+ * (the same one Swap and Meme Roulette use) reads the chain, adds what's on its way and sets aside what signed orders
+ * hold. Names, decimals and logos come from Charisma's token cache (@repo/tokens).
  */
 import { Cl, Pc, broadcastTransaction, makeContractCall, makeSTXTokenTransfer } from "@stacks/transactions"
 import { getTokenMetadataStrict, lakehouseClient, listTokens } from "@repo/tokens"
+// Types only: blaze-sdk's code pulls in @stacks/connect, which a service worker can't load
+import type { BalanceSheet } from "blaze-sdk"
 import * as wallet from "./wallet"
-import { hiroClient, hiroFetch } from "./hiro"
-import { blazeTotals, subnetBalances } from "./subnets"
+import { hiroClient } from "./hiro"
 
-const HIRO = "https://api.hiro.so"
+import { BALANCE_SERVICE } from "~shared/balance-service"
+
 export const STX_ID = ".stx"
 
 export interface TokenBalance {
@@ -16,9 +19,10 @@ export interface TokenBalance {
   contractId: string
   /** Asset name inside the contract, needed for post conditions ("" for STX) */
   asset: string
-  /** On Stacks (the wallet itself), in the token's smallest unit: what sends spend */
+  /** On Stacks (the wallet itself), ready to use, in the token's smallest unit: what sends spend */
   balance: string
-  /** On Blaze: the token's subnets (v1, v2 and older releases) added up, smallest units */
+  /** On Blaze: the token's subnets (v1, v2 and older releases) added up, ready to use, smallest units. Below zero
+   *  when signed orders promise more than the wallet holds */
   blaze: string
   /** Null when the token cache doesn't know the token: shown raw and not sendable */
   meta: { symbol: string; name: string; decimals: number; image: string | null } | null
@@ -43,39 +47,44 @@ async function tokenMeta(contractId: string): Promise<TokenBalance["meta"]> {
   }
 }
 
-/** STX first, then every token with a balance on Stacks, on Blaze, or both */
-export async function getWalletBalances(): Promise<TokenBalance[]> {
-  const { stxAddress } = await activeAccount()
-  const res = await hiroFetch(`${HIRO}/extended/v1/address/${stxAddress}/balances`)
-  if (!res.ok) throw new Error(`Could not load balances (Hiro ${res.status})`)
-  const data = await res.json() as {
-    stx: { balance: string; locked: string }
-    fungible_tokens: Record<string, { balance: string }>
-  }
+async function readSheet(address: string): Promise<BalanceSheet> {
+  const res = await fetch(`${BALANCE_SERVICE}/api/v1/balances/${address}/sheet`, { cache: "no-store" })
+  if (!res.ok) throw new Error(`Couldn't load balances (${res.status})`)
+  return res.json() as Promise<BalanceSheet>
+}
 
-  const held = Object.entries(data.fungible_tokens).filter(([, { balance }]) => BigInt(balance) > 0n)
+/**
+ * STX first, then every token with a balance on Stacks, on Blaze, or both. Uses `pushed` (a sheet the side panel's
+ * live stream just received) when it's for the active account, and reads one otherwise.
+ */
+export async function getWalletBalances(pushed?: BalanceSheet): Promise<TokenBalance[]> {
+  const { stxAddress } = await activeAccount()
+  const sheet = pushed?.address === stxAddress ? pushed : await readSheet(stxAddress)
   // Charisma's token list: blocking a token (scripts/blocklist.mjs in token-cache) takes it off this list
   const list = await listTokens()
   if (list.length === 0) throw new Error("Charisma's token list is unavailable, so tokens can't be checked against the block list")
   const listed = new Set(list.map(token => token.contractId))
-  const spendableStx = (BigInt(data.stx.balance) - BigInt(data.stx.locked)).toString()
+  const assetOf = (contractId: string) => list.find(token => token.contractId === contractId)?.identifier ?? ""
+
   // Subnet balances fold into their base token's row; a token held only on Blaze gets a row of its own
-  const blaze = blazeTotals(await subnetBalances(stxAddress, list))
-  const onStacks = new Set([STX_ID, ...held.map(([key]) => key.split("::")[0])])
-  const onlyOnBlaze = [...blaze.keys()].filter(base => !onStacks.has(base))
-  const assetOf = (base: string) => list.find(token => token.contractId === base)?.identifier ?? ""
-  // The token cache knows STX too (".stx"), logo included
-  return Promise.all([
-    [`${STX_ID}::`, { balance: spendableStx }] as const,
-    ...held,
-    ...onlyOnBlaze.map(base => [`${base}::${assetOf(base)}`, { balance: "0" }] as const),
-  ].map(async ([key, { balance }]) => {
-    const [contractId, asset] = key.split("::")
-    return {
-      contractId, asset, balance, blaze: (blaze.get(contractId) ?? 0n).toString(),
-      meta: await tokenMeta(contractId), listed: contractId === STX_ID || listed.has(contractId),
+  const rows = new Map<string, { balance: bigint; blaze: bigint }>([[STX_ID, { balance: 0n, blaze: 0n }]])
+  for (const [contractId, part] of Object.entries(sheet.tokens)) {
+    if (part.ready === null) {
+      // The chain couldn't be read for this one: a data problem for developers, not news for the user
+      console.error(`[signet] Couldn't read ${contractId}'s balance: ${part.error}`)
+      continue
     }
-  }))
+    const base = part.base ?? contractId
+    const row = rows.get(base) ?? { balance: 0n, blaze: 0n }
+    if (part.base) row.blaze += BigInt(part.ready)
+    else row.balance += BigInt(part.ready)
+    rows.set(base, row)
+  }
+  return Promise.all([...rows].filter(([id, row]) => id === STX_ID || row.balance !== 0n || row.blaze !== 0n).map(async ([contractId, row]) => ({
+    contractId, asset: contractId === STX_ID ? "" : assetOf(contractId),
+    balance: row.balance.toString(), blaze: row.blaze.toString(),
+    meta: await tokenMeta(contractId), listed: contractId === STX_ID || listed.has(contractId),
+  })))
 }
 
 /** USD price per whole token, by contract id (".stx" for STX), from the same feed the swap app uses */

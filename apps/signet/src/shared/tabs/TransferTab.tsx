@@ -7,10 +7,15 @@ import { useSignetContext } from '~shared/context/SignetContext';
 import { sendMessage } from '~shared/context/utils';
 import { Card, ErrorText, Kv } from '~shared/ui';
 import type { TokenBalance } from '~background/lib/tokens';
+import { BALANCE_SERVICE } from '~shared/balance-service';
+import { AnimatedAmount } from '~shared/AnimatedAmount';
+import type { BalanceSheet } from 'blaze-sdk';
 
 /** Raw smallest units → "1,234.5678" */
-function formatUnits(raw: string, decimals: number) {
+function formatUnits(raw: string, decimals: number): string {
   const value = BigInt(raw);
+  // Instant balances go below zero when signed orders promise more than the wallet holds
+  if (value < 0n) return `-${formatUnits((-value).toString(), decimals)}`;
   const whole = value / 10n ** BigInt(decimals);
   const frac = (value % 10n ** BigInt(decimals)).toString().padStart(decimals, '0').replace(/0+$/, '');
   return `${whole.toLocaleString('en-US')}${frac ? `.${frac.slice(0, 6)}` : ''}`;
@@ -195,6 +200,18 @@ export function TransferTab() {
 
   useEffect(load, [currentAccount?.stxAddress]);
 
+  // While the tab is open, balances are pushed the moment anything changes (no polling); the browser reconnects itself
+  useEffect(() => {
+    const address = currentAccount?.stxAddress;
+    if (!address) return;
+    const stream = new EventSource(`${BALANCE_SERVICE}/api/v1/balances/${address}/stream`);
+    stream.addEventListener('sheet', event => {
+      const sheet = JSON.parse((event as MessageEvent<string>).data) as BalanceSheet;
+      sendMessage<TokenBalance[]>('getWalletBalances', { sheet }).then(setBalances).catch(err => setError(err.message));
+    });
+    return () => stream.close();
+  }, [currentAccount?.stxAddress]);
+
   /** One token row; unlisted and unknown tokens can't be opened for sending */
   const row = (token: TokenBalance) => {
     const key = `${token.contractId}::${token.asset}`;
@@ -224,7 +241,10 @@ export function TransferTab() {
             )}
           </div>
           <div className="cx-token-row-bal">
-            {token.meta ? formatUnits(totalOf(token), token.meta.decimals) : `${totalOf(token)} units`}
+            {token.meta
+              // Rolls through approximate values, then rests on the exact amount
+              ? <AnimatedAmount key={key} value={Number(totalOf(token))} format={n => formatUnits(n === Number(totalOf(token)) ? totalOf(token) : String(Math.round(n)), token.meta!.decimals)} />
+              : `${totalOf(token)} units`}
             <span>{prices ? (value === null ? '—' : usd(value)) : ''}</span>
           </div>
         </div>
