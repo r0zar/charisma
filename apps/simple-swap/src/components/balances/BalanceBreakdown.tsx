@@ -14,6 +14,7 @@ type Tokens = ReturnType<typeof useTokenMetadata>['tokens'];
 
 const STX = { contractId: '.stx', symbol: 'STX', name: 'Stacks', decimals: 6 };
 const metaOf = (tokens: Tokens, id: string) => (id === '.stx' ? STX : tokens[id] ?? { contractId: id, symbol: id.split('.')[1] ?? id, name: id, decimals: 6 });
+const usd = (n: number) => (n !== 0 && Math.abs(n) < 0.01 ? '<$0.01' : n.toLocaleString('en-US', { style: 'currency', currency: 'USD' }));
 const short = (address?: string) => (address ? `${address.slice(0, 5)}…${address.slice(-4)}` : '');
 const ago = (at: number) => {
     const s = Math.max(1, Math.round((Date.now() - at) / 1000));
@@ -106,11 +107,14 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
         .filter(([base, c]) => (!token || base === token) && (c.ready !== '0' || c.pending !== '0' || c.held !== '0'))
         .map(([base, c]) => {
             const meta = metaOf(tokens, base);
-            const value = (Number(c.ready ?? 0) / 10 ** (meta.decimals ?? 6)) * (getPrice(base) ?? 0);
+            const price = getPrice(base);
+            const value = price === null || c.ready === null ? null : (Number(c.ready) / 10 ** (meta.decimals ?? 6)) * price;
             return { base, c, r: rollup(sheet, c.tokens), meta, value };
         })
         // Anything changing first, then the most valuable, then the rest by name
-        .sort((a, b) => Number(b.r.entries.length > 0) - Number(a.r.entries.length > 0) || b.value - a.value || a.meta.symbol.localeCompare(b.meta.symbol));
+        .sort((a, b) => Number(b.r.entries.length > 0) - Number(a.r.entries.length > 0) || (b.value ?? 0) - (a.value ?? 0) || a.meta.symbol.localeCompare(b.meta.symbol));
+    const totalValue = rows.reduce((sum, row) => sum + (row.value ?? 0), 0);
+    const unpriced = rows.filter(row => row.value === null).length;
     const shown = new Set(rows.flatMap(row => row.c.tokens));
     const entries = Object.values(sheet.tokens).flatMap(t => t.entries).filter(e => shown.has(e.token)).sort((a, b) => b.at - a.at);
     const failed = sheet.failed.filter(f => f.entries.some(e => shown.has(e.token)));
@@ -125,7 +129,14 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
                         <span className="inline-block h-2 w-2 rounded-full bg-success" aria-hidden /> Live · {short(address)} · block {sheet.block.toLocaleString('en-US')}
                     </p>
                 </div>
-                {token && <Link href="/balances" className="text-sm font-medium text-accent-text hover:underline">Show every token</Link>}
+                <div className="text-right">
+                    <div className="font-mono text-[11px] uppercase tracking-wide text-ink-muted">Total value</div>
+                    <div className="text-2xl font-semibold tabular-nums text-ink"><AnimatedAmount value={totalValue} format={usd} /></div>
+                    <div className="text-xs text-ink-faint">
+                        {unpriced > 0 && `${unpriced} without a price · `}
+                        {token ? <Link href="/balances" className="font-medium text-accent-text hover:underline">Show every token</Link> : 'Ready to use, at current prices'}
+                    </div>
+                </div>
             </div>
 
             {over.map(({ base, r, meta }) => (
@@ -135,7 +146,7 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
             ))}
 
             <div className="overflow-x-auto rounded-xl border border-line bg-surface">
-                <table className="w-full min-w-[560px] text-sm">
+                <table className="w-full min-w-[640px] text-sm">
                     <thead>
                         <tr className="border-b border-line text-right font-mono text-[11px] uppercase tracking-wide text-ink-muted">
                             <th className="px-4 py-2 text-left font-normal">Token</th>
@@ -143,10 +154,11 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
                             <th className="px-4 py-2 font-normal">On its way</th>
                             <th className="px-4 py-2 font-normal">Set aside</th>
                             <th className="px-4 py-2 font-normal">Ready to use</th>
+                            <th className="px-4 py-2 font-normal">Value</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {rows.map(({ base, r, meta }) => {
+                        {rows.map(({ base, r, meta, value }) => {
                             const d = meta.decimals ?? 6;
                             const cell = (n: bigint | null) => (n === null ? "Couldn't read" : n === 0n ? '0' : formatTokenAmount(Number(n), d));
                             return (
@@ -162,6 +174,7 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
                                     <td className={`px-4 py-2.5 font-medium ${r.ready !== null && r.ready < 0n ? 'text-danger' : 'text-ink'}`}>
                                         {r.ready === null ? '—' : <AnimatedAmount value={Number(r.ready)} format={n => formatTokenAmount(n, d)} />}
                                     </td>
+                                    <td className="px-4 py-2.5 text-ink-body">{value === null ? '—' : <AnimatedAmount value={value} format={usd} />}</td>
                                 </tr>
                             );
                         })}
