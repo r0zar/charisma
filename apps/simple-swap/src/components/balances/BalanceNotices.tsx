@@ -11,7 +11,7 @@ const titles: Partial<Record<BalanceEntry['kind'], string>> = {
     swap: "Your swap didn't go through",
     transfer: "Your transfer didn't go through",
     deposit: "Your move to Blaze didn't go through",
-    withdraw: "Your move to Stacks didn't go through",
+    withdraw: "Your move to Standard didn't go through",
 };
 
 /**

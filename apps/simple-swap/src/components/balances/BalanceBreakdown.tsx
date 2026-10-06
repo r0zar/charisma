@@ -32,7 +32,7 @@ function describe(e: BalanceEntry): { title: string; chip: string; tone: string 
                 : { title: `To ${short(e.counterparty)}`, ...onItsWay };
         case 'swap': return { title: incoming ? 'Swap, receiving' : 'Swap, paying', ...onItsWay };
         case 'deposit': return { title: 'Moving to Blaze', ...onItsWay };
-        case 'withdraw': return { title: 'Moving to Stacks', ...onItsWay };
+        case 'withdraw': return { title: 'Moving to Standard', ...onItsWay };
         case 'fee': return { title: 'Network fee', ...onItsWay };
         default: return { title: 'Change', ...onItsWay };
     }

@@ -154,7 +154,7 @@ function SendForm({ token, onDone, onCancel }: { token: TokenBalance; onDone: ()
           </div>
         </label>
         {token.blaze !== '0' && (
-          <p className="w-note">Sends use your {formatUnits(token.balance, decimals)} {label(token)} on Stacks. Your {formatUnits(token.blaze, decimals)} on Blaze stays in its subnet; move it with Charisma Swap.</p>
+          <p className="w-note">Sends use your {formatUnits(token.balance, decimals)} {label(token)} on Standard. Your {formatUnits(token.blaze, decimals)} on Blaze stays in its subnet; move it with Charisma Swap.</p>
         )}
         <ErrorText error={error} />
         <div className="w-actions">
@@ -216,7 +216,7 @@ export function TransferTab() {
   const row = (token: TokenBalance) => {
     const key = `${token.contractId}::${token.asset}`;
     const open = selected === key;
-    // Sends spend the Stacks balance; a token held only on Blaze has nothing here to send
+    // Sends spend the Standard balance; a token held only on Blaze has nothing here to send
     const sendable = !!token.meta && token.listed && token.balance !== '0';
     const value = valueOf(token);
     return (

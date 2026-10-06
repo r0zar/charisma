@@ -14,7 +14,7 @@ import { rollup } from './rollup';
  */
 export function BalanceGlance({ address, tokens, base, symbol, decimals }: {
     address: string;
-    /** The contracts behind the shown number: the token on Stacks, or its Blaze subnets */
+    /** The contracts behind the shown number: the token on Standard, or its Blaze subnets */
     tokens: string[];
     /** The token the full breakdown opens on */
     base: string;

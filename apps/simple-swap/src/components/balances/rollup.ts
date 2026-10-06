@@ -1,6 +1,6 @@
 import type { BalanceEntry, BalanceSheet } from 'blaze-sdk';
 
-/** How one shown balance is made, added up across the contracts behind it (a token's Stacks side, or its subnets) */
+/** How one shown balance is made, added up across the contracts behind it (a token's Standard side, or its Blaze subnets) */
 export interface Rollup {
     /** On the chain; null when any part couldn't be read */
     settled: bigint | null;

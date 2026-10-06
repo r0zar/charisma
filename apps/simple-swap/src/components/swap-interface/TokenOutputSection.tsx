@@ -57,7 +57,7 @@ export default function TokenOutputSection() {
     const tokensToShow = displayTokens;
     const isSubnetSelected = useSubnetTo;
     const hasBothVersionsForToken = hasBothVersions(selectedToToken);
-    // The Stacks / Blaze switch shows when the token has a subnet to choose
+    // The Standard / Blaze switch shows when the token has a subnet to choose
     const hasSubnetChoice = !!selectedToToken && hasBothVersionsForToken;
     const listedSubnet = subnetDisplayTokens.find(t => t.base === selectedToToken?.contractId)?.contractId;
 
@@ -89,7 +89,7 @@ export default function TokenOutputSection() {
 
     const outputAmount = quote && selectedToToken ? formatTokenAmount(Number(quote.amountOut), selectedToToken.decimals || 6) : "0.00";
 
-    // The balance where the output lands: the token on Stacks, or its Blaze subnet(s)
+    // The balance where the output lands: the token on Standard, or its Blaze subnet(s)
     const landsOnSubnet = useSubnetTo && !!listedSubnet;
     const toPair = pairOf(listedSubnet);
     const shownTokens = landsOnSubnet ? (toPair ? [toPair.v1, toPair.v2] : [listedSubnet!]) : selectedToToken ? [selectedToToken.contractId] : [];

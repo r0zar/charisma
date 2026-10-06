@@ -97,7 +97,7 @@ export default function TokenInputSection() {
             .map(([part, subnet]) => ({ label: part, amount: formatTokenAmount(getSubnetBalanceExact(address, subnet), fromPair.decimals) }))
         : undefined;
 
-    // The contracts behind the shown balance: the token on Stacks, or its Blaze subnet(s)
+    // The contracts behind the shown balance: the token on Standard, or its Blaze subnet(s)
     const paysFromSubnet = useSubnetFrom && !!listedSubnet;
     const shownTokens = paysFromSubnet ? (fromPair ? [fromPair.v1, fromPair.v2] : [listedSubnet!]) : baseContractId ? [baseContractId] : [];
     const decimals = selectedFromToken?.decimals ?? 6;
@@ -109,7 +109,7 @@ export default function TokenInputSection() {
     const isSubnetSelected = mode === 'order' ? true : useSubnetFrom;
     const isToggleDisabled = mode === 'order';
     const hasBothVersionsForToken = mode === 'order' ? true : hasBothVersions(selectedFromToken);
-    // The Stacks / Blaze switch shows when the token has a subnet to choose
+    // The Standard / Blaze switch shows when the token has a subnet to choose
     const hasSubnetChoice = !!selectedFromToken && hasBothVersionsForToken;
 
     const handleSelectToken = (t: TokenCacheData) => {

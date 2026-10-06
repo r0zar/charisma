@@ -1041,7 +1041,7 @@ export function useRouterTradingState() {
   // Custom label based on operation type
   const toLabel = useMemo(() => {
     if (isSubnetShift) {
-      return shiftDirection === 'to-subnet' ? 'You receive on Blaze' : 'You receive on Stacks';
+      return shiftDirection === 'to-subnet' ? 'You receive on Blaze' : 'You receive on Standard';
     }
     return 'You receive';
   }, [isSubnetShift, shiftDirection]);

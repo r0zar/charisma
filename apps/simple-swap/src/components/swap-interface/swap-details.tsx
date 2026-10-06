@@ -234,7 +234,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                     <div className="text-sm text-ink font-medium">Route Efficiency</div>
                     <div className="text-xs text-ink-muted mt-1">
                         {isSubnetShift
-                            ? (shiftDirection === 'to-subnet' ? 'Straight onto Blaze' : 'Straight back to Stacks')
+                            ? (shiftDirection === 'to-subnet' ? 'Straight onto Blaze' : 'Straight back to Standard')
                             : (securityLevel === 'high' ? 'Direct route' : securityLevel === 'medium' ? 'Optimized path' : 'Smart routing')
                         }
                     </div>
@@ -568,7 +568,7 @@ export default function SwapDetails({ compact = false }: SwapDetailsProps) {
                                                         {isSubnetToSubnet
                                                             ? 'On Blaze'
                                                             : isSubnetShift
-                                                                ? (shiftDirection === 'to-subnet' ? 'On Blaze' : 'On Stacks')
+                                                                ? (shiftDirection === 'to-subnet' ? 'On Blaze' : 'On Standard')
                                                                 : 'Destination'
                                                         }
                                                     </span>

@@ -56,7 +56,7 @@ function createShareData(params: {
         if (shiftDirection === 'to-subnet') {
             text = `Moving ${displayAmount || ''} ${selectedFromToken?.symbol} onto Blaze via Charisma`;
         } else if (shiftDirection === 'from-subnet') {
-            text = `Moving ${displayAmount || ''} ${selectedFromToken?.symbol} back to Stacks via Charisma`;
+            text = `Moving ${displayAmount || ''} ${selectedFromToken?.symbol} back to Standard via Charisma`;
         } else {
             text = `Swap ${displayAmount || ''} ${selectedFromToken?.symbol} for ${toTag} on Charisma`;
         }

@@ -19,10 +19,10 @@ const StacksMark = ({ className = '' }: { className?: string }) => (
 );
 
 /**
- * Where a token comes from (or lands): Stacks, or Blaze (the token's subnet). Both are the user's own balance, moved
- * only by their signature, so the halves are named as equals. The same switch on both sides of a swap, and each half
- * shows its balance, so the choice explains itself. A token with no subnet still shows the switch: Stacks, and a greyed
- * Blaze half that says so and links to Launchpad to deploy one.
+ * Where a token comes from (or lands): Standard (the token itself: a SIP-10 token, or STX), or Blaze (the token's subnet).
+ * Both are the user's own balance on Stacks, moved only by their signature, so the halves are named as equals. The same
+ * switch on both sides of a swap, and each half shows its balance, so the choice explains itself. A token with no subnet
+ * still shows the switch: Standard, and a greyed Blaze half that says so and links to Launchpad to deploy one.
  */
 export default function BalanceSourceSwitch({ label, subnet, onChange, wallet, subnetBalance, blazeVersion, lockedReason, missingSubnet }: {
     label: string;
@@ -32,7 +32,7 @@ export default function BalanceSourceSwitch({ label, subnet, onChange, wallet, s
     wallet?: string;
     subnetBalance?: string;
     blazeVersion: BlazeVersion;
-    /** Set when only Blaze works here; the Stacks half is then disabled with this as its reason */
+    /** Set when only Blaze works here; the Standard half is then disabled with this as its reason */
     lockedReason?: string;
     /** Set when the token has no subnet: Stacks is the only choice, and the Blaze half offers to deploy one */
     missingSubnet?: { tokenId: string; symbol: string };
@@ -80,7 +80,7 @@ export default function BalanceSourceSwitch({ label, subnet, onChange, wallet, s
                 {isSubnet
                     ? <Flame className={`h-3 w-3 ${active ? `${flame} fill-current` : ''}`} />
                     : <StacksMark className="h-3 w-3" />}
-                <span className="font-medium">{isSubnet ? 'Blaze' : 'Stacks'}</span>
+                <span className="font-medium">{isSubnet ? 'Blaze' : 'Standard'}</span>
                 {balance !== undefined && (
                     <AnimatedAmount value={amountOf(balance)} format={formatCompactNumber} className="font-mono text-ink-muted" />
                 )}
