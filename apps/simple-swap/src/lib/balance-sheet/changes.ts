@@ -19,7 +19,9 @@ export async function watching(addresses: string[]): Promise<void> {
     const now = Date.now();
     const [first, ...rest] = addresses.map(member => ({ score: now, member }));
     await kv.zadd(WATCHED_KEY, first, ...rest);
+    // Addresses stay at most minutes after their last screen closes, and the list itself an hour after the last one
     await kv.zremrangebyscore(WATCHED_KEY, 0, now - 10 * WATCH_TTL_MS);
+    await kv.expire(WATCHED_KEY, 3600);
 }
 
 export async function watched(): Promise<Set<string>> {
