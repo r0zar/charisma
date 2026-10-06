@@ -42,20 +42,30 @@ export default function BalanceSourceSwitch({ label, subnet, onChange, wallet, s
             return (
                 <TooltipProvider>
                     <Tooltip>
+                        {/* Disabled, not a link: the way to deploy a subnet is in the tooltip. A span rather than a
+                            disabled button, so it still shows the tooltip on hover and focus. */}
                         <TooltipTrigger asChild>
+                            <span
+                                role="radio"
+                                aria-checked={false}
+                                aria-disabled="true"
+                                tabIndex={0}
+                                className="flex cursor-not-allowed items-center justify-center gap-1.5 rounded-md px-3 py-1 text-xs text-ink-faint opacity-60"
+                            >
+                                <Flame className="h-3 w-3" />
+                                <span className="font-medium">Blaze</span>
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs px-3 py-2 leading-relaxed">
+                            There isn&apos;t a Blaze subnet for {missingSubnet.symbol} yet.{' '}
                             <a
                                 href={deploySubnetUrl(missingSubnet.tokenId)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                aria-disabled="true"
-                                className="flex cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 py-1 text-xs text-ink-faint transition-colors hover:text-ink-muted"
+                                className="font-medium text-accent-text underline underline-offset-2"
                             >
-                                <Flame className="h-3 w-3" />
-                                <span className="font-medium">Blaze</span>
+                                Deploy one on Launchpad →
                             </a>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs px-3 py-2 leading-relaxed">
-                            There isn&apos;t a Blaze subnet for {missingSubnet.symbol} yet. Click to deploy one on Launchpad.
                         </TooltipContent>
                     </Tooltip>
                 </TooltipProvider>
