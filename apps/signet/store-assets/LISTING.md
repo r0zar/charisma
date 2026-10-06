@@ -70,7 +70,7 @@ Upload `build/blaze-wallet-chrome.zip` (made by `pnpm package:store` in apps/sig
 
 **Remote code:** No, I am not using remote code. (All scripts ship in the package.)
 
-**Data usage — collected:** None of the categories are collected by the developer. Addresses and signed transactions go only to the Stacks network (Hiro API) and to sites the user approves, as described in the privacy policy. Token names, logos and prices come from Charisma's token list and price feed, asked by token, never by address; token logos load from wherever each token hosts them.
+**Data usage — collected:** Tick **Financial and payment information** only, for app functionality: the wallet sends the active account's public Stacks address to Charisma's balance service (swap.charisma.rocks) to show its balances, including changes still on their way and amounts signed orders set aside, live while the Tokens tab is open. The service reads public blockchain data, keeps the address only in short-lived caches (under an hour) and doesn't tie it to an account. Addresses and signed transactions also go to the Stacks network (Hiro API) and to sites the user approves, as described in the privacy policy. Token names, logos and prices come from Charisma's token list and price feed, asked by token, never by address; token logos load from wherever each token hosts them.
 
 Certify:
 - I do not sell or transfer user data to third parties, outside of the approved use cases

@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description: 'What the Blaze Wallet browser extension stores, what it sends, and to whom.',
 };
 
-const UPDATED = 'September 29, 2026';
+const UPDATED = 'October 5, 2026';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -47,12 +47,20 @@ export default function BlazeWalletPrivacy() {
       <Section title="What is sent, and to whom">
         <ul className="list-disc space-y-2 pl-5">
           <li>
-            <strong>Hiro (api.hiro.so)</strong>, a public Stacks API: your address, to read balances and the
-            network&apos;s status; subnet balance reads for your address; and transactions you approve, to broadcast them.
+            <strong>Hiro (api.hiro.so)</strong>, a public Stacks API: your address, to prepare transactions you approve
+            and for the Status tab&apos;s checks; the transactions you approve, to broadcast them; and the network&apos;s
+            status.
           </li>
           <li>
-            <strong>Charisma (tokens.charisma.rocks, lakehouse.charisma.rocks)</strong>: requests for token names, logos,
-            decimals and prices. These requests do not include your address.
+            <strong>Charisma&apos;s balance service (swap.charisma.rocks)</strong>: your public address, to show your
+            balances, including changes still on their way and amounts your signed orders set aside, and to update
+            them live while the Tokens tab is open. It reads public blockchain data, keeps your address only in
+            short-lived caches that expire within an hour, and doesn&apos;t tie it to an account. Like any web request,
+            it can appear briefly in our hosting provider&apos;s request logs.
+          </li>
+          <li>
+            <strong>Charisma&apos;s token list and prices (tokens.charisma.rocks, lakehouse.charisma.rocks)</strong>:
+            requests for token names, logos, decimals and prices. These requests do not include your address.
           </li>
           <li>
             <strong>Websites you connect to</strong>: only what you approve on screen, such as your address, a signed
