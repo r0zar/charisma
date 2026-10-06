@@ -66,10 +66,11 @@ export async function transaction(txid: string): Promise<Transaction | MempoolTr
     }
 }
 
-/** STX and every SIP-10 token an address holds, smallest units, keyed by contract (STX as ".stx") */
+/** STX (less any stacked, locked STX) and every SIP-10 token an address holds, smallest units, keyed by contract (STX as ".stx") */
 export async function walletBalances(address: string): Promise<Record<string, string>> {
     const data = await hiro<AddressBalanceResponse>(`/extended/v1/address/${address}/balances`);
-    const balances: Record<string, string> = { '.stx': data.stx.balance };
+    // Stacked STX is locked until its cycle ends: it isn't there to use
+    const balances: Record<string, string> = { '.stx': (BigInt(data.stx.balance) - BigInt(data.stx.locked)).toString() };
     for (const [asset, ft] of Object.entries(data.fungible_tokens)) {
         if (ft && ft.balance !== '0') balances[asset.split('::')[0]] = ft.balance;
     }
