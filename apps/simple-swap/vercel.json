@@ -17,14 +17,6 @@
             "schedule": "*/10 * * * *"
         },
         {
-            "path": "/api/cron/bot-monitor",
-            "schedule": "*/1 * * * *"
-        },
-        {
-            "path": "/api/cron/yield-farmers",
-            "schedule": "5 * * * *"
-        },
-        {
             "path": "/api/cron/router-trades",
             "schedule": "*/15 * * * *"
         }

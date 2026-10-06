@@ -6,16 +6,12 @@ import { useWallet } from '@/contexts/wallet-context';
 import {
   Key,
   Bell,
-  Bot,
-  Wallet,
   Shield
 } from 'lucide-react';
 
 // Import components for each settings category
 import ApiKeysSettings from './components/api-keys-settings';
 import NotificationsSettings from './components/notifications-settings';
-import PortfolioSettings from './components/portfolio-settings';
-import BotsSettings from './components/bots-settings';
 
 interface SettingsTab {
   id: string;
@@ -26,13 +22,6 @@ interface SettingsTab {
 }
 
 const settingsTabs: SettingsTab[] = [
-  {
-    id: 'portfolio',
-    label: 'Portfolio',
-    icon: <Wallet className="w-4 h-4" />,
-    component: PortfolioSettings,
-    description: 'View your token balances and portfolio analytics'
-  },
   {
     id: 'api-keys',
     label: 'API Keys',
@@ -46,19 +35,12 @@ const settingsTabs: SettingsTab[] = [
     icon: <Bell className="w-4 h-4" />,
     component: NotificationsSettings,
     description: 'Configure notification preferences'
-  },
-  {
-    id: 'bots',
-    label: 'Bots',
-    icon: <Bot className="w-4 h-4" />,
-    component: BotsSettings,
-    description: 'Hosted hot wallets for DeFi automation'
   }
 ];
 
 export default function SettingsPage() {
   const { connected } = useWallet();
-  const [activeTab, setActiveTab] = useState('portfolio');
+  const [activeTab, setActiveTab] = useState('api-keys');
 
   const activeTabData = settingsTabs.find(tab => tab.id === activeTab);
   const ActiveComponent = activeTabData?.component;
