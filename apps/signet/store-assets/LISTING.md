@@ -27,7 +27,7 @@ Upload `build/blaze-wallet-chrome.zip` (made by `pnpm package:store` in apps/sig
 > Blaze Wallet speaks the standard Stacks wallet language, so it shows up in any app's "Connect wallet" list. Connect, sign messages, send STX and tokens, and run contract calls.
 >
 > EVERY TOKEN, ONE VIEW
-> Balances with logos and dollar values. Sends allow exactly the amount you choose. Tokens that aren't on Charisma's token list, like scam airdrops, are tucked away and can't be sent by mistake.
+> Balances move the moment anything changes, with logos and dollar values. Each token shows one total, Standard and Blaze together. Sends allow exactly the amount you choose. Tokens that aren't on Charisma's token list, like scam airdrops, are tucked away and can't be sent by mistake.
 >
 > KNOW EXACTLY WHAT YOU SIGN
 > Orders are shown in plain words: the action, the token, the amount, and who can be paid. Transactions list exactly which tokens can leave your wallet, and warn loudly when a site asks for more. Every request opens a sealed card the website can't read, cover or click.
