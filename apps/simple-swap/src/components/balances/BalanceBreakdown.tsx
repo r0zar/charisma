@@ -13,7 +13,8 @@ import { rollup } from './rollup';
 type Tokens = ReturnType<typeof useTokenMetadata>['tokens'];
 
 const STX = { contractId: '.stx', symbol: 'STX', name: 'Stacks', decimals: 6 };
-const metaOf = (tokens: Tokens, id: string) => (id === '.stx' ? STX : tokens[id] ?? { contractId: id, symbol: id.split('.')[1] ?? id, name: id, decimals: 6 });
+// The token list has STX too (with its logo); the constant only covers the moment before the list loads
+const metaOf = (tokens: Tokens, id: string) => tokens[id] ?? (id === '.stx' ? STX : { contractId: id, symbol: id.split('.')[1] ?? id, name: id, decimals: 6 });
 const usd = (n: number) => (n !== 0 && Math.abs(n) < 0.01 ? '<$0.01' : n.toLocaleString('en-US', { style: 'currency', currency: 'USD' }));
 const short = (address?: string) => (address ? `${address.slice(0, 5)}…${address.slice(-4)}` : '');
 const ago = (at: number) => {

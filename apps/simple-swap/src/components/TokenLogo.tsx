@@ -55,11 +55,6 @@ function TokenFlameOverlay({ size, version }: { size: 'sm' | 'md' | 'lg'; versio
 }
 
 export default function TokenLogo({ token, size = "md", className = "", suppressFlame = false, blazeVersion }: TokenLogoProps) {
-    const getTokenLogo = (token: TokenCacheData) => {
-        const imageUrl = token.image || `https://charisma.rocks/charisma.png`;
-        return getIpfsUrl(imageUrl);
-    };
-
     // Safety check for undefined token
     if (!token) {
         return <div className="w-8 h-8 rounded-full bg-surface-hover " />;
@@ -74,20 +69,26 @@ export default function TokenLogo({ token, size = "md", className = "", suppress
         md: "w-8 h-8",
         lg: "w-10 h-10",
     };
+    const initialSize = {
+        sm: "text-[10px]",
+        md: "text-sm",
+        lg: "text-base",
+    };
 
     return (
         <div className={`relative ${sizeClasses[size]} ${className}`} style={{ overflow: 'visible' }}>
             <div className={`w-full h-full rounded-full bg-dark-300 flex items-center justify-center overflow-hidden`}>
-                {!imgError ? (
+                {/* A token without a logo (or a broken one) gets its initial, never another token's logo */}
+                {token.image && !imgError ? (
                     <img
-                        src={getTokenLogo(token)}
+                        src={getIpfsUrl(token.image)}
                         alt={token.symbol}
                         className="w-full h-full object-cover"
                         onError={() => setImgError(true)}
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-muted text-foreground/60 font-bold text-xs uppercase select-none">
-                        {token.symbol?.substring(0, 4) || '?'}
+                    <div className={`w-full h-full flex items-center justify-center bg-surface-hover text-ink-muted font-semibold uppercase select-none ${initialSize[size]}`}>
+                        {token.symbol?.charAt(0) || '?'}
                     </div>
                 )}
                 {/* Optional highlight ring for better visibility */}
