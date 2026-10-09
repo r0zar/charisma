@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Account, SeedPhrase } from '../types'
 import { sendMessage } from '../utils'
 
@@ -340,16 +340,32 @@ export function useWalletSlice(
     }
   }
 
-  // End the current wallet session (logout)
-  // Lock the wallet
-  const endSession = async (): Promise<boolean> => {
-    const result = await sendMessage<boolean>("endWalletSession");
+  // Back to the lock screen: forget everything the unlocked wallet showed
+  const showLocked = () => {
     setIsWalletInitialized(false);
     setAccounts([]);
     setSeedPhrases([]);
     setCurrentAccount(null);
+  }
+
+  // Lock the wallet
+  const endSession = async (): Promise<boolean> => {
+    const result = await sendMessage<boolean>("endWalletSession");
+    showLocked();
     return result;
   }
+
+  // The background locks after 15 idle minutes, but only notices when asked. Ask, so an open wallet goes back to the
+  // lock screen on time instead of showing pages that no longer work. Asking is a read, so it never delays the lock.
+  useEffect(() => {
+    if (!isWalletInitialized) return;
+    const timer = setInterval(() => {
+      sendMessage<boolean>("checkWalletInitialized")
+        .then(unlocked => { if (!unlocked) showLocked(); })
+        .catch(err => console.error("[signet] Couldn't check the lock:", err));
+    }, 10_000);
+    return () => clearInterval(timer);
+  }, [isWalletInitialized]);
   
   // Export wallet data for backup
   const exportWalletData = () => sendMessage<{ salt: string; iv: string; data: string }>("exportWalletData");
