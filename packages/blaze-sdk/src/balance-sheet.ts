@@ -44,7 +44,10 @@ export interface TokenSheet {
     pending: string;
     /** Sum of the holds (zero or negative) */
     held: string;
-    /** settled + pending + held: negative when orders promise more than the wallet holds. Null when settled is */
+    /**
+     * settled + pending: what the wallet holds once what's on its way lands. Holds don't come off (signing locks
+     * nothing, so the owner can still move the money; an order that finds it gone skips). Null when settled is
+     */
     ready: string | null;
     entries: BalanceEntry[];
 }

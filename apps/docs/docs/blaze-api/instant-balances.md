@@ -40,7 +40,7 @@ Each token is one contract: STX (`.stx`), a SIP-010 token, or a Blaze subnet (`b
 | `settled` | On the chain, in smallest units. `null` when it couldn't be read (`error` says why) |
 | `pending` | Sum of changes sent and waiting for a block |
 | `held` | Sum of holds: money promised to signed orders and bets that haven't run (zero or negative) |
-| `ready` | `settled + pending + held`. **Negative** when signed orders promise more than the wallet holds: signing doesn't lock funds, so some of those orders will skip |
+| `ready` | `settled + pending`: the balance once what's on its way lands. Holds don't come off, because signing doesn't lock funds: the owner can still move them, and an order that finds them gone skips. Orders promise more than the wallet holds when `ready + held` is below zero |
 | `entries` | Every change behind those numbers |
 
 Each entry has a `stage` (`pending` or `hold`), a `kind` (`transfer`, `swap`, `deposit`, `withdraw`, `fee`, `order`,

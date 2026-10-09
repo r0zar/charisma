@@ -145,7 +145,8 @@ export async function balanceSheet(address: string): Promise<BalanceSheet> {
             ...(error && { error }),
             pending: pendingSum.toString(),
             held: held.toString(),
-            ready: onChain === null ? null : (BigInt(onChain) + pendingSum + held).toString(),
+            // Holds don't come off: signing locks nothing, so the money stays the owner's until an order runs
+            ready: onChain === null ? null : (BigInt(onChain) + pendingSum).toString(),
             entries: mine,
         };
     }

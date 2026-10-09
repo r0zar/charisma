@@ -8,9 +8,9 @@ import { formatTokenAmount } from '@/lib/swap-utils';
 import { rollup } from './rollup';
 
 /**
- * The ⓘ beside a balance: how the number is made, in three lines (on the chain, on its way, set aside), and a link to
- * the full breakdown. It lights up while something is still settling and turns red when signed orders promise more
- * than the wallet holds.
+ * The ⓘ beside a balance: how the number is made (on the chain, plus settling), what signed orders hold off the chain,
+ * and a link to the full breakdown. Off the chain doesn't come off: the money stays the owner's until an order runs.
+ * It lights up while something is settling or set aside, and turns red when orders promise more than the wallet holds.
  */
 export function BalanceGlance({ address, tokens, base, symbol, decimals }: {
     address: string;
@@ -30,8 +30,9 @@ export function BalanceGlance({ address, tokens, base, symbol, decimals }: {
     const signed = (n: bigint) => (n > 0n ? `+${amount(n)}` : amount(n));
     const pendingCount = r.entries.filter(e => e.stage === 'pending').length;
     const heldCount = r.entries.filter(e => e.stage === 'hold').length;
-    const over = r.ready !== null && r.ready < 0n;
+    const over = r.over > 0n;
     const settling = r.pending !== 0n || r.held !== 0n;
+    const estimated = r.pending !== 0n;
     const tone = over ? 'text-danger' : settling ? 'text-accent-text' : 'text-ink-faint hover:text-ink-muted';
 
     const row = (label: string, value: bigint, count?: number) => (
@@ -58,9 +59,9 @@ export function BalanceGlance({ address, tokens, base, symbol, decimals }: {
                 <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-ink">How we got this number</span>
                     <span className={`rounded-full px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
-                        over ? 'bg-danger-soft text-danger' : settling ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success'
+                        over ? 'bg-danger-soft text-danger' : estimated ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success'
                     }`}>
-                        {over ? 'Over' : settling ? 'Estimated' : 'Settled'}
+                        {over ? 'Over' : estimated ? 'Estimated' : 'Settled'}
                     </span>
                 </div>
                 <div className="space-y-1.5">
@@ -68,16 +69,24 @@ export function BalanceGlance({ address, tokens, base, symbol, decimals }: {
                         <span>On the chain</span>
                         <span className="font-mono tabular-nums">{r.settled === null ? "Couldn't read" : amount(r.settled)}</span>
                     </div>
-                    {row('On its way', r.pending, pendingCount)}
-                    {row('Set aside', r.held, heldCount)}
+                    {row('Settling', r.pending, pendingCount)}
                 </div>
                 <div className="flex justify-between gap-3 border-t border-dashed border-line-strong pt-2 font-medium text-ink">
-                    <span>Ready to use</span>
-                    <span className={`font-mono tabular-nums ${over ? 'text-danger' : ''}`}>{r.ready === null ? '—' : `${amount(r.ready)} ${symbol}`}</span>
+                    <span>Balance</span>
+                    <span className="font-mono tabular-nums">{r.ready === null ? '—' : `${amount(r.ready)} ${symbol}`}</span>
                 </div>
+                {r.held !== 0n && (
+                    <div className="space-y-1 rounded-md bg-surface-sunken px-2 py-1.5">
+                        <div className={`flex justify-between gap-3 ${over ? 'text-danger' : 'text-ink-body'}`}>
+                            <span>Off the chain<span className="ml-1.5 font-mono text-[10px] text-ink-faint">{heldCount}</span></span>
+                            <span className="font-mono tabular-nums">{amount(-r.held)}</span>
+                        </div>
+                        <p className="text-ink-muted">Signed orders that haven&apos;t run. Still yours: they spend it when they run, and skip if you move it first.</p>
+                    </div>
+                )}
                 {over && (
                     <p className="rounded-md bg-danger-soft px-2 py-1.5 text-danger">
-                        Your orders count on {amount(-r.ready!)} {symbol} more than you have. Some may skip until you add {symbol} or cancel one.
+                        Your orders count on {amount(r.over)} {symbol} more than you have. Some may skip until you add {symbol} or cancel one.
                     </p>
                 )}
                 {r.estimated && <p className="text-ink-muted">Includes a swap at its likely amount.</p>}

@@ -48,7 +48,7 @@ const buysFor = (every: number, span: number) => Math.floor(span / every);
 export default function DcaPage() {
     const { address } = useWallet();
     const { getSubnetContractId } = useSubnetTokens();
-    const { getSubnetBalance, getSubnetBalanceExact, getTokenBalance } = useBalances(address ? [address] : []);
+    const { getSubnetFree, getSubnetBalanceExact, getTokenBalance } = useBalances(address ? [address] : []);
     // Only tokens the router can trade, the same list the swap page offers
     const [swappable, setSwappable] = useState<TokenCacheData[] | null>(null);
     const [listError, setListError] = useState<string | null>(null);
@@ -95,12 +95,13 @@ export default function DcaPage() {
         }
     }, [from, to, amountText, every, span]);
 
-    // What you hold, wherever it sits: the buys spend from the subnet, so wallet funds move there first
+    // What you can spend, wherever it sits: the buys spend from the subnet, so wallet funds move there first.
+    // Subnet money other orders have set aside stays out, or a second plan would move in too little.
     const held = (t: TokenCacheData) => {
         const subnetId = getSubnetContractId(t.contractId);
         if (!address || !subnetId) return { subnet: 0n, wallet: 0n };
         return {
-            subnet: BigInt(Math.floor(getSubnetBalance(address, subnetId))),
+            subnet: BigInt(Math.max(0, Math.floor(getSubnetFree(address, subnetId)))),
             wallet: BigInt(Math.floor(getTokenBalance(address, t.contractId))),
         };
     };
@@ -138,7 +139,7 @@ export default function DcaPage() {
     const problem = from && decimals === undefined
         ? `${from.symbol} has no decimals in the token list, so amounts can't be read safely`
         : amountRaw > balance
-            ? `That's more ${from?.symbol} than you hold`
+            ? `That's more ${from?.symbol} than you have free`
             : pairSplit
                 ? pairSplit
             : buys < 2
@@ -242,7 +243,7 @@ export default function DcaPage() {
                                         ))}
                                     </div>
                                     <div className="text-right text-xs text-ink-muted">
-                                        You hold <span className="font-mono">{fmt(Number(balance) / 10 ** decimals)}</span> {from.symbol}
+                                        <span className="font-mono">{fmt(Number(balance) / 10 ** decimals)}</span> {from.symbol} free to use
                                     </div>
                                 </>
                             )}

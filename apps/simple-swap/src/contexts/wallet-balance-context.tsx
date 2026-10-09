@@ -11,11 +11,11 @@ import { isListedSubnet, pairOf } from '@/lib/subnet-pairs';
 /**
  * Balances everywhere in Swap are instant balances: each watched wallet keeps one live stream open to the balance
  * service (blaze-sdk watchBalances), so a number moves the moment something happens, with no polling. Each token's
- * number is what's ready to use: settled on the chain, plus what's on its way, less what signed orders hold (it can
- * go negative when orders promise more than the wallet holds). The sheets behind the numbers explain them.
+ * number is its balance: settled on the chain, plus what's on its way. What signed orders set aside stays in it,
+ * since signing locks nothing; getSubnetFree leaves it out, for planning new orders. The sheets explain the numbers.
  */
 
-/** A sheet in the shape Swap's balance helpers read: each token's ready-to-use amount */
+/** A sheet in the shape Swap's balance helpers read: each token's balance */
 function toAccountBalances(sheet: BalanceSheet): AccountBalancesResponse {
   const ready = (token: string) => sheet.tokens[token]?.ready ?? '0';
   const fungible_tokens: AccountBalancesResponse['fungible_tokens'] = {};
@@ -50,6 +50,8 @@ interface WalletBalanceContextType {
   /** One subnet contract's own balance, never combined: for picking which subnet pays */
   getSubnetBalanceExact: (address: string, contractId: string) => number;
   getSubnetTokenBalance: (address: string, subnetContractId: string) => number;
+  /** A subnet balance less what signed orders and bets have set aside from it (combined like getSubnetBalance): what a new order can count on */
+  getSubnetFree: (address: string, contractId: string) => number;
   getStxBalance: (address: string) => number;
   getFormattedMainnetBalance: (address: string, contractId: string) => string;
   getFormattedSubnetBalance: (address: string, contractId: string) => string;
@@ -169,6 +171,12 @@ export function WalletBalanceProvider({ children }: WalletBalanceProviderProps) 
     return pair
       ? getSubnetBalanceExact(address, pair.v1) + getSubnetBalanceExact(address, pair.v2)
       : getSubnetBalanceExact(address, contractId);
+  };
+
+  const getSubnetFree = (address: string, contractId: string): number => {
+    const pair = pairOf(contractId);
+    const free = (id: string) => getSubnetBalanceExact(address, id) + Number(sheets[address]?.tokens[id]?.held ?? '0');
+    return pair ? free(pair.v1) + free(pair.v2) : free(contractId);
   };
 
   const getSubnetTokenBalance = (address: string, subnetContractId: string): number => {
@@ -294,6 +302,7 @@ export function WalletBalanceProvider({ children }: WalletBalanceProviderProps) 
     getTokenBalance,
     getSubnetBalance,
     getSubnetBalanceExact,
+    getSubnetFree,
     getSubnetTokenBalance,
     getStxBalance,
     getFormattedMainnetBalance,
@@ -346,6 +355,7 @@ export function useBalances(addresses?: string[]) {
     getTokenBalance: context.getTokenBalance,
     getSubnetBalance: context.getSubnetBalance,
     getSubnetBalanceExact: context.getSubnetBalanceExact,
+    getSubnetFree: context.getSubnetFree,
     getSubnetTokenBalance: context.getSubnetTokenBalance,
     getStxBalance: context.getStxBalance,
     getFormattedMainnetBalance: context.getFormattedMainnetBalance,

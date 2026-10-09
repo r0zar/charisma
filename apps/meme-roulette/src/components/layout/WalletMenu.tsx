@@ -15,7 +15,7 @@ import { AnimatedAmount } from '@repo/brand/react';
 
 /** The header's one wallet control: Connect, or your playable CHA. Everything else lives in its side panel. */
 export function WalletMenu() {
-    const { address, connected, connectWallet, disconnectWallet, isConnecting, mainnetBalance, subnetBalance, subnetBalances, balanceLoading, subnetBalanceLoading, upgradeToV2 } = useWallet();
+    const { address, connected, connectWallet, disconnectWallet, isConnecting, mainnetBalance, subnetBalance, subnetBalances, subnetFree, balanceLoading, subnetBalanceLoading, upgradeToV2 } = useWallet();
     const { payload } = useRound();
     const [open, setOpen] = useState(false);
     const [upgrading, setUpgrading] = useState(false);
@@ -30,9 +30,9 @@ export function WalletMenu() {
     }
 
     const playable = subnetBalanceLoading ? '…' : <AnimatedAmount value={Number(subnetBalance)} format={n => formatUnits(n, 6, true)} />;
-    // Blaze v1 CHA can move to v2, except what bets still have to spend: the instant balance already sets that aside,
+    // Blaze v1 CHA can move to v2, except what bets still have to spend: the free amount leaves that out,
     // and the bets are named here only so the upgrade explains itself
-    const v1 = BigInt(subnetBalances.v1 || '0');
+    const v1 = BigInt(subnetFree.v1);
     const upgradable = v1 > 0n ? v1 : 0n;
     const pendingV1 = [...(payload?.myBets ?? [])].filter(b => subnetOf(b) === CHA_SUBNET_V1 && ['placed', 'sending', 'sent'].includes(b.status))
         .reduce((sum, b) => sum + BigInt(b.amount), 0n);

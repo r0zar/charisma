@@ -60,7 +60,7 @@ export default function InAndOutPage() {
     const { address } = useWallet();
     const { getPrice } = usePrices();
     const { getSubnetContractId } = useSubnetTokens();
-    const { getSubnetBalance, getSubnetBalanceExact, getTokenBalance } = useBalances(address ? [address] : []);
+    const { getSubnetFree, getSubnetBalanceExact, getTokenBalance } = useBalances(address ? [address] : []);
     // Only tokens the router can trade, the same list the swap page offers
     const [swappable, setSwappable] = useState<TokenCacheData[] | null>(null);
     const [listError, setListError] = useState<string | null>(null);
@@ -111,12 +111,13 @@ export default function InAndOutPage() {
     const buyListed = buy ? getSubnetContractId(buy.contractId) : null;
     // CHA, WELSH and sBTC bought land in Blaze v2
     const buySubnet = buyListed && landingSubnet(buyListed);
-    // What you hold, wherever it sits: the subnet part is spent first (just a signature), the rest from the wallet
+    // What you can spend, wherever it sits: the subnet part is spent first (just a signature), the rest from the wallet.
+    // Subnet money other orders have set aside stays out, so the wallet tops up what they'd otherwise take.
     const held = (t: TokenCacheData) => {
         if (!address) return { subnet: 0n, wallet: 0n };
         const subnetId = getSubnetContractId(t.contractId);
         return {
-            subnet: BigInt(Math.floor(subnetId ? getSubnetBalance(address, subnetId) : 0)),
+            subnet: BigInt(Math.max(0, Math.floor(subnetId ? getSubnetFree(address, subnetId) : 0))),
             wallet: BigInt(Math.floor(getTokenBalance(address, t.contractId))),
         };
     };
@@ -163,7 +164,7 @@ export default function InAndOutPage() {
     const problem = pay && decimals === undefined
         ? `${pay.symbol} has no decimals in the token list, so amounts can't be read safely`
         : pay && tooMuch
-            ? `That's more ${pay.symbol} than you hold`
+            ? `That's more ${pay.symbol} than you have free`
         : pairSplit
             ? pairSplit
         : buy && cashOut && !ratio
@@ -298,7 +299,7 @@ export default function InAndOutPage() {
                                             ))}
                                         </div>
                                         <div className="text-right text-xs text-ink-muted">
-                                            You hold <span className="font-mono">{fmt(Number(balance) / 10 ** decimals)}</span> {pay.symbol}
+                                            <span className="font-mono">{fmt(Number(balance) / 10 ** decimals)}</span> {pay.symbol} free to use
                                         </div>
                                     </>
                                 )}

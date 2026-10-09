@@ -5,8 +5,12 @@ export interface Rollup {
     /** On the chain; null when any part couldn't be read */
     settled: bigint | null;
     pending: bigint;
+    /** Promised to signed orders and bets (zero or negative); still the owner's, so it isn't taken out of `ready` */
     held: bigint;
+    /** On the chain plus on its way */
     ready: bigint | null;
+    /** How much more the signed orders count on than the balance holds (0 when it covers them) */
+    over: bigint;
     entries: BalanceEntry[];
     /** Some of it is a swap's likely amount, not yet a fixed one */
     estimated: boolean;
@@ -23,7 +27,8 @@ export function rollup(sheet: BalanceSheet, tokens: string[]): Rollup {
         settled: unread ? null : settled,
         pending,
         held,
-        ready: unread ? null : settled + pending + held,
+        ready: unread ? null : settled + pending,
+        over: unread || settled + pending + held >= 0n ? 0n : -(settled + pending + held),
         entries,
         estimated: entries.some(e => e.kind === 'swap' && e.amount.startsWith('-') === false && e.stage === 'pending'),
     };

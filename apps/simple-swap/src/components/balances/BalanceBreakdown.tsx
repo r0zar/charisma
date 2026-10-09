@@ -8,6 +8,7 @@ import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import { usePrices } from '@/contexts/token-price-context';
 import { formatTokenAmount } from '@/lib/swap-utils';
 import { AnimatedAmount } from '@repo/brand/react';
+import { InfoTooltip } from '@/components/ui/tooltip';
 import { rollup } from './rollup';
 
 type Tokens = ReturnType<typeof useTokenMetadata>['tokens'];
@@ -17,6 +18,15 @@ const STX = { contractId: '.stx', symbol: 'STX', name: 'Stacks', decimals: 6 };
 const metaOf = (tokens: Tokens, id: string) => tokens[id] ?? (id === '.stx' ? STX : { contractId: id, symbol: id.split('.')[1] ?? id, name: id, decimals: 6 });
 const usd = (n: number) => (n !== 0 && Math.abs(n) < 0.01 ? '<$0.01' : n.toLocaleString('en-US', { style: 'currency', currency: 'USD' }));
 const short = (address?: string) => (address ? `${address.slice(0, 5)}…${address.slice(-4)}` : '');
+/** The table's columns, each with a plain-words ⓘ: Standard and Blaze are added together in every one */
+const COLUMNS = [
+    { label: 'On the chain', hint: 'What the blockchain shows right now, with your Standard and Blaze balances added together.' },
+    { label: 'Settling', hint: "Sent and waiting for a block. It counts right away, so your balance moves the moment you approve. A swap counts at its likely amount until it settles." },
+    { label: 'Balance', hint: 'What you have: on the chain, plus what is settling. Standard and Blaze together.' },
+    { label: 'Value', hint: 'Your balance at the current price.' },
+    { label: 'Off the chain', hint: "Signed orders that haven't run yet, like DCA buys. Nothing is locked: it's still in your balance and you can move it. An order that finds it gone just skips." },
+];
+
 const ago = (at: number) => {
     const s = Math.max(1, Math.round((Date.now() - at) / 1000));
     return s < 60 ? `${s} s ago` : s < 3600 ? `${Math.floor(s / 60)} min ago` : `${Math.floor(s / 3600)} h ago`;
@@ -24,18 +34,18 @@ const ago = (at: number) => {
 
 function describe(e: BalanceEntry): { title: string; chip: string; tone: string } {
     const incoming = !e.amount.startsWith('-');
-    if (e.stage === 'hold') return { title: e.note ?? (e.kind === 'bet' ? 'Meme Roulette bet' : 'Order'), chip: 'Set aside', tone: 'bg-warning-soft text-warning' };
-    const onItsWay = { chip: 'On its way', tone: 'bg-blaze-soft text-blaze' };
+    if (e.stage === 'hold') return { title: e.note ?? (e.kind === 'bet' ? 'Meme Roulette bet' : 'Order'), chip: 'Off the chain', tone: 'bg-warning-soft text-warning' };
+    const settling = { chip: 'Settling', tone: 'bg-blaze-soft text-blaze' };
     switch (e.kind) {
         case 'transfer':
             return incoming
                 ? { title: `From ${short(e.counterparty)}`, chip: 'Arriving', tone: 'bg-accent-soft text-accent-text' }
-                : { title: `To ${short(e.counterparty)}`, ...onItsWay };
-        case 'swap': return { title: incoming ? 'Swap, receiving' : 'Swap, paying', ...onItsWay };
-        case 'deposit': return { title: 'Moving to Blaze', ...onItsWay };
-        case 'withdraw': return { title: 'Moving to Standard', ...onItsWay };
-        case 'fee': return { title: 'Network fee', ...onItsWay };
-        default: return { title: 'Change', ...onItsWay };
+                : { title: `To ${short(e.counterparty)}`, ...settling };
+        case 'swap': return { title: incoming ? 'Swap, receiving' : 'Swap, paying', ...settling };
+        case 'deposit': return { title: 'Moving to Blaze', ...settling };
+        case 'withdraw': return { title: 'Moving to Standard', ...settling };
+        case 'fee': return { title: 'Network fee', ...settling };
+        default: return { title: 'Change', ...settling };
     }
 }
 
@@ -119,7 +129,7 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
     const shown = new Set(rows.flatMap(row => row.c.tokens));
     const entries = Object.values(sheet.tokens).flatMap(t => t.entries).filter(e => shown.has(e.token)).sort((a, b) => b.at - a.at);
     const failed = sheet.failed.filter(f => f.entries.some(e => shown.has(e.token)));
-    const over = rows.filter(row => row.r.ready !== null && row.r.ready < 0n);
+    const over = rows.filter(row => row.r.over > 0n);
 
     return (
         <div className="space-y-8">
@@ -135,14 +145,14 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
                     <div className="text-2xl font-semibold tabular-nums text-ink"><AnimatedAmount value={totalValue} format={usd} /></div>
                     <div className="text-xs text-ink-faint">
                         {unpriced > 0 && `${unpriced} without a price · `}
-                        {token ? <Link href="/balances" className="font-medium text-accent-text hover:underline">Show every token</Link> : 'Ready to use, at current prices'}
+                        {token ? <Link href="/balances" className="font-medium text-accent-text hover:underline">Show every token</Link> : 'At current prices'}
                     </div>
                 </div>
             </div>
 
             {over.map(({ base, r, meta }) => (
                 <p key={base} className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">
-                    <strong>{meta.symbol} is over by {formatTokenAmount(-Number(r.ready), meta.decimals ?? 6)}.</strong> Your open orders count on more {meta.symbol} than you hold. Orders that can&apos;t be paid will skip until you add {meta.symbol} or cancel one.
+                    <strong>{meta.symbol} is over by {formatTokenAmount(Number(r.over), meta.decimals ?? 6)}.</strong> Your open orders count on more {meta.symbol} than you hold. Orders that can&apos;t be paid will skip until you add {meta.symbol} or cancel one.
                 </p>
             ))}
 
@@ -151,11 +161,11 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
                     <thead>
                         <tr className="border-b border-line text-right font-mono text-[11px] uppercase tracking-wide text-ink-muted">
                             <th className="px-4 py-2 text-left font-normal">Token</th>
-                            <th className="px-4 py-2 font-normal">On the chain</th>
-                            <th className="px-4 py-2 font-normal">On its way</th>
-                            <th className="px-4 py-2 font-normal">Set aside</th>
-                            <th className="px-4 py-2 font-normal">Ready to use</th>
-                            <th className="px-4 py-2 font-normal">Value</th>
+                            {COLUMNS.map(({ label, hint }) => (
+                                <th key={label} className="px-4 py-2 font-normal">
+                                    <span className="inline-flex items-center gap-1">{label} <InfoTooltip content={hint} /></span>
+                                </th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody>
@@ -171,11 +181,11 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
                                     </td>
                                     <td className="px-4 py-2.5">{cell(r.settled)}</td>
                                     <td className="px-4 py-2.5">{cell(r.pending)}</td>
-                                    <td className="px-4 py-2.5">{cell(r.held)}</td>
-                                    <td className={`px-4 py-2.5 font-medium ${r.ready !== null && r.ready < 0n ? 'text-danger' : 'text-ink'}`}>
+                                    <td className="px-4 py-2.5 font-medium text-ink">
                                         {r.ready === null ? '—' : <AnimatedAmount value={Number(r.ready)} format={n => formatTokenAmount(n, d)} />}
                                     </td>
                                     <td className="px-4 py-2.5 text-ink-body">{value === null ? '—' : <AnimatedAmount value={value} format={usd} />}</td>
+                                    <td className={`px-4 py-2.5 ${r.over > 0n ? 'text-danger' : 'text-ink-muted'}`}>{cell(-r.held)}</td>
                                 </tr>
                             );
                         })}
@@ -183,9 +193,9 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
                 </table>
             </div>
 
-            <Group title="On its way" entries={entries.filter(e => e.stage === 'pending')} tokens={tokens} empty="Nothing on its way." />
+            <Group title="Settling" entries={entries.filter(e => e.stage === 'pending')} tokens={tokens} empty="Nothing settling." />
             <Group
-                title="Set aside for orders"
+                title="Off the chain"
                 entries={entries.filter(e => e.stage === 'hold')}
                 tokens={tokens}
                 empty="No open orders."
@@ -195,7 +205,7 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
                 <Group title="Didn't go through" entries={failed.flatMap(f => f.entries)} tokens={tokens} empty="" />
             )}
             <p className="text-xs text-ink-faint">
-                Swaps count at their likely amount until they settle. Signed orders don&apos;t lock money, so &ldquo;Ready to use&rdquo; can go below zero when orders promise more than you hold.
+                Swaps count at their likely amount until they settle. Signed orders live off the chain and lock nothing: the money stays in your balance until they run, and an order that finds it gone skips.
             </p>
         </div>
     );

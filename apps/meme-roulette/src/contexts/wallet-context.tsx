@@ -24,6 +24,8 @@ interface WalletContextType {
     subnetBalance: string;
     /** the two subnet balances behind it (micro-CHA) */
     subnetBalances: { v1: string; v2: string };
+    /** each subnet's balance less what this round's bets and open orders set aside: what a new bet can spend */
+    subnetFree: { v1: string; v2: string };
     balanceLoading: boolean;
     subnetBalanceLoading: boolean;
     stxBalanceLoading: boolean;
@@ -46,6 +48,7 @@ const WalletContext = createContext<WalletContextType>({
     mainnetBalance: '0',
     subnetBalance: '0',
     subnetBalances: { v1: '0', v2: '0' },
+    subnetFree: { v1: '0', v2: '0' },
     balanceLoading: false,
     subnetBalanceLoading: false,
     stxBalanceLoading: false,
@@ -64,16 +67,22 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const [connected, setConnected] = useState(false);
     const [address, setAddress] = useState('');
     const [isConnecting, setIsConnecting] = useState(false);
-    // Instant balances (blaze-sdk watchBalances): pushed the moment anything changes, each one what's ready to use,
-    // so this round's bets and any open orders are already set aside
+    // Instant balances (blaze-sdk watchBalances): pushed the moment anything changes. A balance keeps what bets and
+    // orders set aside (signing locks nothing); the free amounts leave it out, so a new bet can't spend it twice
     const [sheet, setSheet] = useState<BalanceSheet | null>(null);
-    /** A token's ready-to-use balance; null while it isn't known (not read yet, or the chain couldn't be read) */
+    /** A token's balance; null while it isn't known (not read yet, or the chain couldn't be read) */
     const readyOf = (token: string): string | null => (!sheet ? null : sheet.tokens[token] ? sheet.tokens[token].ready : '0');
+    /** A token's balance less what's set aside from it */
+    const freeOf = (token: string): string => {
+        const part = sheet?.tokens[token];
+        return part?.ready ? (BigInt(part.ready) + BigInt(part.held)).toString() : '0';
+    };
     const [mainnetReady, v1Ready, v2Ready, stxReady] = [MAINNET_CHA_CONTRACT_ID, CHA_SUBNET_V1, CHA_SUBNET_V2, '.stx'].map(readyOf);
     const stxBalance = stxReady ?? '0';
     const mainnetBalance = mainnetReady ?? '0';
     const subnetBalances = { v1: v1Ready ?? '0', v2: v2Ready ?? '0' };
     const subnetBalance = (BigInt(subnetBalances.v1) + BigInt(subnetBalances.v2)).toString();
+    const subnetFree = { v1: freeOf(CHA_SUBNET_V1), v2: freeOf(CHA_SUBNET_V2) };
     const balanceLoading = mainnetReady === null;
     const subnetBalanceLoading = v1Ready === null || v2Ready === null;
     const stxBalanceLoading = stxReady === null;
@@ -219,6 +228,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
                 mainnetBalance,
                 subnetBalance,
                 subnetBalances,
+                subnetFree,
                 balanceLoading,
                 subnetBalanceLoading,
                 stxBalanceLoading,

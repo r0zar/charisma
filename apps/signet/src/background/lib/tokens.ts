@@ -19,10 +19,10 @@ export interface TokenBalance {
   contractId: string
   /** Asset name inside the contract, needed for post conditions ("" for STX) */
   asset: string
-  /** On Stacks (the wallet itself), ready to use, in the token's smallest unit: what sends spend */
+  /** On Stacks (the wallet itself), counting what's on its way, in the token's smallest unit: what sends spend */
   balance: string
-  /** On Blaze: the token's subnets (v1, v2 and older releases) added up, ready to use, smallest units. Below zero
-   *  when signed orders promise more than the wallet holds */
+  /** On Blaze: the token's subnets (v1, v2 and older releases) added up, counting what's on its way, smallest units.
+   *  What signed orders set aside stays in it: signing locks nothing */
   blaze: string
   /** Null when the token cache doesn't know the token: shown raw and not sendable */
   meta: { symbol: string; name: string; decimals: number; image: string | null } | null

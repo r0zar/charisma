@@ -29,7 +29,7 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
     now: number;
     initialToken?: string;
 }) {
-    const { connected, address, connectWallet, isConnecting, subnetBalance, subnetBalances, subnetBalanceLoading, placeBet } = useWallet();
+    const { connected, address, connectWallet, isConnecting, subnetFree, subnetBalanceLoading, placeBet } = useWallet();
     const { tokens, byId, loading: tokensLoading, error: tokensError } = useTokens();
     const { payload, refresh } = useRound();
     const [query, setQuery] = useState('');
@@ -45,9 +45,9 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
     const isOpen = !!round && round.status === 'live' && now >= round.opensAt && now < round.locksAt;
     // two CHA subnets, one balance: each bet spends one of them, old (v1) first
     const mine = round ? betsIn(round, payload?.myBets).filter(b => b.status !== 'excluded') : [];
-    // Balances are instant: this round's bets (and any open orders) are already set aside, so what's there is free
-    const freeIn = (ready: string) => (BigInt(ready || '0') > 0n ? BigInt(ready) : 0n);
-    const freeV1 = freeIn(subnetBalances.v1), freeV2 = freeIn(subnetBalances.v2);
+    // What this round's bets (and any open orders) set aside is already left out, so what's there is free
+    const freeIn = (amount: string) => (BigInt(amount) > 0n ? BigInt(amount) : 0n);
+    const freeV1 = freeIn(subnetFree.v1), freeV2 = freeIn(subnetFree.v2);
     const free = freeV1 + freeV2;
     const committed = mine.reduce((s, b) => s + BigInt(b.amount), 0n);
     const amount = toMicro(amountText);
@@ -121,7 +121,7 @@ export function BackMemeSheet({ open, onOpenChange, round, now, initialToken }: 
                             <div className="flex items-center justify-between">
                                 <span className="text-ink-muted">Ready to play</span>
                                 <span className="font-mono font-semibold">
-                                    {subnetBalanceLoading ? "…" : <><AnimatedAmount value={Number(subnetBalance)} format={n => formatUnits(n)} /> CHA</>}
+                                    {subnetBalanceLoading ? "…" : <><AnimatedAmount value={Number(free)} format={n => formatUnits(n)} /> CHA</>}
                                 </span>
                             </div>
                             {committed > 0n && (
