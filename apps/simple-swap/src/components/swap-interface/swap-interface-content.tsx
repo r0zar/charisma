@@ -58,7 +58,7 @@ function SwapInterfaceContentInner() {
             </div>
           </div>
           <a
-            href="/orders"
+            href="/activity?view=orders"
             className="inline-flex items-center gap-1.5 bg-success/10 hover:bg-success/20 text-success hover:text-success border border-success/20 hover:border-success/30 px-3 py-1.5 text-xs rounded-xl font-medium transition-all duration-200 w-fit"
           >
             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

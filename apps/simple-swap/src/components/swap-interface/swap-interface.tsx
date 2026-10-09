@@ -50,10 +50,10 @@ function SwapInterfaceInner({ urlParams: _unused, headerOnly = false }: { urlPar
           <div className="flex flex-col gap-1">
             <div className="font-semibold text-foreground">Order Created</div>
             <div className="text-muted-foreground text-sm">
-              You can view and manage your orders on the Orders page.
+              You can view and manage your orders in Activity.
             </div>
             <a
-              href="/orders"
+              href="/activity?view=orders"
               className="inline-block button-primary px-3 py-1.5 text-xs rounded-lg font-medium mt-1 w-fit"
             >
               View Orders

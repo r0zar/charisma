@@ -444,7 +444,7 @@ export const DcaDialog: React.FC = () => {
                         <button
                             onClick={() => {
                                 onOpenChange(false);
-                                router.push('/orders');
+                                router.push('/activity?view=orders');
                             }}
                             className="px-4 py-2 bg-success/20 text-success hover:bg-success/30 border border-success/30 rounded-xl text-sm font-medium transition-all duration-200 flex items-center gap-2"
                         >

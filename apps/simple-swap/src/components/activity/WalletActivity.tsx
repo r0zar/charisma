@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowDownLeft, ArrowLeftRight, ArrowUpRight, FileCode2, Flame, Repeat, Wallet, type LucideIcon } from 'lucide-react';
 import type { BalanceEntry } from 'blaze-sdk';
 import { useBalances, useWalletBalances } from '@/contexts/wallet-balance-context';
 import { useTokenMetadata } from '@/contexts/token-metadata-context';
+import { useWallet } from '@/contexts/wallet-context';
+import OrdersPanel from '@/components/orders/orders-panel';
+import { ActivityMenu, inView, tokensIn, type ActivityView } from './ActivityMenu';
 import { formatTokenAmount } from '@/lib/swap-utils';
 import type { ChainActivity, ChainActivityKind, ChainActivityPage } from '@/lib/activity/chain-types';
 
@@ -105,16 +108,33 @@ function settlingKind(entries: BalanceEntry[]): ChainActivityKind {
 }
 
 const OPEN_SHOWN = 3;
+/** A filter keeps reading older pages until it shows this many lines… */
+const FILTER_FILL = 10;
+/** …or has looked this far back */
+const FILTER_DEPTH = 100;
 
 /**
- * Activity: one place for everything a wallet does. Open orders (signed, off-chain) on top, then what's settling
- * (live, from the balance service), then every mined transaction from any app, newest first, read from the chain.
+ * Activity: one place for everything a wallet does, with a menu to narrow it. All activity shows open orders
+ * (signed, off-chain) on top, then what's settling (live, from the balance service), then every mined transaction
+ * from any app, newest first, read from the chain. Orders opens the order manager. The view lives in the URL (?view=).
  */
 export function WalletActivity({ address }: { address: string }) {
     useBalances([address]);
     const { sheets } = useWalletBalances();
     const { tokens } = useTokenMetadata();
+    const { address: connected } = useWallet();
     const sheet = sheets[address];
+
+    const params = useSearchParams();
+    const router = useRouter();
+    const pathname = usePathname();
+    const view = (params.get('view') ?? 'all') as ActivityView;
+    // A new view starts clean: the order manager's page, filter and search don't carry over
+    const showView = (next: ActivityView) => {
+        const kept = new URLSearchParams(params.get('address') ? { address: params.get('address')! } : {});
+        if (next !== 'all') kept.set('view', next);
+        router.replace(kept.size ? `${pathname}?${kept}` : pathname, { scroll: false });
+    };
 
     const [items, setItems] = useState<ChainActivity[] | null>(null);
     const [next, setNext] = useState<number | null>(null);
@@ -151,86 +171,112 @@ export function WalletActivity({ address }: { address: string }) {
             .filter(e => e.stage === 'pending' && e.txid && e.kind !== 'fee' && !mined.has(e.txid.replace(/^0x/, '')))
             .reduce<Record<string, BalanceEntry[]>>((byTx, e) => ({ ...byTx, [e.txid!]: [...(byTx[e.txid!] ?? []), e] }), {}),
     );
-    const days = (items ?? []).reduce<[string, ChainActivity[]][]>((groups, item) => {
+    const shown = (items ?? []).filter(item => inView(view, item, tokens));
+    const days = shown.reduce<[string, ChainActivity[]][]>((groups, item) => {
         const day = dayOf(item.at);
         const last = groups[groups.length - 1];
         if (last?.[0] === day) last[1].push(item);
         else groups.push([day, [item]]);
         return groups;
     }, []);
+    const history = view !== 'orders' && view !== 'settling';
+
+    // A filter can match little of a page: read further back on its own, up to FILTER_DEPTH transactions
+    const thin = history && view !== 'all' && shown.length < FILTER_FILL && next !== null && (items?.length ?? 0) < FILTER_DEPTH;
+    useEffect(() => { if (thin && !loading && !error) void load(next!); }, [thin, loading, error, next]);
+
+    const settlingSection = settling.length > 0 && (
+        <Section title={`Settling · ${settling.length}`}>
+            {settling.map(group => {
+                const flows = group.map(e => ({ token: e.token, amount: e.amount }));
+                const line = describe(settlingKind(group), flows, tokens, true, { counterparty: group[0].counterparty });
+                return <Row key={group[0].txid} {...line} txid={group[0].txid} right={time(group[0].at)} chip={{ text: 'Settling', tone: 'bg-blaze-soft text-blaze' }} />;
+            })}
+        </Section>
+    );
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             <div>
                 <h1 className="text-2xl font-semibold text-ink">Activity</h1>
                 <p className="text-sm text-ink-muted">Everything {short(address)} does, from any app. Tap a line to see it on the explorer.</p>
             </div>
 
-            {open.length > 0 && (
-                <Section
-                    title={`Open orders · ${open.length}`}
-                    action={<Link href="/orders" className="text-xs font-medium text-accent-text hover:underline">Manage →</Link>}
-                >
-                    {open.slice(0, OPEN_SHOWN).map(e => (
-                        <Row
-                            key={e.id}
-                            icon={Repeat}
-                            title={e.note ?? (e.kind === 'bet' ? 'Meme Roulette bet' : 'Order')}
-                            detail={amountOf(tokens, { token: e.token, amount: e.amount })}
-                            right="Off-chain"
-                        />
-                    ))}
-                    {open.length > OPEN_SHOWN && (
-                        <li className="px-4 py-2.5 text-xs text-ink-muted">
-                            and {open.length - OPEN_SHOWN} more · <Link href="/orders" className="text-accent-text hover:underline">see all</Link>
-                        </li>
+            <div className="grid gap-6 md:grid-cols-[200px_minmax(0,1fr)]">
+                <ActivityMenu view={view} onView={showView} counts={{ open: open.length, settling: settling.length }} tokenIds={tokensIn(items ?? [], tokens)} tokens={tokens} />
+
+                <div className="min-w-0 space-y-8">
+                    {view === 'orders' && (address === connected
+                        ? <OrdersPanel embedded />
+                        : <p className="py-12 text-center text-sm text-ink-muted">Orders can only be managed for the connected wallet.</p>)}
+
+                    {view === 'all' && open.length > 0 && (
+                        <Section
+                            title={`Open orders · ${open.length}`}
+                            action={<button type="button" onClick={() => showView('orders')} className="cursor-pointer text-xs font-medium text-accent-text hover:underline">Manage →</button>}
+                        >
+                            {open.slice(0, OPEN_SHOWN).map(e => (
+                                <Row
+                                    key={e.id}
+                                    icon={Repeat}
+                                    title={e.note ?? (e.kind === 'bet' ? 'Meme Roulette bet' : 'Order')}
+                                    detail={amountOf(tokens, { token: e.token, amount: e.amount })}
+                                    right="Off-chain"
+                                />
+                            ))}
+                            {open.length > OPEN_SHOWN && (
+                                <li className="px-4 py-2.5 text-xs text-ink-muted">
+                                    and {open.length - OPEN_SHOWN} more · <button type="button" onClick={() => showView('orders')} className="cursor-pointer text-accent-text hover:underline">see all</button>
+                                </li>
+                            )}
+                        </Section>
                     )}
-                </Section>
-            )}
 
-            {settling.length > 0 && (
-                <Section title={`Settling · ${settling.length}`}>
-                    {settling.map(group => {
-                        const flows = group.map(e => ({ token: e.token, amount: e.amount }));
-                        const line = describe(settlingKind(group), flows, tokens, true, { counterparty: group[0].counterparty });
-                        return <Row key={group[0].txid} {...line} txid={group[0].txid} right={time(group[0].at)} chip={{ text: 'Settling', tone: 'bg-blaze-soft text-blaze' }} />;
-                    })}
-                </Section>
-            )}
+                    {(view === 'all' || view === 'settling') && settlingSection}
+                    {view === 'settling' && settling.length === 0 && <p className="py-12 text-center text-sm text-ink-muted">Nothing settling right now.</p>}
 
-            {error && <p role="alert" className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">Couldn&apos;t read your activity: {error}</p>}
-            {!items && !error && <p className="py-12 text-center text-sm text-ink-muted">Reading your activity from the chain…</p>}
-            {items?.length === 0 && <p className="py-12 text-center text-sm text-ink-muted">Nothing yet. Your swaps, moves and orders will show up here.</p>}
+                    {history && (
+                        <>
+                            {error && <p role="alert" className="rounded-xl bg-danger-soft px-4 py-3 text-sm text-danger">Couldn&apos;t read your activity: {error}</p>}
+                            {!items && !error && <p className="py-12 text-center text-sm text-ink-muted">Reading your activity from the chain…</p>}
+                            {items?.length === 0 && <p className="py-12 text-center text-sm text-ink-muted">Nothing yet. Your swaps, moves and orders will show up here.</p>}
+                            {!!items?.length && shown.length === 0 && (
+                                <p className="py-12 text-center text-sm text-ink-muted">None of these in what&apos;s loaded{next !== null ? '. Older activity may have some.' : '.'}</p>
+                            )}
 
-            {days.map(([day, list]) => (
-                <Section key={day} title={day}>
-                    {list.map(item => {
-                        const line = describe(item.kind, item.flows, tokens, false, item);
-                        const fee = item.fee ? `fee ${formatTokenAmount(Number(item.fee), 6)} STX` : null;
-                        return (
-                            <Row
-                                key={item.txid}
-                                {...line}
-                                detail={[line.detail, fee].filter(Boolean).join(' · ') || undefined}
-                                txid={item.txid}
-                                right={time(item.at)}
-                                chip={item.status === 'failed' ? { text: "Didn't go through", tone: 'bg-danger-soft text-danger' } : undefined}
-                            />
-                        );
-                    })}
-                </Section>
-            ))}
+                            {days.map(([day, list]) => (
+                                <Section key={day} title={day}>
+                                    {list.map(item => {
+                                        const line = describe(item.kind, item.flows, tokens, false, item);
+                                        const fee = item.fee ? `fee ${formatTokenAmount(Number(item.fee), 6)} STX` : null;
+                                        return (
+                                            <Row
+                                                key={item.txid}
+                                                {...line}
+                                                detail={[line.detail, fee].filter(Boolean).join(' · ') || undefined}
+                                                txid={item.txid}
+                                                right={time(item.at)}
+                                                chip={item.status === 'failed' ? { text: "Didn't go through", tone: 'bg-danger-soft text-danger' } : undefined}
+                                            />
+                                        );
+                                    })}
+                                </Section>
+                            ))}
 
-            {next !== null && (
-                <button
-                    type="button"
-                    onClick={() => load(next)}
-                    disabled={loading}
-                    className="w-full cursor-pointer rounded-xl border border-line px-4 py-3 text-sm text-ink-body hover:border-line-strong hover:text-ink disabled:cursor-wait disabled:opacity-60"
-                >
-                    {loading ? 'Loading…' : 'Show older'}
-                </button>
-            )}
+                            {next !== null && (
+                                <button
+                                    type="button"
+                                    onClick={() => load(next)}
+                                    disabled={loading}
+                                    className="w-full cursor-pointer rounded-xl border border-line px-4 py-3 text-sm text-ink-body hover:border-line-strong hover:text-ink disabled:cursor-wait disabled:opacity-60"
+                                >
+                                    {loading ? 'Loading…' : 'Show older'}
+                                </button>
+                            )}
+                        </>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

@@ -231,7 +231,8 @@ export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string; conditio
 };
 
 
-export default function OrdersPanel() {
+/** The order manager. Inside Activity (`embedded`) it drops its own page frame and title. */
+export default function OrdersPanel({ embedded = false }: { embedded?: boolean }) {
     const { address, connected } = useWallet();
     const { getPrice } = usePrices();
     const { getToken, getTokenWithDiscovery } = useTokenMetadata();
@@ -824,19 +825,21 @@ export default function OrdersPanel() {
 
     return (
         <TooltipProvider delayDuration={200}>
-            <div className="sm:container max-w-6xl mx-auto px-2 py-4 sm:px-4 sm:py-8">
+            <div className={embedded ? '' : 'sm:container max-w-6xl mx-auto px-2 py-4 sm:px-4 sm:py-8'}>
                 {/* Immersive header - seamless design */}
-                <div className="space-y-8 mb-16">
-                    <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8">
+                <div className={`space-y-8 ${embedded ? 'mb-8' : 'mb-16'}`}>
+                    <div className={embedded ? "flex flex-col gap-4" : "flex flex-col lg:flex-row lg:items-end lg:justify-between gap-8"}>
                         {/* Clean title section */}
                         <div className="space-y-6">
-                            <div>
-                                <h1 className="text-3xl font-medium text-ink tracking-wide mb-3">Order Management</h1>
-                                <p className="text-ink-muted max-w-2xl text-base leading-relaxed">
-                                    Monitor and manage your smart limit orders with real-time status updates and seamless execution control.
-                                    Track pending, executed, and cancelled orders in a unified dashboard.
-                                </p>
-                            </div>
+                            {!embedded && (
+                                <div>
+                                    <h1 className="text-3xl font-medium text-ink tracking-wide mb-3">Order Management</h1>
+                                    <p className="text-ink-muted max-w-2xl text-base leading-relaxed">
+                                        Monitor and manage your smart limit orders with real-time status updates and seamless execution control.
+                                        Track pending, executed, and cancelled orders in a unified dashboard.
+                                    </p>
+                                </div>
+                            )}
                             <div className="flex items-center gap-6 text-sm text-ink-muted">
                                 <span>
                                     {strategyGroups.length} {strategyGroups.length === 1 ? 'strategy' : 'strategies'}
@@ -855,7 +858,7 @@ export default function OrdersPanel() {
                         </div>
 
                         {/* Search and filter controls */}
-                        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                        <div className={embedded ? "flex flex-col sm:flex-row sm:items-center gap-4" : "flex flex-col lg:flex-row lg:items-center gap-4"}>
                             {/* Search input */}
                             <div className="relative flex-1 lg:max-w-sm">
                                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-ink-muted w-4 h-4" />

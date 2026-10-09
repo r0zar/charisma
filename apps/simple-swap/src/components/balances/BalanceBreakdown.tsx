@@ -199,7 +199,7 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
                 entries={entries.filter(e => e.stage === 'hold')}
                 tokens={tokens}
                 empty="No open orders."
-                action={<Link href="/orders" className="text-xs font-medium text-accent-text hover:underline">Manage orders →</Link>}
+                action={<Link href="/activity?view=orders" className="text-xs font-medium text-accent-text hover:underline">Manage orders →</Link>}
             />
             {failed.length > 0 && (
                 <Group title="Didn't go through" entries={failed.flatMap(f => f.entries)} tokens={tokens} empty="" />

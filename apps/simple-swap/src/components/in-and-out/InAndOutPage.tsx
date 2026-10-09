@@ -276,7 +276,7 @@ export default function InAndOutPage() {
                                 {safetyRatio ? `, or at ${fmt(safetyRatio)} if it drops first` : ''}. You can close this page.
                             </p>
                             <div className="flex gap-2">
-                                <Link href="/activity" className="flex-1 rounded-lg border border-line-strong px-3 py-2 text-center text-sm text-ink hover:bg-surface-hover">View in Activity</Link>
+                                <Link href="/activity?view=orders" className="flex-1 rounded-lg border border-line-strong px-3 py-2 text-center text-sm text-ink hover:bg-surface-hover">View in Activity</Link>
                                 <button type="button" onClick={() => setPhase('setup')} className="flex-1 rounded-lg border border-line px-3 py-2 text-sm text-ink-body hover:text-ink">Start another</button>
                             </div>
                         </div>
