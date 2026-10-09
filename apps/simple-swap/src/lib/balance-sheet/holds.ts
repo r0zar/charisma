@@ -14,7 +14,8 @@ import type { BalanceEntry } from './types';
 /** A hold, and when its transaction was sent if it has been (the sheet checks those against the chain) */
 export type Hold = BalanceEntry & { sentAt?: number };
 
-function noteOf(o: LimitOrder): string {
+/** A signed order in a few words, e.g. "DCA buy 2 of 5" */
+export function noteOf(o: LimitOrder): string {
     if (o.strategyType === 'dca') return `DCA buy ${o.strategyPosition ?? '?'} of ${o.strategySize ?? '?'}`;
     if (o.strategyType === 'zesty') return 'Zesty';
     if (o.strategyType === 'in-and-out') return 'In & Out';

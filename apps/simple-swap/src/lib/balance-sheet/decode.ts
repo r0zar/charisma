@@ -50,13 +50,13 @@ export interface DecodeDeps {
 
 type Args = Record<string, ClarityValue>;
 
-const uint = (cv?: ClarityValue) => (cv?.type === ClarityType.UInt ? BigInt(cv.value) : undefined);
-const principal = (cv?: ClarityValue) =>
+export const uint = (cv?: ClarityValue) => (cv?.type === ClarityType.UInt ? BigInt(cv.value) : undefined);
+export const principal = (cv?: ClarityValue) =>
     cv?.type === ClarityType.PrincipalStandard || cv?.type === ClarityType.PrincipalContract ? cv.value : undefined;
 const some = (cv?: ClarityValue) => (cv?.type === ClarityType.OptionalSome ? cv.value : undefined);
-const tuple = (cv?: ClarityValue) => (cv?.type === ClarityType.Tuple ? cv.value : undefined);
+export const tuple = (cv?: ClarityValue) => (cv?.type === ClarityType.Tuple ? cv.value : undefined);
 const buffer = (cv?: ClarityValue) => (cv?.type === ClarityType.Buffer ? cv.value : undefined);
-const ascii = (cv?: ClarityValue) => (cv?.type === ClarityType.StringASCII ? cv.value : undefined);
+export const ascii = (cv?: ClarityValue) => (cv?.type === ClarityType.StringASCII ? cv.value : undefined);
 
 /** A router hop's opcode: its first byte (wallet swaps wrap it in an optional) */
 const opcodeOf = (cv?: ClarityValue) => {

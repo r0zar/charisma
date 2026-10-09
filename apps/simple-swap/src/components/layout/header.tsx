@@ -13,9 +13,8 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 
 // Navigation links array for reuse in both desktop and mobile views
 const navigationLinks = [
-    // { href: "/activity", label: "Activity" },
     { href: "/swap", label: "Swap" },
-    { href: "/orders", label: "Orders" },
+    { href: "/activity", label: "Activity" },
     { href: "/balances", label: "Balances" },
     // { href: "/tokens", label: "Tokens" },
 ];

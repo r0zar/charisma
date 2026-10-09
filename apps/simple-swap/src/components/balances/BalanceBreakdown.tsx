@@ -20,11 +20,11 @@ const usd = (n: number) => (n !== 0 && Math.abs(n) < 0.01 ? '<$0.01' : n.toLocal
 const short = (address?: string) => (address ? `${address.slice(0, 5)}…${address.slice(-4)}` : '');
 /** The table's columns, each with a plain-words ⓘ: Standard and Blaze are added together in every one */
 const COLUMNS = [
-    { label: 'On the chain', hint: 'What the blockchain shows right now, with your Standard and Blaze balances added together.' },
+    { label: 'On-chain', hint: 'What the blockchain shows right now, with your Standard and Blaze balances added together.' },
     { label: 'Settling', hint: "Sent and waiting for a block. It counts right away, so your balance moves the moment you approve. A swap counts at its likely amount until it settles." },
-    { label: 'Balance', hint: 'What you have: on the chain, plus what is settling. Standard and Blaze together.' },
+    { label: 'Balance', hint: 'What you have: on-chain, plus what is settling. Standard and Blaze together.' },
     { label: 'Value', hint: 'Your balance at the current price.' },
-    { label: 'Off the chain', hint: "Signed orders that haven't run yet, like DCA buys. Nothing is locked: it's still in your balance and you can move it. An order that finds it gone just skips." },
+    { label: 'Off-chain', hint: "Signed orders that haven't run yet, like DCA buys. Nothing is locked: it's still in your balance and you can move it. An order that finds it gone just skips." },
 ];
 
 const ago = (at: number) => {
@@ -34,7 +34,7 @@ const ago = (at: number) => {
 
 function describe(e: BalanceEntry): { title: string; chip: string; tone: string } {
     const incoming = !e.amount.startsWith('-');
-    if (e.stage === 'hold') return { title: e.note ?? (e.kind === 'bet' ? 'Meme Roulette bet' : 'Order'), chip: 'Off the chain', tone: 'bg-warning-soft text-warning' };
+    if (e.stage === 'hold') return { title: e.note ?? (e.kind === 'bet' ? 'Meme Roulette bet' : 'Order'), chip: 'Off-chain', tone: 'bg-warning-soft text-warning' };
     const settling = { chip: 'Settling', tone: 'bg-blaze-soft text-blaze' };
     switch (e.kind) {
         case 'transfer':
@@ -195,7 +195,7 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
 
             <Group title="Settling" entries={entries.filter(e => e.stage === 'pending')} tokens={tokens} empty="Nothing settling." />
             <Group
-                title="Off the chain"
+                title="Off-chain"
                 entries={entries.filter(e => e.stage === 'hold')}
                 tokens={tokens}
                 empty="No open orders."
@@ -205,7 +205,7 @@ export function BalanceBreakdown({ address, token }: { address: string; token?: 
                 <Group title="Didn't go through" entries={failed.flatMap(f => f.entries)} tokens={tokens} empty="" />
             )}
             <p className="text-xs text-ink-faint">
-                Swaps count at their likely amount until they settle. Signed orders live off the chain and lock nothing: the money stays in your balance until they run, and an order that finds it gone skips.
+                Swaps count at their likely amount until they settle. Signed orders live off-chain and lock nothing: the money stays in your balance until they run, and an order that finds it gone skips.
             </p>
         </div>
     );

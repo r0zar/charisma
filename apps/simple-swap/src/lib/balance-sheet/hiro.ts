@@ -1,9 +1,11 @@
 import type {
     AddressBalanceResponse,
+    AddressTransactionsV2ListResponse,
     MempoolTransaction,
     MempoolTransactionListResponse,
     ServerStatusResponse,
     Transaction,
+    TransactionList,
     TransactionResults,
 } from '@stacks/stacks-blockchain-api-types';
 import { Cl, ClarityType } from '@stacks/transactions';
@@ -12,6 +14,8 @@ import { Cl, ClarityType } from '@stacks/transactions';
 
 const HIRO = 'https://api.hiro.so';
 const PAGE = 50;
+/** Hiro's most events per read */
+const EVENTS = 100;
 /** The mempool rarely holds more than a few hundred transactions; past this, the oldest wait for their block */
 const MAX_MEMPOOL = 400;
 
@@ -54,6 +58,29 @@ export async function blockTransactions(height: number): Promise<Transaction[]> 
             hiro<TransactionResults>(`/extended/v2/blocks/${height}/transactions?limit=${PAGE}&offset=${(i + 1) * PAGE}`)),
     );
     return [first, ...rest].flatMap(page => page.results);
+}
+
+/** A page of the mined transactions an address sent or was part of (any token moving to or from it), newest first */
+export async function addressTransactions(address: string, offset: number, limit: number): Promise<AddressTransactionsV2ListResponse> {
+    return hiro<AddressTransactionsV2ListResponse>(`/extended/v2/addresses/${address}/transactions?limit=${limit}&offset=${offset}`);
+}
+
+/** Mined transactions by id, in the order asked, each with every one of its events */
+export async function minedTransactions(txids: string[]): Promise<Transaction[]> {
+    if (!txids.length) return [];
+    const list = await hiro<TransactionList>(`/extended/v1/tx/multiple?${txids.map(id => `tx_id=${id}`).join('&')}&event_limit=${EVENTS}`);
+    return Promise.all(txids.map(async id => {
+        const found = list[id];
+        if (!found?.found || !('block_height' in found.result)) throw new Error(`Hiro has no mined transaction ${id}`);
+        const tx = found.result;
+        // A busy transaction (an airdrop, a batch) logs more events than one read returns: read the rest at once
+        const first = tx.events.length;
+        const rest = await Promise.all(Array.from({ length: Math.ceil((tx.event_count - first) / EVENTS) }, (_, i) =>
+            hiro<Transaction>(`/extended/v1/tx/${id}?event_offset=${first + i * EVENTS}&event_limit=${EVENTS}`)));
+        tx.events.push(...rest.flatMap(more => more.events));
+        if (tx.events.length < tx.event_count) throw new Error(`Hiro sent ${tx.events.length} of ${id}'s ${tx.event_count} events`);
+        return tx;
+    }));
 }
 
 /** A transaction by id, mined or waiting; null when Hiro hasn't seen it */

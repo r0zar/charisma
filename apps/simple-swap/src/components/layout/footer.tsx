@@ -14,7 +14,7 @@ const COLUMNS: { title: string; links: { href: string; label: string; external?:
         title: 'Product',
         links: [
             { href: '/swap', label: 'Swap' },
-            { href: '/orders', label: 'Orders' },
+            { href: '/activity', label: 'Activity' },
             { href: '/analytics', label: 'Analytics' },
         ],
     },

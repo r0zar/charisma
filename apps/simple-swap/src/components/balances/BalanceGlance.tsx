@@ -8,8 +8,8 @@ import { formatTokenAmount } from '@/lib/swap-utils';
 import { rollup } from './rollup';
 
 /**
- * The ⓘ beside a balance: how the number is made (on the chain, plus settling), what signed orders hold off the chain,
- * and a link to the full breakdown. Off the chain doesn't come off: the money stays the owner's until an order runs.
+ * The ⓘ beside a balance: how the number is made (on-chain, plus settling), what signed orders hold off-chain,
+ * and a link to the full breakdown. Off-chain doesn't come off: the money stays the owner's until an order runs.
  * It lights up while something is settling or set aside, and turns red when orders promise more than the wallet holds.
  */
 export function BalanceGlance({ address, tokens, base, symbol, decimals }: {
@@ -66,7 +66,7 @@ export function BalanceGlance({ address, tokens, base, symbol, decimals }: {
                 </div>
                 <div className="space-y-1.5">
                     <div className="flex justify-between gap-3 text-ink-body">
-                        <span>On the chain</span>
+                        <span>On-chain</span>
                         <span className="font-mono tabular-nums">{r.settled === null ? "Couldn't read" : amount(r.settled)}</span>
                     </div>
                     {row('Settling', r.pending, pendingCount)}
@@ -78,7 +78,7 @@ export function BalanceGlance({ address, tokens, base, symbol, decimals }: {
                 {r.held !== 0n && (
                     <div className="space-y-1 rounded-md bg-surface-sunken px-2 py-1.5">
                         <div className={`flex justify-between gap-3 ${over ? 'text-danger' : 'text-ink-body'}`}>
-                            <span>Off the chain<span className="ml-1.5 font-mono text-[10px] text-ink-faint">{heldCount}</span></span>
+                            <span>Off-chain<span className="ml-1.5 font-mono text-[10px] text-ink-faint">{heldCount}</span></span>
                             <span className="font-mono tabular-nums">{amount(-r.held)}</span>
                         </div>
                         <p className="text-ink-muted">Signed orders that haven&apos;t run. Still yours: they spend it when they run, and skip if you move it first.</p>
