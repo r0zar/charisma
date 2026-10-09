@@ -52,7 +52,10 @@ export async function moveToWallet(wallet: string, token: ZestyToken, micro: big
   return result.txid;
 }
 
-/** Resolve once the transaction confirms; throw if it fails or doesn't confirm in time. */
+/** The transaction didn't fail: it just hasn't confirmed in the time allowed, and may still land */
+export class NotConfirmedYet extends Error {}
+
+/** Resolve once the transaction confirms; throw if it fails, or NotConfirmedYet if it doesn't confirm in time. */
 export async function waitForConfirmation(txid: string, timeoutMs = 10 * 60 * 1000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
@@ -63,5 +66,5 @@ export async function waitForConfirmation(txid: string, timeoutMs = 10 * 60 * 10
     }
     await new Promise(resolve => setTimeout(resolve, 5000));
   }
-  throw new Error(`Transaction ${txid} did not confirm within ${Math.round(timeoutMs / 60000)} minutes`);
+  throw new NotConfirmedYet(`Transaction ${txid} did not confirm within ${Math.round(timeoutMs / 60000)} minutes`);
 }

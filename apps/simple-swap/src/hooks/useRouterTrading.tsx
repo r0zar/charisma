@@ -25,6 +25,7 @@ import { registerTransactionForMonitoring } from '@/lib/activity/tx-monitor-clie
 import { toast } from 'sonner';
 import { baseTokenLeaves } from '@/lib/subnet-deposit';
 import { moveOf } from '@/lib/route-move';
+import { txToast, type TxWords } from '@/lib/tx-toast';
 
 // Initialize tx-monitor client
 const txMonitorClient = new TxMonitorClient();
@@ -350,33 +351,13 @@ export function useRouterTradingState() {
   // ---------------------- Swap pop-up ----------------------
   // One pop-up per swap: sent the moment the wallet returns, then confirmed or failed in the same live balance push
   // that settles the balance, so the two never disagree
-  const swapToast = (txid: string, state: 'sent' | 'confirmed' | 'failed' | 'waiting') => {
-    const [title, detail] = {
-      sent: ['Swap sent', 'Waiting for its block…'],
-      confirmed: ['Swap confirmed', 'It settled on the chain.'],
-      failed: ["Swap didn't go through", 'It failed on the chain, so nothing was swapped.'],
-      waiting: ['Still waiting for a block', 'Your swap is sent and will settle on its own.'],
-    }[state];
-    const body = (
-      <div className="flex flex-col gap-1">
-        <div className="font-semibold text-foreground">{title}</div>
-        <div className="text-muted-foreground text-sm">{detail}</div>
-        <a
-          href={`https://explorer.hiro.so/txid/${txid}?chain=mainnet`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block button-primary px-3 py-1.5 text-xs rounded-lg font-medium mt-1 w-fit"
-        >
-          View on explorer
-        </a>
-      </div>
-    );
-    const options = { id: `swap-${txid}`, duration: state === 'sent' ? Infinity : 7000 };
-    if (state === 'sent') toast.loading(body, options);
-    else if (state === 'confirmed') toast.success(body, options);
-    else if (state === 'failed') toast.error(body, options);
-    else toast.info(body, options);
+  const swapWords: TxWords = {
+    sent: ['Swap sent', 'Waiting for its block…'],
+    confirmed: ['Swap confirmed', 'It settled on the chain.'],
+    failed: ["Swap didn't go through", 'It failed on the chain, so nothing was swapped.'],
+    waiting: ['Still waiting for a block', 'Your swap is sent and will settle on its own.'],
   };
+  const swapToast = (txid: string, stage: keyof TxWords) => txToast(txid, stage, swapWords);
 
   /** A sent transaction's fate as the live balance stream reports it (its chain status); null if the stream goes quiet */
   const fateFromBalances = (address: string, txid: string) => new Promise<string | null>(resolve => {

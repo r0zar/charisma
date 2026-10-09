@@ -10,7 +10,7 @@ import { useSubnetTokens } from '@/contexts/subnet-tokens-context';
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
 import { boughtAmount, buyFromWallet, placeInAndOutOrder } from '@/lib/in-and-out/orders';
-import { waitForConfirmation } from '@/lib/zesty/subnet';
+import { followTx } from '@/lib/tx-toast';
 import { listTokens } from '@/app/actions';
 import { Chip } from '@/components/advanced/Chip';
 import { fromUnits, toUnits } from '@/lib/units';
@@ -195,11 +195,19 @@ export default function InAndOutPage() {
             const common = { wallet: address!, strategyId: crypto.randomUUID(), strategySize: signaturesFor({ subnet: paySubnet, fromSubnet, fromWallet }), entryRatio: ratio };
             // The exits sell what the buy delivers at worst
             let bought = 0n;
-            let txid: string | null = null;
+            // The wallet purchase, followed in a pop-up from the moment it's sent
+            let landed: Promise<void> | null = null;
             if (fromWallet > 0n) {
                 setProgress('Approve the purchase in your wallet…');
                 const purchase = await buyFromWallet(address!, pay.contractId, buySubnet, fromWallet);
-                txid = purchase.txid;
+                landed = followTx(purchase.txid, {
+                    sent: [`Buying ${buy.symbol}`, 'Waiting for its block…'],
+                    confirmed: [`${buy.symbol} bought`, 'It settled on the chain. Your sale is next.'],
+                    failed: ["Purchase didn't go through", 'It failed on the chain, so nothing was bought.'],
+                    waiting: ['Still waiting for a block', 'Your purchase is sent and will land on its own.'],
+                });
+                // Awaited below; until then this keeps a failure from reading as unhandled
+                landed.catch(() => {});
                 bought += purchase.bought;
             }
             if (fromSubnet > 0n) {
@@ -208,9 +216,9 @@ export default function InAndOutPage() {
                 await placeInAndOutOrder({ ...common, role: 'buy', inputSubnet: paySubnet!, outputToken: buySubnet, amount: fromSubnet, movePct: 0 });
             }
             // The exits can only sell what has arrived
-            if (txid) {
+            if (landed) {
                 setProgress('Buying… this takes about a minute');
-                await waitForConfirmation(txid);
+                await landed;
             }
             setProgress('Sign the sale…');
             const exit = { ...common, inputSubnet: buySubnet, outputToken: cashOut.contractId, amount: bought };

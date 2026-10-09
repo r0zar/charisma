@@ -11,7 +11,7 @@ import { useWallet } from '@/contexts/wallet-context';
 import { canSignInBulk } from 'blaze-sdk';
 import { depositToSubnet, placeDcaBuys } from '@/lib/dca/orders';
 import BlazeWalletPitch from './BlazeWalletPitch';
-import { waitForConfirmation } from '@/lib/zesty/subnet';
+import { followTx, moveToBlazeWords } from '@/lib/tx-toast';
 import { fromUnits, toUnits } from '@/lib/units';
 import { listTokens } from '@/app/actions';
 import { pairOf, planSpend } from '@/lib/subnet-pairs';
@@ -165,7 +165,7 @@ export default function DcaPage() {
                 setProgress('Approve moving funds in your wallet…');
                 const txid = await depositToSubnet(address!, from, source, deposit);
                 setProgress('Getting funds ready… about a minute');
-                await waitForConfirmation(txid);
+                await followTx(txid, moveToBlazeWords(from.symbol));
             }
             const strategyId = crypto.randomUUID();
             const startsAt = Date.now();
