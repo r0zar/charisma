@@ -19,14 +19,14 @@ Plan 3b then adds the other eight languages.
 
 **Spec:** `docs/superpowers/specs/2026-10-12-blaze-wallet-ios-design.md`, sections "What gets ported", "Vault", "Screens", "Languages" (English here), "Errors", "Testing".
 
-**Baseline:** branch `feat/blaze-ios` with plans 1 and 2 done (50 tests passing).
+**Baseline:** branch `feat/blaze-ios` with plans 1 and 2 done (49 tests passing).
 
 ---
 
 ## Working notes for every task
 
 - **Pre-tested.** Everything here was built and run before the plan was written:
-  - the app compiled for the iOS Simulator with no warnings from its own code
+  - the app compiled for the iOS Simulator with no warnings from its own code, after the plan review's fixes (privacy cover on every sheet, Face ID only once the app is in front, Status every 5 minutes)
   - it launched on a temporary iPhone 17 Pro simulator (iOS 26.5), and Welcome drew correctly in both themes, with Ysabeau Infant in Dark
   - `sync-strings.sh` produced the same 139-key catalog
 
@@ -38,6 +38,7 @@ Plan 3b then adds the other eight languages.
 - **Strings.**
   - Text in `Text("…")`, `Button("…")` and `String(localized: …)` becomes a catalog key; `Text(verbatim:)` is for text that is never translated (brand names, units, dashes).
   - The command-line build doesn't update the catalog. `scripts/sync-strings.sh` does what Xcode does on build.
+- **Translations come in plan 3b,** together with `scripts/check-strings.mjs` (the spec's strings check). This plan's catalog is English only.
 - **No mock data, placeholders or fallbacks.** A loading state is a spinner with "Loading balances…". Every error is worded by `ErrorWords`.
 - **Commits:** commit after every task, ending the message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
@@ -675,6 +676,9 @@ final class Vault {
     }
 
     private(set) var phase: Phase = .checking
+    /// Whether the lock screen asks for Face ID by itself: at launch and after leaving the app, not after the person
+    /// tapped Lock (they'd be unlocked again at once) or after the idle lock (they may be away)
+    private(set) var asksOnAppear = true
     /// Why the launch check failed; the root view offers to retry
     private(set) var startError: Error?
     private var session: Session?
@@ -737,8 +741,9 @@ final class Vault {
         if session?.isLocked ?? true { lock() }
     }
 
-    /// Forgets the wallet until the next unlock
-    func lock() {
+    /// Forgets the wallet until the next unlock. `askOnReturn`: the lock screen asks for Face ID by itself.
+    func lock(askOnReturn: Bool = false) {
+        asksOnAppear = askOnReturn
         session = nil
         context?.invalidate()
         context = nil
@@ -777,7 +782,7 @@ final class Vault {
             context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { passed, error in
                 if passed {
                     continuation.resume()
-                } else if let error = error as? LAError, [.userCancel, .appCancel, .systemCancel].contains(error.code) {
+                } else if let error = error as? LAError, [.userCancel, .appCancel, .systemCancel, .notInteractive].contains(error.code) {
                     continuation.resume(throwing: VaultError.cancelled)
                 } else {
                     continuation.resume(throwing: VaultError.authenticationUnavailable)
@@ -810,8 +815,8 @@ struct BlazeWalletApp: App {
                 .tint(.brand("accent"))
         }
         .onChange(of: scenePhase) { _, phase in
-            // Leaving the app locks the wallet
-            if phase == .background { vault.lock() }
+            // Leaving the app locks the wallet; coming back asks for Face ID straight away
+            if phase == .background { vault.lock(askOnReturn: true) }
         }
     }
 }
@@ -825,7 +830,6 @@ import SwiftUI
 /// everything, so the app switcher's snapshot never shows balances or words.
 struct RootView: View {
     @Environment(Vault.self) private var vault
-    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
@@ -837,15 +841,15 @@ struct RootView: View {
             }
         }
         .brandFont(.body)
-        .overlay {
-            if scenePhase != .active { PrivacyCover() }
-        }
+        .privacyCover()
         .task { vault.start() }
         .task(id: vault.locksAt) {
-            // The 15-minute idle lock, right when it's due. Each action moves `locksAt`, which restarts this.
-            guard let locksAt = vault.locksAt,
-                  (try? await Task.sleep(for: .seconds(max(0, locksAt.timeIntervalSinceNow)))) != nil else { return }
-            vault.lockIfIdle()
+            // The 15-minute idle lock, right when it's due. Each action moves `locksAt`, which restarts this; a
+            // wake-up a moment early just sleeps the rest.
+            while let locksAt = vault.locksAt {
+                guard (try? await Task.sleep(for: .seconds(max(0.1, locksAt.timeIntervalSinceNow)))) != nil else { return }
+                vault.lockIfIdle()
+            }
         }
     }
 
@@ -865,13 +869,15 @@ struct RootView: View {
 /// The unlocked wallet: three tabs with an active account; only Wallet without one (every seed phrase unlinked)
 struct MainView: View {
     @Environment(Vault.self) private var vault
+    /// Kept for the whole unlock (MainView goes away on lock), so Status doesn't check again on every tab switch
+    @State private var status = StatusModel()
 
     var body: some View {
         if let account = vault.state?.activeAccount {
             TabView {
                 Tab("Wallet", systemImage: "wallet.bifold") { WalletTab() }
                 Tab("Tokens", systemImage: "circle.grid.2x2") { TokensTab(account: account).id(account.id) }
-                Tab("Status", systemImage: "waveform.path.ecg") { StatusTab(account: account).id(account.id) }
+                Tab("Status", systemImage: "waveform.path.ecg") { StatusTab(account: account, model: status).id(account.id) }
             }
         } else {
             WalletTab()
@@ -895,12 +901,30 @@ struct LockButton: ToolbarContent {
 ```swift
 import SwiftUI
 
-/// What the app switcher shows: the flame on the brand background, never the wallet
+/// What the app switcher and Control Centre show: the flame on the brand background, never the wallet
 struct PrivacyCover: View {
     var body: some View {
         ZStack {
             Color.brand("bg").ignoresSafeArea()
             Image("BlazeFlame").resizable().scaledToFit().frame(width: 64)
+        }
+    }
+}
+
+extension View {
+    /// Covers this view while the app isn't active. Sheets draw above the root view, so each sheet's root needs
+    /// its own cover: snapshots must never show balances or seed words.
+    func privacyCover() -> some View {
+        modifier(PrivacyCoverModifier())
+    }
+}
+
+private struct PrivacyCoverModifier: ViewModifier {
+    @Environment(\.scenePhase) private var scenePhase
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            if scenePhase != .active { PrivacyCover() }
         }
     }
 }
@@ -913,7 +937,10 @@ import SwiftUI
 /// Asks for Face ID on appear, and again from the button
 struct LockView: View {
     @Environment(Vault.self) private var vault
+    @Environment(\.scenePhase) private var scenePhase
     @State private var error: Error?
+    /// The lock screen asks by itself once: Face ID's own prompt makes the app inactive and active again
+    @State private var asked = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -930,7 +957,12 @@ struct LockView: View {
         }
         .padding(24)
         .background(Color.brand("bg"))
-        .task { await unlock() }
+        .task(id: scenePhase) {
+            // Face ID can only ask while the app is in front; a lock from the background waits for it
+            guard scenePhase == .active, vault.asksOnAppear, !asked else { return }
+            asked = true
+            await unlock()
+        }
     }
 
     private func unlock() async {
@@ -1117,6 +1149,11 @@ struct NewSeedFlow: View {
 
     private func generate() {
         error = nil
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard vault.state?.seedPhrases.contains(where: { $0.name == trimmed }) != true else {
+            error = WalletError.seedPhraseNameTaken(trimmed)
+            return
+        }
         do {
             words = try Mnemonic.generate().split(separator: " ").map(String.init)
             // Three distinct positions, from the system's secure random generator
@@ -1248,6 +1285,9 @@ struct WalletTab: View {
             .navigationTitle("Wallet")
             .toolbar { LockButton() }
             .sheet(item: $sheet, content: sheetView)
+            .alert(error.map { ErrorWords.message($0) } ?? "", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
+                Button("OK") {}
+            }
             .confirmationDialog("Unlink this seed phrase from this iPhone?", isPresented: Binding(get: { unlinking != nil }, set: { if !$0 { unlinking = nil } }), titleVisibility: .visible, presenting: unlinking) { seed in
                 Button("Unlink", role: .destructive) { run { try vault.act { $0.unlinkSeedPhrase(id: seed.id) } } }
             } message: { _ in
@@ -1310,23 +1350,26 @@ struct WalletTab: View {
                 Text("Light · Bitcoin").tag(Theme.Choice.light)
                 Text("Dark · RPG").tag(Theme.Choice.dark)
             }
-            ErrorText(error: error)
             Button("Lock") { vault.lock() }
             Button("Unlink wallet", role: .destructive) { unlinkingWallet = true }
         }
     }
 
     @ViewBuilder private func sheetView(_ sheet: Sheet) -> some View {
-        switch sheet {
-        case .newSeed:
-            NavigationStack { NewSeedFlow(mode: .addToWallet) { self.sheet = nil } }
-        case .importSeed:
-            NavigationStack { ImportSeedView(mode: .addToWallet) { self.sheet = nil } }
-        case .receive(let account):
-            ReceiveSheet(address: account.stxAddress)
-        case .words(let name, let phrase):
-            SeedWordsSheet(name: name, words: phrase.split(separator: " ").map(String.init))
+        Group {
+            switch sheet {
+            case .newSeed:
+                NavigationStack { NewSeedFlow(mode: .addToWallet) { self.sheet = nil } }
+            case .importSeed:
+                NavigationStack { ImportSeedView(mode: .addToWallet) { self.sheet = nil } }
+            case .receive(let account):
+                ReceiveSheet(address: account.stxAddress)
+            case .words(let name, let phrase):
+                SeedWordsSheet(name: name, words: phrase.split(separator: " ").map(String.init))
+            }
         }
+        // Sheets draw above the root's cover: the 24 new words and Show words must never reach a snapshot
+        .privacyCover()
     }
 
     /// Runs a wallet change, showing its error instead of losing it
@@ -1649,7 +1692,7 @@ struct TokensTab: View {
             .task { await model.load() }
             .task { await model.watch() }
             .sheet(item: $sending) { row in
-                SendSheet(row: row, account: account, stxBalance: model.stxBalance)
+                SendSheet(row: row, account: account, stxBalance: model.stxBalance).privacyCover()
             }
             .alert(reason.map(Format.symbol) ?? "", isPresented: Binding(get: { reason != nil }, set: { if !$0 { reason = nil } }), presenting: reason) { _ in
                 Button("OK") {}
@@ -1666,6 +1709,7 @@ struct TokensTab: View {
                 Text(model.rows != nil && model.prices != nil ? Format.usd(model.totalValue) : "…")
                     .monoFont(.largeTitle, weight: .medium)
                     .contentTransition(.numericText())
+                    .animation(.default, value: model.totalValue)
                 if model.rows != nil {
                     Text(summary).brandFont(.footnote).foregroundStyle(.brand("ink-muted"))
                 }
@@ -1742,6 +1786,7 @@ struct TokenRowView: View {
                 Text(Format.amount(row.total, of: row, precision: .cut(6)))
                     .monoFont(.body)
                     .contentTransition(.numericText())
+                    .animation(.default, value: row.total)
                 if pricesLoaded {
                     Text(value.map(Format.usd) ?? "—").monoFont(.caption).foregroundStyle(.brand("ink-muted"))
                 }
@@ -1928,6 +1973,8 @@ import WalletCore
 @MainActor @Observable
 final class StatusModel {
     private(set) var diagnostics: Diagnostics?
+    /// The address `diagnostics` is for: switching accounts checks again at once
+    private(set) var address: String?
     private(set) var error: Error?
     private(set) var checking = false
 
@@ -1945,6 +1992,7 @@ final class StatusModel {
         defer { checking = false }
         do {
             diagnostics = try await Diagnostics.check(address: StacksAddress(address), charisma: charisma, hiro: hiro, subnets: subnets)
+            self.address = address
         } catch is CancellationError {
             // The tab went away
         } catch {
@@ -1964,14 +2012,24 @@ struct StatusTab: View {
     let account: Account
 
     @Environment(Vault.self) private var vault
-    @State private var model = StatusModel()
+    @State private var model: StatusModel
+
+    private static let interval: TimeInterval = 5 * 60
+
+    /// Only this account's checks: another account's are never shown here
+    private var diagnostics: Diagnostics? { model.address == account.stxAddress ? model.diagnostics : nil }
+
+    init(account: Account, model: StatusModel) {
+        self.account = account
+        _model = State(initialValue: model)
+    }
 
     var body: some View {
         NavigationStack {
             List {
                 Section {
                     HStack {
-                        if let checkedAt = model.diagnostics?.checkedAt {
+                        if let checkedAt = diagnostics?.checkedAt {
                             Text("Checked at \(checkedAt.formatted(date: .omitted, time: .shortened))")
                         } else {
                             Text("Checking…")
@@ -2000,9 +2058,13 @@ struct StatusTab: View {
             .navigationTitle("Status")
             .toolbar { LockButton() }
             .task {
+                // Each check is ~38 Hiro reads: once per unlock and every 5 minutes while open, not on every visit
                 while !Task.isCancelled {
+                    if let checkedAt = diagnostics?.checkedAt,
+                       -checkedAt.timeIntervalSinceNow < Self.interval {
+                        guard (try? await Task.sleep(for: .seconds(Self.interval + checkedAt.timeIntervalSinceNow))) != nil else { return }
+                    }
                     await model.check(address: account.stxAddress)
-                    try? await Task.sleep(for: .seconds(5 * 60))
                 }
             }
         }
@@ -2010,13 +2072,13 @@ struct StatusTab: View {
 
     private var state: (text: LocalizedStringKey, tone: String) {
         if model.error != nil { return ("Error", "danger") }
-        return model.diagnostics == nil ? ("Checking", "warning") : ("Live", "success")
+        return diagnostics == nil ? ("Checking", "warning") : ("Live", "success")
     }
 
     @ViewBuilder private var networkSection: some View {
         Section {
-            LabeledContent { Text(model.diagnostics.map { $0.blockHeight.formatted() } ?? "—").monoFont(.body) } label: { Text("Block") }
-            if let diagnostics = model.diagnostics { Speed(latency: diagnostics.networkLatency) }
+            LabeledContent { Text(diagnostics.map { $0.blockHeight.formatted() } ?? "—").monoFont(.body) } label: { Text("Block") }
+            if let diagnostics = diagnostics { Speed(latency: diagnostics.networkLatency) }
         } header: {
             HStack {
                 Text("Stacks network")
@@ -2028,16 +2090,16 @@ struct StatusTab: View {
 
     @ViewBuilder private var tokenListSection: some View {
         Section("Charisma token list") {
-            LabeledContent { Text(model.diagnostics.map { $0.tokenCount.formatted() } ?? "—").monoFont(.body) } label: { Text("Tokens") }
-            if let diagnostics = model.diagnostics { Speed(latency: diagnostics.tokenListLatency) }
+            LabeledContent { Text(diagnostics.map { $0.tokenCount.formatted() } ?? "—").monoFont(.body) } label: { Text("Tokens") }
+            if let diagnostics = diagnostics { Speed(latency: diagnostics.tokenListLatency) }
         }
     }
 
     @ViewBuilder private var subnetsSection: some View {
-        let held: [SubnetBalance] = (model.diagnostics?.subnets ?? []).filter { ($0.balance ?? 0) != 0 }
+        let held: [SubnetBalance] = (diagnostics?.subnets ?? []).filter { ($0.balance ?? 0) != 0 }
         Section {
-            LabeledContent { Text(model.diagnostics == nil ? "—" : held.count.formatted()).monoFont(.body) } label: { Text("Holding your funds") }
-            if let diagnostics = model.diagnostics {
+            LabeledContent { Text(diagnostics == nil ? "—" : held.count.formatted()).monoFont(.body) } label: { Text("Holding your funds") }
+            if let diagnostics = diagnostics {
                 if held.isEmpty {
                     Text("No funds on any of the \(diagnostics.subnets.count) subnets.").foregroundStyle(.brand("ink-muted"))
                 }
@@ -2057,7 +2119,7 @@ struct StatusTab: View {
             HStack {
                 Text("Blaze subnets")
                 Spacer()
-                if let count = model.diagnostics?.subnets.count { Text(count.formatted()) }
+                if let count = diagnostics?.subnets.count { Text(count.formatted()) }
             }
         }
     }
@@ -2101,15 +2163,9 @@ private struct Speed: View {
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%@ on Blaze" : {
-
-    },
-    "%@ sent" : {
-
-    },
-    "%@ units" : {
-
-    },
+    "%@ on Blaze" : {},
+    "%@ sent" : {},
+    "%@ units" : {},
     "%lld tokens" : {
       "localizations" : {
         "en" : {
@@ -2176,39 +2232,17 @@ private struct Speed: View {
         }
       }
     },
-    "+ Account" : {
-
-    },
-    "12 or 24 words" : {
-
-    },
-    "A seed phrase named “%@” already exists." : {
-
-    },
-    "Account %lld" : {
-
-    },
-    "Active" : {
-
-    },
-    "Add an account from a seed phrase below." : {
-
-    },
-    "Address" : {
-
-    },
-    "After 15 idle minutes" : {
-
-    },
-    "Amount" : {
-
-    },
-    "An unknown token: shown in its smallest units, and it can't be sent from here." : {
-
-    },
-    "Anyone who sees these words controls your funds. Write them down on paper and keep them private." : {
-
-    },
+    "+ Account" : {},
+    "12 or 24 words" : {},
+    "A seed phrase named “%@” already exists." : {},
+    "Account %lld" : {},
+    "Active" : {},
+    "Add an account from a seed phrase below." : {},
+    "Address" : {},
+    "After 15 idle minutes" : {},
+    "Amount" : {},
+    "An unknown token: shown in its smallest units, and it can't be sent from here." : {},
+    "Anyone who sees these words controls your funds. Write them down on paper and keep them private." : {},
     "At most %lld decimal places." : {
       "localizations" : {
         "en" : {
@@ -2231,141 +2265,51 @@ private struct Speed: View {
         }
       }
     },
-    "Auto-lock" : {
-
-    },
-    "Back" : {
-
-    },
-    "Back to the words" : {
-
-    },
-    "Blaze subnets" : {
-
-    },
-    "Block" : {
-
-    },
-    "Cancel" : {
-
-    },
-    "Cancelled." : {
-
-    },
-    "Charisma token list" : {
-
-    },
-    "Charisma's balance service sent something Blaze Wallet can't read." : {
-
-    },
-    "Charisma's price feed sent something Blaze Wallet can't read." : {
-
-    },
-    "Charisma's token list has no asset name for %@, so it can't be sent safely." : {
-
-    },
-    "Charisma's token list is unavailable, so tokens can't be checked against its block list." : {
-
-    },
-    "Charisma's token list sent something Blaze Wallet can't read." : {
-
-    },
-    "Check again" : {
-
-    },
-    "Checked at %@" : {
-
-    },
-    "Checking" : {
-
-    },
-    "Checking…" : {
-
-    },
-    "Confirm and save" : {
-
-    },
-    "Confirm your words" : {
-
-    },
-    "Continue" : {
-
-    },
-    "Copied" : {
-
-    },
-    "Copy" : {
-
-    },
-    "Couldn't load Charisma's token list (%lld)." : {
-
-    },
-    "Couldn't load balances (%lld)." : {
-
-    },
-    "Couldn't load prices (%lld)." : {
-
-    },
-    "Couldn't reach Charisma's balance service. Check your connection." : {
-
-    },
-    "Couldn't reach Charisma's price feed. Check your connection." : {
-
-    },
-    "Couldn't reach Charisma's token list. Check your connection." : {
-
-    },
-    "Couldn't reach the Stacks network. Check your connection." : {
-
-    },
-    "Create a new wallet" : {
-
-    },
-    "Create your wallet" : {
-
-    },
-    "Dark · RPG" : {
-
-    },
-    "Done" : {
-
-    },
-    "Enter a Stacks address (SP…)." : {
-
-    },
-    "Enter an amount like %@." : {
-
-    },
-    "Error" : {
-
-    },
-    "Every seed phrase and account is removed from this iPhone. Your funds stay safe on the blockchain; you'll need your seed phrases to get back in." : {
-
-    },
-    "Exactly this amount, nothing else" : {
-
-    },
-    "Face ID and the passcode aren't available on this iPhone right now." : {
-
-    },
-    "Generate 24 words" : {
-
-    },
-    "Generate new" : {
-
-    },
-    "Holding your funds" : {
-
-    },
-    "I wrote all 24 words down, in order" : {
-
-    },
-    "Import" : {
-
-    },
-    "Import a seed phrase" : {
-
-    },
+    "Auto-lock" : {},
+    "Back" : {},
+    "Back to the words" : {},
+    "Blaze subnets" : {},
+    "Block" : {},
+    "Cancel" : {},
+    "Cancelled." : {},
+    "Charisma token list" : {},
+    "Charisma's balance service sent something Blaze Wallet can't read." : {},
+    "Charisma's price feed sent something Blaze Wallet can't read." : {},
+    "Charisma's token list has no asset name for %@, so it can't be sent safely." : {},
+    "Charisma's token list is unavailable, so tokens can't be checked against its block list." : {},
+    "Charisma's token list sent something Blaze Wallet can't read." : {},
+    "Check again" : {},
+    "Checked at %@" : {},
+    "Checking" : {},
+    "Checking…" : {},
+    "Confirm and save" : {},
+    "Confirm your words" : {},
+    "Continue" : {},
+    "Copied" : {},
+    "Copy" : {},
+    "Couldn't load Charisma's token list (%lld)." : {},
+    "Couldn't load balances (%lld)." : {},
+    "Couldn't load prices (%lld)." : {},
+    "Couldn't reach Charisma's balance service. Check your connection." : {},
+    "Couldn't reach Charisma's price feed. Check your connection." : {},
+    "Couldn't reach Charisma's token list. Check your connection." : {},
+    "Couldn't reach the Stacks network. Check your connection." : {},
+    "Create a new wallet" : {},
+    "Create your wallet" : {},
+    "Dark · RPG" : {},
+    "Done" : {},
+    "Enter a Stacks address (SP…)." : {},
+    "Enter an amount like %@." : {},
+    "Error" : {},
+    "Every seed phrase and account is removed from this iPhone. Your funds stay safe on the blockchain; you'll need your seed phrases to get back in." : {},
+    "Exactly this amount, nothing else" : {},
+    "Face ID and the passcode aren't available on this iPhone right now." : {},
+    "Generate 24 words" : {},
+    "Generate new" : {},
+    "Holding your funds" : {},
+    "I wrote all 24 words down, in order" : {},
+    "Import" : {},
+    "Import a seed phrase" : {},
     "In %lld min" : {
       "localizations" : {
         "en" : {
@@ -2388,45 +2332,19 @@ private struct Speed: View {
         }
       }
     },
-    "It confirms on Stacks in a few minutes." : {
-
-    },
-    "Its accounts and funds stay safe on the blockchain. To use them here again, you'll need the seed phrase words." : {
-
-    },
-    "Keys" : {
-
-    },
-    "Light · Bitcoin" : {
-
-    },
-    "Live" : {
-
-    },
-    "Loading balances…" : {
-
-    },
-    "Lock" : {
-
-    },
-    "Max" : {
-
-    },
-    "My seed phrase" : {
-
-    },
-    "Name" : {
-
-    },
-    "Network fee" : {
-
-    },
-    "New seed phrase" : {
-
-    },
-    "No active account" : {
-
-    },
+    "It confirms on Stacks in a few minutes." : {},
+    "Its accounts and funds stay safe on the blockchain. To use them here again, you'll need the seed phrase words." : {},
+    "Keys" : {},
+    "Light · Bitcoin" : {},
+    "Live" : {},
+    "Loading balances…" : {},
+    "Lock" : {},
+    "Max" : {},
+    "My seed phrase" : {},
+    "Name" : {},
+    "Network fee" : {},
+    "New seed phrase" : {},
+    "No active account" : {},
     "No funds on any of the %lld subnets." : {
       "localizations" : {
         "en" : {
@@ -2449,9 +2367,7 @@ private struct Speed: View {
         }
       }
     },
-    "Not enough STX for the network fee. You can send up to %@ STX." : {
-
-    },
+    "Not enough STX for the network fee. You can send up to %@ STX." : {},
     "Not enough STX for the network fee: it's %@ STX and you have %@ STX." : {
       "localizations" : {
         "en" : {
@@ -2462,48 +2378,20 @@ private struct Speed: View {
         }
       }
     },
-    "Not on Charisma's token list, so it can't be sent from here." : {
-
-    },
-    "OK" : {
-
-    },
-    "On this iPhone only, behind Face ID" : {
-
-    },
-    "Prices unavailable: %@" : {
-
-    },
-    "Receive" : {
-
-    },
-    "Recipient" : {
-
-    },
-    "Response" : {
-
-    },
-    "Review" : {
-
-    },
-    "Safety" : {
-
-    },
-    "Seed phrases" : {
-
-    },
-    "Send" : {
-
-    },
-    "Send %@" : {
-
-    },
-    "Send only Stacks (STX) and Stacks tokens to this address." : {
-
-    },
-    "Send the most: %@ STX" : {
-
-    },
+    "Not on Charisma's token list, so it can't be sent from here." : {},
+    "OK" : {},
+    "On this iPhone only, behind Face ID" : {},
+    "Prices unavailable: %@" : {},
+    "Receive" : {},
+    "Recipient" : {},
+    "Response" : {},
+    "Review" : {},
+    "Safety" : {},
+    "Seed phrases" : {},
+    "Send" : {},
+    "Send %@" : {},
+    "Send only Stacks (STX) and Stacks tokens to this address." : {},
+    "Send the most: %@ STX" : {},
     "Sends use your %@ %@ on Standard. Your %@ on Blaze stays in its subnet; move it with Charisma Swap." : {
       "localizations" : {
         "en" : {
@@ -2514,126 +2402,46 @@ private struct Speed: View {
         }
       }
     },
-    "Set a passcode on this iPhone to use Blaze Wallet." : {
-
-    },
-    "Show words" : {
-
-    },
-    "Show your seed phrase" : {
-
-    },
-    "Something isn't working" : {
-
-    },
-    "Something went wrong: %@" : {
-
-    },
-    "Stacks network" : {
-
-    },
-    "Status" : {
-
-    },
-    "System" : {
-
-    },
-    "That account is no longer in this wallet." : {
-
-    },
-    "That isn't a valid seed phrase: check each word's spelling and that none are missing." : {
-
-    },
-    "That seed phrase is no longer in this wallet." : {
-
-    },
-    "That's more than you have." : {
-
-    },
-    "The Stacks network didn't answer (%lld)." : {
-
-    },
-    "The Stacks network sent something Blaze Wallet can't read." : {
-
-    },
-    "The amount must be more than zero." : {
-
-    },
-    "The network rejected the transfer: %@" : {
-
-    },
-    "The wallet is locked. Unlock it to continue." : {
-
-    },
-    "Theme" : {
-
-    },
-    "These 24 words are the only way to recover this wallet. Anyone who sees them controls your funds, and Blaze Wallet can't recover them." : {
-
-    },
-    "This iPhone couldn't make random words. Try again." : {
-
-    },
-    "This iPhone's Keychain refused (%@)." : {
-
-    },
-    "This wallet" : {
-
-    },
-    "To" : {
-
-    },
-    "Tokens" : {
-
-    },
-    "Total value" : {
-
-    },
-    "Try again" : {
-
-    },
-    "Type these words from what you wrote down." : {
-
-    },
-    "Unlink" : {
-
-    },
-    "Unlink this seed phrase from this iPhone?" : {
-
-    },
-    "Unlink this wallet from this iPhone?" : {
-
-    },
-    "Unlink wallet" : {
-
-    },
-    "Unlock" : {
-
-    },
-    "Unlock your wallet" : {
-
-    },
-    "Use" : {
-
-    },
-    "Vault" : {
-
-    },
-    "View on explorer" : {
-
-    },
-    "Wallet" : {
-
-    },
-    "Word #%lld" : {
-
-    },
-    "Word %@ doesn't match. Check what you wrote down." : {
-
-    },
-    "Write these down" : {
-
-    },
+    "Set a passcode on this iPhone to use Blaze Wallet." : {},
+    "Show words" : {},
+    "Show your seed phrase" : {},
+    "Something isn't working" : {},
+    "Something went wrong: %@" : {},
+    "Stacks network" : {},
+    "Status" : {},
+    "System" : {},
+    "That account is no longer in this wallet." : {},
+    "That isn't a valid seed phrase: check each word's spelling and that none are missing." : {},
+    "That seed phrase is no longer in this wallet." : {},
+    "That's more than you have." : {},
+    "The Stacks network didn't answer (%lld)." : {},
+    "The Stacks network sent something Blaze Wallet can't read." : {},
+    "The amount must be more than zero." : {},
+    "The network rejected the transfer: %@" : {},
+    "The wallet is locked. Unlock it to continue." : {},
+    "Theme" : {},
+    "These 24 words are the only way to recover this wallet. Anyone who sees them controls your funds, and Blaze Wallet can't recover them." : {},
+    "This iPhone couldn't make random words. Try again." : {},
+    "This iPhone's Keychain refused (%@)." : {},
+    "This wallet" : {},
+    "To" : {},
+    "Tokens" : {},
+    "Total value" : {},
+    "Try again" : {},
+    "Type these words from what you wrote down." : {},
+    "Unlink" : {},
+    "Unlink this seed phrase from this iPhone?" : {},
+    "Unlink this wallet from this iPhone?" : {},
+    "Unlink wallet" : {},
+    "Unlock" : {},
+    "Unlock your wallet" : {},
+    "Use" : {},
+    "Vault" : {},
+    "View on explorer" : {},
+    "Wallet" : {},
+    "Word #%lld" : {},
+    "Word %@ doesn't match. Check what you wrote down." : {},
+    "Write these down" : {},
     "You have %@ %@." : {
       "localizations" : {
         "en" : {
@@ -2644,15 +2452,9 @@ private struct Speed: View {
         }
       }
     },
-    "You have no %@ to send yet." : {
-
-    },
-    "Your %@ is all on Blaze. Move it with Charisma Swap." : {
-
-    },
-    "Your keys stay on this iPhone, behind Face ID." : {
-
-    }
+    "You have no %@ to send yet." : {},
+    "Your %@ is all on Blaze. Move it with Charisma Swap." : {},
+    "Your keys stay on this iPhone, behind Face ID." : {}
   },
   "version" : "1.0"
 }
@@ -2718,7 +2520,7 @@ If the catalog changed, the code and catalog above differ. Compare them and stop
 ```bash
 TYPE=$(xcrun simctl list devicetypes | grep -E "iPhone 1[67] Pro \(" | head -1 | sed -E 's/.*\((com\.apple[^)]+)\).*/\1/')
 RUNTIME=$(xcrun simctl list runtimes | grep -E "^iOS" | tail -1 | sed -E 's/.* - (com\.apple[^ ]+).*/\1/')
-UDID=$(xcrun simctl create BlazeSmokeTest "$TYPE" "$RUNTIME") && xcrun simctl boot "$UDID"
+UDID=$(xcrun simctl create BlazeSmokeTest "$TYPE" "$RUNTIME") && echo "$UDID" > /tmp/blaze-smoke-udid && xcrun simctl boot "$UDID"
 xcodebuild -project apps/blaze-ios/BlazeWallet.xcodeproj -scheme BlazeWallet -destination "id=$UDID" -derivedDataPath /tmp/blaze-ios-smoke -skipPackagePluginValidation build CODE_SIGN_IDENTITY=- 2>&1 | grep -E "BUILD (SUCCEEDED|FAILED)"
 xcrun simctl install "$UDID" /tmp/blaze-ios-smoke/Build/Products/Debug-iphonesimulator/BlazeWallet.app
 xcrun simctl launch "$UDID" rocks.charisma.blazewallet && sleep 6
@@ -2734,7 +2536,7 @@ xcrun simctl ui "$UDID" appearance dark && sleep 3 && xcrun simctl io "$UDID" sc
 
   Light uses the paper background and Stacks orange. Dark uses near-black and crimson, with the rounded Ysabeau Infant letters. A Keychain error on screen means the build wasn't signed (`CODE_SIGN_IDENTITY=-`).
 
-- [ ] **Delete the simulator:** `xcrun simctl shutdown "$UDID" && xcrun simctl delete "$UDID"`
+- [ ] **Delete the simulator:** `UDID=$(cat /tmp/blaze-smoke-udid) && xcrun simctl shutdown "$UDID" && xcrun simctl delete "$UDID" && rm /tmp/blaze-smoke-udid` (shell variables don't carry between separate commands)
 
 - [ ] **Report to Ross.** Say the app is ready for his manual pass from the spec, and list it:
   - create a wallet with Face ID in the simulator (Features › Face ID › Enrolled)
