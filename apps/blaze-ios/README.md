@@ -26,3 +26,9 @@ It has no website connections. Specs: `docs/superpowers/specs/2026-10-12-blaze-w
 - **Brand:** when `packages/brand` changes, run `node apps/blaze-ios/scripts/brand.mjs`.
 - **App icon:** run `swiftc -O apps/blaze-ios/scripts/app-icon.swift -o /tmp/app-icon && /tmp/app-icon apps/signet/src/assets/blaze-flame.svg apps/blaze-ios/BlazeWallet/Brand/Brand.xcassets/AppIcon.appiconset/AppIcon.png`.
 - **Test vectors:** run `node apps/signet/scripts/ios-vectors.mjs`. Its header says what it needs.
+
+## Languages
+
+The app ships in nine languages, following `docs/superpowers/specs/2026-10-12-blaze-wallet-i18n-design.md`. The words that must match the Chrome extension are in `docs/i18n/wallet-terms.md`.
+- **Check:** `node apps/blaze-ios/scripts/check-strings.mjs` checks that every string is in all nine languages, marked translated, with matching format specifiers.
+- **Add or change translations:** write one JSON file per language (`ko.json`, `zh-Hans.json`… mapping each English key to its translation, or to `{ one, many, other }`). Then run `node apps/blaze-ios/scripts/import-translations.mjs <files>`, then `sh apps/blaze-ios/scripts/sync-strings.sh`, then the check.
