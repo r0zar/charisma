@@ -21,4 +21,7 @@ Blaze Wallet は標準の Stacks ウォレット規格に対応しているた�
 【ライトもダークも】
 Charisma のライト · Bitcoin とダーク · RPG、2 つのデザインを用意しています。Blaze Wallet はデバイスの設定に合わせますが、保管庫で選ぶこともできます。
 
+【あなたの言語で】
+English、한국어、简体中文、Español、Français、Deutsch、Türkçe、日本語、Português (Brasil) に対応しています。Blaze Wallet は Chrome の言語に合わせますが、保管庫で選ぶこともできます。
+
 Blaze Wallet には、ユーザー登録も、分析も、トラッキングもありません。

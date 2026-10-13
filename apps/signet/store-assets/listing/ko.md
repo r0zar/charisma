@@ -21,4 +21,7 @@ Blaze Wallet은 표준 Stacks 지갑 규격을 따르므로 어떤 앱의 ‘지
 ■ 라이트 또는 다크
 Charisma의 라이트 · Bitcoin, 다크 · RPG 디자인을 제공합니다. Blaze Wallet은 기기 설정을 따르며, 보관함에서 직접 고를 수도 있습니다.
 
+■ 원하는 언어로
+지원 언어: English, 한국어, 简体中文, Español, Français, Deutsch, Türkçe, 日本語, Português (Brasil). Blaze Wallet은 Chrome의 언어를 따르며, 보관함에서 직접 고를 수도 있습니다.
+
 Blaze Wallet에는 회원 가입도, 분석도, 추적도 없습니다.

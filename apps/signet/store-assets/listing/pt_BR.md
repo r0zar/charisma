@@ -21,4 +21,7 @@ Sua frase de recuperação e suas chaves são criptografadas no seu navegador co
 CLARO OU ESCURO
 Os temas Claro · Bitcoin e Escuro · RPG da Charisma. A Blaze Wallet segue o tema do seu dispositivo, ou você pode escolher um no Cofre.
 
+NO SEU IDIOMA
+English, 한국어, 简体中文, Español, Français, Deutsch, Türkçe, 日本語 e Português (Brasil). A Blaze Wallet segue o idioma do Chrome, ou você pode escolher um no Cofre.
+
 A Blaze Wallet não exige cadastro e não tem análises de uso nem rastreamento.

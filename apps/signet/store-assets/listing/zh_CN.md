@@ -21,4 +21,7 @@ Blaze Wallet 支持标准的 Stacks 钱包协议，因此会出现在任何应�
 【浅色或深色】
 Charisma 的浅色 · Bitcoin 与深色 · RPG 两种外观。Blaze Wallet 会跟随你的设备，你也可以在“保险库”中选择其中一种。
 
+【使用你的语言】
+支持 English、한국어、简体中文、Español、Français、Deutsch、Türkçe、日本語 和 Português (Brasil)。Blaze Wallet 会跟随 Chrome 的语言，你也可以在“保险库”中选择其中一种。
+
 Blaze Wallet 无需注册账户，没有数据分析，也没有任何追踪。

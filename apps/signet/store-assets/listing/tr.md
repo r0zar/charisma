@@ -21,4 +21,7 @@ Kurtarma ifadeniz ve anahtarlarınız, tarayıcınızda şifrenizle şifrelenir 
 AÇIK VEYA KOYU
 Charisma imzalı Açık · Bitcoin ve Koyu · RPG görünümleri. Blaze Wallet cihazınızın ayarına uyar; dilerseniz Kasa bölümünden birini seçin.
 
+KENDİ DİLİNİZDE
+English, 한국어, 简体中文, Español, Français, Deutsch, Türkçe, 日本語 ve Português (Brasil). Blaze Wallet, Chrome dil ayarına uyar; dilerseniz Kasa bölümünden birini seçin.
+
 Blaze Wallet üyelik gerektirmez; analitik veya izleme içermez.

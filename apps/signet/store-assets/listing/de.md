@@ -21,4 +21,7 @@ Deine Seed-Phrase und deine Schlüssel werden in deinem Browser mit deinem Passw
 HELL ODER DUNKEL
 Die Designs Hell · Bitcoin und Dunkel · RPG von Charisma. Blaze Wallet übernimmt die Einstellung deines Geräts, oder du wählst eins im Tresor.
 
+IN DEINER SPRACHE
+English, 한국어, 简体中文, Español, Français, Deutsch, Türkçe, 日本語 und Português (Brasil). Blaze Wallet übernimmt die Sprache von Chrome, oder du wählst eine im Tresor.
+
 Blaze Wallet kommt ohne Benutzerkonto, ohne Analysetools und ohne Tracking aus.
