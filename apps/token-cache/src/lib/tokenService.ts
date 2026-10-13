@@ -1,4 +1,4 @@
-import { Cryptonomicon } from "../lib/cryptonomicon";
+import { Cryptonomicon, isValidDecimals } from "../lib/cryptonomicon";
 import { kv } from "@vercel/kv";
 import { TokenCacheData } from "@repo/tokens";
 const cryptonomicon = new Cryptonomicon({
@@ -250,15 +250,17 @@ export const getTokenData = async (contractId: string, forceRefresh: boolean = f
                 mergedData.image = cachedData.image;
             }
 
-            // Subnet tokens hold their base token (no FT of their own): the asset identifier and artwork are the base's
+            // Subnet tokens hold their base token (no FT of their own): the asset identifier, decimals and artwork are the base's
             if (mergedData.type === 'SUBNET' && mergedData.base) {
                 const base = await getTokenData(mergedData.base);
                 if (!base) throw new Error(`Base token ${mergedData.base} not found for subnet token ${contractId}`);
                 mergedData.identifier = base.identifier;
+                mergedData.decimals = base.decimals;
                 if (base.image && !base.image.includes('ui-avatars.com')) mergedData.image = base.image;
             }
 
-            await kv.set(cacheKey, mergedData, { ex: CACHE_DURATION_SECONDS });
+            // Without decimals a token can't be listed, so that isn't kept for 30 days: the next look tries again
+            if (isValidDecimals(mergedData.decimals)) await kv.set(cacheKey, mergedData, { ex: CACHE_DURATION_SECONDS });
             return mergedData;
         } else {
             console.warn(`Failed to fetch metadata for ${contractId}`);
