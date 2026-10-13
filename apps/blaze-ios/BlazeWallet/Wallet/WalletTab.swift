@@ -35,6 +35,8 @@ struct WalletTab: View {
             .navigationTitle("Wallet")
             .toolbar { LockButton() }
             .sheet(item: $sheet, content: sheetView)
+            // A seed phrase being added when the wallet locked, or the app closed, picks up at its words
+            .onAppear { if vault.seedDraft?.mode == .addToWallet, sheet == nil { sheet = .newSeed } }
             .alert(error.map { ErrorWords.message($0) } ?? "", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
                 Button("OK") {}
             }
@@ -109,7 +111,7 @@ struct WalletTab: View {
         Group {
             switch sheet {
             case .newSeed:
-                NavigationStack { NewSeedFlow(mode: .addToWallet) { self.sheet = nil } }
+                NavigationStack { NewSeedFlow(mode: .addToWallet, resuming: vault.seedDraft) { self.sheet = nil } }
             case .importSeed:
                 NavigationStack { ImportSeedView(mode: .addToWallet) { self.sheet = nil } }
             case .receive(let account):

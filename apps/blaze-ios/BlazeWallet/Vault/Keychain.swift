@@ -16,11 +16,11 @@ enum VaultError: Error, Equatable {
 /// The one Keychain item that holds the wallet. Reading it takes Face ID or the passcode (`.userPresence`); it stays
 /// on this iPhone (`WhenPasscodeSetThisDeviceOnly`), so it's never in backups and never moves to another device.
 enum Keychain {
-    private static func item() -> [String: Any] {
+    private static func item(_ account: String = "wallet") -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: "rocks.charisma.blazewallet",
-            kSecAttrAccount as String: "wallet",
+            kSecAttrAccount as String: account,
         ]
     }
 
@@ -78,7 +78,38 @@ enum Keychain {
         let marker = "rocks.charisma.blazewallet.installed"
         guard !UserDefaults.standard.bool(forKey: marker) else { return }
         try delete()
+        try Draft.delete()
         UserDefaults.standard.set(true, forKey: marker)
+    }
+
+    /// A new seed phrase being set up (SeedDraft), until it's confirmed. On this iPhone only and readable while it's
+    /// unlocked, without Face ID, so setting up carries on after leaving the app, even if iOS closed it meanwhile.
+    enum Draft {
+        static func save(_ data: Data) throws {
+            let status = SecItemUpdate(item("seed-draft") as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+            guard status == errSecItemNotFound else { return try check(status) }
+            var query = item("seed-draft")
+            query[kSecValueData as String] = data
+            query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            try check(SecItemAdd(query as CFDictionary, nil))
+        }
+
+        static func read() throws -> Data? {
+            var query = item("seed-draft")
+            query[kSecReturnData as String] = true
+            query[kSecMatchLimit as String] = kSecMatchLimitOne
+            var result: CFTypeRef?
+            let status = SecItemCopyMatching(query as CFDictionary, &result)
+            guard status != errSecItemNotFound else { return nil }
+            try check(status)
+            guard let data = result as? Data else { throw VaultError.keychain(errSecDecode) }
+            return data
+        }
+
+        static func delete() throws {
+            let status = SecItemDelete(item("seed-draft") as CFDictionary)
+            guard status == errSecSuccess || status == errSecItemNotFound else { throw VaultError.keychain(status) }
+        }
     }
 
     private static func check(_ status: OSStatus) throws {

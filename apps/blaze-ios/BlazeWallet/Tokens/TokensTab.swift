@@ -5,6 +5,7 @@ import WalletCore
 struct TokensTab: View {
     let account: Account
 
+    @Environment(Vault.self) private var vault
     @State private var model: TokensModel
     @State private var sending: TokenRow?
     @State private var reason: TokenRow?
@@ -18,6 +19,9 @@ struct TokensTab: View {
     var body: some View {
         NavigationStack {
             List {
+                if let unsent = vault.unsent, unsent.address == account.stxAddress {
+                    Section { UnsentSendView(unsent: unsent) }
+                }
                 totalSection
                 if let error = model.error {
                     Section { ErrorText(error: error) }
@@ -54,6 +58,7 @@ struct TokensTab: View {
             .scrollContentBackground(.hidden)
             .background(Color.brand("bg"))
             .navigationTitle("Tokens")
+            .inAppLinks()
             .toolbar { LockButton() }
             .refreshable { await model.load() }
             .task { await model.load() }
@@ -101,4 +106,52 @@ struct TokensTab: View {
         .buttonStyle(.plain)
     }
 
+}
+
+/// A send that was signed but never clearly sent: it may already be on the network, so nothing new should be signed on
+/// top of it before checking. "Send again" sends these same bytes, so it can't go out twice.
+private struct UnsentSendView: View {
+    let unsent: Vault.UnsentSend
+
+    @Environment(Vault.self) private var vault
+    @State private var busy = false
+    @State private var sent = false
+    @State private var error: Error?
+    private let hiro = Hiro()
+
+    var body: some View {
+        if sent {
+            Text("It confirms on Stacks in a few minutes.")
+        } else {
+            Text("Your last send may have gone through already. Check the explorer before you send again.")
+                .foregroundStyle(.brand("warning"))
+        }
+        Link(destination: Format.explorer(unsent.transaction.txid)) {
+            Label("View on explorer", systemImage: "arrow.up.right.square")
+        }
+        ErrorText(error: error)
+        if !sent {
+            Button {
+                Task { await sendAgain() }
+            } label: {
+                if busy { ProgressView() } else { Text("Send again") }
+            }
+            .disabled(busy)
+        }
+        Button("Done") { vault.unsent = nil }.disabled(busy)
+    }
+
+    private func sendAgain() async {
+        guard !busy else { return }
+        error = nil
+        busy = true
+        defer { busy = false }
+        do {
+            try vault.touch()
+            _ = try await Send.broadcast(unsent.transaction, hiro: hiro)
+            sent = true
+        } catch {
+            self.error = error
+        }
+    }
 }

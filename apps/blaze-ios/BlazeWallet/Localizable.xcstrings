@@ -5527,6 +5527,58 @@
         }
       }
     },
+    "Send again": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut senden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar de nuevo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Renvoyer"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "もう一度送金"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다시 보내기"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enviar de novo"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tekrar gönder"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再次发送"
+          }
+        }
+      }
+    },
     "Send only Stacks (STX) and Stacks tokens to this address.": {
       "localizations": {
         "de": {
@@ -6625,6 +6677,58 @@
         }
       }
     },
+    "The wallet is no longer on this iPhone. Turning off the passcode removes it, and it doesn't move to a new iPhone. Import your seed phrase to restore it.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Wallet ist nicht mehr auf diesem iPhone. Das Ausschalten des Codes entfernt sie, und sie wandert nicht auf ein neues iPhone. Importiere deine Seed-Phrase, um sie wiederherzustellen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La billetera ya no está en este iPhone. Desactivar el código la elimina, y no se transfiere a un iPhone nuevo. Importa tu frase semilla para restaurarla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le portefeuille n’est plus sur cet iPhone. Désactiver le code le supprime, et il ne passe pas sur un nouvel iPhone. Importez votre phrase de récupération pour le restaurer."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "このウォレットはもうこの iPhone にありません。パスコードをオフにすると削除され、新しい iPhone にも移行されません。シードフレーズをインポートして復元してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone에 지갑이 더 이상 없습니다. 암호를 끄면 지갑이 삭제되며, 새 iPhone으로 옮겨지지도 않습니다. 시드 문구를 가져와 복원하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A carteira não está mais neste iPhone. Desativar o código a remove, e ela não passa para um iPhone novo. Importe sua frase de recuperação para restaurá-la."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cüzdan artık bu iPhone'da değil. Parolayı kapatmak cüzdanı kaldırır ve cüzdan yeni bir iPhone'a taşınmaz. Geri yüklemek için kurtarma ifadenizi içe aktarın."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 iPhone 上已没有这个钱包。关闭密码会移除钱包，钱包也不会转移到新的 iPhone。导入你的助记词即可恢复。"
+          }
+        }
+      }
+    },
     "The wallet saved on this iPhone can't be read.": {
       "localizations": {
         "de": {
@@ -7141,58 +7245,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "重试"
-          }
-        }
-      }
-    },
-    "Turning off this iPhone's passcode removed the wallet from it. Import your seed phrase to restore it.": {
-      "localizations": {
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Durch das Ausschalten des Codes dieses iPhone wurde die Wallet entfernt. Importiere deine Seed-Phrase, um sie wiederherzustellen."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Al desactivar el código de este iPhone se eliminó la billetera. Importa tu frase semilla para restaurarla."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "La désactivation du code de cet iPhone a supprimé le portefeuille. Importez votre phrase de récupération pour le restaurer."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "この iPhone のパスコードをオフにしたため、ウォレットが削除されました。シードフレーズをインポートして復元してください。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "이 iPhone의 암호를 끄면서 지갑이 삭제되었습니다. 시드 문구를 가져와 복원하세요."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Desativar o código deste iPhone removeu a carteira. Importe sua frase de recuperação para restaurá-la."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bu iPhone'un parolası kapatıldığı için cüzdan kaldırıldı. Geri yüklemek için kurtarma ifadenizi içe aktarın."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "关闭此 iPhone 的密码后，钱包已被移除。导入你的助记词即可恢复。"
           }
         }
       }
@@ -8135,6 +8187,58 @@
           "stringUnit": {
             "state": "translated",
             "value": "你的密钥留在此 iPhone 上，受面容 ID 保护。"
+          }
+        }
+      }
+    },
+    "Your last send may have gone through already. Check the explorer before you send again.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine letzte Transaktion ist vielleicht schon durchgegangen. Prüfe im Explorer, bevor du erneut sendest."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puede que tu último envío ya se haya realizado. Compruébalo en el explorador antes de volver a enviar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Votre dernier envoi est peut-être déjà passé. Vérifiez dans l’explorateur avant de renvoyer."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前回の送金はすでに完了している可能性があります。もう一度送金する前に、エクスプローラーで確認してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마지막으로 보낸 내역이 이미 처리되었을 수 있습니다. 다시 보내기 전에 탐색기에서 확인하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talvez seu último envio já tenha sido feito. Confira no explorador antes de enviar de novo."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Son gönderiminiz zaten gerçekleşmiş olabilir. Yeniden göndermeden önce blok gezgininde kontrol edin."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你上一笔转账可能已经发出。再次发送前，请先在区块浏览器中查看。"
           }
         }
       }

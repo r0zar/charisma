@@ -11,3 +11,25 @@ struct SafariView: UIViewControllerRepresentable {
 
     func updateUIViewController(_ controller: SFSafariViewController, context: Context) {}
 }
+
+extension View {
+    /// Links in this view open in a web page inside the app (SafariView), not in Safari: leaving the app locks the wallet
+    func inAppLinks() -> some View {
+        modifier(InAppLinks())
+    }
+}
+
+private struct InAppLinks: ViewModifier {
+    @State private var page: URL?
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\.openURL, OpenURLAction { url in
+                page = url
+                return .handled
+            })
+            .sheet(isPresented: Binding(get: { page != nil }, set: { if !$0 { page = nil } })) {
+                if let page { SafariView(url: page).ignoresSafeArea().privacyCover() }
+            }
+    }
+}

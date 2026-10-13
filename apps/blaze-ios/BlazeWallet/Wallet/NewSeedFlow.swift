@@ -3,12 +3,14 @@ import SwiftUI
 import WalletCore
 
 /// A new seed phrase: name it, write the 24 words down, confirm three of them. Nothing is saved until confirmed, so
-/// no wallet ever exists with words nobody wrote down.
+/// no wallet ever exists with words nobody wrote down. Until then the words are kept as a draft, so leaving the app
+/// (even if iOS closes it meanwhile) comes back to the same words; Cancel forgets them.
 struct NewSeedFlow: View {
     let mode: SeedMode
     var onDone: () -> Void = {}
 
     @Environment(Vault.self) private var vault
+    @Environment(\.dismiss) private var dismiss
     @State private var step = Step.name
     @State private var name = ""
     @State private var words: [String] = []
@@ -19,6 +21,17 @@ struct NewSeedFlow: View {
     @State private var error: Error?
 
     private enum Step { case name, words, confirm }
+
+    init(mode: SeedMode, resuming draft: SeedDraft? = nil, onDone: @escaping () -> Void = {}) {
+        self.mode = mode
+        self.onDone = onDone
+        if let draft, draft.mode == mode {
+            _step = State(initialValue: .words)
+            _name = State(initialValue: draft.name)
+            _words = State(initialValue: draft.words)
+            _checks = State(initialValue: draft.checks)
+        }
+    }
 
     var body: some View {
         Form {
@@ -32,6 +45,14 @@ struct NewSeedFlow: View {
         .background(Color.brand("bg"))
         .navigationTitle(step == .name ? "New seed phrase" : step == .words ? "Write these down" : "Confirm your words")
         .navigationBarTitleDisplayMode(.inline)
+        // Once there are words, leaving takes Cancel, which forgets them: Back or a swipe would leave them behind
+        .navigationBarBackButtonHidden(step != .name)
+        .interactiveDismissDisabled(step != .name)
+        .toolbar {
+            if step != .name {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel", action: cancel) }
+            }
+        }
     }
 
     @ViewBuilder private var nameStep: some View {
@@ -87,11 +108,23 @@ struct NewSeedFlow: View {
             return
         }
         do {
-            words = try Mnemonic.generate().split(separator: " ").map(String.init)
+            let words = try Mnemonic.generate().split(separator: " ").map(String.init)
             // Three distinct positions, from the system's secure random generator
-            checks = Array((1...words.count).shuffled().prefix(3)).sorted()
+            let checks = Array((1...words.count).shuffled().prefix(3)).sorted()
+            try vault.keep(SeedDraft(mode: mode, name: trimmed, words: words, checks: checks))
+            self.words = words
+            self.checks = checks
             answers = [:]
             step = .words
+        } catch {
+            self.error = error
+        }
+    }
+
+    private func cancel() {
+        do {
+            try vault.keep(nil)
+            dismiss()
         } catch {
             self.error = error
         }
@@ -108,6 +141,7 @@ struct NewSeedFlow: View {
         defer { saving = false }
         do {
             try await mode.save(name: name, words: words.joined(separator: " "), in: vault)
+            try vault.keep(nil)
             onDone()
         } catch VaultError.cancelled {
             // Face ID dismissed: stay here so the person can try again
