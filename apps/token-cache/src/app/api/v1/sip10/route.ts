@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAllMetadata } from '@/lib/tokenService';
+import { isValidDecimals } from '@/lib/cryptonomicon';
 
 /**
  * Define CORS headers for API routes
@@ -26,10 +27,11 @@ export async function GET(req: NextRequest) {
         // Fetch all tokens using the existing service
         const cacheData = await getAllMetadata();
 
-        // Filter out tokens that don't have essential fields (relaxed image requirement)
+        // Filter out tokens that don't have essential fields (relaxed image requirement). Decimals must be ones a real
+        // token can have: wallets turn typed amounts into smallest units with them.
         const tokens = cacheData
             .filter(token => {
-                const hasEssentials = token.contractId && token.symbol && (token.decimals !== undefined);
+                const hasEssentials = token.contractId && token.symbol && isValidDecimals(token.decimals);
                 if (!hasEssentials && process.env.NODE_ENV === 'development') {
                     console.debug(`[API] Filtering out token due to missing essentials:`, {
                         contractId: token.contractId,

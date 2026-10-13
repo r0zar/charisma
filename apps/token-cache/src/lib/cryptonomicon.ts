@@ -18,6 +18,13 @@ const STX_TOKEN: TokenCacheData = {
     image: "https://charisma.rocks/stx-logo.png",
 };
 
+/**
+ * Decimals a real token can have: a whole number from 0 to 38, since a uint128 amount holds 38 digits. Anything else
+ * would move every amount shown or sent by a power of ten.
+ */
+export const isValidDecimals = (decimals: unknown): decimals is number =>
+    Number.isInteger(decimals) && (decimals as number) >= 0 && (decimals as number) <= 38;
+
 export interface MetadataServiceConfig {
     apiKey?: string;
     proxy?: string;
@@ -47,6 +54,7 @@ export class Cryptonomicon {
     /**
      * Get token metadata, prioritizing external token_uri if available,
      * then Hiro API, and finally direct contract calls as fallbacks.
+     * Decimals are the exception: they only ever come from the contract.
      *
      * @param contractId The contract ID to fetch metadata for
      * @returns TokenMetadata or null if not found
@@ -94,20 +102,18 @@ export class Cryptonomicon {
             console.log(`[${contractId}] External Metadata:`, offChainMetadata);
             console.log(`[${contractId}] Metadata API Data:`, metadataApiData);
 
-            // 3. Fetch essential data (name, symbol, decimals, identifier) directly from contract if needed
+            // 3. Fetch essential data (name, symbol, identifier) directly from contract if needed
             if (!metadataApiData.name || !offChainMetadata.name || !metadataApiData.symbol || !offChainMetadata.symbol ||
-                metadataApiData.decimals === undefined || offChainMetadata.decimals === undefined ||
                 !metadataApiData.identifier || !offChainMetadata.identifier) {
                 try {
                     if (this.config.debug) console.debug(`[${contractId}] Fetching basic contract data as fallback...`);
-                    const [name, symbol, decimals, identifier] = await Promise.all([
+                    const [name, symbol, identifier] = await Promise.all([
                         this.getTokenName(contractId).catch(() => undefined),
                         this.getTokenSymbol(contractId).catch(() => undefined),
-                        this.getTokenDecimals(contractId).catch(() => undefined),
                         this.getTokenIdentifier(contractId).catch(() => undefined)
                     ]);
-                    // Assign name, symbol, decimals, identifier to fallback
-                    fallbackContractData = { name, symbol, decimals, identifier };
+                    // Assign name, symbol, identifier to fallback
+                    fallbackContractData = { name, symbol, identifier };
                     if (this.config.debug) console.debug(`[${contractId}] Contract fallback data:`, fallbackContractData);
                 } catch (contractError) {
                     console.warn(`Failed to fetch on-chain basic info from contract ${contractId}: ${contractError}`);
@@ -127,6 +133,13 @@ export class Cryptonomicon {
                 }
             }
 
+            // 3c. Decimals only ever come from the contract: metadata JSON can't change them, and they're never guessed.
+            // A contract that can't be read leaves them unset, and the token list leaves the token out.
+            const decimals = await this.getTokenDecimals(contractId).catch(error => {
+                console.warn(`[${contractId}] No decimals: ${error}`);
+                return undefined;
+            });
+
             // 4. Generate default metadata when external sources fail
             const defaultMetadata = this.generateDefaultMetadata(contractId, fallbackContractData);
 
@@ -138,6 +151,8 @@ export class Cryptonomicon {
                 ...this.filterUndefined(metadataApiData),          // Metadata API has highest precedence
                 contractId, // Ensure contractId is always set
             };
+            delete finalMetadata.decimals;
+            if (decimals !== undefined) finalMetadata.decimals = decimals;
 
             // 4b. Override total_supply with the on-chain value if fetched successfully
             if (onChainSupply !== undefined) {
@@ -246,7 +261,6 @@ export class Cryptonomicon {
         return {
             name: contractData.name || contractName || 'Unknown Token',
             symbol: contractData.symbol || 'TOKEN',
-            decimals: contractData.decimals || 6,
             description,
             image: imageUrl,
             identifier: contractData.identifier || contractName || 'token',
@@ -523,35 +537,17 @@ export class Cryptonomicon {
     }
 
     /**
-     * Get a token's decimals from contract
+     * A token's decimals from its contract (SIP-010 get-decimals). Throws when the contract can't be read (including a
+     * Hiro rate limit) or answers something no real token has: a guess would move every amount by a power of ten.
      */
     async getTokenDecimals(contractId: string): Promise<number> {
-        try {
-            const [contractAddress, contractName] = contractId.split('.');
-            if (!contractAddress || !contractName) {
-                if (this.config.debug) console.warn(`Invalid contractId for getTokenDecimals: ${contractId}`);
-                return 6; // Original fallback
-            }
-            const result = await callReadOnlyFunction(
-                contractAddress,
-                contractName,
-                "get-decimals",
-                []
-            );
-            if (result?.value !== undefined) {
-                const decimals = Number(result.value);
-                if (this.config.debug) console.debug(`[${contractId}] Decimals from contract: ${decimals}`);
-                return decimals;
-            } else {
-                if (this.config.debug) console.warn(`[${contractId}] Contract returned no decimals value`);
-                return 6;
-            }
-        } catch (error) {
-            if (this.config.debug) {
-                console.warn(`Failed to get decimals for ${contractId}:`, error);
-            }
-            return 6; // Default to 6 decimals if contract call fails
-        }
+        const [contractAddress, contractName] = contractId.split('.');
+        if (!contractAddress || !contractName) throw new Error(`Invalid contractId for getTokenDecimals: ${contractId}`);
+        const result = await callReadOnlyFunction(contractAddress, contractName, "get-decimals", []);
+        const decimals = Number(result?.value);
+        if (!isValidDecimals(decimals)) throw new Error(`${contractId} get-decimals answered ${JSON.stringify(result)}`);
+        if (this.config.debug) console.debug(`[${contractId}] Decimals from contract: ${decimals}`);
+        return decimals;
     }
 
     /**
