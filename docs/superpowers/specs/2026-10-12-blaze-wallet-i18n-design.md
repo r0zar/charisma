@@ -104,7 +104,7 @@ On iOS, seed-word fields also use the ASCII-capable keyboard with autocapitaliza
 
 **The helper**, `src/shared/i18n.ts`, for extension pages only. It builds on `i18n-core.ts`:
 - `chrome.i18n.getMessage` can't switch languages on demand, so the helper reads the same nine files, bundled as JSON imports.
-- It exposes `t(key, ...args)`; `plural(key, count, ...args)`, which picks with `Intl.PluralRules` and falls back to `_other`; and `locale`, the BCP 47 tag for `Intl` formatting.
+- It exposes `t(key, ...fills)`; `plural(key, count, ...fills)`, which picks with `Intl.PluralRules` and falls back to `_other`; and `locale`, the BCP 47 tag for `Intl` formatting.
 - The setting lives in `localStorage` (`blaze-language`: `auto` or a folder name), like the theme. Every extension page shares one origin, so one pick covers the side panel and the approval window.
 - Automatic reads `chrome.i18n.getUILanguage()`.
 - The helper sets `<html lang>` at load.
@@ -113,13 +113,15 @@ On iOS, seed-word fields also use the ASCII-capable keyboard with autocapitaliza
 **The picker.** Wallet → Vault card, a Language dropdown under Theme. Choosing a language saves it and reloads the side panel. The wallet stays unlocked, since the session is in `chrome.storage.session`. An open approval window picks it up the next time it opens.
 
 **Errors from the background.** The background never picks a language.
-- **WalletError.** These throw a `WalletError` carrying a message key and its arguments:
-  - the 23 `throw new Error(...)` sites whose messages reach the wallet's own pages, in `messages/handler.ts`, `lib/wallet/storage.ts`, `lib/wallet/index.ts`, `lib/tokens.ts` and `lib/diagnostics.ts`
+- **WalletError.** These throw a `WalletError` carrying a message key and its fills (the values for `$1`…`$9`):
+  - the 19 `throw new Error(...)` sites whose messages reach the wallet's own pages, in `lib/wallet/storage.ts`, `lib/wallet/index.ts`, `lib/tokens.ts` and `lib/diagnostics.ts`
   - `handleApproval`'s "This request is no longer waiting" in `lib/provider.ts`
 
+  The 4 guards in `messages/handler.ts` (an invalid id, a sender that isn't a wallet page, an invalid send, an unknown action) stay plain errors. Only a bug can reach them, so they cross as `{ message }` and show after the "Something went wrong" lead-in.
+
   Its `.message` is the English text, built from `locales/en/messages.json`. So anything that still reads `.message`, such as the JSON-RPC errors `handleRpc` returns to websites, stays English for developers.
-- **Wallet pages.** The message handler replies `{ success: false, error: { key, args } }` for a `WalletError`, and `{ success: false, error: { message } }` for anything else (a library or a server). `handleApproval`'s reply to the approval window does the same: `{ error: { key, args } }` or `{ error: { message } }`.
-- **Translating.** `sendMessage` in `src/shared/context/utils.ts` and `ask()` in `src/tabs/approve.tsx` both turn a keyed error into an `Error` with message `t(key, ...args)`. An unexpected one becomes an `Error` with the raw message, marked `unexpected`.
+- **Wallet pages.** The message handler replies `{ success: false, error: { key, fills } }` for a `WalletError`, and `{ success: false, error: { message } }` for anything else (a library or a server). `handleApproval`'s reply to the approval window does the same: `{ error: { key, fills } }` or `{ error: { message } }`.
+- **Translating.** `sendMessage` in `src/shared/context/utils.ts` and `ask()` in `src/tabs/approve.tsx` both turn a keyed error into an `Error` with message `t(key, ...fills)`. An unexpected one becomes an `Error` with the raw message, marked `unexpected`.
 - **Lead-ins.** The shared `ErrorText` adds the "Something went wrong: {message}" lead-in only to unexpected errors. A line with its own lead-in, like "Prices unavailable: {message}", shows the raw message, so lead-ins are never doubled.
   - For that to work, screens keep the `Error` itself in state, not just `err.message`.
   - The approval window shows its errors with `ErrorText` instead of its own `<p className="w-error">` (`approve.tsx` lines 148 and 170).
