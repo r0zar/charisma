@@ -19,6 +19,7 @@ It has no website connections. Specs: `docs/superpowers/specs/2026-10-12-blaze-w
 
 - `swift test --package-path apps/blaze-ios/BlazeKit` runs the StacksKit and WalletCore tests.
 - `BLAZE_LIVE=1 swift test --package-path apps/blaze-ios/BlazeKit --filter Live` runs the same checks against the real servers. They only read.
+- **No 128-bit arguments on async functions,** bare or in a small struct: Swift 6.3 debug builds on arm64 can corrupt them and the arguments after them. Pass a large struct that holds the number instead (see `Send.review`).
 
 ## Regenerate
 

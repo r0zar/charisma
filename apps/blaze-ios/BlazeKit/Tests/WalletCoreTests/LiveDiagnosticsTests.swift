@@ -14,10 +14,7 @@ struct LiveDiagnosticsTests {
         #expect(diagnostics.blockHeight > 0 && diagnostics.tokenCount > 0)
         #expect(diagnostics.subnets.count >= 30)
         #expect(diagnostics.subnets.contains { ($0.balance ?? 0) > 0 })
-        // A second look within a minute is kept, not read again
-        let clock = ContinuousClock()
-        let start = clock.now
-        let kept = try await reader.balances(of: deployer, list: try await Charisma().tokenList())
-        #expect(!kept.isEmpty && start.duration(to: clock.now) < .seconds(5))
+        // A second look within a minute is the kept answer: read again, an empty list would give no subnets at all
+        #expect(try await reader.balances(of: deployer, list: []) == diagnostics.subnets)
     }
 }

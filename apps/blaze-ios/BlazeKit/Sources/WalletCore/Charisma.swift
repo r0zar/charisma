@@ -101,7 +101,8 @@ public struct Charisma: Sendable {
                         }
                     } catch {
                         if Task.isCancelled { break }
-                        Log.network.error("balance stream: \(error, privacy: .public)")
+                        // A URLError's own description names the URL, which holds the address
+                        Log.network.error("balance stream: \((error as? URLError)?.localizedDescription ?? "\(error)", privacy: .public)")
                         wait = min(wait * 2, 30)
                     }
                     try? await Task.sleep(for: .seconds(wait))
