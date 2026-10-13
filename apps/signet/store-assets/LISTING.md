@@ -11,7 +11,10 @@ Upload `build/blaze-wallet-chrome.zip` (made by `pnpm package:store` in apps/sig
 
 **Category:** Tools (or Productivity; pick in the dashboard)
 
-**Language:** English
+**Languages:** English, 한국어, 简体中文, Español, Français, Deutsch, Türkçe, 日本語, Português (Brasil).
+- The summary comes from the extension itself (`locales/{folder}/messages.json`, `extensionDescription`), in each language.
+- In the dashboard, add each language and paste its description from `listing/{folder}.md` (folders `ko`, `zh_CN`, `es`, `fr`, `de`, `tr`, `ja`, `pt_BR`).
+- The privacy and permission sections aren't per-language.
 
 **Description:**
 

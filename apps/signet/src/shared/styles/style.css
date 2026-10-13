@@ -129,7 +129,7 @@ input[type="checkbox"] {
 }
 
 .w-stack { display: flex; flex-direction: column; gap: 12px; }
-.w-actions { display: flex; gap: 8px; }
+.w-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .w-actions > * { flex: 1; }
 
 /* A list inside a card: rows split by soft lines */
