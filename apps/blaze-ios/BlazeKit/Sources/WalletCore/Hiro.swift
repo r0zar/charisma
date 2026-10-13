@@ -27,7 +27,7 @@ public struct Hiro: Sendable {
         }
         struct Estimate: Decodable { let fee: UInt64 }
         struct Answer: Decodable { let estimations: [Estimate] }
-        let request = HTTP.jsonRequest(
+        let request = try HTTP.jsonRequest(
             Self.base.appending(path: "v2/fees/transaction"),
             Request(transaction_payload: transaction.payloadHex, estimated_len: transaction.estimatedLength)
         )
@@ -41,17 +41,19 @@ public struct Hiro: Sendable {
             throw WalletError.requestFailed(.stacks, status: response.statusCode)
         }
         let rate = try await http.get(Self.base.appending(path: "v2/fees/transfer"), from: .stacks, as: UInt64.self)
-        return rate * UInt64(transaction.estimatedLength)
+        let (fee, overflow) = rate.multipliedReportingOverflow(by: UInt64(transaction.estimatedLength))
+        guard !overflow else { throw WalletError.unreadable(.stacks) }
+        return fee
     }
 
-    /// Sends a signed transaction to the network and returns its txid
+    /// Sends a signed transaction to the network and returns its txid, computed from the signed bytes
     public func broadcast(_ transaction: StacksTransaction) async throws -> String {
         struct Request: Encodable { let tx: String }
         struct Rejection: Decodable {
             let error: String?
             let reason: String?
         }
-        let request = HTTP.jsonRequest(Self.base.appending(path: "v2/transactions"), Request(tx: transaction.serialized.hex))
+        let request = try HTTP.jsonRequest(Self.base.appending(path: "v2/transactions"), Request(tx: transaction.serialized.hex))
         let (data, response) = try await http.answer(request, from: .stacks)
         if response.statusCode == 400 {
             // Refused transactions come back as JSON; ones the node can't even read, as plain text
@@ -61,9 +63,12 @@ public struct Hiro: Sendable {
         guard (200..<300).contains(response.statusCode) else {
             throw WalletError.requestFailed(.stacks, status: response.statusCode)
         }
-        let txid = try http.decode(data, from: .stacks, as: String.self)
-        guard txid.count == 64 || txid.count == 66 else { throw WalletError.unreadable(.stacks) }
-        return txid.hasPrefix("0x") ? String(txid.dropFirst(2)) : txid
+        let answered = try http.decode(data, from: .stacks, as: String.self)
+        let txid = transaction.txid
+        if answered != txid && answered != "0x" + txid {
+            Log.network.error("Hiro answered txid \(answered, privacy: .public), the signed transaction is \(txid, privacy: .public)")
+        }
+        return txid
     }
 
     /// The Stacks tip height, for Status

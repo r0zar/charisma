@@ -39,8 +39,10 @@ public enum WalletError: Error, Equatable, Sendable {
     case amountNotPositive
     /// More than the Standard balance, which is what sends spend (`available` in smallest units)
     case moreThanBalance(available: Int128)
-    /// The token list has no asset name for this token, so the send's post condition can't be written
-    case missingAssetName(symbol: String)
+    /// More than one transfer can carry: Stacks transfers and post conditions hold at most UInt64.max smallest units
+    case amountTooLarge
+    /// The token can't be sent from the wallet, and why. `symbol` is its symbol, or its contract id when unknown.
+    case unsendable(Unsendable, symbol: String)
     /// The fee, plus the amount for an STX send, doesn't fit the STX balance. `mostSendable` is set for STX sends.
     case notEnoughSTXForFee(fee: Int128, stxBalance: Int128, mostSendable: Int128?)
     /// The network refused the transaction; `reason` is the node's own text

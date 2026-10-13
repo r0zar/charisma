@@ -27,7 +27,7 @@ public enum Amount {
     /// What someone typed, as smallest units, exactly. Accepts digits and at most one of the locale's decimal mark:
     /// no grouping marks, no sign.
     public static func parse(_ text: String, decimals: Int, locale: Locale) throws -> Int128 {
-        let parts = text.trimmingCharacters(in: .whitespaces).components(separatedBy: decimalMark(locale))
+        let parts = text.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: decimalMark(locale))
         guard parts.count <= 2, parts.contains(where: { !$0.isEmpty }),
               parts.allSatisfy({ $0.allSatisfy { $0.isASCII && $0.isNumber } }) else { throw WalletError.invalidAmount }
         let fraction = parts.count == 2 ? parts[1] : ""
@@ -66,7 +66,11 @@ public enum Amount {
     }
 
     /// The locale's decimal mark, for example text such as "1,5"
-    public static func decimalMark(_ locale: Locale) -> String { locale.decimalSeparator ?? "." }
+    public static func decimalMark(_ locale: Locale) -> String {
+        let formatter = NumberFormatter()
+        formatter.locale = locale
+        return formatter.decimalSeparator
+    }
 
     private static func decimal(_ raw: Int128, decimals: Int) -> Decimal {
         // Decimal is base 10, so this is exact for every amount under 38 digits

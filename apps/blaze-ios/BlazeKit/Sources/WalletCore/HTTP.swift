@@ -9,14 +9,16 @@ struct HTTP: Sendable {
     }
 
     func post<T: Decodable>(_ url: URL, json: some Encodable, from service: Service, as: T.Type = T.self) async throws -> T {
-        try decode(try await send(Self.jsonRequest(url, json), to: service), from: service)
+        try decode(try await send(try Self.jsonRequest(url, json), to: service), from: service)
     }
 
-    /// The body of a 2xx answer. Hiro rate limits (429) are waited out: its Retry-After, otherwise 1, 2 then 4 seconds.
+    /// The body of a 2xx answer. Hiro rate limits (429) are waited out up to 3 times: its Retry-After (the 429 is the
+    /// error when that's over 10 seconds), otherwise 1, 2 then 4 seconds.
     func send(_ request: URLRequest, to service: Service) async throws -> Data {
         let (data, response) = try await answer(request, from: service)
         guard (200..<300).contains(response.statusCode) else {
-            Log.network.error("\(request.url?.absoluteString ?? "?", privacy: .public) answered \(response.statusCode)")
+            // Service and status only: URLs carry the person's address
+            Log.network.error("\(service.rawValue, privacy: .public) answered \(response.statusCode)")
             throw WalletError.requestFailed(service, status: response.statusCode)
         }
         return data
@@ -31,19 +33,19 @@ struct HTTP: Sendable {
             let data: Data, response: URLResponse
             do {
                 (data, response) = try await session.data(for: request)
-            } catch let error as URLError where error.code == .cancelled {
-                // SwiftUI cancels work it no longer needs (a tab or account switch): not a failure to show
-                throw CancellationError()
-            } catch is CancellationError {
-                throw CancellationError()
             } catch {
-                Log.network.error("\(request.url?.absoluteString ?? "?", privacy: .public): \(error.localizedDescription, privacy: .public)")
+                // SwiftUI cancels work it no longer needs (a tab or account switch): not a failure to show
+                if Task.isCancelled { throw CancellationError() }
+                Log.network.error("\(service.rawValue, privacy: .public): \(error.localizedDescription, privacy: .public)")
                 throw WalletError.unreachable(service)
             }
             guard let http = response as? HTTPURLResponse else { throw WalletError.unreadable(service) }
             if http.statusCode == 429, service == .stacks, attempt < 3 {
-                let retryAfter = http.value(forHTTPHeaderField: "Retry-After").flatMap(Double.init) ?? 0
-                try await Task.sleep(for: .seconds(retryAfter > 0 ? retryAfter : pow(2, Double(attempt))))
+                let retryAfter = http.value(forHTTPHeaderField: "Retry-After").flatMap(Double.init)
+                let wait = retryAfter.map { $0 > 0 ? $0 : 1 } ?? pow(2, Double(attempt))
+                // A long Retry-After isn't worth waiting on: the 429 becomes the error
+                guard wait <= 10 else { return (data, http) }
+                try await Task.sleep(for: .seconds(wait))
                 attempt += 1
                 continue
             }
@@ -60,11 +62,15 @@ struct HTTP: Sendable {
         }
     }
 
-    static func jsonRequest(_ url: URL, _ body: some Encodable) -> URLRequest {
+    static func jsonRequest(_ url: URL, _ body: some Encodable) throws -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONEncoder().encode(body)
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+        } catch {
+            throw WalletError.unexpected(String(describing: error))
+        }
         return request
     }
 }

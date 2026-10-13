@@ -43,45 +43,63 @@ public enum Send {
     public static func transaction(
         row: TokenRow, recipient: Principal, amount: Int128, publicKey: Data, nonce: UInt64 = 0, fee: UInt64 = 0
     ) throws -> StacksTransaction {
-        guard let micro = UInt64(exactly: amount) else { throw WalletError.invalidAmount }
+        guard let micro = UInt64(exactly: amount) else { throw WalletError.amountTooLarge }
         if row.isSTX {
             return .stxTransfer(to: recipient, amount: micro, publicKey: publicKey, nonce: nonce, fee: fee)
         }
-        guard let asset = row.asset else { throw WalletError.missingAssetName(symbol: row.meta?.symbol ?? row.contractId) }
+        guard let asset = row.asset else { throw unsendable(.missingAssetName, row) }
         guard case .contract(let token, let name) = try? Principal(row.contractId) else { throw WalletError.unexpected(row.contractId) }
         do {
             return try .sip10Transfer(token: token, tokenName: name, asset: asset, amount: micro, to: recipient, publicKey: publicKey, nonce: nonce, fee: fee)
+        } catch StacksError.invalidAssetName {
+            throw unsendable(.missingAssetName, row)
         } catch {
-            throw WalletError.missingAssetName(symbol: row.meta?.symbol ?? row.contractId)
+            throw WalletError.unexpected(String(describing: error))
         }
     }
 
-    /// Checks everything a send needs, estimating the network fee. `stxBalance` is the Standard STX balance.
+    /// Checks everything a send needs, estimating the network fee. `locale` reads the typed amount. `stx` is the STX row:
+    /// the fee comes out of its Standard balance.
+    ///
+    /// It takes the STX row, not its balance, because Swift 6.3 can pass an Int128 argument of an async function, and
+    /// the arguments after it, corrupted: a 1 STX balance arrived as a 30-digit number. Async functions here take no
+    /// Int128 arguments; pass the struct that holds the number.
     public static func review(
-        row: TokenRow, recipient recipientText: String, amount amountText: String, stxBalance: Int128,
-        account: Account, locale: Locale, hiro: Hiro
+        row: TokenRow, recipient recipientText: String, amount amountText: String, locale: Locale, stx: TokenRow,
+        account: Account, hiro: Hiro
     ) async throws -> SendReview {
-        if row.unsendable == .missingAssetName { throw WalletError.missingAssetName(symbol: row.meta?.symbol ?? row.contractId) }
+        guard stx.isSTX else { throw WalletError.unexpected("\(stx.contractId) isn't the STX row") }
+        if let reason = row.unsendable { throw unsendable(reason, row) }
         let recipient = try recipient(recipientText)
         let amount = try amount(amountText, row: row, locale: locale)
         let publicKey = try Self.publicKey(of: account)
         let fee = Int128(try await hiro.estimateFee(for: transaction(row: row, recipient: recipient, amount: amount, publicKey: publicKey)))
-        try checkFee(fee, amount: amount, row: row, stxBalance: stxBalance)
+        try checkFee(fee, amount: amount, row: row, stxBalance: stx.standard)
         return SendReview(row: row, recipient: recipient, amount: amount, fee: fee)
     }
 
-    /// Signs with the account's key at its next nonce and broadcasts. Returns the txid.
-    public static func send(_ review: SendReview, from account: Account, hiro: Hiro) async throws -> String {
+    /// Signs the reviewed send with the account's key at its next nonce. Keep the result: after a failed broadcast, try
+    /// `broadcast` again with this same transaction, never a new signature. It has one txid and one nonce, so if the
+    /// first attempt got through after all, the network already has it or refuses the copy: it can't go out twice.
+    public static func sign(_ review: SendReview, from account: Account, hiro: Hiro) async throws -> StacksTransaction {
         let nonce = try await hiro.nextNonce(address: account.stxAddress)
-        guard let fee = UInt64(exactly: review.fee) else { throw WalletError.invalidAmount }
+        // Always fits: the review's fee came from Hiro as a UInt64
+        guard let fee = UInt64(exactly: review.fee) else { throw WalletError.unexpected("fee \(review.fee)") }
         let unsigned = try transaction(row: review.row, recipient: review.recipient, amount: review.amount, publicKey: try publicKey(of: account), nonce: nonce, fee: fee)
-        let signed: StacksTransaction
         do {
-            signed = try unsigned.signed(privateKey: Data(hex: account.privateKey))
+            return try unsigned.signed(privateKey: Data(hex: account.privateKey))
         } catch {
             throw WalletError.unexpected(String(describing: error))
         }
-        return try await hiro.broadcast(signed)
+    }
+
+    /// Sends a signed transaction to the network. Returns its txid, computed here from the signed bytes.
+    public static func broadcast(_ signed: StacksTransaction, hiro: Hiro) async throws -> String {
+        try await hiro.broadcast(signed)
+    }
+
+    private static func unsendable(_ reason: Unsendable, _ row: TokenRow) -> WalletError {
+        .unsendable(reason, symbol: row.meta?.symbol ?? row.contractId)
     }
 
     private static func publicKey(of account: Account) throws -> Data {

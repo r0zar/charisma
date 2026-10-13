@@ -4,7 +4,7 @@ import Testing
 @testable import WalletCore
 
 /// Status's checks against the real servers. Opt in: BLAZE_LIVE=1 swift test --filter LiveDiagnosticsTests
-@Suite(.enabled(if: ProcessInfo.processInfo.environment["BLAZE_LIVE"] == "1"), .timeLimit(.minutes(1)))
+@Suite(.enabled(if: ProcessInfo.processInfo.environment["BLAZE_LIVE"] == "1"), .timeLimit(.minutes(2)))
 struct LiveDiagnosticsTests {
     @Test func statusChecksEverything() async throws {
         let hiro = Hiro()
@@ -17,7 +17,7 @@ struct LiveDiagnosticsTests {
         // A second look within a minute is kept, not read again
         let clock = ContinuousClock()
         let start = clock.now
-        _ = await reader.balances(of: deployer, list: try await Charisma().tokenList())
-        #expect(start.duration(to: clock.now) < .seconds(5))
+        let kept = try await reader.balances(of: deployer, list: try await Charisma().tokenList())
+        #expect(!kept.isEmpty && start.duration(to: clock.now) < .seconds(5))
     }
 }

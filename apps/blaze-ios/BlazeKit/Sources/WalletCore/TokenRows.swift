@@ -1,15 +1,21 @@
 import Foundation
 
-/// What the wallet knows about a token. Without all three of name, symbol and decimals a token is unknown: shown in
-/// raw units and never sendable, never guessed.
+/// What the wallet knows about a token. Without all three of name, symbol and decimals (0 to 38) a token is unknown:
+/// shown in raw units and never sendable, never guessed. The token list copies decimals from the token author's own
+/// metadata, so a negative or absurd value is refused here rather than trusted.
 public struct TokenMeta: Hashable, Sendable {
     public let name: String
     public let symbol: String
     public let decimals: Int
     public let image: URL?
 
+    /// Decimals a real token can have: an Int128 amount holds 38 digits
+    static let decimalRange = 0...38
+
     init?(_ info: TokenInfo) {
-        guard let name = info.name, let symbol = info.symbol, let decimals = info.decimals else { return nil }
+        guard let name = info.name, let symbol = info.symbol, let decimals = info.decimals, Self.decimalRange.contains(decimals) else {
+            return nil
+        }
         self.name = name
         self.symbol = symbol
         self.decimals = decimals
