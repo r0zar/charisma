@@ -5,7 +5,8 @@
  *   - every message fills the same $1…$9 slots as English
  *   - no $word$ pattern anywhere: Chrome reads one as an undefined placeholder and won't load the extension
  *   - extensionDescription is 132 characters or fewer (Chrome's limit, in every language)
- *   - every key the code uses (t, plural, pluralKey, WalletError, and keys in quotes in label tables) exists in English
+ *   - every key the code uses (t, plural, pluralKey, WalletError, and keys in quotes in label tables) exists in English,
+ *     and every English message is one the code visibly uses: a key reached only through a variable can't be checked
  * Run: pnpm --filter signet-signer check:locales (package:store runs it before building)
  */
 import { readFileSync, readdirSync } from "node:fs"
@@ -66,6 +67,11 @@ for (const file of files(join(root, "src"))) {
 }
 for (const key of used) {
   if (!(key in english) && !pluralBases.has(key)) problems.push(`code uses "${key}", which isn't in locales/en`)
+}
+for (const key of Object.keys(english)) {
+  // The manifest's own message
+  if (key === "extensionDescription") continue
+  if (!used.has(key) && !used.has(base(key))) problems.push(`locales/en has "${key}", which the code never asks for by name`)
 }
 
 if (problems.length) {

@@ -1,7 +1,7 @@
 /**
  * The pieces every approval card shares: the risk pill, the line saying which site asks, and a feature line.
  */
-import type { ReactNode } from 'react';
+import { Fragment, type ReactNode } from 'react';
 import { t } from '~shared/i18n';
 import { PermissionLevel } from './types';
 
@@ -20,11 +20,15 @@ const SITE = '\u0000';
  * bold), and `fills` its other fill-ins ($2…)
  */
 export function RequestHeader({ level, origin, ask, fills = [] }: { level: PermissionLevel; origin: string; ask: string; fills?: (string | number)[] }) {
-  const [before, after] = t(ask, SITE, ...fills).split(SITE);
+  // Fills can come from the website (an app's name): they never carry the stand-in, so only $1 becomes the site
+  const clean = fills.map(fill => (typeof fill === 'string' ? fill.replaceAll(SITE, '') : fill));
+  const parts = t(ask, SITE, ...clean).split(SITE);
   return (
     <>
       <span className={`cx-pill ${RISK[level].pill}`} style={{ alignSelf: 'flex-start' }}>{t(RISK[level].text)}</span>
-      <div className="w-origin">{before}<strong>{origin}</strong>{after}</div>
+      <div className="w-origin">
+        {parts.map((part, i) => <Fragment key={i}>{i > 0 && <strong>{origin}</strong>}{part}</Fragment>)}
+      </div>
     </>
   );
 }

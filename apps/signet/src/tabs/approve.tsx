@@ -18,7 +18,7 @@ import "@repo/brand/tokens.css"
 import "@repo/brand/fonts.css"
 import "@repo/brand/components.css"
 import { applySavedTheme } from "~shared/styles/theme"
-import { fromWire } from "~shared/errors"
+import { UnexpectedError, asError, fromWire } from "~shared/errors"
 import { count, plural, t } from "~shared/i18n"
 import { ErrorText } from "~shared/ui"
 import "~shared/styles/style.css"
@@ -78,6 +78,8 @@ function cardFor(details: Details) {
 
 async function ask<T>(action: string, extra: object = {}): Promise<T> {
   const response = await chrome.runtime.sendMessage({ type: "signet-approval", action, requestId, ...extra })
+    // Chrome couldn't reach the background (it restarted, or its port closed): not one of the wallet's worded errors
+    .catch(error => { throw new UnexpectedError(asError(error).message) })
   // The background's own errors arrive as keys and are worded here, in this page's language
   if (!response || response.error) throw fromWire(response?.error)
   return response.result

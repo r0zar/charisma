@@ -21,13 +21,16 @@ const short = (text: string) => (text.length > 16 ? `${text.slice(0, 6)}…${tex
 /** Micro-STX as STX, exactly: an approval never hides part of an amount */
 const stx = (micro: bigint | string | number) => `${formatUnits(BigInt(micro), 6)} STX`
 
-/** Each condition code's sentence, for "you" and for someone else (whole sentences, so word order can change) */
-const FUNGIBLE: Record<FungibleConditionCode, { you: string; they: string }> = {
-  [FungibleConditionCode.Equal]: { you: "pcYouSendExactly", they: "pcTheySendExactly" },
-  [FungibleConditionCode.Greater]: { you: "pcYouSendMoreThan", they: "pcTheySendMoreThan" },
-  [FungibleConditionCode.GreaterEqual]: { you: "pcYouSendAtLeast", they: "pcTheySendAtLeast" },
-  [FungibleConditionCode.Less]: { you: "pcYouSendLessThan", they: "pcTheySendLessThan" },
-  [FungibleConditionCode.LessEqual]: { you: "pcYouSendAtMost", they: "pcTheySendAtMost" },
+/**
+ * Each condition code's sentence, for "you" (`who` is null) and for someone else: whole sentences, so word order can
+ * change. Keys are written out so the locale check sees every one.
+ */
+const FUNGIBLE: Record<FungibleConditionCode, (who: string | null, amount: string) => string> = {
+  [FungibleConditionCode.Equal]: (who, amount) => (who === null ? t("pcYouSendExactly", amount) : t("pcTheySendExactly", who, amount)),
+  [FungibleConditionCode.Greater]: (who, amount) => (who === null ? t("pcYouSendMoreThan", amount) : t("pcTheySendMoreThan", who, amount)),
+  [FungibleConditionCode.GreaterEqual]: (who, amount) => (who === null ? t("pcYouSendAtLeast", amount) : t("pcTheySendAtLeast", who, amount)),
+  [FungibleConditionCode.Less]: (who, amount) => (who === null ? t("pcYouSendLessThan", amount) : t("pcTheySendLessThan", who, amount)),
+  [FungibleConditionCode.LessEqual]: (who, amount) => (who === null ? t("pcYouSendAtMost", amount) : t("pcTheySendAtMost", who, amount)),
 }
 
 /** Who a condition is about: null for the signer ("you"), otherwise an address or contract name */
@@ -41,19 +44,19 @@ function who(principal: PostConditionPrincipalWire, signer: string | null): stri
 /** One post condition as a sentence, e.g. "You send at most 10 STX" */
 function describe(pc: PostConditionWire, signer: string | null) {
   const sender = who(pc.principal, signer)
-  const you = sender === null
-  const fills = (...rest: string[]) => (you ? rest : [sender, ...rest])
   if (pc.conditionType === PostConditionType.STX || pc.conditionType === PostConditionType.Fungible) {
     const amount = pc.conditionType === PostConditionType.STX
       ? stx(pc.amount)
       : t("tokenSmallestUnits", pc.amount.toString(), pc.asset.assetName.content)
-    const keys = FUNGIBLE[pc.conditionCode]
-    return t(you ? keys.you : keys.they, ...fills(amount))
+    return FUNGIBLE[pc.conditionCode](sender, amount)
   }
-  if (pc.conditionType !== PostConditionType.NonFungible) return t("pcStacking", you ? t("pcYou") : sender)
-  const sends = pc.conditionCode === NonFungibleConditionCode.Sends
-  const key = sends ? (you ? "pcYouSendNft" : "pcTheySendNft") : (you ? "pcYouKeepNft" : "pcTheyKeepNft")
-  return t(key, ...fills(pc.asset.assetName.content, Cl.prettyPrint(pc.assetName)))
+  if (pc.conditionType !== PostConditionType.NonFungible) return t("pcStacking", sender ?? t("pcYou"))
+  const asset = pc.asset.assetName.content
+  const id = Cl.prettyPrint(pc.assetName)
+  if (pc.conditionCode === NonFungibleConditionCode.Sends) {
+    return sender === null ? t("pcYouSendNft", asset, id) : t("pcTheySendNft", sender, asset, id)
+  }
+  return sender === null ? t("pcYouKeepNft", asset, id) : t("pcTheyKeepNft", sender, asset, id)
 }
 
 export function TransactionContent({ origin, address, method, params }: {
@@ -68,7 +71,9 @@ export function TransactionContent({ origin, address, method, params }: {
 
   return (
     <div className="w-approval">
-      <RequestHeader level={PermissionLevel.CRITICAL} origin={origin} ask={isTransfer ? "askSendStx" : "askRunTransaction"} />
+      {isTransfer
+        ? <RequestHeader level={PermissionLevel.CRITICAL} origin={origin} ask="askSendStx" />
+        : <RequestHeader level={PermissionLevel.CRITICAL} origin={origin} ask="askRunTransaction" />}
 
       <div className="cx-pane">
         {isTransfer ? (
