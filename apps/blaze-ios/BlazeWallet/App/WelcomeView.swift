@@ -2,6 +2,8 @@ import SwiftUI
 
 /// No wallet on this iPhone yet: make a new seed phrase or bring one
 struct WelcomeView: View {
+    @Environment(Vault.self) private var vault
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
@@ -12,6 +14,12 @@ struct WelcomeView: View {
                     .multilineTextAlignment(.center)
                     .foregroundStyle(.brand("ink-muted"))
                 Spacer()
+                if vault.walletRemoved {
+                    Text("Turning off this iPhone's passcode removed the wallet from it. Import your seed phrase to restore it.")
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(.brand("warning"))
+                        .brandFont(.callout)
+                }
                 NavigationLink { NewSeedFlow(mode: .createWallet) } label: {
                     Text("Create a new wallet").frame(maxWidth: .infinity)
                 }

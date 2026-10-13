@@ -23,7 +23,9 @@ final class StatusModel {
         subnets = SubnetReader(hiro: hiro)
     }
 
+    /// One check at a time: does nothing while one is running
     func check(address: String) async {
+        guard !checking else { return }
         attemptedAt = Date()
         attemptedFor = address
         error = nil

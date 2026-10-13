@@ -118,7 +118,7 @@ struct WalletTab: View {
                 SeedWordsSheet(name: name, words: phrase.split(separator: " ").map(String.init))
             }
         }
-        // Sheets draw above the root's cover: the 24 new words and Show words must never reach a snapshot
+        // Sheets draw above the root's cover: the 24 new words and Show seed phrase must never reach a snapshot
         .privacyCover()
     }
 
@@ -142,7 +142,7 @@ struct WalletTab: View {
     }
 }
 
-/// One seed phrase: its accounts (Use / Active), + Account, Show words and Unlink
+/// One seed phrase: its accounts (Use / Active), + Account, Show seed phrase and Unlink
 private struct SeedPhraseCard: View {
     let seed: SeedPhrase
     let accounts: [Account]
@@ -158,16 +158,26 @@ private struct SeedPhraseCard: View {
             ForEach(accounts) { account in
                 AccountRow(account: account, isActive: account.id == activeAccountId) { use(account) }
             }
-            HStack {
-                Button("+ Account", action: addAccount)
-                Spacer()
-                Button("Show words", action: showWords)
-                Spacer()
-                Button("Unlink", role: .destructive, action: unlink)
+            // In one row when the language fits it, otherwise one under another
+            ViewThatFits {
+                HStack {
+                    actions
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    actions
+                }
             }
         }
         .buttonStyle(.borderless)
         .padding(.vertical, 4)
+    }
+
+    @ViewBuilder private var actions: some View {
+        Button("+ Account", action: addAccount)
+        Spacer()
+        Button("Show seed phrase", action: showWords)
+        Spacer()
+        Button("Unlink", role: .destructive, action: unlink)
     }
 }
 

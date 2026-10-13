@@ -45,12 +45,13 @@ struct TokenRowView: View {
     }
 }
 
-/// The token's image, or its first letter when there's none or it fails to load (as in the extension)
+/// The token's image, or its first letter when there's none or it fails to load (as in the extension). Unlisted tokens
+/// always show the letter: their image address is the token maker's choice, and loading it would tell them who looked.
 struct TokenIcon: View {
     let row: TokenRow
 
     var body: some View {
-        AsyncImage(url: row.meta?.image) { phase in
+        AsyncImage(url: row.listed ? row.meta?.image : nil) { phase in
             if case .success(let image) = phase {
                 image.resizable().scaledToFill()
             } else {

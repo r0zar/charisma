@@ -20,6 +20,8 @@ struct SendSheet: View {
     @State private var txid: String?
     @State private var busy = false
     @State private var error: Error?
+    /// The explorer page open inside the app
+    @State private var page: URL?
     private let hiro = Hiro()
 
     var body: some View {
@@ -33,17 +35,27 @@ struct SendSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if txid == nil {
-                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(busy) }
                 }
             }
-            .interactiveDismissDisabled(busy)
+            // A signed send stays on screen until it's sent or the person chooses Cancel
+            .interactiveDismissDisabled(busy || (signed != nil && txid == nil))
+            // Links open inside the app: leaving for Safari would lock the wallet and lose the signed send
+            .environment(\.openURL, OpenURLAction { url in
+                page = url
+                return .handled
+            })
+            .sheet(isPresented: Binding(get: { page != nil }, set: { if !$0 { page = nil } })) {
+                if let page { SafariView(url: page).ignoresSafeArea().privacyCover() }
+            }
         }
     }
 
     @ViewBuilder private var form: some View {
         Section("Recipient") {
             TextField(text: $recipient, prompt: Text(verbatim: "SP…")) { EmptyView() }
-                .textInputAutocapitalization(.characters)
+                // Contract names are case-sensitive: capitalizing one changes the address
+                .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .monoFont(.callout)
         }
@@ -53,7 +65,7 @@ struct SendSheet: View {
                     .keyboardType(.decimalPad)
                     .monoFont(.body)
                 Button("Max") {
-                    amount = Amount.editable(max(row.standard, 0), decimals: row.meta?.decimals ?? 0, locale: .current)
+                    if let meta = row.meta { amount = Amount.editable(max(row.standard, 0), decimals: meta.decimals, locale: .current) }
                 }
                 .buttonStyle(.bordered)
             }
@@ -100,12 +112,19 @@ struct SendSheet: View {
             if let signed {
                 // It may be on the network even though no answer came back: the explorer shows whether it is
                 if error != nil {
+                    Text("It may have gone through already. Check the explorer before you send again.")
+                        .brandFont(.footnote)
+                        .foregroundStyle(.brand("ink-muted"))
                     Link(destination: Format.explorer(signed.txid)) {
                         Label("View on explorer", systemImage: "arrow.up.right.square")
                     }
                 }
             } else {
-                Button("Back") { self.review = nil }.disabled(busy)
+                Button("Back") {
+                    error = nil
+                    self.review = nil
+                }
+                .disabled(busy)
             }
         }
     }
@@ -123,6 +142,8 @@ struct SendSheet: View {
     }
 
     private func check() async {
+        // A second tap before the first one's state reaches the screen
+        guard !busy else { return }
         error = nil
         busy = true
         defer { busy = false }
@@ -137,6 +158,7 @@ struct SendSheet: View {
     }
 
     private func send(_ review: SendReview) async {
+        guard !busy else { return }
         error = nil
         busy = true
         defer { busy = false }
@@ -149,6 +171,8 @@ struct SendSheet: View {
                 transaction = try await Send.sign(review, from: account, hiro: hiro)
                 signed = transaction
             }
+            // Signing waits on the network: if the wallet locked meanwhile, nothing goes out
+            try vault.touch()
             txid = try await Send.broadcast(transaction, hiro: hiro)
         } catch {
             self.error = error
