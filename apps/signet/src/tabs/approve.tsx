@@ -114,6 +114,8 @@ export default function Approve() {
   const [error, setError] = useState<Error | null>(null)
   const [stuck, setStuck] = useState(false)
   const [windowId, setWindowId] = useState<number>()
+  // Bumped to load the request again
+  const [loads, setLoads] = useState(0)
   const { proven: visible, restart } = useProvenVisible(frame, !!details)
 
   // Load the request; while the wallet is locked, check again every second
@@ -128,7 +130,7 @@ export default function Approve() {
     load()
     chrome.windows.getCurrent().then(w => setWindowId(w.id))
     return () => clearTimeout(timer)
-  }, [])
+  }, [loads])
 
   // Covered for too long: offer Signet's own window
   useEffect(() => {
@@ -137,10 +139,16 @@ export default function Approve() {
     return () => clearTimeout(timer)
   }, [visible])
 
-  const decide = (approved: boolean) =>
-    ask("decide", { approved })
+  const decide = (approved: boolean) => {
+    setError(null)
+    return ask("decide", { approved })
       .then(() => { if (inWindow) window.close() })
-      .catch(setError)
+      .catch(error => {
+        setError(asError(error))
+        // The wallet may have locked meanwhile: look again, so the card says so and holds Approve until it's unlocked
+        setLoads(n => n + 1)
+      })
+  }
 
   const card = details && cardFor(details)
   const hold = !details?.unlocked ? t("holdUnlockFirst") : !visible ? t("holdChecking") : undefined
