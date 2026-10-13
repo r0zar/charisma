@@ -20,7 +20,8 @@ struct TokensTab: View {
         NavigationStack {
             List {
                 if let unsent = vault.unsent, unsent.address == account.stxAddress {
-                    Section { UnsentSendView(unsent: unsent) }
+                    // Its own view per transaction: a later unsent send starts from its warning, not from this one's "sent"
+                    Section { UnsentSendView(unsent: unsent).id(unsent.transaction.txid) }
                 }
                 totalSection
                 if let error = model.error {

@@ -54,8 +54,14 @@ final class Vault {
             let exists = try Keychain.exists()
             walletRemoved = !exists && UserDefaults.standard.bool(forKey: Self.hadWallet)
             if let data = try Keychain.Draft.read() {
-                // A draft from a build that saved it differently can't be resumed: setting up starts again
-                if let draft = try? JSONDecoder().decode(SeedDraft.self, from: data) { seedDraft = draft } else { try Keychain.Draft.delete() }
+                // A draft from a build that saved it differently can't be resumed, and neither can one for a wallet that
+                // isn't there (iOS removes the wallet, not the draft, when the passcode goes) or a new wallet when one
+                // exists: setting up starts again
+                if let draft = try? JSONDecoder().decode(SeedDraft.self, from: data), (draft.mode == .addToWallet) == exists {
+                    seedDraft = draft
+                } else {
+                    try Keychain.Draft.delete()
+                }
             }
             phase = exists ? .locked : .empty
         } catch {
