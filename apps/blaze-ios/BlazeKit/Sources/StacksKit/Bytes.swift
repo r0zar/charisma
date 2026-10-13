@@ -7,7 +7,7 @@ extension Data {
     /// Bytes from hex, with or without a `0x` prefix
     public init(hex: String) throws {
         let digits = hex.hasPrefix("0x") ? hex.dropFirst(2) : Substring(hex)
-        guard digits.count % 2 == 0, digits.allSatisfy(\.isHexDigit) else { throw StacksError.invalidHex }
+        guard digits.count % 2 == 0, digits.allSatisfy({ $0.isASCII && $0.isHexDigit }) else { throw StacksError.invalidHex }
         var bytes = [UInt8]()
         bytes.reserveCapacity(digits.count / 2)
         var index = digits.startIndex

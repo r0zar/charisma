@@ -10,7 +10,7 @@ public struct StacksAddress: Hashable, Sendable, CustomStringConvertible {
     public let version: UInt8
     public let hash160: Data
 
-    public init(version: UInt8, hash160: Data) {
+    init(version: UInt8, hash160: Data) {
         precondition(version < 32 && hash160.count == 20, "A Stacks address is a version under 32 and 20 bytes")
         self.version = version
         self.hash160 = Data(hash160)
@@ -18,11 +18,13 @@ public struct StacksAddress: Hashable, Sendable, CustomStringConvertible {
 
     /// Reads an address like `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS`, checking its checksum
     public init(_ text: String) throws {
-        let chars = Array(C32.normalize(text))
-        guard chars.count > 5, chars[0] == "S", let version = C32.alphabet.firstIndex(of: chars[1]) else {
+        // The leading S as typed, then the rest normalized (c32addressDecode's order)
+        guard text.first == "S" else { throw StacksError.invalidAddress }
+        let chars = Array(C32.normalize(String(text.dropFirst())))
+        guard chars.count > 4, let version = C32.alphabet.firstIndex(of: chars[0]) else {
             throw StacksError.invalidAddress
         }
-        let data = try C32.decode(String(chars.dropFirst(2)))
+        let data = try C32.decode(String(chars.dropFirst()))
         guard data.count == 24 else { throw StacksError.invalidAddress }
         let hash160 = Data(data.prefix(20))
         guard Self.checksum(version: UInt8(version), hash160: hash160) == Data(data.suffix(4)) else {

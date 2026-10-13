@@ -11,9 +11,10 @@
  * The seed phrases are public BIP39 test phrases: never send funds to their addresses.
  */
 import { writeFileSync } from "node:fs"
+import { createRequire } from "node:module"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { mnemonicToSeedSync } from "@scure/bip39"
+import { entropyToMnemonic, mnemonicToSeedSync } from "@scure/bip39"
 import { wordlist } from "@scure/bip39/wordlists/english"
 import { STACKS_MAINNET } from "@stacks/network"
 import {
@@ -34,10 +35,16 @@ import { generateNewAccount, generateWallet, getStxAddress } from "@stacks/walle
 
 const kit = join(dirname(fileURLToPath(import.meta.url)), "../../blaze-ios/BlazeKit")
 
-const PHRASES = [
-  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
-  "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art"
-]
+/** The versions pnpm-lock.yaml gives apps/signet: the vectors must come from what the extension ships */
+const LOCKED = { "@stacks/transactions": "7.6.0", "@stacks/wallet-sdk": "7.1.2", "@stacks/network": "7.6.0", "@scure/bip39": "1.6.0" }
+const require = createRequire(import.meta.url)
+for (const [name, version] of Object.entries(LOCKED)) {
+  const found = require(`../node_modules/${name}/package.json`).version
+  if (found !== version) throw new Error(`${name} is ${found} here, but the extension ships ${version}. Install the locked version.`)
+}
+
+/** All-zero entropy at every BIP39 length: 12, 15, 18, 21 and 24 words ("abandon … about" to "abandon … art") */
+const PHRASES = [16, 20, 24, 28, 32].map(bytes => entropyToMnemonic(new Uint8Array(bytes), wordlist))
 
 /** Accounts 0–4 of a phrase, exactly as the extension creates them (background/lib/wallet/seed.ts) */
 async function accountsOf(phrase) {

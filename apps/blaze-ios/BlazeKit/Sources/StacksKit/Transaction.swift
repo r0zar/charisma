@@ -29,7 +29,7 @@ public struct StacksTransaction: Hashable, Sendable {
     /// 65 bytes, recovery id then r and s; all zeros until signed
     public let signature: Data
 
-    public init(payload: Payload, postConditions: [SendsExactly] = [], publicKey: Data, nonce: UInt64 = 0, fee: UInt64 = 0) {
+    private init(payload: Payload, postConditions: [SendsExactly] = [], publicKey: Data, nonce: UInt64 = 0, fee: UInt64 = 0) {
         self.init(payload: payload, postConditions: postConditions, publicKey: publicKey, nonce: nonce, fee: fee, signature: Self.emptySignature)
     }
 
@@ -53,8 +53,7 @@ public struct StacksTransaction: Hashable, Sendable {
         publicKey: Data, nonce: UInt64 = 0, fee: UInt64 = 0
     ) throws -> StacksTransaction {
         guard Principal.isContractName(tokenName) else { throw StacksError.invalidContractName }
-        // Clarity asset names are 1 to 128 ASCII bytes
-        guard (1...128).contains(asset.utf8.count), asset.allSatisfy(\.isASCII) else { throw StacksError.invalidContractName }
+        guard isClarityName(asset) else { throw StacksError.invalidAssetName }
         let sender = StacksAddress(publicKey: publicKey)
         return StacksTransaction(
             payload: .contractCall(
@@ -125,6 +124,14 @@ extension StacksTransaction.SendsExactly {
             + Data([token.version]) + token.hash160 + lengthPrefixed(tokenName) + lengthPrefixed(asset)
             + Data([0x01]) + amount.bigEndianData                   // equal to
     }
+}
+
+/// Clarity's rule for asset names: a letter, then letters, digits or `-_!?+<>=/*`, at most 128 characters
+private func isClarityName(_ name: String) -> Bool {
+    guard let first = name.unicodeScalars.first, name.utf8.count <= 128, first.isASCII, CharacterSet.letters.contains(first) else {
+        return false
+    }
+    return name.unicodeScalars.allSatisfy { $0.isASCII && (CharacterSet.alphanumerics.contains($0) || "-_!?+<>=/*".unicodeScalars.contains($0)) }
 }
 
 /// A 1-byte length, then the UTF-8 bytes

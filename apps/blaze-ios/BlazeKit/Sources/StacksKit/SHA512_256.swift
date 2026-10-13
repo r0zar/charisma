@@ -2,8 +2,8 @@ import Foundation
 
 /// SHA-512/256 (FIPS 180-4): SHA-512 with its own initial values, cut to 32 bytes. Stacks uses it for txids and
 /// signature hashes. CryptoKit has SHA-512 but no way to change its initial values.
-public enum SHA512_256 {
-    public static func hash(_ data: Data) -> Data {
+enum SHA512_256 {
+    static func hash(_ data: Data) -> Data {
         var h: [UInt64] = [
             0x2231_2194_FC2B_F72C, 0x9F55_5FA3_C84C_64C2, 0x2393_B86B_6F53_B151, 0x9638_7719_5940_EABD,
             0x9628_3EE2_A88E_FFE3, 0xBE5E_1E25_5386_3992, 0x2B01_99FC_2C85_B8AA, 0x0EB7_2DDC_81C5_2CA2,

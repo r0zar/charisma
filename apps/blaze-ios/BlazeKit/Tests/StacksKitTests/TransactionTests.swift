@@ -47,9 +47,11 @@ struct TransactionTests {
     @Test func refusesBadTokenAndAssetNames() throws {
         let sender = try AccountKeys(privateKey: Data(hex: Vectors.all.phrases[0].accounts[0].privateKey))
         let token = try StacksAddress("SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS")
-        #expect(throws: StacksError.invalidContractName) {
-            try StacksTransaction.sip10Transfer(token: token, tokenName: "charisma-token", asset: "", amount: 1,
-                                                to: .standard(sender.address), publicKey: sender.publicKey)
+        for asset in ["", "char isma", "1charisma"] {
+            #expect(throws: StacksError.invalidAssetName, "\(asset)") {
+                try StacksTransaction.sip10Transfer(token: token, tokenName: "charisma-token", asset: asset, amount: 1,
+                                                    to: .standard(sender.address), publicKey: sender.publicKey)
+            }
         }
         #expect(throws: StacksError.invalidContractName) {
             try StacksTransaction.sip10Transfer(token: token, tokenName: "9token", asset: "charisma", amount: 1,

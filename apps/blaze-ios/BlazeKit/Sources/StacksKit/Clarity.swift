@@ -23,7 +23,8 @@ public indirect enum ClarityValue: Hashable, Sendable {
         }
     }
 
-    /// Reads one serialized value. Other Clarity types, or bytes left over, throw.
+    /// Reads one serialized value: a uint, a principal, `none`, or `(ok u…)`. Other Clarity types, or bytes left
+    /// over, throw.
     public init(serialized: Data) throws {
         var reader = ByteReader(serialized)
         self = try Self.read(&reader)
@@ -41,7 +42,7 @@ public indirect enum ClarityValue: Hashable, Sendable {
     private static func read(_ reader: inout ByteReader) throws -> ClarityValue {
         switch try reader.byte() {
         case 0x01:
-            return .uint(try reader.read(16).reduce(UInt128(0)) { $0 << 8 | UInt128($1) })
+            return .uint(try readUInt(&reader))
         case 0x05:
             return .principal(.standard(try readAddress(&reader)))
         case 0x06:
@@ -52,10 +53,16 @@ public indirect enum ClarityValue: Hashable, Sendable {
         case 0x09:
             return .none
         case 0x07:
-            return .ok(try read(&reader))
+            // Only `(ok u…)`: reading the inside directly means nothing a server sends can nest
+            guard try reader.byte() == 0x01 else { throw StacksError.invalidClarityValue }
+            return .ok(.uint(try readUInt(&reader)))
         default:
             throw StacksError.invalidClarityValue
         }
+    }
+
+    private static func readUInt(_ reader: inout ByteReader) throws -> UInt128 {
+        try reader.read(16).reduce(UInt128(0)) { $0 << 8 | UInt128($1) }
     }
 
     private static func readAddress(_ reader: inout ByteReader) throws -> StacksAddress {

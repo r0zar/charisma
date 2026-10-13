@@ -9,6 +9,8 @@ struct BytesTests {
         #expect(throws: StacksError.invalidHex) { try Data(hex: "abc") }
         #expect(throws: StacksError.invalidHex) { try Data(hex: "+f") }
         #expect(throws: StacksError.invalidHex) { try Data(hex: "zz") }
+        // Full-width digits count as hex digits to Swift, but aren't hex
+        #expect(throws: StacksError.invalidHex) { try Data(hex: "０Ａ") }
     }
 
     @Test func bigEndianBytes() {
@@ -18,7 +20,7 @@ struct BytesTests {
     }
 
     @Test func vectorsLoad() {
-        #expect(Vectors.all.phrases.count == 2)
+        #expect(Vectors.all.phrases.count == 5)
         #expect(Vectors.all.transactions.count == 4)
     }
 }

@@ -1,8 +1,8 @@
 import Foundation
 
 /// RIPEMD-160 (Dobbertin, Bosselaers, Preneel 1996), for hash160. CryptoKit and CommonCrypto have none.
-public enum RIPEMD160 {
-    public static func hash(_ data: Data) -> Data {
+enum RIPEMD160 {
+    static func hash(_ data: Data) -> Data {
         var h: [UInt32] = [0x6745_2301, 0xEFCD_AB89, 0x98BA_DCFE, 0x1032_5476, 0xC3D2_E1F0]
         var message = [UInt8](data)
         let bitLength = UInt64(data.count) &* 8

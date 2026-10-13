@@ -52,7 +52,8 @@ public enum Mnemonic {
     }
 
     static func entropy(of phrase: String) throws -> Data {
-        let words = phrase.split(separator: " ")
+        // Empty "words" from extra spaces are refused, as @scure/bip39 does: `seed` hashes the exact string
+        let words = phrase.split(separator: " ", omittingEmptySubsequences: false)
         guard [12, 15, 18, 21, 24].contains(words.count) else { throw StacksError.invalidSeedPhrase }
         var bits: [Bool] = []
         for word in words {

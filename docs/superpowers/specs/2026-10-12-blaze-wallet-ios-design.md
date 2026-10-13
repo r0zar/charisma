@@ -204,7 +204,7 @@ Every backend or vault call either returns real data or throws an error that nam
 
 ## Testing
 
-- **Golden vectors**: `apps/signet/scripts/ios-vectors.mjs` runs the extension's own `@stacks/wallet-sdk` and `@stacks/transactions`, at the versions `pnpm-lock.yaml` gives `apps/signet` (`@stacks/transactions` 7.6.0 today). Run `pnpm install --filter signet-signer` first. It writes `BlazeKit/Tests/StacksKitTests/vectors.json`, committed so `swift test` doesn't need Node. It covers:
+- **Golden vectors**: `apps/signet/scripts/ios-vectors.mjs` runs the extension's own `@stacks/wallet-sdk` and `@stacks/transactions`, at the versions `pnpm-lock.yaml` gives `apps/signet` (`@stacks/transactions` 7.6.0 today), and checks those versions itself. Plan 1, Task 1 shows how to run it without `pnpm install` rewriting the lockfile. It writes `BlazeKit/Tests/StacksKitTests/vectors.json`, committed so `swift test` doesn't need Node. It covers:
   - a 12-word and a 24-word phrase → private key, public key and address for accounts 0–4
   - STX and SIP-010 transfers, each to a standard and to a contract principal, with fixed nonce and fee → payload hex, estimated length, signed hex and txid
   - c32 decode of `SP` and `SM` addresses
