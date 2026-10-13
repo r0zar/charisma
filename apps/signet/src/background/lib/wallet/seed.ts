@@ -7,6 +7,7 @@ import { STACKS_MAINNET } from '@stacks/network';
 import { getAddressFromPublicKey, privateKeyToPublic } from '@stacks/transactions';
 import { validateMnemonic } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english';
+import { normalizeSeedWords } from '~shared/seed-words';
 
 
 /**
@@ -17,10 +18,11 @@ export function generateSeedPhrase(): string {
 }
 
 /**
- * Whether a phrase is a real BIP39 seed phrase: English words from the list, a valid length, and a matching checksum
+ * Whether a phrase is a real BIP39 seed phrase: English words from the list, a valid length, and a matching checksum,
+ * after the cleanup typed and pasted words need (shared/seed-words)
  */
 export function validateSeedPhrase(phrase: string): boolean {
-  return validateMnemonic(phrase.trim().toLowerCase().split(/\s+/).join(' '), wordlist);
+  return validateMnemonic(normalizeSeedWords(phrase), wordlist);
 }
 
 /**

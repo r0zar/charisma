@@ -14,39 +14,47 @@ import {
 } from "@stacks/transactions"
 import { RequestHeader } from "./parts/UIComponents"
 import { PermissionLevel } from "./parts/types"
-import { Kv } from "~shared/ui"
+import { t } from "~shared/i18n"
+import { Kv, formatUnits } from "~shared/ui"
 
 const short = (text: string) => (text.length > 16 ? `${text.slice(0, 6)}…${text.slice(-4)}` : text)
-const stx = (micro: bigint | string | number) => `${(Number(micro) / 1e6).toLocaleString("en-US", { maximumFractionDigits: 6 })} STX`
+/** Micro-STX as STX, exactly: an approval never hides part of an amount */
+const stx = (micro: bigint | string | number) => `${formatUnits(BigInt(micro), 6)} STX`
 
-const FUNGIBLE_CODE: Record<FungibleConditionCode, string> = {
-  [FungibleConditionCode.Equal]: "exactly",
-  [FungibleConditionCode.Greater]: "more than",
-  [FungibleConditionCode.GreaterEqual]: "at least",
-  [FungibleConditionCode.Less]: "less than",
-  [FungibleConditionCode.LessEqual]: "at most",
+/** Each condition code's sentence, for "you" and for someone else (whole sentences, so word order can change) */
+const FUNGIBLE: Record<FungibleConditionCode, { you: string; they: string }> = {
+  [FungibleConditionCode.Equal]: { you: "pcYouSendExactly", they: "pcTheySendExactly" },
+  [FungibleConditionCode.Greater]: { you: "pcYouSendMoreThan", they: "pcTheySendMoreThan" },
+  [FungibleConditionCode.GreaterEqual]: { you: "pcYouSendAtLeast", they: "pcTheySendAtLeast" },
+  [FungibleConditionCode.Less]: { you: "pcYouSendLessThan", they: "pcTheySendLessThan" },
+  [FungibleConditionCode.LessEqual]: { you: "pcYouSendAtMost", they: "pcTheySendAtMost" },
 }
 
-function who(principal: PostConditionPrincipalWire, signer: string | null) {
-  if (principal.prefix === PostConditionPrincipalId.Origin) return "You"
+/** Who a condition is about: null for the signer ("you"), otherwise an address or contract name */
+function who(principal: PostConditionPrincipalWire, signer: string | null): string | null {
+  if (principal.prefix === PostConditionPrincipalId.Origin) return null
   const address = addressToString(principal.address)
   if (principal.prefix === PostConditionPrincipalId.Contract) return principal.contractName.content
-  return address === signer ? "You" : short(address)
+  return address === signer ? null : short(address)
 }
 
 /** One post condition as a sentence, e.g. "You send at most 10 STX" */
 function describe(pc: PostConditionWire, signer: string | null) {
   const sender = who(pc.principal, signer)
-  const verb = sender === "You" ? "send" : "sends"
-  if (pc.conditionType === PostConditionType.STX) return `${sender} ${verb} ${FUNGIBLE_CODE[pc.conditionCode]} ${stx(pc.amount)}`
-  if (pc.conditionType === PostConditionType.Fungible) {
-    return `${sender} ${verb} ${FUNGIBLE_CODE[pc.conditionCode]} ${pc.amount.toString()} ${pc.asset.assetName.content} (smallest units)`
+  const you = sender === null
+  const fills = (...rest: string[]) => (you ? rest : [sender, ...rest])
+  if (pc.conditionType === PostConditionType.STX || pc.conditionType === PostConditionType.Fungible) {
+    const amount = pc.conditionType === PostConditionType.STX
+      ? stx(pc.amount)
+      : t("tokenSmallestUnits", pc.amount.toString(), pc.asset.assetName.content)
+    const keys = FUNGIBLE[pc.conditionCode]
+    return t(you ? keys.you : keys.they, ...fills(amount))
   }
-  if (pc.conditionType !== PostConditionType.NonFungible) return `${sender}: stacking condition`
+  if (pc.conditionType !== PostConditionType.NonFungible) return t("pcStacking", you ? t("pcYou") : sender)
   const sends = pc.conditionCode === NonFungibleConditionCode.Sends
-  return `${sender} ${sends ? verb : sender === "You" ? "keep" : "keeps"} ${pc.asset.assetName.content} ${Cl.prettyPrint(pc.assetName)}`
+  const key = sends ? (you ? "pcYouSendNft" : "pcTheySendNft") : (you ? "pcYouKeepNft" : "pcTheyKeepNft")
+  return t(key, ...fills(pc.asset.assetName.content, Cl.prettyPrint(pc.assetName)))
 }
-
 
 export function TransactionContent({ origin, address, method, params }: {
   origin: string
@@ -60,22 +68,22 @@ export function TransactionContent({ origin, address, method, params }: {
 
   return (
     <div className="w-approval">
-      <RequestHeader level={PermissionLevel.CRITICAL} origin={origin} message={isTransfer ? "wants you to send STX" : "wants you to run a transaction"} />
+      <RequestHeader level={PermissionLevel.CRITICAL} origin={origin} ask={isTransfer ? "askSendStx" : "askRunTransaction"} />
 
       <div className="cx-pane">
         {isTransfer ? (
           <>
-            <Kv label="Send">{stx(params.amount)}</Kv>
-            <Kv label="To">{params.recipient}</Kv>
-            {params.memo && <Kv label="Memo">{params.memo}</Kv>}
+            <Kv label={t("send")}>{stx(params.amount)}</Kv>
+            <Kv label={t("to")}>{params.recipient}</Kv>
+            {params.memo && <Kv label={t("memo")}>{params.memo}</Kv>}
           </>
         ) : (
           <>
-            <Kv label="Contract">{params.contract.split(".")[1]} ({short(params.contract.split(".")[0])})</Kv>
-            <Kv label="Function">{params.functionName}</Kv>
+            <Kv label={t("contract")}>{params.contract.split(".")[1]} ({short(params.contract.split(".")[0])})</Kv>
+            <Kv label={t("function")}>{params.functionName}</Kv>
             <div style={{ maxHeight: "90px", overflowY: "auto" }}>
               {((params.functionArgs ?? []) as string[]).map((arg, i) => (
-                <Kv key={i} label={`Arg ${i + 1}`}>{Cl.prettyPrint(Cl.deserialize(arg))}</Kv>
+                <Kv key={i} label={t("argument", i + 1)}>{Cl.prettyPrint(Cl.deserialize(arg))}</Kv>
               ))}
             </div>
           </>
@@ -85,9 +93,7 @@ export function TransactionContent({ origin, address, method, params }: {
       {!isTransfer && (
         <div className="cx-pane" style={{ background: `var(--${allowMode ? "danger" : "success"}-soft)`, borderColor: "transparent" }}>
           <div style={{ fontWeight: 700, color: `var(--${allowMode ? "danger" : "success"})`, marginBottom: postConditions.length ? "4px" : 0 }}>
-            {allowMode
-              ? "⚠ Any of your tokens could move (allow mode)"
-              : postConditions.length ? "Only these transfers can happen:" : "No tokens can leave your wallet"}
+            {allowMode ? t("allowMode") : postConditions.length ? t("onlyTheseTransfers") : t("noTokensLeave")}
           </div>
           {postConditions.map((pc, i) => (
             <div key={i} style={{ padding: "2px 0", color: "var(--ink-body)" }}>• {describe(pc, address)}</div>
@@ -96,7 +102,7 @@ export function TransactionContent({ origin, address, method, params }: {
       )}
 
       <p className="w-note">
-        {address ? `Sent from ${short(address)}. ` : ""}Network fee is set automatically.
+        {address ? `${t("sentFrom", short(address))} ` : ""}{t("feeSetAutomatically")}
       </p>
     </div>
   )

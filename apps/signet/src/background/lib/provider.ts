@@ -18,6 +18,7 @@ import {
 } from "@stacks/transactions"
 import * as wallet from "./wallet"
 import { hiroClient } from "./hiro"
+import { WalletError, toWire } from "./wallet-error"
 
 /** JSON-RPC error codes used by @stacks/connect */
 const MethodNotFound = -32601
@@ -260,7 +261,7 @@ const isSignetPage = (sender: chrome.runtime.MessageSender) => sender.origin ===
 
 async function handleApproval(message: { action: string; requestId: string; approved?: boolean }) {
   const request = pending.get(message.requestId)
-  if (!request) throw new Error("This request is no longer waiting")
+  if (!request) throw new WalletError("errorRequestGone")
 
   switch (message.action) {
     case "get": {
@@ -293,7 +294,8 @@ export function listenForProviderRequests() {
       return true
     }
     if (message?.type === "signet-approval" && isSignetPage(sender)) {
-      handleApproval(message).then(result => sendResponse({ result }), error => sendResponse({ error: error.message }))
+      // Keys for the approval window to word; error.message (English) stays what websites get from handleRpc
+      handleApproval(message).then(result => sendResponse({ result }), error => sendResponse({ error: toWire(error) }))
       return true
     }
   })

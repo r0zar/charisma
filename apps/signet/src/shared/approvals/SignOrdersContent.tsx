@@ -8,13 +8,14 @@ import { getTokenMetadataStrict } from "@repo/tokens"
 import { LEGACY_MULTIHOP_CONTRACT_ID, MULTIHOP_CONTRACT_ID, MULTIHOP_V1_CONTRACT_ID } from "blaze-sdk"
 import { RequestHeader } from "./parts/UIComponents"
 import { PermissionLevel } from "./parts/types"
-import { formatUnits, Kv } from "~shared/ui"
+import { count, pluralKey, t } from "~shared/i18n"
+import { formatUnits, Kv, short } from "~shared/ui"
 
 /** Routers and what they allow once they hold a signed order */
 const ROUTERS: Record<string, { text: string; tone: "success" | "danger" }> = {
-  [MULTIHOP_CONTRACT_ID]: { text: "Only to you", tone: "success" },
-  [MULTIHOP_V1_CONTRACT_ID]: { text: "Only to you", tone: "success" },
-  [LEGACY_MULTIHOP_CONTRACT_ID]: { text: "Wherever the submitter chooses", tone: "danger" },
+  [MULTIHOP_CONTRACT_ID]: { text: "payoutOnlyYou", tone: "success" },
+  [MULTIHOP_V1_CONTRACT_ID]: { text: "payoutOnlyYou", tone: "success" },
+  [LEGACY_MULTIHOP_CONTRACT_ID]: { text: "payoutSubmitter", tone: "danger" },
 }
 
 const shortName = (principal: string) => principal.split(".").pop() ?? principal
@@ -54,31 +55,31 @@ export function SignOrdersContent({ origin, address, messages }: { origin: strin
 
   return (
     <div className="w-approval">
-      <RequestHeader level={PermissionLevel.SENSITIVE} origin={origin} message={`wants you to sign ${orders.length.toLocaleString("en-US")} subnet orders`} />
+      <RequestHeader level={PermissionLevel.SENSITIVE} origin={origin} ask={pluralKey("askSignOrders", orders.length)} fills={[count(orders.length)]} />
 
       <div className="cx-pane">
-        <Kv label="Orders">{orders.length.toLocaleString("en-US")}</Kv>
+        <Kv label={t("ordersCount")}>{count(orders.length)}</Kv>
         {[...totals].map(([contract, total]) => {
           const token = meta[contract]
           return (
-            <Kv key={contract} label="Can spend in total">
-              {token ? `${formatUnits(total, token.decimals)} ${token.symbol}` : `${total.toString()} (smallest units of ${shortName(contract)})`}
+            <Kv key={contract} label={t("canSpendTotal")}>
+              {token ? `${formatUnits(total, token.decimals)} ${token.symbol}` : t("smallestUnitsOf", total.toString(), shortName(contract))}
             </Kv>
           )
         })}
         {[...routers].map(id => {
           const router = ROUTERS[id]
           return (
-            <Kv key={id} label="Payout" tone={router?.tone ?? "warning"}>
-              {router ? `${router.text} (${shortName(id)})` : `Handled by ${shortName(id)}`}
+            <Kv key={id} label={t("payout")} tone={router?.tone ?? "warning"}>
+              {router ? `${t(router.text)} (${shortName(id)})` : t("handledBy", shortName(id))}
             </Kv>
           )
         })}
       </div>
 
       <p className="w-note">
-        {address ? `Signs as ${address.slice(0, 6)}…${address.slice(-4)}. ` : ""}
-        Anyone holding these signatures can run each order once.
+        {address ? `${t("signsAsSentence", short(address))} ` : ""}
+        {t("ordersRunOnce")}
       </p>
     </div>
   )

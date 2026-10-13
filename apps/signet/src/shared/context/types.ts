@@ -1,3 +1,5 @@
+import type { WireError } from "~background/lib/wallet-error"
+
 // Define types for operations
 export type MessageAction =
   // Lock
@@ -49,5 +51,5 @@ export interface Account {
 export interface HandlerResponse<T> {
   success: boolean;
   data?: T;
-  error?: string;
+  error?: WireError;
 }

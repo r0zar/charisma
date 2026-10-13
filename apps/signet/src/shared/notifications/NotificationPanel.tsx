@@ -9,6 +9,7 @@
 import { useState, type MouseEvent, type ReactNode } from 'react'
 import { animated, to, useSpring } from '@react-spring/web'
 import { X } from 'lucide-react'
+import { t } from '~shared/i18n'
 import { BlazeFlame } from '~shared/ui'
 
 interface NotificationPanelProps {
@@ -69,7 +70,7 @@ export default function NotificationPanel({ title, children, approveLabel, onApp
           <div className="w-card-title">
             <BlazeFlame size={30} />
             <h1>{title}</h1>
-            <button type="button" className="cx-btn cx-btn-quiet w-btn-sm" onClick={onReject} aria-label="Deny and close" style={{ width: '32px', padding: 0 }}>
+            <button type="button" className="cx-btn cx-btn-quiet w-btn-sm" onClick={onReject} aria-label={t("denyAndClose")} style={{ width: '32px', padding: 0 }}>
               <X size={16} aria-hidden />
             </button>
           </div>
@@ -77,7 +78,7 @@ export default function NotificationPanel({ title, children, approveLabel, onApp
           {children}
 
           <div className="w-actions">
-            <button type="button" className="cx-btn" onClick={onReject}>Deny</button>
+            <button type="button" className="cx-btn" onClick={onReject}>{t('deny')}</button>
             <button
               type="button"
               className="cx-btn cx-btn-primary"

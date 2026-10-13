@@ -1,4 +1,6 @@
 import { sendToBackground } from '@plasmohq/messaging'
+import { fromWire } from '~shared/errors'
+import { t } from '~shared/i18n'
 import type { HandlerResponse, MessageAction } from './types'
 
 // Helper function to send messages to the background service
@@ -9,9 +11,8 @@ export async function sendMessage<T>(action: MessageAction, data?: any): Promise
       body: { action, data }
     });
 
-    if (!response.success) {
-      throw new Error(response.error || "Unknown error occurred");
-    }
+    // The background's own errors arrive as keys and are worded here, in this page's language
+    if (!response.success) throw fromWire(response.error);
 
     return response.data as T;
   } catch (error) {
@@ -80,12 +81,12 @@ export async function saveEncryptedWalletBackup(): Promise<boolean> {
     URL.revokeObjectURL(downloadUrl);
     
     // Show success notification
-    showNotification('Wallet exported successfully!', true);
+    showNotification(t('exportDone'), true);
     
     return true;
   } catch (error) {
     console.error("Error saving wallet backup:", error);
-    showNotification('Failed to export wallet data', false);
+    showNotification(t('exportFailed'), false);
     return false;
   }
 }

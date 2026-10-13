@@ -4,16 +4,18 @@
 import { ShieldCheck, UserRound } from 'lucide-react';
 import { PermissionLevel } from './parts/types';
 import { FeatureExplanation, RequestHeader } from './parts/UIComponents';
+import { t } from '~shared/i18n';
+import { short } from '~shared/ui';
 
 export function ConnectContent({ origin, address }: { origin: string; address: string | null }) {
   return (
     <div className="w-approval">
-      <RequestHeader level={PermissionLevel.INFO} origin={origin} message="wants to connect to Blaze Wallet" />
+      <RequestHeader level={PermissionLevel.INFO} origin={origin} ask="askConnect" />
       <FeatureExplanation
         icon={<UserRound size={18} color="var(--success)" aria-hidden />}
-        text={address ? `Share your address ${address.slice(0, 6)}…${address.slice(-4)}` : 'Share your address'}
+        text={address ? t('shareAddressAs', short(address)) : t('shareAddress')}
       />
-      <FeatureExplanation icon={<ShieldCheck size={18} color="var(--success)" aria-hidden />} text="It can't move funds: every signature asks you first" />
+      <FeatureExplanation icon={<ShieldCheck size={18} color="var(--success)" aria-hidden />} text={t('cantMoveFunds')} />
     </div>
   );
 }
