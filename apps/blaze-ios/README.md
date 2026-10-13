@@ -21,6 +21,12 @@ It has no website connections. Specs: `docs/superpowers/specs/2026-10-12-blaze-w
 - `BLAZE_LIVE=1 swift test --package-path apps/blaze-ios/BlazeKit --filter Live` runs the same checks against the real servers. They only read.
 - **No 128-bit arguments on async functions,** bare or in a small struct: Swift 6.3 debug builds on arm64 can corrupt them and the arguments after them. Pass a large struct that holds the number instead (see `Send.review`).
 
+## TestFlight
+
+1. Once: in Xcode › Settings › Accounts, sign in with an Apple ID in the paid Apple Developer Program, and put its team id in `project.yml` (`DEVELOPMENT_TEAM`). In App Store Connect, create the app with bundle id `rocks.charisma.blazewallet`.
+2. Each build: `sh apps/blaze-ios/scripts/testflight.sh` archives, signs and uploads it. Its build number is the time of the upload.
+3. In App Store Connect › TestFlight, add yourself as an internal tester once; new builds then reach the TestFlight app on your iPhone.
+
 ## Regenerate
 
 - **Strings:** after changing text in Swift, run `sh apps/blaze-ios/scripts/sync-strings.sh`. Xcode does the same on every build.
