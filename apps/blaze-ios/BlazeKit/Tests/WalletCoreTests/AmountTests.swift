@@ -14,6 +14,7 @@ struct AmountTests {
         #expect(try Amount.parse("1,5", decimals: 6, locale: turkey) == 1_500_000)
         #expect(try Amount.parse(",5", decimals: 6, locale: germany) == 500_000)
         #expect(try Amount.parse("2", decimals: 0, locale: japan) == 2)
+        #expect(try Amount.parse(" 1.5\n", decimals: 6, locale: us) == 1_500_000)
         #expect(throws: WalletError.invalidAmount) { try Amount.parse("1,5", decimals: 6, locale: japan) }
         #expect(throws: WalletError.invalidAmount) { try Amount.parse("1.5", decimals: 6, locale: germany) }
     }

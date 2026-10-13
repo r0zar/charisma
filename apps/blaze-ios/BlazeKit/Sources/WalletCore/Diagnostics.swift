@@ -33,7 +33,7 @@ public struct Diagnostics: Sendable {
         return Diagnostics(
             checkedAt: Date(), blockHeight: height, networkLatency: networkLatency,
             tokenCount: list.count, tokenListLatency: tokenListLatency,
-            subnets: await subnets.balances(of: address, list: list)
+            subnets: try await subnets.balances(of: address, list: list)
         )
     }
 }
@@ -48,13 +48,14 @@ public actor SubnetReader {
         self.hiro = hiro
     }
 
-    public func balances(of address: StacksAddress, list: [TokenInfo]) async -> [SubnetBalance] {
+    /// Throws only CancellationError: a sweep that was cancelled is never kept as if subnets had failed
+    public func balances(of address: StacksAddress, list: [TokenInfo]) async throws -> [SubnetBalance] {
         if let kept, kept.address == address, Date().timeIntervalSince(kept.at) < 60 { return kept.balances }
         let subnets = list.filter { info in
             guard info.type == "SUBNET" else { return false }
-            guard info.contractId != nil, info.symbol != nil, info.decimals != nil else {
+            guard info.contractId != nil, info.symbol != nil, let decimals = info.decimals, TokenMeta.decimalRange.contains(decimals) else {
                 // Without these its balance can't be shown honestly: a token-list data problem for developers
-                Log.balances.error("Subnet \(info.contractId ?? "?", privacy: .public) has no contract id, symbol or decimals on the token list")
+                Log.balances.error("Subnet \(info.contractId ?? "?", privacy: .public) has no contract id, symbol or usable decimals on the token list")
                 return false
             }
             return true
@@ -62,12 +63,12 @@ public actor SubnetReader {
         var balances: [SubnetBalance] = []
         for start in stride(from: 0, to: subnets.count, by: 4) {
             let batch = subnets[start..<min(start + 4, subnets.count)]
-            balances += await withTaskGroup(of: (Int, SubnetBalance).self) { group in
+            balances += try await withThrowingTaskGroup(of: (Int, SubnetBalance).self) { group in
                 for (offset, info) in batch.enumerated() {
-                    group.addTask { [hiro] in (offset, await Self.read(info, of: address, hiro: hiro)) }
+                    group.addTask { [hiro] in (offset, try await Self.read(info, of: address, hiro: hiro)) }
                 }
                 var results: [(Int, SubnetBalance)] = []
-                for await result in group { results.append(result) }
+                for try await result in group { results.append(result) }
                 return results.sorted { $0.0 < $1.0 }.map(\.1)
             }
         }
@@ -76,7 +77,7 @@ public actor SubnetReader {
     }
 
     /// `info` has a contract id, symbol and decimals (checked by `balances`)
-    private static func read(_ info: TokenInfo, of address: StacksAddress, hiro: Hiro) async -> SubnetBalance {
+    private static func read(_ info: TokenInfo, of address: StacksAddress, hiro: Hiro) async throws -> SubnetBalance {
         let id = info.contractId!
         // The token list calls STX's base "stx"; the wallet calls it ".stx"
         let base = info.base.map { $0 == "stx" ? TokenRow.stx : $0 }
@@ -84,6 +85,8 @@ public actor SubnetReader {
         do {
             guard case .contract(let subnet, let name) = try Principal(id) else { throw WalletError.unexpected(id) }
             balance = try await hiro.subnetBalance(subnet: subnet, name: name, of: address)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
             // A subnet that can't be read is a token-list data problem for developers, not news for the person
             Log.balances.error("Couldn't read subnet \(id, privacy: .public): \(error, privacy: .public)")

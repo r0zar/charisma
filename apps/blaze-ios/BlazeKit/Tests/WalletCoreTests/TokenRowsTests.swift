@@ -53,6 +53,19 @@ struct TokenRowsTests {
         #expect(empty[0].unsendable == .nothingToSend)
     }
 
+    @Test func decimalsOutsideZeroToThirtyEightMakeATokenUnknown() {
+        let charisma = { (decimals: Int) in TokenInfo(contractId: cha, name: "Charisma", symbol: "CHA", decimals: decimals, identifier: "charisma") }
+        #expect(TokenMeta(charisma(0)) != nil && TokenMeta(charisma(38)) != nil)
+        #expect(TokenMeta(charisma(-1)) == nil && TokenMeta(charisma(39)) == nil)
+        let rows = TokenRows.build(sheet: sheet, list: list.map { $0.contractId == cha ? charisma(-6) : $0 }, lookups: [:])
+        #expect(rows.first { $0.contractId == cha }!.unsendable == .unknown)
+    }
+
+    @Test func pendingSendsCanTakeStandardBelowZero() {
+        #expect(TokenRow.make(cha, standard: -5).unsendable == .nothingToSend)
+        #expect(TokenRow.make(cha, standard: -5, blaze: 3).unsendable == .onlyOnBlaze)
+    }
+
     @Test func unlistedTokensAreLookedUpButStayUnlisted() {
         // Only tokens that become rows: the empty and the unreadable ones don't
         #expect(TokenRows.unlisted(sheet: sheet, list: list) == [airdrop])

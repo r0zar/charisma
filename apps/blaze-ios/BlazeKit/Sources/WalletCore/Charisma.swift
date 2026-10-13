@@ -30,13 +30,17 @@ public struct Charisma: Sendable {
     }
 
     /// Details for tokens that aren't on the list, all at once. A failed lookup is logged and left out, so that token
-    /// shows as unknown (the extension's rule): one bad token never blanks the Tokens tab.
-    public func lookUp(_ contractIds: [String]) async -> [String: TokenInfo] {
-        await withTaskGroup(of: (String, TokenInfo?).self) { group in
+    /// shows as unknown (the extension's rule): one bad token never blanks the Tokens tab. Throws only
+    /// CancellationError.
+    public func lookUp(_ contractIds: [String]) async throws -> [String: TokenInfo] {
+        try await withThrowingTaskGroup(of: (String, TokenInfo?).self) { group in
             for id in contractIds {
                 group.addTask {
                     do {
                         return (id, try await token(id))
+                    } catch is CancellationError {
+                        // The screen went away: not a failed lookup
+                        throw CancellationError()
                     } catch {
                         Log.balances.error("Couldn't look up \(id, privacy: .public): \(error, privacy: .public)")
                         return (id, nil)
@@ -44,7 +48,7 @@ public struct Charisma: Sendable {
                 }
             }
             var found: [String: TokenInfo] = [:]
-            for await (id, info) in group {
+            for try await (id, info) in group {
                 if let info { found[id] = info }
             }
             return found
@@ -74,7 +78,8 @@ public struct Charisma: Sendable {
             return request
         }()
         let session = http.session
-        return AsyncStream { continuation in
+        // Only the newest sheet matters: an older one waiting in the buffer is already out of date
+        return AsyncStream(bufferingPolicy: .bufferingNewest(1)) { continuation in
             let task = Task {
                 var wait: Double = 1
                 while !Task.isCancelled {

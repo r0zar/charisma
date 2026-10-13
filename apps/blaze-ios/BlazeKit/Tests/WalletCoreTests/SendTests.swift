@@ -49,8 +49,30 @@ struct SendTests {
         #expect(token == expected)
 
         let noAsset = TokenRow.make("SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token", standard: 9, symbol: "CHA", asset: nil)
-        #expect(throws: WalletError.missingAssetName(symbol: "CHA")) {
+        #expect(throws: WalletError.unsendable(.missingAssetName, symbol: "CHA")) {
             try Send.transaction(row: noAsset, recipient: recipient, amount: 5, publicKey: keys.publicKey)
+        }
+        // Transfers and post conditions carry at most UInt64.max smallest units
+        #expect(throws: WalletError.amountTooLarge) {
+            try Send.transaction(row: cha, recipient: recipient, amount: Int128(UInt64.max) + 1, publicKey: keys.publicKey)
+        }
+    }
+
+    @Test func reviewRefusesWhatCantBeSent() async throws {
+        var state = WalletState()
+        let account = try state.addSeedPhrase(name: "Main", words: TestPhrase.twelve)
+        let stx = TokenRow.make(TokenRow.stx, standard: 1_000_000, symbol: "STX")
+        // Each refused before anything is asked of the network
+        let onBlaze = TokenRow.make("SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token", standard: 0, blaze: 9, symbol: "CHA")
+        await #expect(throws: WalletError.unsendable(.onlyOnBlaze, symbol: "CHA")) {
+            try await Send.review(row: onBlaze, recipient: TestPhrase.account1, amount: "1", locale: us, stx: stx, account: account, hiro: Hiro())
+        }
+        // Reads the amount with the locale (a Locale passed after an Int128 to an async function crashed here)
+        await #expect(throws: WalletError.amountNotPositive) {
+            try await Send.review(row: stx, recipient: TestPhrase.account1, amount: "0", locale: us, stx: stx, account: account, hiro: Hiro())
+        }
+        await #expect(throws: WalletError.unexpected("\(onBlaze.contractId) isn't the STX row")) {
+            try await Send.review(row: stx, recipient: TestPhrase.account1, amount: "1", locale: us, stx: onBlaze, account: account, hiro: Hiro())
         }
     }
 }
