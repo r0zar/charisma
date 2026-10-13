@@ -1,0 +1,190 @@
+{
+  "phrases": [
+    {
+      "phrase": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+      "seed": "5eb00bbddcf069084889a8ab9155568165f5c453ccb85e70811aaed6f6da5fc19a5ac40b389cd370d086206dec8aa6c43daea6690f20ad3d8d48b2d2ce9e38e4",
+      "accounts": [
+        {
+          "index": 0,
+          "privateKey": "47382d0211f3bbb11812b5e60b696a93d7ad0a91cdeb2162f7d69d4adef48b5d01",
+          "publicKey": "03d5d038bce81b3965314dba54f636f093c7dbdd6617cded013a53474fbccb100c",
+          "address": "SPC5KHM41H6WHAST7MWWDD807YSPRQKJ69FSH54J"
+        },
+        {
+          "index": 1,
+          "privateKey": "789db648a1d9d181f1e7d3f05ed0aa939db9c7e5cbe12e35cf6e38547497026a01",
+          "publicKey": "03121507b88c654be90c0973965b73f5b25597c393eb95b0a206d4217ee725582a",
+          "address": "SP3XHES5990FYDV5BHBZCJRFYFD2Z4X3FMD2N3MGH"
+        },
+        {
+          "index": 2,
+          "privateKey": "e30c0e7312f277fe4866fdca0c4f10fb7116a68356b077c7fda91fa2024e38d401",
+          "publicKey": "03d42623e86d785d6e4f61598a57dd2c219c6f46b15dd1ae00de76780c87226157",
+          "address": "SP28B7Q9N0NDJSRTGXRWF53B5M08BEV7G32MTC87V"
+        },
+        {
+          "index": 3,
+          "privateKey": "1af3adeb7ed845aee5093509808d4a6550895ff9ae1fbd1b712af20d3bd13e6a01",
+          "publicKey": "0321fc905ab728bbd65a90aee134d62ec4d22c2e10e33a464f5e90e6f48c294486",
+          "address": "SP3AB6B5T5C6JBWQNDQWR1QB9E3R75T2P1KJFTYN"
+        },
+        {
+          "index": 4,
+          "privateKey": "bf2ae3ea3e51f918c2153a27ddbff7ee5da96dcba6eb0d9507ac42bddee59a0101",
+          "publicKey": "02919812a503dd9ff2f8818314bebb4596d9df894c2af5d894b59df73a6003519e",
+          "address": "SP2AQMVV4M2E4TXY9JGD300BHGM7SSENW50XK2VTX"
+        }
+      ]
+    },
+    {
+      "phrase": "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon art",
+      "seed": "408b285c123836004f4b8842c89324c1f01382450c0d439af345ba7fc49acf705489c6fc77dbd4e3dc1dd8cc6bc9f043db8ada1e243c4a0eafb290d399480840",
+      "accounts": [
+        {
+          "index": 0,
+          "privateKey": "2f9f6a682e218463526a145535b6e3c8d2a12885fb658fbb318bc8fc0c8d400501",
+          "publicKey": "024a12f3941975f1a176daf4f5ae187e545efb95e4e568779ddef0acf61343646b",
+          "address": "SP1JAHE8GEHB0MCBGR8J6W0AA7TJEE1XKFTFJMQ5W"
+        },
+        {
+          "index": 1,
+          "privateKey": "5c6309c86438485e2c9e44fbf3c4c32fecd9b97f962be34feb0371a0e14fa0df01",
+          "publicKey": "03aac7697bcb80c62bcba8f0a9dd5395cbf908b639f6b032ea2a1ce447a86916f2",
+          "address": "SPHPEJV3VWTXCYV9K5FE95VXNGVEGBKGJYHB8F5K"
+        },
+        {
+          "index": 2,
+          "privateKey": "96372ad8a2e2c1acd16f3d0c26f81cea53e7f81c4b6edebf3e271c37b6dee34f01",
+          "publicKey": "0242af080decfde244c92cefc775c0224eeb7a4a129c169ef1ecfc35f3fb865548",
+          "address": "SP35Q8MXCYVDPZE7RXG4TFKBTFQRSTYC9C63R4TTR"
+        },
+        {
+          "index": 3,
+          "privateKey": "257b921c9402e5b716e860f7a425c437d0147c1a27856da3e5252d8152fdf25c01",
+          "publicKey": "03ba13dfd7e70eefa6f8482efaacb5d49e1785d626923f0035fcf9b77d5135462b",
+          "address": "SP2GPVN381M4ZWA92PW6THWE2JEGWTD7YR5W20Z3T"
+        },
+        {
+          "index": 4,
+          "privateKey": "55ae33e15e69710e8870f90e7f221b26052afb11782dc37e07c73efbae4fe77001",
+          "publicKey": "02ded113c2bcb968caf612905e71c831b9c47c69e3043b9e96ee83183b9071d369",
+          "address": "SP3PZDWX3QQSQT36GAYSHNAS4BNVC5R0D2MF6ZGKW"
+        }
+      ]
+    }
+  ],
+  "transactions": [
+    {
+      "name": "stx-to-standard",
+      "kind": "stx",
+      "recipient": "SP3XHES5990FYDV5BHBZCJRFYFD2Z4X3FMD2N3MGH",
+      "amount": "1000000",
+      "senderKey": "47382d0211f3bbb11812b5e60b696a93d7ad0a91cdeb2162f7d69d4adef48b5d01",
+      "nonce": "7",
+      "fee": "180",
+      "payload": "000516fb1764a9481fe6ecab8afec961fe7b45f2746fa300000000000f424000000000000000000000000000000000000000000000000000000000000000000000",
+      "estimatedLength": 180,
+      "sighash": "bacf6df04bf9a5ac6aae94dcff25c8f4da2759514c5235398f008a47b64658fb",
+      "presign": "d3bc3f6fbc5ca34393a60310c5b599e6e8a32045ddd24d1efaadbe651df70b08",
+      "serialized": "000000000104001859c6840c4dc8ab3a3d39c6b5003fb36c5e7232000000000000000700000000000000b400006d34e1572a3e87147d824aa38ff359ce1a9480c5d511eba0817351cc908e107908508aecdf5f019ff45711e302d1a4e28d708a41af5889698c40a071e5043830030200000000000516fb1764a9481fe6ecab8afec961fe7b45f2746fa300000000000f424000000000000000000000000000000000000000000000000000000000000000000000",
+      "txid": "ba307f3a0af7692ca853b7b0b0e335bc4a57fb4e814fd344b7e8c43b0db4cda5"
+    },
+    {
+      "name": "stx-to-contract",
+      "kind": "stx",
+      "recipient": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v2",
+      "amount": "2500000",
+      "senderKey": "47382d0211f3bbb11812b5e60b696a93d7ad0a91cdeb2162f7d69d4adef48b5d01",
+      "nonce": "7",
+      "fee": "180",
+      "payload": "000616bf584905755be35f11b96c2691fd9c3fc64f4b160d782d6d756c7469686f702d763200000000002625a000000000000000000000000000000000000000000000000000000000000000000000",
+      "estimatedLength": 194,
+      "sighash": "6fd560939d02b2f6e11dd6b92dc2beade5966ccefc3ca27b3e62e4209961b56a",
+      "presign": "a58c4939f3bc117434adca62d7db73a0e7bb4898407100f880f2a3dd98743301",
+      "serialized": "000000000104001859c6840c4dc8ab3a3d39c6b5003fb36c5e7232000000000000000700000000000000b40000ad06dfea95f52503f706d9a4c4bc3467b552815b20a511b013c0f816475102e4408a70621e512430c88e993b9fa0e75e62d3a34b08462fe1d93bcc1ff7cb6fdb030200000000000616bf584905755be35f11b96c2691fd9c3fc64f4b160d782d6d756c7469686f702d763200000000002625a000000000000000000000000000000000000000000000000000000000000000000000",
+      "txid": "f3db2e8a565ee1bc4078595bd2de1c2c8d58e5be4d7f51fbc25ffece46d2943c"
+    },
+    {
+      "name": "sip10-to-standard",
+      "kind": "sip10",
+      "contract": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token",
+      "asset": "charisma",
+      "recipient": "SP3XHES5990FYDV5BHBZCJRFYFD2Z4X3FMD2N3MGH",
+      "amount": "123456789",
+      "senderKey": "47382d0211f3bbb11812b5e60b696a93d7ad0a91cdeb2162f7d69d4adef48b5d01",
+      "nonce": "7",
+      "fee": "180",
+      "payload": "0216bf584905755be35f11b96c2691fd9c3fc64f4b160e6368617269736d612d746f6b656e087472616e736665720000000401000000000000000000000000075bcd1505161859c6840c4dc8ab3a3d39c6b5003fb36c5e72320516fb1764a9481fe6ecab8afec961fe7b45f2746fa309",
+      "estimatedLength": 304,
+      "sighash": "c53892462b3aea7439600605c3b668219f44cec4aff7fa2830aa492e8d5466e9",
+      "presign": "54eeeb9c306e0bcec5efb9f75a796e21685dbda9bb1a47d8f168b573abcf89d3",
+      "serialized": "000000000104001859c6840c4dc8ab3a3d39c6b5003fb36c5e7232000000000000000700000000000000b4000137372bc0584095702057af81f3d4a057b4e53b7dde461efe9e525039056b008d62c42d3935ddc066a62412997b5351c55b45891bd9732f17ff7655bc2631dd160302000000010102161859c6840c4dc8ab3a3d39c6b5003fb36c5e723216bf584905755be35f11b96c2691fd9c3fc64f4b160e6368617269736d612d746f6b656e086368617269736d610100000000075bcd150216bf584905755be35f11b96c2691fd9c3fc64f4b160e6368617269736d612d746f6b656e087472616e736665720000000401000000000000000000000000075bcd1505161859c6840c4dc8ab3a3d39c6b5003fb36c5e72320516fb1764a9481fe6ecab8afec961fe7b45f2746fa309",
+      "txid": "4c0cae128f2d498743a32839f529a7a73e5d237689e6250b3686247257fcb386"
+    },
+    {
+      "name": "sip10-to-contract",
+      "kind": "sip10",
+      "contract": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token",
+      "asset": "charisma",
+      "recipient": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v2",
+      "amount": "42",
+      "senderKey": "47382d0211f3bbb11812b5e60b696a93d7ad0a91cdeb2162f7d69d4adef48b5d01",
+      "nonce": "7",
+      "fee": "180",
+      "payload": "0216bf584905755be35f11b96c2691fd9c3fc64f4b160e6368617269736d612d746f6b656e087472616e7366657200000004010000000000000000000000000000002a05161859c6840c4dc8ab3a3d39c6b5003fb36c5e72320616bf584905755be35f11b96c2691fd9c3fc64f4b160d782d6d756c7469686f702d763209",
+      "estimatedLength": 318,
+      "sighash": "4ebfb4e6ac5e1a3816a1ced6e37ca298a87057193dd1200c6d76885c86373188",
+      "presign": "14d69ce62e9093c42725ae2aa7670f27fa58fc22abb4c38377ed37782f382fbd",
+      "serialized": "000000000104001859c6840c4dc8ab3a3d39c6b5003fb36c5e7232000000000000000700000000000000b400014847d5f5760c07d74b20084a06b0ccc5d7a2950ed6cdd9acc4727b27437f95bc1f501891d82f51d22c194d23edc6857415acc613b6cbbae773f2c354205d275e0302000000010102161859c6840c4dc8ab3a3d39c6b5003fb36c5e723216bf584905755be35f11b96c2691fd9c3fc64f4b160e6368617269736d612d746f6b656e086368617269736d6101000000000000002a0216bf584905755be35f11b96c2691fd9c3fc64f4b160e6368617269736d612d746f6b656e087472616e7366657200000004010000000000000000000000000000002a05161859c6840c4dc8ab3a3d39c6b5003fb36c5e72320616bf584905755be35f11b96c2691fd9c3fc64f4b160d782d6d756c7469686f702d763209",
+      "txid": "c3d9e996f1db377388445df11fa1e267830208442835483d3b212f24886a1d74"
+    }
+  ],
+  "addresses": [
+    {
+      "address": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS",
+      "version": 22,
+      "hash160": "bf584905755be35f11b96c2691fd9c3fc64f4b16"
+    },
+    {
+      "address": "SM2J6ZY48GV1EZ5V2V5RB9MP66SW86PYKKQVX8X0G",
+      "version": 20,
+      "hash160": "a46ff88886c2ef9762d970b4d2c63678835bd39d"
+    },
+    {
+      "address": "SP000000000000000000002Q6VF78",
+      "version": 22,
+      "hash160": "0000000000000000000000000000000000000000"
+    }
+  ],
+  "clarity": [
+    {
+      "name": "uint",
+      "hex": "01000000000000000000000000075bcd15",
+      "value": "123456789"
+    },
+    {
+      "name": "uint-max",
+      "hex": "01ffffffffffffffffffffffffffffffff",
+      "value": "340282366920938463463374607431768211455"
+    },
+    {
+      "name": "ok-uint",
+      "hex": "07010000000000000000000000000000002a",
+      "value": "42"
+    },
+    {
+      "name": "none",
+      "hex": "09"
+    },
+    {
+      "name": "principal-standard",
+      "hex": "05161859c6840c4dc8ab3a3d39c6b5003fb36c5e7232",
+      "value": "SPC5KHM41H6WHAST7MWWDD807YSPRQKJ69FSH54J"
+    },
+    {
+      "name": "principal-contract",
+      "hex": "0616bf584905755be35f11b96c2691fd9c3fc64f4b160d782d6d756c7469686f702d7632",
+      "value": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v2"
+    }
+  ]
+}
