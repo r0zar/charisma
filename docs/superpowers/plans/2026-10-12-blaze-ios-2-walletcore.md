@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build WalletCore, the second BlazeKit target. It holds the wallet's rules and its server clients: the wallet state, the 15-minute lock, amounts in the person's locale, token rows, the send flow and Status's checks. The iOS app (plan 3) only adds screens, the Face ID vault and words.
+**Goal:** Build WalletCore, the second BlazeKit target. It holds the wallet's rules and its server clients: the wallet state, the 15-minute lock, amounts in the person's locale, token rows, the send flow and Status's checks. The iOS app (plan 3) adds only screens, the Face ID vault and words.
 
-**Architecture:** Plain Swift over StacksKit (plan 1), with no UI and no user-facing text: it throws `WalletError` cases that the app's String Catalog words. Rules are pure value types with unit tests. Server clients are `Sendable` structs over `URLSession`. They're checked against the real servers by opt-in live tests, with no mocks.
+**Architecture:** Plain Swift over StacksKit (plan 1), with no UI and no user-facing text: it throws `WalletError` cases that the app's String Catalog words. Rules are pure value types with unit tests. Server clients are `Sendable` structs over `URLSession`, checked against the real servers by opt-in live tests, with no mocks.
 
 **Tech Stack:** Swift 6, Swift Testing, Foundation (`URLSession`, `Decimal.FormatStyle`), `os.Logger`, StacksKit.
 
@@ -16,12 +16,18 @@
 
 ## Working notes for every task
 
-- Every file in this plan was compiled and tested before the plan was written. The suite passes (49 tests in 14 suites), and the opt-in live checks passed against the real servers on 2026-10-12. Copy the code exactly.
-- Run every command from the repo root. Swift commands take `--package-path apps/blaze-ios/BlazeKit`, so `git add` paths stay relative to the root.
-- **No mock data, no fallbacks.** Unit tests feed the pure rules hand-built inputs, such as a `BalanceSheet` value. Server code is checked only against the real servers, by tests that run when `BLAZE_LIVE=1` is set and are skipped otherwise.
-- The live tests only read. The one broadcast they make is a never-signed transaction, which the network can only refuse.
+- **The code is pre-tested.** Every file in this plan was compiled and tested before the plan was written: 49 tests in 14 suites. The plan was then replayed task by task in a fresh folder, and every count below matched. The opt-in live checks passed against the real servers on 2026-10-12. Copy the code exactly.
+- **Commands.** Run every command from the repo root. Swift commands take `--package-path apps/blaze-ios/BlazeKit`.
+- **No mock data, no fallbacks.**
+  - Unit tests feed the pure rules hand-built inputs, such as a `BalanceSheet` value.
+  - Server code is checked only against the real servers, by tests that run when `BLAZE_LIVE=1` is set and are skipped otherwise. Each live suite has a one-minute limit.
+  - The live tests only read. Their one broadcast is a never-signed transaction, which the network can only refuse.
+- **The extension's per-item rules are the only quiet failures.** Each one is logged:
+  - a sheet token that can't be read is left out
+  - a failed one-token lookup leaves that token unknown (`Charisma.lookUp`)
+  - a subnet that can't be read is left out of "Holding your funds"
 - **One change from the spec:** `Account` keeps no `name`. The app shows "Account N" (N = index + 1) in the person's language, which a stored English name would block.
-- Commit after every task, ending the message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+- **Commits:** commit after every task, ending the message with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
 
 ## File structure
 
@@ -33,16 +39,16 @@ All paths are inside `apps/blaze-ios/BlazeKit`.
 | `Sources/WalletCore/WalletError.swift` | Every failure, typed; `Service` names the server |
 | `Sources/WalletCore/Log.swift` | `os.Logger`s for developer-only problems |
 | `Sources/WalletCore/WalletState.swift` | `SeedPhrase`, `Account`, `WalletState` and the extension's rules |
-| `Sources/WalletCore/Session.swift` | The unlocked state and the 15-minute idle lock (injected clock) |
-| `Sources/WalletCore/Amount.swift` | Exact `Int128` amounts ⇄ locale text; USD |
+| `Sources/WalletCore/Session.swift` | The unlocked state and the 15-minute idle lock (injected clock); reads never mutate |
+| `Sources/WalletCore/Amount.swift` | Exact `Int128` amounts to and from locale text; USD |
 | `Sources/WalletCore/Models.swift` | The server answers WalletCore reads (`BalanceSheet`, `TokenInfo`) |
 | `Sources/WalletCore/TokenRows.swift` | `TokenMeta`, `TokenRow`, `Unsendable`, and building rows from a sheet |
-| `Sources/WalletCore/HTTP.swift` | JSON over HTTPS, errors per service, Hiro's 429 retry |
-| `Sources/WalletCore/Charisma.swift` | Balance sheet, live balance stream, token list, one token, prices |
+| `Sources/WalletCore/HTTP.swift` | JSON over HTTPS, errors per service, Hiro's 429 retry, cancellation passed through |
+| `Sources/WalletCore/Charisma.swift` | Balance sheet, live balance stream, token list, one-token lookups, prices |
 | `Sources/WalletCore/Hiro.swift` | Nonce, fee estimate, broadcast, tip height, subnet `get-balance` |
 | `Sources/WalletCore/Send.swift` | Recipient, amount and fee checks; review; sign and broadcast |
 | `Sources/WalletCore/Diagnostics.swift` | Status's checks, and the subnet reader that keeps answers for a minute |
-| `Tests/WalletCoreTests/Fixtures.swift` | Test phrases, a test clock, a row builder |
+| `Tests/WalletCoreTests/Fixtures.swift`, `Tests/WalletCoreTests/RowFixtures.swift` | Test phrases, a test clock, a row builder |
 | `Tests/WalletCoreTests/*Tests.swift` | One test file per area; `Live*Tests.swift` are opt-in |
 
 ---
@@ -98,7 +104,7 @@ let package = Package(
 
 ```swift
 import Foundation
-import StacksKit
+
 @testable import WalletCore
 
 /// Public BIP39 test phrases: never send funds to their addresses
@@ -114,17 +120,6 @@ enum TestPhrase {
 final class TestClock: @unchecked Sendable {
     var now = Date(timeIntervalSince1970: 1_800_000_000)
     func advance(minutes: Double) { now = now.addingTimeInterval(minutes * 60) }
-}
-
-extension TokenRow {
-    /// A row as TokenRows.build would make it
-    static func make(_ contractId: String, standard: Int128, blaze: Int128 = 0, symbol: String = "TKN", decimals: Int = 6, listed: Bool = true, asset: String? = "token") -> TokenRow {
-        TokenRow(
-            contractId: contractId, standard: standard, blaze: blaze,
-            meta: TokenMeta(TokenInfo(contractId: contractId, name: symbol, symbol: symbol, decimals: decimals, identifier: asset)),
-            listed: listed, asset: contractId == TokenRow.stx ? "" : asset
-        )
-    }
 }
 ```
 
@@ -346,7 +341,7 @@ public struct WalletState: Codable, Equatable, Sendable {
         do {
             keys = try AccountKeys.derive(phrase: seed.phrase, index: index)
         } catch {
-            throw WalletError.unexpected("Couldn't derive account \(index + 1): \(error)")
+            throw WalletError.unexpected(String(describing: error))
         }
         return Account(
             id: "account_\(UUID().uuidString.lowercased())", index: index, seedPhraseId: seed.id,
@@ -355,8 +350,6 @@ public struct WalletState: Codable, Equatable, Sendable {
     }
 }
 ```
-
-`Fixtures.swift` also uses `TokenRow`, `TokenMeta` and `TokenInfo` (Task 4). Until then, comment out its `extension TokenRow` block, and uncomment it in Task 4.
 
 - [ ] **Run the tests and watch them pass**
 
@@ -460,10 +453,9 @@ public struct Session: Sendable {
     /// When the wallet locks if nothing else happens; nil once locked
     public var locksAt: Date? { isLocked ? nil : lastAction.addingTimeInterval(Self.idleLimit) }
 
-    /// The wallet as it is. Doesn't restart the 15 minutes.
-    public mutating func read() throws -> WalletState {
-        expireIfIdle()
-        guard let state else { throw WalletError.locked }
+    /// The wallet as it is. Doesn't restart the 15 minutes, and changes nothing.
+    public func read() throws -> WalletState {
+        guard !isLocked, let state else { throw WalletError.locked }
         return state
     }
 
@@ -683,10 +675,29 @@ git commit -m "feat(blaze-ios): Exact amounts in the person's locale, with each 
 
 **Files:**
 - Create: `Sources/WalletCore/Models.swift`, `Sources/WalletCore/TokenRows.swift`
-- Modify: `Tests/WalletCoreTests/Fixtures.swift` (uncomment `extension TokenRow`)
-- Test: `Tests/WalletCoreTests/TokenRowsTests.swift`
+- Test: `Tests/WalletCoreTests/RowFixtures.swift`, `Tests/WalletCoreTests/TokenRowsTests.swift`
 
-- [ ] **Uncomment the `extension TokenRow` block in `Fixtures.swift`, and write the failing tests**
+- [ ] **Write the row fixture and the failing tests**
+
+`Tests/WalletCoreTests/RowFixtures.swift`:
+
+```swift
+import Foundation
+@testable import WalletCore
+
+extension TokenRow {
+    /// A row as TokenRows.build would make it
+    static func make(_ contractId: String, standard: Int128, blaze: Int128 = 0, symbol: String = "TKN", decimals: Int = 6, listed: Bool = true, asset: String? = "token") -> TokenRow {
+        TokenRow(
+            contractId: contractId, standard: standard, blaze: blaze,
+            meta: TokenMeta(TokenInfo(contractId: contractId, name: symbol, symbol: symbol, decimals: decimals, identifier: asset)),
+            listed: listed, asset: contractId == TokenRow.stx ? "" : asset
+        )
+    }
+}
+```
+
+`Tests/WalletCoreTests/TokenRowsTests.swift`:
 
 ```swift
 import Foundation
@@ -738,12 +749,15 @@ struct TokenRowsTests {
         #expect(rows[airdrop]!.unsendable == .unlisted)
         #expect(rows[welsh]!.unsendable == .missingAssetName)
         #expect(rows[sbtc]!.unsendable == .onlyOnBlaze)
+        // A new wallet's empty STX row has nothing to send, rather than being "on Blaze"
+        let empty = TokenRows.build(sheet: BalanceSheet(address: TestPhrase.account0, tokens: [:]), list: list, lookups: [:])
+        #expect(empty.map(\.contractId) == [".stx"])
+        #expect(empty[0].unsendable == .nothingToSend)
     }
 
     @Test func unlistedTokensAreLookedUpButStayUnlisted() {
-        #expect(TokenRows.unlisted(sheet: sheet, list: list) == [
-            airdrop, "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.broken", "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.empty",
-        ])
+        // Only tokens that become rows: the empty and the unreadable ones don't
+        #expect(TokenRows.unlisted(sheet: sheet, list: list) == [airdrop])
         let lookups = [airdrop: TokenInfo(contractId: nil, name: "Airdrop", symbol: "AIR", decimals: 0, identifier: "air")]
         let row = TokenRows.build(sheet: sheet, list: list, lookups: lookups).first { $0.contractId == airdrop }!
         #expect(row.meta?.symbol == "AIR")
@@ -757,7 +771,7 @@ struct TokenRowsTests {
 - [ ] **Run the tests and watch them fail**
 
 Run: `swift test --package-path apps/blaze-ios/BlazeKit 2>&1 | grep -E "error:" | head`
-Expected: the build fails because `TokenRows` doesn't exist yet.
+Expected: the build fails because `TokenRow` doesn't exist yet.
 
 - [ ] **Write the models and the rows**
 
@@ -855,6 +869,8 @@ public enum Unsendable: Sendable {
     case missingAssetName
     /// Everything is on Blaze; sends spend the Standard balance (move Blaze funds with Charisma Swap)
     case onlyOnBlaze
+    /// Nothing on Standard or Blaze (STX's row is always shown, even empty)
+    case nothingToSend
 }
 
 /// One token the active account holds: its Standard (on Stacks) and Blaze (all its subnets) balances
@@ -880,18 +896,17 @@ public struct TokenRow: Hashable, Identifiable, Sendable {
         if !listed { return .unlisted }
         if meta == nil { return .unknown }
         if asset == nil { return .missingAssetName }
-        if standard <= 0 { return .onlyOnBlaze }
+        if standard <= 0 { return blaze > 0 ? .onlyOnBlaze : .nothingToSend }
         return nil
     }
 }
 
 /// The extension's getWalletBalances (apps/signet/src/background/lib/tokens.ts)
 public enum TokenRows {
-    /// Contract ids the rows need that aren't on the list, to look up one by one before `build`
+    /// Contract ids that will become rows but aren't on the list: look them up (`Charisma.lookUp`) before `build`
     public static func unlisted(sheet: BalanceSheet, list: [TokenInfo]) -> [String] {
-        let listed = Set(list.compactMap(\.contractId))
-        let ids = Set(sheet.tokens.map { id, token in token.base ?? id }).subtracting(listed).subtracting([TokenRow.stx])
-        return ids.sorted()
+        let listed = Set(list.compactMap(\.contractId)).union([TokenRow.stx])
+        return totals(sheet).keys.filter { !listed.contains($0) }.sorted()
     }
 
     /// Blaze balances fold into their base token's row. STX is always there; other rows with nothing on either side
@@ -899,21 +914,8 @@ public enum TokenRows {
     /// id, so rows stay put across refreshes and live updates. `lookups` holds what `unlisted` asked for; a token
     /// missing from it is unknown.
     public static func build(sheet: BalanceSheet, list: [TokenInfo], lookups: [String: TokenInfo]) -> [TokenRow] {
-        var totals: [String: (standard: Int128, blaze: Int128)] = [TokenRow.stx: (0, 0)]
-        for (id, token) in sheet.tokens {
-            guard let ready = token.ready, let amount = Int128(ready) else {
-                Log.balances.error("Couldn't read \(id, privacy: .public)'s balance: \(token.error ?? "no amount", privacy: .public)")
-                continue
-            }
-            let base = token.base ?? id
-            var row = totals[base] ?? (0, 0)
-            if token.base == nil { row.standard += amount } else { row.blaze += amount }
-            totals[base] = row
-        }
-
         let byId = Dictionary(list.compactMap { info in info.contractId.map { ($0, info) } }, uniquingKeysWith: { first, _ in first })
-        let rows = totals.compactMap { id, total -> TokenRow? in
-            guard id == TokenRow.stx || total.standard != 0 || total.blaze != 0 else { return nil }
+        let rows = totals(sheet).map { id, total -> TokenRow in
             let info = byId[id] ?? lookups[id]
             let isSTX = id == TokenRow.stx
             return TokenRow(
@@ -926,6 +928,23 @@ public enum TokenRows {
             let rank = { (row: TokenRow) in row.isSTX ? 0 : row.standard != 0 ? 1 : 2 }
             return (rank(a), a.contractId) < (rank(b), b.contractId)
         }
+    }
+
+    /// Each row's Standard and Blaze totals: STX always, others only when something is on either side. A token whose
+    /// balance the service couldn't read is left out and logged (the extension's rule).
+    private static func totals(_ sheet: BalanceSheet) -> [String: (standard: Int128, blaze: Int128)] {
+        var totals: [String: (standard: Int128, blaze: Int128)] = [TokenRow.stx: (0, 0)]
+        for (id, token) in sheet.tokens {
+            guard let ready = token.ready, let amount = Int128(ready) else {
+                Log.balances.error("Couldn't read \(id, privacy: .public)'s balance: \(token.error ?? "no amount", privacy: .public)")
+                continue
+            }
+            let base = token.base ?? id
+            var row = totals[base] ?? (0, 0)
+            if token.base == nil { row.standard += amount } else { row.blaze += amount }
+            totals[base] = row
+        }
+        return totals.filter { id, total in id == TokenRow.stx || total.standard != 0 || total.blaze != 0 }
     }
 }
 ```
@@ -960,7 +979,7 @@ import Testing
 
 /// Real reads from Charisma's servers and Hiro (no mocks), to check WalletCore reads their answers. Opt in, since they
 /// need the network: BLAZE_LIVE=1 swift test --filter LiveTests
-@Suite(.enabled(if: ProcessInfo.processInfo.environment["BLAZE_LIVE"] == "1"))
+@Suite(.enabled(if: ProcessInfo.processInfo.environment["BLAZE_LIVE"] == "1"), .timeLimit(.minutes(1)))
 struct LiveTests {
     /// Charisma's deployer, which holds many tokens and subnet balances
     let deployer = "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS"
@@ -976,6 +995,8 @@ struct LiveTests {
         #expect(rows.first?.isSTX == true)
         #expect(try await charisma.usdPrices()[TokenRow.stx] ?? 0 > 0)
         #expect(try await charisma.token("SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token").symbol == "CHA")
+        let found = await charisma.lookUp(["SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token", "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welshcorgicoin-token"])
+        #expect(found["SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token"]?.symbol == "CHA")
     }
 
     @Test func theBalanceStreamSendsASheet() async throws {
@@ -1039,6 +1060,7 @@ struct HTTP: Sendable {
     func send(_ request: URLRequest, to service: Service) async throws -> Data {
         let (data, response) = try await answer(request, from: service)
         guard (200..<300).contains(response.statusCode) else {
+            Log.network.error("\(request.url?.absoluteString ?? "?", privacy: .public) answered \(response.statusCode)")
             throw WalletError.requestFailed(service, status: response.statusCode)
         }
         return data
@@ -1053,8 +1075,13 @@ struct HTTP: Sendable {
             let data: Data, response: URLResponse
             do {
                 (data, response) = try await session.data(for: request)
+            } catch let error as URLError where error.code == .cancelled {
+                // SwiftUI cancels work it no longer needs (a tab or account switch): not a failure to show
+                throw CancellationError()
+            } catch is CancellationError {
+                throw CancellationError()
             } catch {
-                Log.network.error("\(service.rawValue, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                Log.network.error("\(request.url?.absoluteString ?? "?", privacy: .public): \(error.localizedDescription, privacy: .public)")
                 throw WalletError.unreachable(service)
             }
             guard let http = response as? HTTPURLResponse else { throw WalletError.unreadable(service) }
@@ -1119,6 +1146,28 @@ public struct Charisma: Sendable {
     public func token(_ contractId: String) async throws -> TokenInfo {
         struct Answer: Decodable { let data: TokenInfo }
         return try await http.get(Self.tokens.appending(path: contractId), from: .tokenList, as: Answer.self).data
+    }
+
+    /// Details for tokens that aren't on the list, all at once. A failed lookup is logged and left out, so that token
+    /// shows as unknown (the extension's rule): one bad token never blanks the Tokens tab.
+    public func lookUp(_ contractIds: [String]) async -> [String: TokenInfo] {
+        await withTaskGroup(of: (String, TokenInfo?).self) { group in
+            for id in contractIds {
+                group.addTask {
+                    do {
+                        return (id, try await token(id))
+                    } catch {
+                        Log.balances.error("Couldn't look up \(id, privacy: .public): \(error, privacy: .public)")
+                        return (id, nil)
+                    }
+                }
+            }
+            var found: [String: TokenInfo] = [:]
+            for await (id, info) in group {
+                if let info { found[id] = info }
+            }
+            return found
+        }
     }
 
     /// USD per whole token, by contract id (".stx" for STX)
@@ -1237,11 +1286,13 @@ public struct Hiro: Sendable {
         }
         let request = HTTP.jsonRequest(Self.base.appending(path: "v2/transactions"), Request(tx: transaction.serialized.hex))
         let (data, response) = try await http.answer(request, from: .stacks)
-        guard (200..<300).contains(response.statusCode) else {
-            // Rejected transactions come back as JSON; ones the node can't even read, as plain text
+        if response.statusCode == 400 {
+            // Refused transactions come back as JSON; ones the node can't even read, as plain text
             let rejection = try? JSONDecoder().decode(Rejection.self, from: data)
-            let reason = rejection?.reason ?? rejection?.error ?? String(decoding: data, as: UTF8.self)
-            throw WalletError.rejected(reason: reason)
+            throw WalletError.rejected(reason: rejection?.reason ?? rejection?.error ?? String(decoding: data, as: UTF8.self))
+        }
+        guard (200..<300).contains(response.statusCode) else {
+            throw WalletError.requestFailed(.stacks, status: response.statusCode)
         }
         let txid = try http.decode(data, from: .stacks, as: String.self)
         guard txid.count == 64 || txid.count == 66 else { throw WalletError.unreadable(.stacks) }
@@ -1421,7 +1472,7 @@ public enum Send {
             return .stxTransfer(to: recipient, amount: micro, publicKey: publicKey, nonce: nonce, fee: fee)
         }
         guard let asset = row.asset else { throw WalletError.missingAssetName(symbol: row.meta?.symbol ?? row.contractId) }
-        guard case .contract(let token, let name) = try? Principal(row.contractId) else { throw WalletError.unexpected("Not a token contract: \(row.contractId)") }
+        guard case .contract(let token, let name) = try? Principal(row.contractId) else { throw WalletError.unexpected(row.contractId) }
         do {
             return try .sip10Transfer(token: token, tokenName: name, asset: asset, amount: micro, to: recipient, publicKey: publicKey, nonce: nonce, fee: fee)
         } catch {
@@ -1452,7 +1503,7 @@ public enum Send {
         do {
             signed = try unsigned.signed(privateKey: Data(hex: account.privateKey))
         } catch {
-            throw WalletError.unexpected("Couldn't sign: \(error)")
+            throw WalletError.unexpected(String(describing: error))
         }
         return try await hiro.broadcast(signed)
     }
@@ -1461,7 +1512,7 @@ public enum Send {
         do {
             return try Data(hex: account.publicKey)
         } catch {
-            throw WalletError.unexpected("The account's public key isn't hex")
+            throw WalletError.unexpected(String(describing: error))
         }
     }
 }
@@ -1496,7 +1547,7 @@ import Testing
 @testable import WalletCore
 
 /// Status's checks against the real servers. Opt in: BLAZE_LIVE=1 swift test --filter LiveDiagnosticsTests
-@Suite(.enabled(if: ProcessInfo.processInfo.environment["BLAZE_LIVE"] == "1"))
+@Suite(.enabled(if: ProcessInfo.processInfo.environment["BLAZE_LIVE"] == "1"), .timeLimit(.minutes(1)))
 struct LiveDiagnosticsTests {
     @Test func statusChecksEverything() async throws {
         let hiro = Hiro()
@@ -1575,7 +1626,15 @@ public actor SubnetReader {
 
     public func balances(of address: StacksAddress, list: [TokenInfo]) async -> [SubnetBalance] {
         if let kept, kept.address == address, Date().timeIntervalSince(kept.at) < 60 { return kept.balances }
-        let subnets = list.filter { $0.type == "SUBNET" }
+        let subnets = list.filter { info in
+            guard info.type == "SUBNET" else { return false }
+            guard info.contractId != nil, info.symbol != nil, info.decimals != nil else {
+                // Without these its balance can't be shown honestly: a token-list data problem for developers
+                Log.balances.error("Subnet \(info.contractId ?? "?", privacy: .public) has no contract id, symbol or decimals on the token list")
+                return false
+            }
+            return true
+        }
         var balances: [SubnetBalance] = []
         for start in stride(from: 0, to: subnets.count, by: 4) {
             let batch = subnets[start..<min(start + 4, subnets.count)]
@@ -1592,19 +1651,20 @@ public actor SubnetReader {
         return balances
     }
 
+    /// `info` has a contract id, symbol and decimals (checked by `balances`)
     private static func read(_ info: TokenInfo, of address: StacksAddress, hiro: Hiro) async -> SubnetBalance {
-        let id = info.contractId ?? ""
+        let id = info.contractId!
         // The token list calls STX's base "stx"; the wallet calls it ".stx"
         let base = info.base.map { $0 == "stx" ? TokenRow.stx : $0 }
         var balance: Int128?
         do {
-            guard case .contract(let subnet, let name) = try Principal(id) else { throw WalletError.unexpected("Not a contract: \(id)") }
+            guard case .contract(let subnet, let name) = try Principal(id) else { throw WalletError.unexpected(id) }
             balance = try await hiro.subnetBalance(subnet: subnet, name: name, of: address)
         } catch {
             // A subnet that can't be read is a token-list data problem for developers, not news for the person
             Log.balances.error("Couldn't read subnet \(id, privacy: .public): \(error, privacy: .public)")
         }
-        return SubnetBalance(contractId: id, symbol: info.symbol ?? id, decimals: info.decimals ?? 0, base: base, balance: balance)
+        return SubnetBalance(contractId: id, symbol: info.symbol!, decimals: info.decimals!, base: base, balance: balance)
     }
 }
 
