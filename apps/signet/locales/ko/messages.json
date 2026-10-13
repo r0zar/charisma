@@ -1,0 +1,898 @@
+{
+  "extensionDescription": {
+    "message": "Stacks에서 더 많은 일을 해 보세요. 지정가 주문과 예약 매수에 한 번만 서명하면 알아서 실행되고, 온체인에서 정산되며, 본인에게만 지급됩니다.",
+    "description": "Chrome Web Store summary and chrome://extensions description. 132 characters or fewer."
+  },
+  "back": {
+    "message": "뒤로",
+    "description": "Button: back to the previous step"
+  },
+  "cancel": {
+    "message": "취소",
+    "description": "Button"
+  },
+  "continue": {
+    "message": "계속",
+    "description": "Button: next step"
+  },
+  "done": {
+    "message": "완료",
+    "description": "Button: close after a send"
+  },
+  "copy": {
+    "message": "복사",
+    "description": "Button: copy the address"
+  },
+  "copied": {
+    "message": "복사됨",
+    "description": "Button label for a moment after copying"
+  },
+  "import": {
+    "message": "가져오기",
+    "description": "Button: import a seed phrase"
+  },
+  "unlink": {
+    "message": "연결 해제",
+    "description": "Button: remove a seed phrase or the wallet from this browser (funds stay on the blockchain)"
+  },
+  "use": {
+    "message": "사용",
+    "description": "Button: make this account the active one"
+  },
+  "active": {
+    "message": "사용 중",
+    "description": "Badge on the active account"
+  },
+  "tryAgain": {
+    "message": "다시 시도",
+    "description": "Button after a crash"
+  },
+  "name": {
+    "message": "이름",
+    "description": "Field label: a name for a seed phrase"
+  },
+  "send": {
+    "message": "보내기",
+    "description": "Button and review label: send tokens"
+  },
+  "to": {
+    "message": "받는 사람",
+    "description": "Review label: the recipient"
+  },
+  "amount": {
+    "message": "수량",
+    "description": "Field and review label: how much of a token"
+  },
+  "lock": {
+    "message": "잠금",
+    "description": "Button: lock the wallet"
+  },
+  "review": {
+    "message": "검토",
+    "description": "Button: check a send before sending"
+  },
+  "max": {
+    "message": "최대",
+    "description": "Button: fill in the whole balance"
+  },
+  "address": {
+    "message": "주소",
+    "description": "Label: a Stacks address"
+  },
+  "tabWallet": {
+    "message": "지갑",
+    "description": "Side panel tab"
+  },
+  "tabTokens": {
+    "message": "토큰",
+    "description": "Side panel tab"
+  },
+  "tabStatus": {
+    "message": "상태",
+    "description": "Side panel tab"
+  },
+  "lockTheWallet": {
+    "message": "지갑 잠그기",
+    "description": "Tooltip and screen reader label of the lock button"
+  },
+  "unlockLocked": {
+    "message": "잠겨 있습니다. 계속하려면 비밀번호를 입력하세요.",
+    "description": "Lock screen, under the logo"
+  },
+  "unlockChoosePassword": {
+    "message": "이 지갑을 보호할 비밀번호를 설정하세요.",
+    "description": "First run, under the logo"
+  },
+  "unlockTitle": {
+    "message": "잠금 해제",
+    "description": "Card title on the lock screen"
+  },
+  "createWalletTitle": {
+    "message": "지갑 만들기",
+    "description": "Card title on first run"
+  },
+  "passwordLabel": {
+    "message": "비밀번호",
+    "description": "Field label"
+  },
+  "newPasswordLabel": {
+    "message": "새 비밀번호($1자 이상)",
+    "description": "Field label on first run. $1 is the minimum length (8)"
+  },
+  "passwordPlaceholder": {
+    "message": "비밀번호 입력",
+    "description": "Field placeholder"
+  },
+  "newPasswordPlaceholder": {
+    "message": "강력한 비밀번호",
+    "description": "Field placeholder on first run"
+  },
+  "passwordAgainLabel": {
+    "message": "다시 입력",
+    "description": "Field label: repeat the new password"
+  },
+  "passwordAgainPlaceholder": {
+    "message": "같은 비밀번호",
+    "description": "Field placeholder"
+  },
+  "unlockButton": {
+    "message": "잠금 해제",
+    "description": "Button"
+  },
+  "createWalletButton": {
+    "message": "지갑 만들기",
+    "description": "Button on first run"
+  },
+  "passwordShow": {
+    "message": "표시",
+    "description": "Button: show the password"
+  },
+  "passwordHide": {
+    "message": "숨기기",
+    "description": "Button: hide the password"
+  },
+  "errorPasswordsDontMatch": {
+    "message": "비밀번호가 일치하지 않습니다",
+    "description": "Error on first run"
+  },
+  "importTitle": {
+    "message": "시드 문구 가져오기",
+    "description": "Card title"
+  },
+  "seedNamePlaceholder": {
+    "message": "내 시드 문구",
+    "description": "Placeholder for a seed phrase's name"
+  },
+  "importWordsLabel": {
+    "message": "단어 12개 또는 24개",
+    "description": "Field label for the seed words"
+  },
+  "importWordsPlaceholder": {
+    "message": "word word word …",
+    "description": "Placeholder for the seed words. Keep it in English: seed phrases are always English BIP39 words."
+  },
+  "errorSeedNotSaved": {
+    "message": "시드 문구가 저장되지 않았습니다",
+    "description": "Error"
+  },
+  "newSeedTitle": {
+    "message": "새 시드 문구",
+    "description": "Card title"
+  },
+  "generateWords": {
+    "message": "단어 24개 생성",
+    "description": "Button"
+  },
+  "writeDownTitle": {
+    "message": "이 단어를 적어 두세요",
+    "description": "Card title over the 24 new words"
+  },
+  "writeDownWarning": {
+    "message": "이 24개 단어는 이 지갑을 복구할 수 있는 유일한 방법입니다. 이 단어를 보는 사람은 누구나 자금을 마음대로 움직일 수 있으며, Blaze Wallet은 이 단어를 복구할 수 없습니다.",
+    "description": "Warning over the new words. Keep it exactly as strong."
+  },
+  "wroteDown": {
+    "message": "단어 24개를 모두 순서대로 적었습니다",
+    "description": "Checkbox"
+  },
+  "confirmTitle": {
+    "message": "단어 확인",
+    "description": "Card title"
+  },
+  "confirmNote": {
+    "message": "적어 둔 내용을 보고 아래 단어를 입력하세요.",
+    "description": "Note over the confirmation fields"
+  },
+  "wordNumber": {
+    "message": "단어 #$1",
+    "description": "Field label. $1 is the word's position, 1 to 24"
+  },
+  "errorWordsDontMatch": {
+    "message": "일치하지 않는 단어: $1. 적어 둔 내용을 확인하세요",
+    "description": "Error. $1 lists positions, for example \"#3, #7\""
+  },
+  "confirmAndSave": {
+    "message": "확인 후 저장",
+    "description": "Button"
+  },
+  "newAccountTitle": {
+    "message": "새 계정",
+    "description": "Card title"
+  },
+  "newAccountNote": {
+    "message": "이 시드 문구의 다음 주소가 사용 중인 계정이 됩니다.",
+    "description": "Note"
+  },
+  "createAccount": {
+    "message": "계정 만들기",
+    "description": "Button"
+  },
+  "accountName": {
+    "message": "계정 $1",
+    "description": "An account's name. $1 is its number, starting at 1"
+  },
+  "noActiveAccount": {
+    "message": "사용 중인 계정 없음",
+    "description": "Card title when every seed phrase is unlinked"
+  },
+  "addAccountHint": {
+    "message": "아래 시드 문구에서 계정을 추가하세요.",
+    "description": "Hint under it"
+  },
+  "seedPhrasesTitle": {
+    "message": "시드 문구",
+    "description": "Card title"
+  },
+  "noSeedPhrases": {
+    "message": "아직 없습니다. 새로 생성하거나 가지고 있는 시드 문구를 가져오세요.",
+    "description": "Empty state"
+  },
+  "addAccount": {
+    "message": "+ 계정",
+    "description": "Button: derive the next account of this seed phrase"
+  },
+  "generateNew": {
+    "message": "새로 생성",
+    "description": "Button: a new seed phrase"
+  },
+  "confirmUnlinkSeed": {
+    "message": "이 브라우저에서 이 시드 문구를 연결 해제하겠습니까?\n\n이 시드 문구의 계정과 자금은 블록체인에 안전하게 남아 있습니다. 여기서 다시 사용하려면 시드 문구의 단어가 필요합니다.",
+    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
+  },
+  "vaultTitle": {
+    "message": "보관함",
+    "description": "Card title: the wallet's settings"
+  },
+  "vaultKeys": {
+    "message": "키",
+    "description": "Label"
+  },
+  "vaultKeysValue": {
+    "message": "암호화됨, 이 기기에만",
+    "description": "Value of Keys"
+  },
+  "vaultAutoLock": {
+    "message": "자동 잠금",
+    "description": "Label"
+  },
+  "vaultAutoLockValue": {
+    "message": "15분 동안 사용하지 않으면",
+    "description": "Value of Auto-lock"
+  },
+  "exportButton": {
+    "message": "내보내기",
+    "description": "Button: download the encrypted wallet backup"
+  },
+  "exportDone": {
+    "message": "지갑을 내보냈습니다",
+    "description": "Notice after the download"
+  },
+  "exportFailed": {
+    "message": "지갑을 내보내지 못했습니다",
+    "description": "Notice when the download fails"
+  },
+  "confirmUnlinkWallet": {
+    "message": "이 브라우저에서 이 지갑을 연결 해제하겠습니까?\n\n모든 시드 문구와 계정이 이 기기에서 제거됩니다. 자금은 블록체인에 안전하게 남아 있으며, 다시 접근하려면 시드 문구가 필요합니다.",
+    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
+  },
+  "themeLabel": {
+    "message": "테마",
+    "description": "Label"
+  },
+  "themeSystem": {
+    "message": "시스템",
+    "description": "Theme choice: follow the device"
+  },
+  "themeSystemTitle": {
+    "message": "이 기기 설정 따르기",
+    "description": "Tooltip"
+  },
+  "themeLight": {
+    "message": "라이트",
+    "description": "Theme choice"
+  },
+  "themeLightTitle": {
+    "message": "라이트 · Bitcoin",
+    "description": "Tooltip: the light look's name. Keep Bitcoin"
+  },
+  "themeDark": {
+    "message": "다크",
+    "description": "Theme choice"
+  },
+  "themeDarkTitle": {
+    "message": "다크 · RPG",
+    "description": "Tooltip: the dark look's name. Keep RPG"
+  },
+  "languageLabel": {
+    "message": "언어",
+    "description": "Label of the language picker"
+  },
+  "languageAutomatic": {
+    "message": "자동",
+    "description": "Language choice: follow Chrome's language"
+  },
+  "tokensTitle": {
+    "message": "토큰",
+    "description": "Card title"
+  },
+  "refresh": {
+    "message": "새로고침",
+    "description": "Button"
+  },
+  "refreshTitle": {
+    "message": "잔액 새로고침",
+    "description": "Tooltip"
+  },
+  "totalValue": {
+    "message": "총 평가액",
+    "description": "Label over the total in dollars"
+  },
+  "tokenCount_other": {
+    "message": "토큰 $1개",
+    "description": "Under the total. $1 is the number of tokens"
+  },
+  "withoutPrice_other": {
+    "message": "가격 정보 없음 $1개",
+    "description": "Under the total. $1 is the number of tokens with no dollar price"
+  },
+  "loadingBalances": {
+    "message": "잔액 불러오는 중…",
+    "description": "While balances load"
+  },
+  "pricesUnavailable": {
+    "message": "가격 정보를 사용할 수 없음: $1",
+    "description": "Warning. $1 is the reason, already worded"
+  },
+  "unlisted_other": {
+    "message": "목록에 없음 $1개 · Charisma 토큰 목록에 없으며, 사기일 수 있습니다",
+    "description": "Toggle for hidden tokens. $1 is how many"
+  },
+  "onBlaze": {
+    "message": "Blaze에 있는 $1",
+    "description": "A token's Blaze balance. $1 is the amount"
+  },
+  "units": {
+    "message": "$1 단위",
+    "description": "An unknown token's balance in its smallest units. $1 is the number"
+  },
+  "rowUnlisted": {
+    "message": "Charisma 토큰 목록에 없어 여기서 보낼 수 없습니다",
+    "description": "Tooltip on an unlisted token"
+  },
+  "rowUnknown": {
+    "message": "알 수 없는 토큰입니다. 가장 작은 단위로 표시되며, 여기서 보낼 수 없습니다",
+    "description": "Tooltip on an unknown token"
+  },
+  "rowSend": {
+    "message": "$1 보내기",
+    "description": "Tooltip on a token. $1 is its symbol"
+  },
+  "rowAllOnBlaze": {
+    "message": "$1 잔액은 모두 Blaze에 있습니다. Charisma Swap을 사용해 옮기세요",
+    "description": "Tooltip. $1 is the token's symbol"
+  },
+  "sendTitle": {
+    "message": "$1 보내기",
+    "description": "Card title. $1 is the token's symbol"
+  },
+  "recipientLabel": {
+    "message": "받는 사람",
+    "description": "Field label"
+  },
+  "blazeNote": {
+    "message": "보내기에는 일반 잔액($1 $2)이 사용됩니다. Blaze에 있는 잔액($3)은 해당 서브넷에 그대로 남습니다. Charisma Swap을 사용해 옮기세요.",
+    "description": "Note on the send form. $1 the Standard amount, $2 the symbol, $3 the Blaze amount"
+  },
+  "sentTitle": {
+    "message": "$1 보내기 완료",
+    "description": "Card title after sending. $1 is the token's symbol"
+  },
+  "sentNote": {
+    "message": "몇 분 안에 Stacks에서 확정됩니다.",
+    "description": "After sending"
+  },
+  "viewOnExplorer": {
+    "message": "탐색기에서 보기",
+    "description": "Link to the block explorer"
+  },
+  "networkFee": {
+    "message": "네트워크 수수료",
+    "description": "Review label"
+  },
+  "feeAutomatic": {
+    "message": "자동 설정",
+    "description": "Value of Network fee"
+  },
+  "safety": {
+    "message": "안전",
+    "description": "Review label"
+  },
+  "safetyExact": {
+    "message": "정확히 이 수량만, 그 이상은 없음",
+    "description": "Value of Safety: the transaction can't move more than this"
+  },
+  "sending": {
+    "message": "보내는 중…",
+    "description": "Button while sending"
+  },
+  "errorRecipient": {
+    "message": "Stacks 주소(SP…)를 입력하세요",
+    "description": "Error on the send form"
+  },
+  "errorAmountLike": {
+    "message": "수량은 $1 같은 형식으로 입력하세요",
+    "description": "Error. $1 is an example such as 1.5, with this language's decimal mark"
+  },
+  "errorMaxDecimals_other": {
+    "message": "소수점 이하는 $1자리까지만 입력할 수 있습니다",
+    "description": "Error. $1 is the token's decimals"
+  },
+  "errorAmountPositive": {
+    "message": "수량은 0보다 커야 합니다",
+    "description": "Error"
+  },
+  "errorYouHave": {
+    "message": "보유 잔액: $1 $2",
+    "description": "Error when the amount is more than the balance. $1 the balance, $2 the symbol"
+  },
+  "checkedAt": {
+    "message": "확인 시각: $1",
+    "description": "When the checks ran. $1 is a time"
+  },
+  "checking": {
+    "message": "확인 중…",
+    "description": "While checks run"
+  },
+  "checkAgain": {
+    "message": "다시 확인",
+    "description": "Button"
+  },
+  "checkingButton": {
+    "message": "확인 중",
+    "description": "Button while checks run"
+  },
+  "stateError": {
+    "message": "오류",
+    "description": "Status pill"
+  },
+  "stateChecking": {
+    "message": "확인 중",
+    "description": "Status pill"
+  },
+  "stateLive": {
+    "message": "정상",
+    "description": "Status pill: everything answered"
+  },
+  "somethingWrong": {
+    "message": "문제가 있습니다",
+    "description": "Card title over an error"
+  },
+  "stacksNetwork": {
+    "message": "Stacks 네트워크",
+    "description": "Card title"
+  },
+  "block": {
+    "message": "블록",
+    "description": "Label: the latest block number"
+  },
+  "response": {
+    "message": "응답 시간",
+    "description": "Label: how fast a server answered"
+  },
+  "tokenListTitle": {
+    "message": "Charisma 토큰 목록",
+    "description": "Card title"
+  },
+  "statusTokens": {
+    "message": "토큰 수",
+    "description": "Label: how many tokens the list has"
+  },
+  "blazeSubnets": {
+    "message": "Blaze 서브넷",
+    "description": "Card title"
+  },
+  "holdingFunds": {
+    "message": "자금 보유 중",
+    "description": "Label: how many subnets hold your tokens"
+  },
+  "noFundsOnSubnets_other": {
+    "message": "서브넷 $1개 중 어디에도 자금이 없습니다.",
+    "description": "$1 is the number of subnets"
+  },
+  "thisWallet": {
+    "message": "이 지갑",
+    "description": "Card title"
+  },
+  "autoLockIn_other": {
+    "message": "$1분 후",
+    "description": "When the wallet locks itself. $1 is minutes"
+  },
+  "tabCrashed": {
+    "message": "이 탭에서 오류가 발생했습니다",
+    "description": "Card title over a crash report"
+  },
+  "cardSendStx": {
+    "message": "STX 보내기",
+    "description": "Approval card title"
+  },
+  "cardRunTransaction": {
+    "message": "트랜잭션 실행",
+    "description": "Approval card title"
+  },
+  "cardSignOrder": {
+    "message": "주문 서명",
+    "description": "Approval card title"
+  },
+  "cardSignOrders_other": {
+    "message": "주문 $1개 서명",
+    "description": "Approval card title. $1 is the number of orders"
+  },
+  "cardSignMessage": {
+    "message": "메시지 서명",
+    "description": "Approval card title"
+  },
+  "cardConnect": {
+    "message": "연결",
+    "description": "Approval card title"
+  },
+  "approveSign": {
+    "message": "서명",
+    "description": "Approve button"
+  },
+  "approveSignAll": {
+    "message": "모두 서명",
+    "description": "Approve button for many orders"
+  },
+  "approveConnect": {
+    "message": "연결",
+    "description": "Approve button"
+  },
+  "deny": {
+    "message": "거부",
+    "description": "Button: refuse the request"
+  },
+  "denyAndClose": {
+    "message": "거부하고 닫기",
+    "description": "Screen reader label of the close button"
+  },
+  "holdUnlockFirst": {
+    "message": "먼저 지갑 잠금 해제",
+    "description": "Approve button while the wallet is locked"
+  },
+  "holdChecking": {
+    "message": "확인 중…",
+    "description": "Approve button while the card's visibility is checked"
+  },
+  "lockedNote": {
+    "message": "Blaze Wallet이 잠겨 있습니다. 열어서 잠금을 해제하세요 ›",
+    "description": "Link on the card"
+  },
+  "coveredNote": {
+    "message": "무언가가 이 카드를 가리고 있습니다. Blaze Wallet 창에서 계속하세요 ›",
+    "description": "Link on the card"
+  },
+  "errorNoAnswer": {
+    "message": "Blaze Wallet이 응답하지 않았습니다",
+    "description": "Error"
+  },
+  "riskLow": {
+    "message": "위험 낮음",
+    "description": "Pill on the card"
+  },
+  "riskReview": {
+    "message": "신중히 검토",
+    "description": "Pill on the card"
+  },
+  "askConnect": {
+    "message": "$1 사이트에서 Blaze Wallet에 연결하려고 합니다",
+    "description": "$1 is the website"
+  },
+  "askSignMessage": {
+    "message": "$1 사이트에서 이 메시지에 서명을 요청합니다",
+    "description": "$1 is the website"
+  },
+  "askSignOrder": {
+    "message": "$1 사이트에서 서브넷 주문에 서명을 요청합니다",
+    "description": "$1 is the website"
+  },
+  "askSignData": {
+    "message": "$1 사이트에서 $2 앱용 데이터에 서명을 요청합니다",
+    "description": "$1 is the website, $2 the app the data is for"
+  },
+  "askSignOrders_other": {
+    "message": "$1 사이트에서 서브넷 주문 $2개에 서명을 요청합니다",
+    "description": "$1 is the website, $2 the number of orders"
+  },
+  "askSendStx": {
+    "message": "$1 사이트에서 STX 보내기를 요청합니다",
+    "description": "$1 is the website"
+  },
+  "askRunTransaction": {
+    "message": "$1 사이트에서 트랜잭션 실행을 요청합니다",
+    "description": "$1 is the website"
+  },
+  "shareAddressAs": {
+    "message": "내 주소($1)를 공유합니다",
+    "description": "$1 is the shortened address"
+  },
+  "shareAddress": {
+    "message": "내 주소를 공유합니다",
+    "description": "When there's no active account"
+  },
+  "cantMoveFunds": {
+    "message": "연결해도 자금은 옮길 수 없습니다. 서명할 때마다 먼저 확인을 요청합니다",
+    "description": "Reassurance on the connect card"
+  },
+  "signsAs": {
+    "message": "$1 주소로 서명합니다",
+    "description": "$1 is the shortened address"
+  },
+  "signsWithActive": {
+    "message": "사용 중인 계정으로 서명합니다",
+    "description": "When the address isn't known yet"
+  },
+  "messageMovesNothing": {
+    "message": "메시지에 서명해도 자금은 이동하지 않습니다",
+    "description": "Reassurance"
+  },
+  "payoutOnlyYou": {
+    "message": "본인에게만",
+    "description": "Who a signed order can pay out to"
+  },
+  "payoutSubmitter": {
+    "message": "제출자가 선택하는 곳이면 어디로든",
+    "description": "Who a signed order can pay out to (a warning)"
+  },
+  "orderAction": {
+    "message": "작업",
+    "description": "Label"
+  },
+  "orderToken": {
+    "message": "토큰",
+    "description": "Label"
+  },
+  "amountSmallestUnits": {
+    "message": "수량(최소 단위)",
+    "description": "Label for an unknown token's amount"
+  },
+  "sendsTo": {
+    "message": "받는 주소",
+    "description": "Label: the order pays straight to this address"
+  },
+  "payout": {
+    "message": "지급 대상",
+    "description": "Label: where the order's funds can go"
+  },
+  "handledBy": {
+    "message": "$1 컨트랙트에서 처리",
+    "description": "$1 is a contract's name"
+  },
+  "orderId": {
+    "message": "주문 ID",
+    "description": "Label"
+  },
+  "orderData": {
+    "message": "데이터",
+    "description": "Label for unrecognized signed data"
+  },
+  "signsAsSentence": {
+    "message": "$1 주소로 서명합니다.",
+    "description": "A sentence before the next one. $1 is the shortened address"
+  },
+  "orderRunsOnce": {
+    "message": "이 서명을 가진 사람은 누구나 이 주문을 한 번 실행할 수 있습니다.",
+    "description": "Note"
+  },
+  "signOnlyRecognized": {
+    "message": "내용을 알고 있는 데이터에만 서명하세요.",
+    "description": "Note"
+  },
+  "ordersCount": {
+    "message": "주문 수",
+    "description": "Label: how many orders"
+  },
+  "canSpendTotal": {
+    "message": "총 지출 가능 수량",
+    "description": "Label"
+  },
+  "smallestUnitsOf": {
+    "message": "$1($2 최소 단위)",
+    "description": "$1 is a number, $2 a token's contract name"
+  },
+  "ordersRunOnce": {
+    "message": "이 서명들을 가진 사람은 누구나 각 주문을 한 번씩 실행할 수 있습니다.",
+    "description": "Note"
+  },
+  "memo": {
+    "message": "메모",
+    "description": "Label"
+  },
+  "contract": {
+    "message": "컨트랙트",
+    "description": "Label"
+  },
+  "function": {
+    "message": "함수",
+    "description": "Label: the contract function called"
+  },
+  "argument": {
+    "message": "인수 $1",
+    "description": "Label: a function argument. $1 is its position"
+  },
+  "allowMode": {
+    "message": "⚠ 보유한 어떤 토큰이든 이동될 수 있습니다(허용 모드)",
+    "description": "Warning: the transaction has no limit on what leaves the wallet"
+  },
+  "onlyTheseTransfers": {
+    "message": "다음 전송만 가능합니다:",
+    "description": "Heading over the transaction's allowed transfers"
+  },
+  "noTokensLeave": {
+    "message": "지갑에서 토큰이 나갈 수 없습니다",
+    "description": "When a transaction allows no transfers"
+  },
+  "sentFrom": {
+    "message": "$1 주소에서 전송됩니다.",
+    "description": "A sentence before the next one. $1 is the shortened address"
+  },
+  "feeSetAutomatically": {
+    "message": "네트워크 수수료는 자동으로 설정됩니다.",
+    "description": "Note"
+  },
+  "tokenSmallestUnits": {
+    "message": "$1 $2(최소 단위)",
+    "description": "$1 is a number, $2 a token's asset name"
+  },
+  "pcYouSendExactly": {
+    "message": "내 계정: 정확히 $1 보냄",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendExactly": {
+    "message": "$1: 정확히 $2 보냄",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendMoreThan": {
+    "message": "내 계정: $1 초과 보냄",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendMoreThan": {
+    "message": "$1: $2 초과 보냄",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendAtLeast": {
+    "message": "내 계정: $1 이상 보냄",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendAtLeast": {
+    "message": "$1: $2 이상 보냄",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendLessThan": {
+    "message": "내 계정: $1 미만 보냄",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendLessThan": {
+    "message": "$1: $2 미만 보냄",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendAtMost": {
+    "message": "내 계정: $1 이하 보냄",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendAtMost": {
+    "message": "$1: $2 이하 보냄",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendNft": {
+    "message": "내 계정: $1 $2 보냄",
+    "description": "An NFT transfer the transaction allows. $1 the collection, $2 the item"
+  },
+  "pcTheySendNft": {
+    "message": "$1: $2 $3 보냄",
+    "description": "An NFT transfer. $1 who sends, $2 the collection, $3 the item"
+  },
+  "pcYouKeepNft": {
+    "message": "내 계정: $1 $2 계속 보유",
+    "description": "An NFT the transaction can't move. $1 the collection, $2 the item"
+  },
+  "pcTheyKeepNft": {
+    "message": "$1: $2 $3 계속 보유",
+    "description": "An NFT the transaction can't move. $1 who, $2 the collection, $3 the item"
+  },
+  "pcStacking": {
+    "message": "$1: 스태킹 조건",
+    "description": "$1 is who, or the word You"
+  },
+  "pcYou": {
+    "message": "내 계정",
+    "description": "Who sends, in pcStacking"
+  },
+  "errorUnexpected": {
+    "message": "문제가 발생했습니다: $1",
+    "description": "Lead-in for an error from a library or a server. $1 is its own text (often English)"
+  },
+  "errorInvalidSeedPhrase": {
+    "message": "유효한 시드 문구가 아닙니다. 각 단어의 철자가 맞는지, 빠진 단어가 없는지 확인하세요",
+    "description": "Error"
+  },
+  "errorSeedNotFound": {
+    "message": "시드 문구를 찾을 수 없습니다",
+    "description": "Error"
+  },
+  "errorNoActiveAccount": {
+    "message": "Blaze Wallet에 사용 중인 계정이 없습니다",
+    "description": "Error"
+  },
+  "errorStacksUnavailable": {
+    "message": "Stacks 네트워크를 사용할 수 없습니다(Hiro $1)",
+    "description": "Error. $1 is an HTTP status"
+  },
+  "errorTokenCacheEmpty": {
+    "message": "Charisma 토큰 캐시에서 받은 토큰이 없습니다",
+    "description": "Error"
+  },
+  "errorLocked": {
+    "message": "지갑이 잠겨 있습니다",
+    "description": "Error"
+  },
+  "errorLockedIdle": {
+    "message": "15분 동안 사용하지 않아 지갑이 잠겼습니다",
+    "description": "Error"
+  },
+  "errorPasswordShort": {
+    "message": "비밀번호는 $1자 이상이어야 합니다",
+    "description": "Error. $1 is the minimum length (8)"
+  },
+  "errorWrongPassword": {
+    "message": "비밀번호가 올바르지 않습니다",
+    "description": "Error"
+  },
+  "errorNoWallet": {
+    "message": "아직 지갑이 없습니다",
+    "description": "Error"
+  },
+  "errorSeedNameTaken": {
+    "message": "이름이 ‘$1’인 시드 문구가 이미 있습니다",
+    "description": "Error. $1 is the name"
+  },
+  "errorAccountNotFound": {
+    "message": "계정을 찾을 수 없습니다",
+    "description": "Error"
+  },
+  "errorBalances": {
+    "message": "잔액을 불러오지 못했습니다($1)",
+    "description": "Error. $1 is an HTTP status"
+  },
+  "errorTokenListUnavailable": {
+    "message": "Charisma 토큰 목록을 사용할 수 없어 토큰을 차단 목록과 대조할 수 없습니다",
+    "description": "Error"
+  },
+  "errorRejected": {
+    "message": "네트워크가 전송을 거부했습니다: $1",
+    "description": "Error. $1 is the network's own reason (English)"
+  },
+  "errorRequestGone": {
+    "message": "이 요청은 더 이상 대기 중이 아닙니다",
+    "description": "Error on an approval card the site already closed"
+  }
+}

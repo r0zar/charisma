@@ -1,0 +1,898 @@
+{
+  "extensionDescription": {
+    "message": "在 Stacks 上做得更多。限价单和定时买入只需签名一次，便会自动执行，在链上结算，且只付给你。",
+    "description": "Chrome Web Store summary and chrome://extensions description. 132 characters or fewer."
+  },
+  "back": {
+    "message": "返回",
+    "description": "Button: back to the previous step"
+  },
+  "cancel": {
+    "message": "取消",
+    "description": "Button"
+  },
+  "continue": {
+    "message": "继续",
+    "description": "Button: next step"
+  },
+  "done": {
+    "message": "完成",
+    "description": "Button: close after a send"
+  },
+  "copy": {
+    "message": "复制",
+    "description": "Button: copy the address"
+  },
+  "copied": {
+    "message": "已复制",
+    "description": "Button label for a moment after copying"
+  },
+  "import": {
+    "message": "导入",
+    "description": "Button: import a seed phrase"
+  },
+  "unlink": {
+    "message": "取消关联",
+    "description": "Button: remove a seed phrase or the wallet from this browser (funds stay on the blockchain)"
+  },
+  "use": {
+    "message": "使用",
+    "description": "Button: make this account the active one"
+  },
+  "active": {
+    "message": "使用中",
+    "description": "Badge on the active account"
+  },
+  "tryAgain": {
+    "message": "重试",
+    "description": "Button after a crash"
+  },
+  "name": {
+    "message": "名称",
+    "description": "Field label: a name for a seed phrase"
+  },
+  "send": {
+    "message": "发送",
+    "description": "Button and review label: send tokens"
+  },
+  "to": {
+    "message": "收款人",
+    "description": "Review label: the recipient"
+  },
+  "amount": {
+    "message": "数量",
+    "description": "Field and review label: how much of a token"
+  },
+  "lock": {
+    "message": "锁定",
+    "description": "Button: lock the wallet"
+  },
+  "review": {
+    "message": "核对",
+    "description": "Button: check a send before sending"
+  },
+  "max": {
+    "message": "最大",
+    "description": "Button: fill in the whole balance"
+  },
+  "address": {
+    "message": "地址",
+    "description": "Label: a Stacks address"
+  },
+  "tabWallet": {
+    "message": "钱包",
+    "description": "Side panel tab"
+  },
+  "tabTokens": {
+    "message": "代币",
+    "description": "Side panel tab"
+  },
+  "tabStatus": {
+    "message": "状态",
+    "description": "Side panel tab"
+  },
+  "lockTheWallet": {
+    "message": "锁定钱包",
+    "description": "Tooltip and screen reader label of the lock button"
+  },
+  "unlockLocked": {
+    "message": "已锁定。请输入密码以继续。",
+    "description": "Lock screen, under the logo"
+  },
+  "unlockChoosePassword": {
+    "message": "请设置一个密码来保护此钱包。",
+    "description": "First run, under the logo"
+  },
+  "unlockTitle": {
+    "message": "解锁",
+    "description": "Card title on the lock screen"
+  },
+  "createWalletTitle": {
+    "message": "创建钱包",
+    "description": "Card title on first run"
+  },
+  "passwordLabel": {
+    "message": "密码",
+    "description": "Field label"
+  },
+  "newPasswordLabel": {
+    "message": "新密码（至少 $1 个字符）",
+    "description": "Field label on first run. $1 is the minimum length (8)"
+  },
+  "passwordPlaceholder": {
+    "message": "你的密码",
+    "description": "Field placeholder"
+  },
+  "newPasswordPlaceholder": {
+    "message": "设置一个强密码",
+    "description": "Field placeholder on first run"
+  },
+  "passwordAgainLabel": {
+    "message": "再输入一次",
+    "description": "Field label: repeat the new password"
+  },
+  "passwordAgainPlaceholder": {
+    "message": "相同的密码",
+    "description": "Field placeholder"
+  },
+  "unlockButton": {
+    "message": "解锁",
+    "description": "Button"
+  },
+  "createWalletButton": {
+    "message": "创建钱包",
+    "description": "Button on first run"
+  },
+  "passwordShow": {
+    "message": "显示",
+    "description": "Button: show the password"
+  },
+  "passwordHide": {
+    "message": "隐藏",
+    "description": "Button: hide the password"
+  },
+  "errorPasswordsDontMatch": {
+    "message": "两次输入的密码不一致",
+    "description": "Error on first run"
+  },
+  "importTitle": {
+    "message": "导入助记词",
+    "description": "Card title"
+  },
+  "seedNamePlaceholder": {
+    "message": "我的助记词",
+    "description": "Placeholder for a seed phrase's name"
+  },
+  "importWordsLabel": {
+    "message": "12 或 24 个单词",
+    "description": "Field label for the seed words"
+  },
+  "importWordsPlaceholder": {
+    "message": "word word word …",
+    "description": "Placeholder for the seed words. Keep it in English: seed phrases are always English BIP39 words."
+  },
+  "errorSeedNotSaved": {
+    "message": "助记词未保存",
+    "description": "Error"
+  },
+  "newSeedTitle": {
+    "message": "新助记词",
+    "description": "Card title"
+  },
+  "generateWords": {
+    "message": "生成 24 个单词",
+    "description": "Button"
+  },
+  "writeDownTitle": {
+    "message": "抄下这些单词",
+    "description": "Card title over the 24 new words"
+  },
+  "writeDownWarning": {
+    "message": "这 24 个单词是恢复此钱包的唯一方式。任何看到它们的人都能控制你的资金，而且 Blaze Wallet 无法找回它们。",
+    "description": "Warning over the new words. Keep it exactly as strong."
+  },
+  "wroteDown": {
+    "message": "我已按顺序抄下全部 24 个单词",
+    "description": "Checkbox"
+  },
+  "confirmTitle": {
+    "message": "确认单词",
+    "description": "Card title"
+  },
+  "confirmNote": {
+    "message": "请根据你抄下的内容输入这些单词。",
+    "description": "Note over the confirmation fields"
+  },
+  "wordNumber": {
+    "message": "第 $1 个单词",
+    "description": "Field label. $1 is the word's position, 1 to 24"
+  },
+  "errorWordsDontMatch": {
+    "message": "单词 $1 不匹配。请检查你抄下的内容",
+    "description": "Error. $1 lists positions, for example \"#3, #7\""
+  },
+  "confirmAndSave": {
+    "message": "确认并保存",
+    "description": "Button"
+  },
+  "newAccountTitle": {
+    "message": "新账户",
+    "description": "Card title"
+  },
+  "newAccountNote": {
+    "message": "此助记词的下一个地址将成为使用中的账户。",
+    "description": "Note"
+  },
+  "createAccount": {
+    "message": "创建账户",
+    "description": "Button"
+  },
+  "accountName": {
+    "message": "账户 $1",
+    "description": "An account's name. $1 is its number, starting at 1"
+  },
+  "noActiveAccount": {
+    "message": "没有使用中的账户",
+    "description": "Card title when every seed phrase is unlinked"
+  },
+  "addAccountHint": {
+    "message": "请从下方的助记词添加账户。",
+    "description": "Hint under it"
+  },
+  "seedPhrasesTitle": {
+    "message": "助记词",
+    "description": "Card title"
+  },
+  "noSeedPhrases": {
+    "message": "还没有助记词。生成一个新的，或导入你自己的。",
+    "description": "Empty state"
+  },
+  "addAccount": {
+    "message": "+ 账户",
+    "description": "Button: derive the next account of this seed phrase"
+  },
+  "generateNew": {
+    "message": "生成新助记词",
+    "description": "Button: a new seed phrase"
+  },
+  "confirmUnlinkSeed": {
+    "message": "要将此助记词与此浏览器取消关联吗？\n\n该助记词下的账户和资金仍安全地保存在区块链上。要在此再次使用它们，你需要这组助记词。",
+    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
+  },
+  "vaultTitle": {
+    "message": "保险库",
+    "description": "Card title: the wallet's settings"
+  },
+  "vaultKeys": {
+    "message": "密钥",
+    "description": "Label"
+  },
+  "vaultKeysValue": {
+    "message": "已加密，仅保存在此设备上",
+    "description": "Value of Keys"
+  },
+  "vaultAutoLock": {
+    "message": "自动锁定",
+    "description": "Label"
+  },
+  "vaultAutoLockValue": {
+    "message": "闲置 15 分钟后",
+    "description": "Value of Auto-lock"
+  },
+  "exportButton": {
+    "message": "导出",
+    "description": "Button: download the encrypted wallet backup"
+  },
+  "exportDone": {
+    "message": "钱包已导出",
+    "description": "Notice after the download"
+  },
+  "exportFailed": {
+    "message": "无法导出钱包",
+    "description": "Notice when the download fails"
+  },
+  "confirmUnlinkWallet": {
+    "message": "要将此钱包与此浏览器取消关联吗？\n\n所有助记词和账户都将从此设备上移除。你的资金仍安全地保存在区块链上；你需要凭助记词才能重新访问。",
+    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
+  },
+  "themeLabel": {
+    "message": "主题",
+    "description": "Label"
+  },
+  "themeSystem": {
+    "message": "跟随系统",
+    "description": "Theme choice: follow the device"
+  },
+  "themeSystemTitle": {
+    "message": "跟随此设备的设置",
+    "description": "Tooltip"
+  },
+  "themeLight": {
+    "message": "浅色",
+    "description": "Theme choice"
+  },
+  "themeLightTitle": {
+    "message": "浅色 · Bitcoin",
+    "description": "Tooltip: the light look's name. Keep Bitcoin"
+  },
+  "themeDark": {
+    "message": "深色",
+    "description": "Theme choice"
+  },
+  "themeDarkTitle": {
+    "message": "深色 · RPG",
+    "description": "Tooltip: the dark look's name. Keep RPG"
+  },
+  "languageLabel": {
+    "message": "语言",
+    "description": "Label of the language picker"
+  },
+  "languageAutomatic": {
+    "message": "自动",
+    "description": "Language choice: follow Chrome's language"
+  },
+  "tokensTitle": {
+    "message": "代币",
+    "description": "Card title"
+  },
+  "refresh": {
+    "message": "刷新",
+    "description": "Button"
+  },
+  "refreshTitle": {
+    "message": "刷新余额",
+    "description": "Tooltip"
+  },
+  "totalValue": {
+    "message": "总价值",
+    "description": "Label over the total in dollars"
+  },
+  "tokenCount_other": {
+    "message": "$1 个代币",
+    "description": "Under the total. $1 is the number of tokens"
+  },
+  "withoutPrice_other": {
+    "message": "$1 个暂无价格",
+    "description": "Under the total. $1 is the number of tokens with no dollar price"
+  },
+  "loadingBalances": {
+    "message": "正在加载余额…",
+    "description": "While balances load"
+  },
+  "pricesUnavailable": {
+    "message": "价格不可用：$1",
+    "description": "Warning. $1 is the reason, already worded"
+  },
+  "unlisted_other": {
+    "message": "$1 个未收录 · 不在 Charisma 代币列表中，可能是诈骗代币",
+    "description": "Toggle for hidden tokens. $1 is how many"
+  },
+  "onBlaze": {
+    "message": "$1 在 Blaze 上",
+    "description": "A token's Blaze balance. $1 is the amount"
+  },
+  "units": {
+    "message": "$1 个单位",
+    "description": "An unknown token's balance in its smallest units. $1 is the number"
+  },
+  "rowUnlisted": {
+    "message": "不在 Charisma 代币列表中：无法在此发送",
+    "description": "Tooltip on an unlisted token"
+  },
+  "rowUnknown": {
+    "message": "未知代币：以最小单位显示，无法在此发送",
+    "description": "Tooltip on an unknown token"
+  },
+  "rowSend": {
+    "message": "发送 $1",
+    "description": "Tooltip on a token. $1 is its symbol"
+  },
+  "rowAllOnBlaze": {
+    "message": "$1 全部在 Blaze 上：请使用 Charisma Swap 转移",
+    "description": "Tooltip. $1 is the token's symbol"
+  },
+  "sendTitle": {
+    "message": "发送 $1",
+    "description": "Card title. $1 is the token's symbol"
+  },
+  "recipientLabel": {
+    "message": "收款人",
+    "description": "Field label"
+  },
+  "blazeNote": {
+    "message": "发送使用的是你标准余额中的 $1 $2。你在 Blaze 上的 $3 会留在其子网中；可使用 Charisma Swap 转移。",
+    "description": "Note on the send form. $1 the Standard amount, $2 the symbol, $3 the Blaze amount"
+  },
+  "sentTitle": {
+    "message": "$1 已发送",
+    "description": "Card title after sending. $1 is the token's symbol"
+  },
+  "sentNote": {
+    "message": "交易几分钟内就会在 Stacks 上确认。",
+    "description": "After sending"
+  },
+  "viewOnExplorer": {
+    "message": "在区块浏览器中查看",
+    "description": "Link to the block explorer"
+  },
+  "networkFee": {
+    "message": "网络手续费",
+    "description": "Review label"
+  },
+  "feeAutomatic": {
+    "message": "自动设置",
+    "description": "Value of Network fee"
+  },
+  "safety": {
+    "message": "安全",
+    "description": "Review label"
+  },
+  "safetyExact": {
+    "message": "只转出这个数量，不多不少",
+    "description": "Value of Safety: the transaction can't move more than this"
+  },
+  "sending": {
+    "message": "正在发送…",
+    "description": "Button while sending"
+  },
+  "errorRecipient": {
+    "message": "请输入 Stacks 地址（SP…）",
+    "description": "Error on the send form"
+  },
+  "errorAmountLike": {
+    "message": "请输入数量，例如 $1",
+    "description": "Error. $1 is an example such as 1.5, with this language's decimal mark"
+  },
+  "errorMaxDecimals_other": {
+    "message": "最多 $1 位小数",
+    "description": "Error. $1 is the token's decimals"
+  },
+  "errorAmountPositive": {
+    "message": "数量必须大于零",
+    "description": "Error"
+  },
+  "errorYouHave": {
+    "message": "你的余额为 $1 $2",
+    "description": "Error when the amount is more than the balance. $1 the balance, $2 the symbol"
+  },
+  "checkedAt": {
+    "message": "检查于 $1",
+    "description": "When the checks ran. $1 is a time"
+  },
+  "checking": {
+    "message": "正在检查…",
+    "description": "While checks run"
+  },
+  "checkAgain": {
+    "message": "重新检查",
+    "description": "Button"
+  },
+  "checkingButton": {
+    "message": "检查中",
+    "description": "Button while checks run"
+  },
+  "stateError": {
+    "message": "出错",
+    "description": "Status pill"
+  },
+  "stateChecking": {
+    "message": "检查中",
+    "description": "Status pill"
+  },
+  "stateLive": {
+    "message": "在线",
+    "description": "Status pill: everything answered"
+  },
+  "somethingWrong": {
+    "message": "出现问题",
+    "description": "Card title over an error"
+  },
+  "stacksNetwork": {
+    "message": "Stacks 网络",
+    "description": "Card title"
+  },
+  "block": {
+    "message": "区块",
+    "description": "Label: the latest block number"
+  },
+  "response": {
+    "message": "响应时间",
+    "description": "Label: how fast a server answered"
+  },
+  "tokenListTitle": {
+    "message": "Charisma 代币列表",
+    "description": "Card title"
+  },
+  "statusTokens": {
+    "message": "代币数量",
+    "description": "Label: how many tokens the list has"
+  },
+  "blazeSubnets": {
+    "message": "Blaze 子网",
+    "description": "Card title"
+  },
+  "holdingFunds": {
+    "message": "存有你资金的子网",
+    "description": "Label: how many subnets hold your tokens"
+  },
+  "noFundsOnSubnets_other": {
+    "message": "$1 个子网中没有任何资金。",
+    "description": "$1 is the number of subnets"
+  },
+  "thisWallet": {
+    "message": "此钱包",
+    "description": "Card title"
+  },
+  "autoLockIn_other": {
+    "message": "$1 分钟后",
+    "description": "When the wallet locks itself. $1 is minutes"
+  },
+  "tabCrashed": {
+    "message": "此页面已崩溃",
+    "description": "Card title over a crash report"
+  },
+  "cardSendStx": {
+    "message": "发送 STX",
+    "description": "Approval card title"
+  },
+  "cardRunTransaction": {
+    "message": "执行交易",
+    "description": "Approval card title"
+  },
+  "cardSignOrder": {
+    "message": "签署订单",
+    "description": "Approval card title"
+  },
+  "cardSignOrders_other": {
+    "message": "签署 $1 个订单",
+    "description": "Approval card title. $1 is the number of orders"
+  },
+  "cardSignMessage": {
+    "message": "签署消息",
+    "description": "Approval card title"
+  },
+  "cardConnect": {
+    "message": "连接",
+    "description": "Approval card title"
+  },
+  "approveSign": {
+    "message": "签名",
+    "description": "Approve button"
+  },
+  "approveSignAll": {
+    "message": "全部签名",
+    "description": "Approve button for many orders"
+  },
+  "approveConnect": {
+    "message": "连接",
+    "description": "Approve button"
+  },
+  "deny": {
+    "message": "拒绝",
+    "description": "Button: refuse the request"
+  },
+  "denyAndClose": {
+    "message": "拒绝并关闭",
+    "description": "Screen reader label of the close button"
+  },
+  "holdUnlockFirst": {
+    "message": "请先解锁钱包",
+    "description": "Approve button while the wallet is locked"
+  },
+  "holdChecking": {
+    "message": "正在检查…",
+    "description": "Approve button while the card's visibility is checked"
+  },
+  "lockedNote": {
+    "message": "Blaze Wallet 已锁定。打开钱包以解锁 ›",
+    "description": "Link on the card"
+  },
+  "coveredNote": {
+    "message": "有内容遮挡了此卡片。请在 Blaze Wallet 窗口中继续 ›",
+    "description": "Link on the card"
+  },
+  "errorNoAnswer": {
+    "message": "Blaze Wallet 未响应",
+    "description": "Error"
+  },
+  "riskLow": {
+    "message": "低风险",
+    "description": "Pill on the card"
+  },
+  "riskReview": {
+    "message": "请仔细核对",
+    "description": "Pill on the card"
+  },
+  "askConnect": {
+    "message": "$1 请求连接到 Blaze Wallet",
+    "description": "$1 is the website"
+  },
+  "askSignMessage": {
+    "message": "$1 请求你签署这条消息",
+    "description": "$1 is the website"
+  },
+  "askSignOrder": {
+    "message": "$1 请求你签署一个子网订单",
+    "description": "$1 is the website"
+  },
+  "askSignData": {
+    "message": "$1 请求你为 $2 签署数据",
+    "description": "$1 is the website, $2 the app the data is for"
+  },
+  "askSignOrders_other": {
+    "message": "$1 请求你签署 $2 个子网订单",
+    "description": "$1 is the website, $2 the number of orders"
+  },
+  "askSendStx": {
+    "message": "$1 请求你发送 STX",
+    "description": "$1 is the website"
+  },
+  "askRunTransaction": {
+    "message": "$1 请求你执行一笔交易",
+    "description": "$1 is the website"
+  },
+  "shareAddressAs": {
+    "message": "分享你的地址 $1",
+    "description": "$1 is the shortened address"
+  },
+  "shareAddress": {
+    "message": "分享你的地址",
+    "description": "When there's no active account"
+  },
+  "cantMoveFunds": {
+    "message": "无法转移资金：每次签名都会先征得你的同意",
+    "description": "Reassurance on the connect card"
+  },
+  "signsAs": {
+    "message": "以 $1 签名",
+    "description": "$1 is the shortened address"
+  },
+  "signsWithActive": {
+    "message": "以使用中的账户签名",
+    "description": "When the address isn't known yet"
+  },
+  "messageMovesNothing": {
+    "message": "签署消息不会转移资金",
+    "description": "Reassurance"
+  },
+  "payoutOnlyYou": {
+    "message": "只付给你",
+    "description": "Who a signed order can pay out to"
+  },
+  "payoutSubmitter": {
+    "message": "由提交者任意指定",
+    "description": "Who a signed order can pay out to (a warning)"
+  },
+  "orderAction": {
+    "message": "操作",
+    "description": "Label"
+  },
+  "orderToken": {
+    "message": "代币",
+    "description": "Label"
+  },
+  "amountSmallestUnits": {
+    "message": "数量（最小单位）",
+    "description": "Label for an unknown token's amount"
+  },
+  "sendsTo": {
+    "message": "发送至",
+    "description": "Label: the order pays straight to this address"
+  },
+  "payout": {
+    "message": "资金去向",
+    "description": "Label: where the order's funds can go"
+  },
+  "handledBy": {
+    "message": "由 $1 处理",
+    "description": "$1 is a contract's name"
+  },
+  "orderId": {
+    "message": "订单 ID",
+    "description": "Label"
+  },
+  "orderData": {
+    "message": "数据",
+    "description": "Label for unrecognized signed data"
+  },
+  "signsAsSentence": {
+    "message": "以 $1 签名。",
+    "description": "A sentence before the next one. $1 is the shortened address"
+  },
+  "orderRunsOnce": {
+    "message": "任何持有此签名的人都可以执行此订单一次。",
+    "description": "Note"
+  },
+  "signOnlyRecognized": {
+    "message": "只签署你认得的数据。",
+    "description": "Note"
+  },
+  "ordersCount": {
+    "message": "订单数量",
+    "description": "Label: how many orders"
+  },
+  "canSpendTotal": {
+    "message": "合计可花费",
+    "description": "Label"
+  },
+  "smallestUnitsOf": {
+    "message": "$1（$2 的最小单位）",
+    "description": "$1 is a number, $2 a token's contract name"
+  },
+  "ordersRunOnce": {
+    "message": "任何持有这些签名的人都可以将每个订单执行一次。",
+    "description": "Note"
+  },
+  "memo": {
+    "message": "备注",
+    "description": "Label"
+  },
+  "contract": {
+    "message": "合约",
+    "description": "Label"
+  },
+  "function": {
+    "message": "函数",
+    "description": "Label: the contract function called"
+  },
+  "argument": {
+    "message": "参数 $1",
+    "description": "Label: a function argument. $1 is its position"
+  },
+  "allowMode": {
+    "message": "⚠ 你的任何代币都可能被转走（允许模式）",
+    "description": "Warning: the transaction has no limit on what leaves the wallet"
+  },
+  "onlyTheseTransfers": {
+    "message": "只能发生以下转账：",
+    "description": "Heading over the transaction's allowed transfers"
+  },
+  "noTokensLeave": {
+    "message": "任何代币都无法离开你的钱包",
+    "description": "When a transaction allows no transfers"
+  },
+  "sentFrom": {
+    "message": "从 $1 发出。",
+    "description": "A sentence before the next one. $1 is the shortened address"
+  },
+  "feeSetAutomatically": {
+    "message": "网络手续费会自动设置。",
+    "description": "Note"
+  },
+  "tokenSmallestUnits": {
+    "message": "$1 $2（最小单位）",
+    "description": "$1 is a number, $2 a token's asset name"
+  },
+  "pcYouSendExactly": {
+    "message": "你将恰好发送 $1",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendExactly": {
+    "message": "$1 将恰好发送 $2",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendMoreThan": {
+    "message": "你将发送超过 $1",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendMoreThan": {
+    "message": "$1 将发送超过 $2",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendAtLeast": {
+    "message": "你将至少发送 $1",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendAtLeast": {
+    "message": "$1 将至少发送 $2",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendLessThan": {
+    "message": "你将发送少于 $1",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendLessThan": {
+    "message": "$1 将发送少于 $2",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendAtMost": {
+    "message": "你将最多发送 $1",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendAtMost": {
+    "message": "$1 将最多发送 $2",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendNft": {
+    "message": "你将发送 $1 $2",
+    "description": "An NFT transfer the transaction allows. $1 the collection, $2 the item"
+  },
+  "pcTheySendNft": {
+    "message": "$1 将发送 $2 $3",
+    "description": "An NFT transfer. $1 who sends, $2 the collection, $3 the item"
+  },
+  "pcYouKeepNft": {
+    "message": "你将保留 $1 $2",
+    "description": "An NFT the transaction can't move. $1 the collection, $2 the item"
+  },
+  "pcTheyKeepNft": {
+    "message": "$1 将保留 $2 $3",
+    "description": "An NFT the transaction can't move. $1 who, $2 the collection, $3 the item"
+  },
+  "pcStacking": {
+    "message": "$1：Stacking 条件",
+    "description": "$1 is who, or the word You"
+  },
+  "pcYou": {
+    "message": "你",
+    "description": "Who sends, in pcStacking"
+  },
+  "errorUnexpected": {
+    "message": "出错了：$1",
+    "description": "Lead-in for an error from a library or a server. $1 is its own text (often English)"
+  },
+  "errorInvalidSeedPhrase": {
+    "message": "这不是有效的助记词：请检查每个单词的拼写，并确认没有遗漏",
+    "description": "Error"
+  },
+  "errorSeedNotFound": {
+    "message": "未找到助记词",
+    "description": "Error"
+  },
+  "errorNoActiveAccount": {
+    "message": "Blaze Wallet 没有使用中的账户",
+    "description": "Error"
+  },
+  "errorStacksUnavailable": {
+    "message": "Stacks 网络不可用（Hiro $1）",
+    "description": "Error. $1 is an HTTP status"
+  },
+  "errorTokenCacheEmpty": {
+    "message": "Charisma 代币缓存未返回任何代币",
+    "description": "Error"
+  },
+  "errorLocked": {
+    "message": "钱包已锁定",
+    "description": "Error"
+  },
+  "errorLockedIdle": {
+    "message": "钱包闲置 15 分钟后已锁定",
+    "description": "Error"
+  },
+  "errorPasswordShort": {
+    "message": "密码至少需要 $1 个字符",
+    "description": "Error. $1 is the minimum length (8)"
+  },
+  "errorWrongPassword": {
+    "message": "密码错误",
+    "description": "Error"
+  },
+  "errorNoWallet": {
+    "message": "尚无钱包",
+    "description": "Error"
+  },
+  "errorSeedNameTaken": {
+    "message": "已存在名为“$1”的助记词",
+    "description": "Error. $1 is the name"
+  },
+  "errorAccountNotFound": {
+    "message": "未找到账户",
+    "description": "Error"
+  },
+  "errorBalances": {
+    "message": "无法加载余额（$1）",
+    "description": "Error. $1 is an HTTP status"
+  },
+  "errorTokenListUnavailable": {
+    "message": "Charisma 代币列表不可用，因此无法对照屏蔽列表检查代币",
+    "description": "Error"
+  },
+  "errorRejected": {
+    "message": "网络拒绝了这笔转账：$1",
+    "description": "Error. $1 is the network's own reason (English)"
+  },
+  "errorRequestGone": {
+    "message": "此请求已不再等待处理",
+    "description": "Error on an approval card the site already closed"
+  }
+}

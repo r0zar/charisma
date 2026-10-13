@@ -1,0 +1,962 @@
+{
+  "extensionDescription": {
+    "message": "Faites plus sur Stacks. Ordres limites et achats programmés : signés une fois, exécutés seuls, réglés on-chain, payés à vous seul.",
+    "description": "Chrome Web Store summary and chrome://extensions description. 132 characters or fewer."
+  },
+  "back": {
+    "message": "Retour",
+    "description": "Button: back to the previous step"
+  },
+  "cancel": {
+    "message": "Annuler",
+    "description": "Button"
+  },
+  "continue": {
+    "message": "Continuer",
+    "description": "Button: next step"
+  },
+  "done": {
+    "message": "OK",
+    "description": "Button: close after a send"
+  },
+  "copy": {
+    "message": "Copier",
+    "description": "Button: copy the address"
+  },
+  "copied": {
+    "message": "Copié",
+    "description": "Button label for a moment after copying"
+  },
+  "import": {
+    "message": "Importer",
+    "description": "Button: import a seed phrase"
+  },
+  "unlink": {
+    "message": "Dissocier",
+    "description": "Button: remove a seed phrase or the wallet from this browser (funds stay on the blockchain)"
+  },
+  "use": {
+    "message": "Utiliser",
+    "description": "Button: make this account the active one"
+  },
+  "active": {
+    "message": "Actif",
+    "description": "Badge on the active account"
+  },
+  "tryAgain": {
+    "message": "Réessayer",
+    "description": "Button after a crash"
+  },
+  "name": {
+    "message": "Nom",
+    "description": "Field label: a name for a seed phrase"
+  },
+  "send": {
+    "message": "Envoyer",
+    "description": "Button and review label: send tokens"
+  },
+  "to": {
+    "message": "À",
+    "description": "Review label: the recipient"
+  },
+  "amount": {
+    "message": "Montant",
+    "description": "Field and review label: how much of a token"
+  },
+  "lock": {
+    "message": "Verrouiller",
+    "description": "Button: lock the wallet"
+  },
+  "review": {
+    "message": "Vérifier",
+    "description": "Button: check a send before sending"
+  },
+  "max": {
+    "message": "Max",
+    "description": "Button: fill in the whole balance"
+  },
+  "address": {
+    "message": "Adresse",
+    "description": "Label: a Stacks address"
+  },
+  "tabWallet": {
+    "message": "Portefeuille",
+    "description": "Side panel tab"
+  },
+  "tabTokens": {
+    "message": "Jetons",
+    "description": "Side panel tab"
+  },
+  "tabStatus": {
+    "message": "État",
+    "description": "Side panel tab"
+  },
+  "lockTheWallet": {
+    "message": "Verrouiller le portefeuille",
+    "description": "Tooltip and screen reader label of the lock button"
+  },
+  "unlockLocked": {
+    "message": "Verrouillé. Saisissez votre mot de passe pour continuer.",
+    "description": "Lock screen, under the logo"
+  },
+  "unlockChoosePassword": {
+    "message": "Choisissez un mot de passe pour protéger ce portefeuille.",
+    "description": "First run, under the logo"
+  },
+  "unlockTitle": {
+    "message": "Déverrouiller",
+    "description": "Card title on the lock screen"
+  },
+  "createWalletTitle": {
+    "message": "Créer votre portefeuille",
+    "description": "Card title on first run"
+  },
+  "passwordLabel": {
+    "message": "Mot de passe",
+    "description": "Field label"
+  },
+  "newPasswordLabel": {
+    "message": "Nouveau mot de passe ($1 caractères minimum)",
+    "description": "Field label on first run. $1 is the minimum length (8)"
+  },
+  "passwordPlaceholder": {
+    "message": "Votre mot de passe",
+    "description": "Field placeholder"
+  },
+  "newPasswordPlaceholder": {
+    "message": "Un mot de passe sécurisé",
+    "description": "Field placeholder on first run"
+  },
+  "passwordAgainLabel": {
+    "message": "Saisissez-le à nouveau",
+    "description": "Field label: repeat the new password"
+  },
+  "passwordAgainPlaceholder": {
+    "message": "Le même mot de passe",
+    "description": "Field placeholder"
+  },
+  "unlockButton": {
+    "message": "Déverrouiller",
+    "description": "Button"
+  },
+  "createWalletButton": {
+    "message": "Créer le portefeuille",
+    "description": "Button on first run"
+  },
+  "passwordShow": {
+    "message": "Afficher",
+    "description": "Button: show the password"
+  },
+  "passwordHide": {
+    "message": "Masquer",
+    "description": "Button: hide the password"
+  },
+  "errorPasswordsDontMatch": {
+    "message": "Les mots de passe ne correspondent pas",
+    "description": "Error on first run"
+  },
+  "importTitle": {
+    "message": "Importer une phrase de récupération",
+    "description": "Card title"
+  },
+  "seedNamePlaceholder": {
+    "message": "Ma phrase de récupération",
+    "description": "Placeholder for a seed phrase's name"
+  },
+  "importWordsLabel": {
+    "message": "12 ou 24 mots",
+    "description": "Field label for the seed words"
+  },
+  "importWordsPlaceholder": {
+    "message": "word word word …",
+    "description": "Placeholder for the seed words. Keep it in English: seed phrases are always English BIP39 words."
+  },
+  "errorSeedNotSaved": {
+    "message": "La phrase de récupération n’a pas été enregistrée",
+    "description": "Error"
+  },
+  "newSeedTitle": {
+    "message": "Nouvelle phrase de récupération",
+    "description": "Card title"
+  },
+  "generateWords": {
+    "message": "Générer 24 mots",
+    "description": "Button"
+  },
+  "writeDownTitle": {
+    "message": "Notez ces mots",
+    "description": "Card title over the 24 new words"
+  },
+  "writeDownWarning": {
+    "message": "Ces 24 mots sont le seul moyen de récupérer ce portefeuille. Toute personne qui les voit a le contrôle de vos fonds, et Blaze Wallet ne peut pas récupérer ces mots.",
+    "description": "Warning over the new words. Keep it exactly as strong."
+  },
+  "wroteDown": {
+    "message": "J’ai noté les 24 mots, dans l’ordre",
+    "description": "Checkbox"
+  },
+  "confirmTitle": {
+    "message": "Confirmez vos mots",
+    "description": "Card title"
+  },
+  "confirmNote": {
+    "message": "Saisissez ces mots d’après ce que vous avez noté.",
+    "description": "Note over the confirmation fields"
+  },
+  "wordNumber": {
+    "message": "Mot #$1",
+    "description": "Field label. $1 is the word's position, 1 to 24"
+  },
+  "errorWordsDontMatch": {
+    "message": "Le mot $1 ne correspond pas. Vérifiez ce que vous avez noté",
+    "description": "Error. $1 lists positions, for example \"#3, #7\""
+  },
+  "confirmAndSave": {
+    "message": "Confirmer et enregistrer",
+    "description": "Button"
+  },
+  "newAccountTitle": {
+    "message": "Nouveau compte",
+    "description": "Card title"
+  },
+  "newAccountNote": {
+    "message": "La prochaine adresse issue de cette phrase de récupération devient votre compte actif.",
+    "description": "Note"
+  },
+  "createAccount": {
+    "message": "Créer le compte",
+    "description": "Button"
+  },
+  "accountName": {
+    "message": "Compte $1",
+    "description": "An account's name. $1 is its number, starting at 1"
+  },
+  "noActiveAccount": {
+    "message": "Aucun compte actif",
+    "description": "Card title when every seed phrase is unlinked"
+  },
+  "addAccountHint": {
+    "message": "Ajoutez un compte à partir d’une phrase de récupération ci-dessous.",
+    "description": "Hint under it"
+  },
+  "seedPhrasesTitle": {
+    "message": "Phrases de récupération",
+    "description": "Card title"
+  },
+  "noSeedPhrases": {
+    "message": "Aucune pour l’instant. Générez-en une nouvelle ou importez la vôtre.",
+    "description": "Empty state"
+  },
+  "addAccount": {
+    "message": "+ Compte",
+    "description": "Button: derive the next account of this seed phrase"
+  },
+  "generateNew": {
+    "message": "Générer",
+    "description": "Button: a new seed phrase"
+  },
+  "confirmUnlinkSeed": {
+    "message": "Dissocier cette phrase de récupération de ce navigateur ?\n\nSes comptes et ses fonds restent en sécurité sur la blockchain. Pour les utiliser à nouveau ici, vous aurez besoin des mots de la phrase de récupération.",
+    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
+  },
+  "vaultTitle": {
+    "message": "Coffre-fort",
+    "description": "Card title: the wallet's settings"
+  },
+  "vaultKeys": {
+    "message": "Clés",
+    "description": "Label"
+  },
+  "vaultKeysValue": {
+    "message": "Chiffrées, uniquement sur cet appareil",
+    "description": "Value of Keys"
+  },
+  "vaultAutoLock": {
+    "message": "Verrouillage automatique",
+    "description": "Label"
+  },
+  "vaultAutoLockValue": {
+    "message": "Après 15 min d’inactivité",
+    "description": "Value of Auto-lock"
+  },
+  "exportButton": {
+    "message": "Exporter",
+    "description": "Button: download the encrypted wallet backup"
+  },
+  "exportDone": {
+    "message": "Portefeuille exporté",
+    "description": "Notice after the download"
+  },
+  "exportFailed": {
+    "message": "Impossible d’exporter le portefeuille",
+    "description": "Notice when the download fails"
+  },
+  "confirmUnlinkWallet": {
+    "message": "Dissocier ce portefeuille de ce navigateur ?\n\nToutes les phrases de récupération et tous les comptes seront supprimés de cet appareil. Vos fonds restent en sécurité sur la blockchain ; pour retrouver l’accès, vous aurez besoin de votre phrase de récupération.",
+    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
+  },
+  "themeLabel": {
+    "message": "Thème",
+    "description": "Label"
+  },
+  "themeSystem": {
+    "message": "Système",
+    "description": "Theme choice: follow the device"
+  },
+  "themeSystemTitle": {
+    "message": "Suivre le thème de cet appareil",
+    "description": "Tooltip"
+  },
+  "themeLight": {
+    "message": "Clair",
+    "description": "Theme choice"
+  },
+  "themeLightTitle": {
+    "message": "Clair · Bitcoin",
+    "description": "Tooltip: the light look's name. Keep Bitcoin"
+  },
+  "themeDark": {
+    "message": "Sombre",
+    "description": "Theme choice"
+  },
+  "themeDarkTitle": {
+    "message": "Sombre · RPG",
+    "description": "Tooltip: the dark look's name. Keep RPG"
+  },
+  "languageLabel": {
+    "message": "Langue",
+    "description": "Label of the language picker"
+  },
+  "languageAutomatic": {
+    "message": "Automatique",
+    "description": "Language choice: follow Chrome's language"
+  },
+  "tokensTitle": {
+    "message": "Jetons",
+    "description": "Card title"
+  },
+  "refresh": {
+    "message": "Actualiser",
+    "description": "Button"
+  },
+  "refreshTitle": {
+    "message": "Actualiser les soldes",
+    "description": "Tooltip"
+  },
+  "totalValue": {
+    "message": "Valeur totale",
+    "description": "Label over the total in dollars"
+  },
+  "tokenCount_one": {
+    "message": "$1 jeton",
+    "description": "Under the total. $1 is the number of tokens"
+  },
+  "tokenCount_many": {
+    "message": "$1 jetons",
+    "description": "Under the total. $1 is the number of tokens"
+  },
+  "tokenCount_other": {
+    "message": "$1 jetons",
+    "description": "Under the total. $1 is the number of tokens"
+  },
+  "withoutPrice_one": {
+    "message": "$1 sans prix",
+    "description": "Under the total. $1 is the number of tokens with no dollar price"
+  },
+  "withoutPrice_many": {
+    "message": "$1 sans prix",
+    "description": "Under the total. $1 is the number of tokens with no dollar price"
+  },
+  "withoutPrice_other": {
+    "message": "$1 sans prix",
+    "description": "Under the total. $1 is the number of tokens with no dollar price"
+  },
+  "loadingBalances": {
+    "message": "Chargement des soldes…",
+    "description": "While balances load"
+  },
+  "pricesUnavailable": {
+    "message": "Prix indisponibles : $1",
+    "description": "Warning. $1 is the reason, already worded"
+  },
+  "unlisted_one": {
+    "message": "$1 non listé · absent de la liste de jetons de Charisma, peut-être une arnaque",
+    "description": "Toggle for hidden tokens. $1 is how many"
+  },
+  "unlisted_many": {
+    "message": "$1 non listés · absents de la liste de jetons de Charisma, peut-être des arnaques",
+    "description": "Toggle for hidden tokens. $1 is how many"
+  },
+  "unlisted_other": {
+    "message": "$1 non listés · absents de la liste de jetons de Charisma, peut-être des arnaques",
+    "description": "Toggle for hidden tokens. $1 is how many"
+  },
+  "onBlaze": {
+    "message": "$1 sur Blaze",
+    "description": "A token's Blaze balance. $1 is the amount"
+  },
+  "units": {
+    "message": "$1 unités",
+    "description": "An unknown token's balance in its smallest units. $1 is the number"
+  },
+  "rowUnlisted": {
+    "message": "Absent de la liste de jetons de Charisma : exclu des envois",
+    "description": "Tooltip on an unlisted token"
+  },
+  "rowUnknown": {
+    "message": "Jeton inconnu : affiché dans sa plus petite unité, ne peut pas être envoyé d’ici",
+    "description": "Tooltip on an unknown token"
+  },
+  "rowSend": {
+    "message": "Envoyer $1",
+    "description": "Tooltip on a token. $1 is its symbol"
+  },
+  "rowAllOnBlaze": {
+    "message": "Votre solde $1 est entièrement sur Blaze : déplacez-le avec Charisma Swap",
+    "description": "Tooltip. $1 is the token's symbol"
+  },
+  "sendTitle": {
+    "message": "Envoyer $1",
+    "description": "Card title. $1 is the token's symbol"
+  },
+  "recipientLabel": {
+    "message": "Destinataire",
+    "description": "Field label"
+  },
+  "blazeNote": {
+    "message": "Les envois utilisent votre solde Standard de $1 $2. Votre solde de $3 sur Blaze reste dans son sous-réseau ; déplacez-le avec Charisma Swap.",
+    "description": "Note on the send form. $1 the Standard amount, $2 the symbol, $3 the Blaze amount"
+  },
+  "sentTitle": {
+    "message": "$1 envoyé",
+    "description": "Card title after sending. $1 is the token's symbol"
+  },
+  "sentNote": {
+    "message": "Le transfert sera confirmé sur Stacks dans quelques minutes.",
+    "description": "After sending"
+  },
+  "viewOnExplorer": {
+    "message": "Voir dans l’explorateur",
+    "description": "Link to the block explorer"
+  },
+  "networkFee": {
+    "message": "Frais de réseau",
+    "description": "Review label"
+  },
+  "feeAutomatic": {
+    "message": "Définis automatiquement",
+    "description": "Value of Network fee"
+  },
+  "safety": {
+    "message": "Sécurité",
+    "description": "Review label"
+  },
+  "safetyExact": {
+    "message": "Exactement ce montant, rien de plus",
+    "description": "Value of Safety: the transaction can't move more than this"
+  },
+  "sending": {
+    "message": "Envoi…",
+    "description": "Button while sending"
+  },
+  "errorRecipient": {
+    "message": "Saisissez une adresse Stacks (SP…)",
+    "description": "Error on the send form"
+  },
+  "errorAmountLike": {
+    "message": "Saisissez un montant, par exemple $1",
+    "description": "Error. $1 is an example such as 1.5, with this language's decimal mark"
+  },
+  "errorMaxDecimals_one": {
+    "message": "Au maximum $1 décimale",
+    "description": "Error. $1 is the token's decimals"
+  },
+  "errorMaxDecimals_many": {
+    "message": "Au maximum $1 décimales",
+    "description": "Error. $1 is the token's decimals"
+  },
+  "errorMaxDecimals_other": {
+    "message": "Au maximum $1 décimales",
+    "description": "Error. $1 is the token's decimals"
+  },
+  "errorAmountPositive": {
+    "message": "Le montant doit être supérieur à zéro",
+    "description": "Error"
+  },
+  "errorYouHave": {
+    "message": "Vous avez $1 $2",
+    "description": "Error when the amount is more than the balance. $1 the balance, $2 the symbol"
+  },
+  "checkedAt": {
+    "message": "Vérifié à $1",
+    "description": "When the checks ran. $1 is a time"
+  },
+  "checking": {
+    "message": "Vérification…",
+    "description": "While checks run"
+  },
+  "checkAgain": {
+    "message": "Vérifier à nouveau",
+    "description": "Button"
+  },
+  "checkingButton": {
+    "message": "Vérification",
+    "description": "Button while checks run"
+  },
+  "stateError": {
+    "message": "Erreur",
+    "description": "Status pill"
+  },
+  "stateChecking": {
+    "message": "Vérification",
+    "description": "Status pill"
+  },
+  "stateLive": {
+    "message": "En ligne",
+    "description": "Status pill: everything answered"
+  },
+  "somethingWrong": {
+    "message": "Quelque chose ne fonctionne pas",
+    "description": "Card title over an error"
+  },
+  "stacksNetwork": {
+    "message": "Réseau Stacks",
+    "description": "Card title"
+  },
+  "block": {
+    "message": "Bloc",
+    "description": "Label: the latest block number"
+  },
+  "response": {
+    "message": "Temps de réponse",
+    "description": "Label: how fast a server answered"
+  },
+  "tokenListTitle": {
+    "message": "Liste de jetons Charisma",
+    "description": "Card title"
+  },
+  "statusTokens": {
+    "message": "Jetons",
+    "description": "Label: how many tokens the list has"
+  },
+  "blazeSubnets": {
+    "message": "Sous-réseaux Blaze",
+    "description": "Card title"
+  },
+  "holdingFunds": {
+    "message": "Détenant vos fonds",
+    "description": "Label: how many subnets hold your tokens"
+  },
+  "noFundsOnSubnets_one": {
+    "message": "Aucun fonds sur $1 sous-réseau.",
+    "description": "$1 is the number of subnets"
+  },
+  "noFundsOnSubnets_many": {
+    "message": "Aucun fonds sur les $1 sous-réseaux.",
+    "description": "$1 is the number of subnets"
+  },
+  "noFundsOnSubnets_other": {
+    "message": "Aucun fonds sur les $1 sous-réseaux.",
+    "description": "$1 is the number of subnets"
+  },
+  "thisWallet": {
+    "message": "Ce portefeuille",
+    "description": "Card title"
+  },
+  "autoLockIn_one": {
+    "message": "Dans $1 min",
+    "description": "When the wallet locks itself. $1 is minutes"
+  },
+  "autoLockIn_many": {
+    "message": "Dans $1 min",
+    "description": "When the wallet locks itself. $1 is minutes"
+  },
+  "autoLockIn_other": {
+    "message": "Dans $1 min",
+    "description": "When the wallet locks itself. $1 is minutes"
+  },
+  "tabCrashed": {
+    "message": "Cet onglet a planté",
+    "description": "Card title over a crash report"
+  },
+  "cardSendStx": {
+    "message": "Envoyer des STX",
+    "description": "Approval card title"
+  },
+  "cardRunTransaction": {
+    "message": "Exécuter une transaction",
+    "description": "Approval card title"
+  },
+  "cardSignOrder": {
+    "message": "Signer un ordre",
+    "description": "Approval card title"
+  },
+  "cardSignOrders_one": {
+    "message": "Signer $1 ordre",
+    "description": "Approval card title. $1 is the number of orders"
+  },
+  "cardSignOrders_many": {
+    "message": "Signer $1 ordres",
+    "description": "Approval card title. $1 is the number of orders"
+  },
+  "cardSignOrders_other": {
+    "message": "Signer $1 ordres",
+    "description": "Approval card title. $1 is the number of orders"
+  },
+  "cardSignMessage": {
+    "message": "Signer un message",
+    "description": "Approval card title"
+  },
+  "cardConnect": {
+    "message": "Connexion",
+    "description": "Approval card title"
+  },
+  "approveSign": {
+    "message": "Signer",
+    "description": "Approve button"
+  },
+  "approveSignAll": {
+    "message": "Tout signer",
+    "description": "Approve button for many orders"
+  },
+  "approveConnect": {
+    "message": "Connecter",
+    "description": "Approve button"
+  },
+  "deny": {
+    "message": "Refuser",
+    "description": "Button: refuse the request"
+  },
+  "denyAndClose": {
+    "message": "Refuser et fermer",
+    "description": "Screen reader label of the close button"
+  },
+  "holdUnlockFirst": {
+    "message": "Déverrouillez d’abord",
+    "description": "Approve button while the wallet is locked"
+  },
+  "holdChecking": {
+    "message": "Vérification…",
+    "description": "Approve button while the card's visibility is checked"
+  },
+  "lockedNote": {
+    "message": "Blaze Wallet est verrouillé. Ouvrez-le pour le déverrouiller ›",
+    "description": "Link on the card"
+  },
+  "coveredNote": {
+    "message": "Quelque chose recouvre cette demande. Continuez dans une fenêtre Blaze Wallet ›",
+    "description": "Link on the card"
+  },
+  "errorNoAnswer": {
+    "message": "Blaze Wallet n’a pas répondu",
+    "description": "Error"
+  },
+  "riskLow": {
+    "message": "Risque faible",
+    "description": "Pill on the card"
+  },
+  "riskReview": {
+    "message": "Vérifiez attentivement",
+    "description": "Pill on the card"
+  },
+  "askConnect": {
+    "message": "$1 souhaite se connecter à Blaze Wallet",
+    "description": "$1 is the website"
+  },
+  "askSignMessage": {
+    "message": "$1 vous demande de signer ce message",
+    "description": "$1 is the website"
+  },
+  "askSignOrder": {
+    "message": "$1 vous demande de signer un ordre de sous-réseau",
+    "description": "$1 is the website"
+  },
+  "askSignData": {
+    "message": "$1 vous demande de signer des données pour $2",
+    "description": "$1 is the website, $2 the app the data is for"
+  },
+  "askSignOrders_one": {
+    "message": "$1 vous demande de signer $2 ordre de sous-réseau",
+    "description": "$1 is the website, $2 the number of orders"
+  },
+  "askSignOrders_many": {
+    "message": "$1 vous demande de signer $2 ordres de sous-réseau",
+    "description": "$1 is the website, $2 the number of orders"
+  },
+  "askSignOrders_other": {
+    "message": "$1 vous demande de signer $2 ordres de sous-réseau",
+    "description": "$1 is the website, $2 the number of orders"
+  },
+  "askSendStx": {
+    "message": "$1 vous demande d’envoyer des STX",
+    "description": "$1 is the website"
+  },
+  "askRunTransaction": {
+    "message": "$1 vous demande d’exécuter une transaction",
+    "description": "$1 is the website"
+  },
+  "shareAddressAs": {
+    "message": "Partager votre adresse $1",
+    "description": "$1 is the shortened address"
+  },
+  "shareAddress": {
+    "message": "Partager votre adresse",
+    "description": "When there's no active account"
+  },
+  "cantMoveFunds": {
+    "message": "Cela ne permet pas de déplacer de fonds : chaque signature vous est d’abord demandée",
+    "description": "Reassurance on the connect card"
+  },
+  "signsAs": {
+    "message": "Vous signez en tant que $1",
+    "description": "$1 is the shortened address"
+  },
+  "signsWithActive": {
+    "message": "Vous signez avec votre compte actif",
+    "description": "When the address isn't known yet"
+  },
+  "messageMovesNothing": {
+    "message": "Signer un message ne déplace pas de fonds",
+    "description": "Reassurance"
+  },
+  "payoutOnlyYou": {
+    "message": "Uniquement à vous",
+    "description": "Who a signed order can pay out to"
+  },
+  "payoutSubmitter": {
+    "message": "N’importe où, au choix de qui soumet l’ordre",
+    "description": "Who a signed order can pay out to (a warning)"
+  },
+  "orderAction": {
+    "message": "Action",
+    "description": "Label"
+  },
+  "orderToken": {
+    "message": "Jeton",
+    "description": "Label"
+  },
+  "amountSmallestUnits": {
+    "message": "Montant (plus petites unités)",
+    "description": "Label for an unknown token's amount"
+  },
+  "sendsTo": {
+    "message": "Envoie à",
+    "description": "Label: the order pays straight to this address"
+  },
+  "payout": {
+    "message": "Versement",
+    "description": "Label: where the order's funds can go"
+  },
+  "handledBy": {
+    "message": "Géré par $1",
+    "description": "$1 is a contract's name"
+  },
+  "orderId": {
+    "message": "ID de l’ordre",
+    "description": "Label"
+  },
+  "orderData": {
+    "message": "Données",
+    "description": "Label for unrecognized signed data"
+  },
+  "signsAsSentence": {
+    "message": "Vous signez en tant que $1.",
+    "description": "A sentence before the next one. $1 is the shortened address"
+  },
+  "orderRunsOnce": {
+    "message": "Toute personne détenant cette signature peut exécuter cet ordre une fois.",
+    "description": "Note"
+  },
+  "signOnlyRecognized": {
+    "message": "Ne signez que des données que vous reconnaissez.",
+    "description": "Note"
+  },
+  "ordersCount": {
+    "message": "Ordres",
+    "description": "Label: how many orders"
+  },
+  "canSpendTotal": {
+    "message": "Peut dépenser au total",
+    "description": "Label"
+  },
+  "smallestUnitsOf": {
+    "message": "$1 (plus petites unités de $2)",
+    "description": "$1 is a number, $2 a token's contract name"
+  },
+  "ordersRunOnce": {
+    "message": "Toute personne détenant ces signatures peut exécuter chaque ordre une fois.",
+    "description": "Note"
+  },
+  "memo": {
+    "message": "Mémo",
+    "description": "Label"
+  },
+  "contract": {
+    "message": "Contrat",
+    "description": "Label"
+  },
+  "function": {
+    "message": "Fonction",
+    "description": "Label: the contract function called"
+  },
+  "argument": {
+    "message": "Arg. $1",
+    "description": "Label: a function argument. $1 is its position"
+  },
+  "allowMode": {
+    "message": "⚠ N’importe lequel de vos jetons pourrait être déplacé (mode allow)",
+    "description": "Warning: the transaction has no limit on what leaves the wallet"
+  },
+  "onlyTheseTransfers": {
+    "message": "Seuls ces transferts peuvent avoir lieu :",
+    "description": "Heading over the transaction's allowed transfers"
+  },
+  "noTokensLeave": {
+    "message": "Aucun jeton ne peut quitter votre portefeuille",
+    "description": "When a transaction allows no transfers"
+  },
+  "sentFrom": {
+    "message": "Envoi depuis $1.",
+    "description": "A sentence before the next one. $1 is the shortened address"
+  },
+  "feeSetAutomatically": {
+    "message": "Les frais de réseau sont définis automatiquement.",
+    "description": "Note"
+  },
+  "tokenSmallestUnits": {
+    "message": "$1 $2 (plus petites unités)",
+    "description": "$1 is a number, $2 a token's asset name"
+  },
+  "pcYouSendExactly": {
+    "message": "Vous envoyez exactement $1",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendExactly": {
+    "message": "$1 envoie exactement $2",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendMoreThan": {
+    "message": "Vous envoyez plus de $1",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendMoreThan": {
+    "message": "$1 envoie plus de $2",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendAtLeast": {
+    "message": "Vous envoyez au moins $1",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendAtLeast": {
+    "message": "$1 envoie au moins $2",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendLessThan": {
+    "message": "Vous envoyez moins de $1",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendLessThan": {
+    "message": "$1 envoie moins de $2",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendAtMost": {
+    "message": "Vous envoyez au maximum $1",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendAtMost": {
+    "message": "$1 envoie au maximum $2",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendNft": {
+    "message": "Vous envoyez $1 $2",
+    "description": "An NFT transfer the transaction allows. $1 the collection, $2 the item"
+  },
+  "pcTheySendNft": {
+    "message": "$1 envoie $2 $3",
+    "description": "An NFT transfer. $1 who sends, $2 the collection, $3 the item"
+  },
+  "pcYouKeepNft": {
+    "message": "Vous conservez $1 $2",
+    "description": "An NFT the transaction can't move. $1 the collection, $2 the item"
+  },
+  "pcTheyKeepNft": {
+    "message": "$1 conserve $2 $3",
+    "description": "An NFT the transaction can't move. $1 who, $2 the collection, $3 the item"
+  },
+  "pcStacking": {
+    "message": "$1 : condition de stacking",
+    "description": "$1 is who, or the word You"
+  },
+  "pcYou": {
+    "message": "Vous",
+    "description": "Who sends, in pcStacking"
+  },
+  "errorUnexpected": {
+    "message": "Une erreur s’est produite : $1",
+    "description": "Lead-in for an error from a library or a server. $1 is its own text (often English)"
+  },
+  "errorInvalidSeedPhrase": {
+    "message": "Ce n’est pas une phrase de récupération valide : vérifiez l’orthographe de chaque mot et qu’il n’en manque aucun",
+    "description": "Error"
+  },
+  "errorSeedNotFound": {
+    "message": "Phrase de récupération introuvable",
+    "description": "Error"
+  },
+  "errorNoActiveAccount": {
+    "message": "Blaze Wallet n’a aucun compte actif",
+    "description": "Error"
+  },
+  "errorStacksUnavailable": {
+    "message": "Réseau Stacks indisponible (Hiro $1)",
+    "description": "Error. $1 is an HTTP status"
+  },
+  "errorTokenCacheEmpty": {
+    "message": "Le cache de jetons de Charisma n’a renvoyé aucun jeton",
+    "description": "Error"
+  },
+  "errorLocked": {
+    "message": "Le portefeuille est verrouillé",
+    "description": "Error"
+  },
+  "errorLockedIdle": {
+    "message": "Portefeuille verrouillé après 15 minutes d’inactivité",
+    "description": "Error"
+  },
+  "errorPasswordShort": {
+    "message": "Le mot de passe doit comporter au moins $1 caractères",
+    "description": "Error. $1 is the minimum length (8)"
+  },
+  "errorWrongPassword": {
+    "message": "Mot de passe incorrect",
+    "description": "Error"
+  },
+  "errorNoWallet": {
+    "message": "Aucun portefeuille pour l’instant",
+    "description": "Error"
+  },
+  "errorSeedNameTaken": {
+    "message": "Une phrase de récupération nommée « $1 » existe déjà",
+    "description": "Error. $1 is the name"
+  },
+  "errorAccountNotFound": {
+    "message": "Compte introuvable",
+    "description": "Error"
+  },
+  "errorBalances": {
+    "message": "Impossible de charger les soldes ($1)",
+    "description": "Error. $1 is an HTTP status"
+  },
+  "errorTokenListUnavailable": {
+    "message": "La liste de jetons de Charisma est indisponible, les jetons ne peuvent donc pas être comparés à la liste de blocage",
+    "description": "Error"
+  },
+  "errorRejected": {
+    "message": "Le réseau a refusé le transfert : $1",
+    "description": "Error. $1 is the network's own reason (English)"
+  },
+  "errorRequestGone": {
+    "message": "Cette demande n’est plus en attente",
+    "description": "Error on an approval card the site already closed"
+  }
+}
