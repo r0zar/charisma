@@ -1,0 +1,18 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "NSFaceIDUsageDescription" : {
+      "comment" : "Privacy - Face ID Usage Description",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Blaze Wallet uses Face ID to unlock your wallet."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

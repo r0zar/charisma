@@ -1,0 +1,157 @@
+import StacksKit
+import SwiftUI
+import WalletCore
+
+/// Sending from the Standard balance: recipient and amount, a review with the real network fee, then the txid
+struct SendSheet: View {
+    let row: TokenRow
+    /// STX's row: its Standard balance pays the fee
+    let stx: TokenRow
+    let account: Account
+
+    @Environment(Vault.self) private var vault
+    @Environment(\.dismiss) private var dismiss
+    @State private var recipient = ""
+    @State private var amount = ""
+    @State private var review: SendReview?
+    /// The reviewed send, signed once. Sending again re-sends these same bytes, so a send whose answer was lost can't
+    /// go out twice, and from then on this sheet sends nothing else.
+    @State private var signed: StacksTransaction?
+    @State private var txid: String?
+    @State private var busy = false
+    @State private var error: Error?
+    private let hiro = Hiro()
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                if let txid { sent(txid) } else if let review { reviewing(review) } else { form }
+            }
+            .scrollContentBackground(.hidden)
+            .background(Color.brand("bg"))
+            .navigationTitle(txid != nil ? "\(Format.symbol(row)) sent" : "Send \(Format.symbol(row))")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if txid == nil {
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                }
+            }
+            .interactiveDismissDisabled(busy)
+        }
+    }
+
+    @ViewBuilder private var form: some View {
+        Section("Recipient") {
+            TextField(text: $recipient, prompt: Text(verbatim: "SP…")) { EmptyView() }
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+                .monoFont(.callout)
+        }
+        Section("Amount") {
+            HStack {
+                TextField("0" + Amount.decimalMark(.current) + "0 " + Format.symbol(row), text: $amount)
+                    .keyboardType(.decimalPad)
+                    .monoFont(.body)
+                Button("Max") {
+                    amount = Amount.editable(max(row.standard, 0), decimals: row.meta?.decimals ?? 0, locale: .current)
+                }
+                .buttonStyle(.bordered)
+            }
+            if row.blaze != 0 {
+                Text("Sends use your \(Format.amount(row.standard, of: row, precision: .cut(6))) \(Format.symbol(row)) on Standard. Your \(Format.amount(row.blaze, of: row, precision: .cut(6))) on Blaze stays in its subnet; move it with Charisma Swap.")
+                    .brandFont(.footnote)
+                    .foregroundStyle(.brand("ink-muted"))
+            }
+        }
+        Section {
+            ErrorText(error: error, row: row)
+            if case .notEnoughSTXForFee(_, _, let most?)? = error as? WalletError, most > 0 {
+                Button("Send the most: \(Format.stx(most)) STX") {
+                    amount = Amount.editable(most, decimals: 6, locale: .current)
+                    error = nil
+                }
+            }
+            Button {
+                Task { await check() }
+            } label: {
+                if busy { ProgressView() } else { Text("Review") }
+            }
+            .disabled(busy || recipient.isEmpty || amount.isEmpty)
+        }
+    }
+
+    @ViewBuilder private func reviewing(_ review: SendReview) -> some View {
+        Section {
+            LabeledContent { Text(verbatim: "\(Format.amount(review.amount, of: row, precision: .exact)) \(Format.symbol(row))").monoFont(.body) } label: { Text("Send") }
+            LabeledContent { Text(review.recipient.description).monoFont(.caption).multilineTextAlignment(.trailing) } label: { Text("To") }
+            LabeledContent { Text(verbatim: "\(Format.stx(review.fee)) STX").monoFont(.body) } label: { Text("Network fee") }
+            if !row.isSTX {
+                LabeledContent { Text("Exactly this amount, nothing else").foregroundStyle(.brand("success")) } label: { Text("Safety") }
+            }
+        }
+        Section {
+            ErrorText(error: error, row: row)
+            Button {
+                Task { await send(review) }
+            } label: {
+                if busy { ProgressView() } else { Text("Send") }
+            }
+            .disabled(busy)
+            if let signed {
+                // It may be on the network even though no answer came back: the explorer shows whether it is
+                if error != nil {
+                    Link(destination: Format.explorer(signed.txid)) {
+                        Label("View on explorer", systemImage: "arrow.up.right.square")
+                    }
+                }
+            } else {
+                Button("Back") { self.review = nil }.disabled(busy)
+            }
+        }
+    }
+
+    @ViewBuilder private func sent(_ txid: String) -> some View {
+        Section {
+            Text("It confirms on Stacks in a few minutes.")
+            Link(destination: Format.explorer(txid)) {
+                Label("View on explorer", systemImage: "arrow.up.right.square")
+            }
+        }
+        Section {
+            Button("Done") { dismiss() }
+        }
+    }
+
+    private func check() async {
+        error = nil
+        busy = true
+        defer { busy = false }
+        do {
+            review = try await Send.review(
+                row: row, recipient: recipient, amount: amount, locale: .current, stx: stx,
+                account: account, hiro: hiro
+            )
+        } catch {
+            self.error = error
+        }
+    }
+
+    private func send(_ review: SendReview) async {
+        error = nil
+        busy = true
+        defer { busy = false }
+        do {
+            try vault.touch()
+            let transaction: StacksTransaction
+            if let signed {
+                transaction = signed
+            } else {
+                transaction = try await Send.sign(review, from: account, hiro: hiro)
+                signed = transaction
+            }
+            txid = try await Send.broadcast(transaction, hiro: hiro)
+        } catch {
+            self.error = error
+        }
+    }
+}

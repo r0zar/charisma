@@ -1,0 +1,561 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ on Blaze" : {
+
+    },
+    "%@ sent" : {
+
+    },
+    "%@ units" : {
+
+    },
+    "%lld tokens" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld token"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld tokens"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld unlisted · not on Charisma's token list, may be scams" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld unlisted · not on Charisma's token list, may be a scam"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld unlisted · not on Charisma's token list, may be scams"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld without a price" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld without a price"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld without a price"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "+ Account" : {
+
+    },
+    "12 or 24 words" : {
+
+    },
+    "A seed phrase named “%@” already exists." : {
+
+    },
+    "Account %lld" : {
+
+    },
+    "Active" : {
+
+    },
+    "Add an account from a seed phrase below." : {
+
+    },
+    "Address" : {
+
+    },
+    "After 15 idle minutes" : {
+
+    },
+    "Amount" : {
+
+    },
+    "An unknown token: shown in its smallest units, and it can't be sent from here." : {
+
+    },
+    "Anyone who sees these words controls your funds. Write them down on paper and keep them private." : {
+
+    },
+    "At most %lld decimal places." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "At most %lld decimal place."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "At most %lld decimal places."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Auto-lock" : {
+
+    },
+    "Back" : {
+
+    },
+    "Back to the words" : {
+
+    },
+    "Blaze subnets" : {
+
+    },
+    "Block" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Cancelled." : {
+
+    },
+    "Charisma token list" : {
+
+    },
+    "Charisma's balance service sent something Blaze Wallet can't read." : {
+
+    },
+    "Charisma's price feed sent something Blaze Wallet can't read." : {
+
+    },
+    "Charisma's token list has no asset name for %@, so it can't be sent safely." : {
+
+    },
+    "Charisma's token list is unavailable, so tokens can't be checked against its block list." : {
+
+    },
+    "Charisma's token list sent something Blaze Wallet can't read." : {
+
+    },
+    "Check again" : {
+
+    },
+    "Checked at %@" : {
+
+    },
+    "Checking" : {
+
+    },
+    "Checking…" : {
+
+    },
+    "Confirm and save" : {
+
+    },
+    "Confirm your words" : {
+
+    },
+    "Continue" : {
+
+    },
+    "Copied" : {
+
+    },
+    "Copy" : {
+
+    },
+    "Couldn't load Charisma's token list (%lld)." : {
+
+    },
+    "Couldn't load balances (%lld)." : {
+
+    },
+    "Couldn't load prices (%lld)." : {
+
+    },
+    "Couldn't reach Charisma's balance service. Check your connection." : {
+
+    },
+    "Couldn't reach Charisma's price feed. Check your connection." : {
+
+    },
+    "Couldn't reach Charisma's token list. Check your connection." : {
+
+    },
+    "Couldn't reach the Stacks network. Check your connection." : {
+
+    },
+    "Create a new wallet" : {
+
+    },
+    "Create your wallet" : {
+
+    },
+    "Dark · RPG" : {
+
+    },
+    "Done" : {
+
+    },
+    "Enter a Stacks address (SP…)." : {
+
+    },
+    "Enter an amount like %@." : {
+
+    },
+    "Error" : {
+
+    },
+    "Every seed phrase and account is removed from this iPhone. Your funds stay safe on the blockchain; you'll need your seed phrases to get back in." : {
+
+    },
+    "Exactly this amount, nothing else" : {
+
+    },
+    "Face ID and the passcode aren't available on this iPhone right now." : {
+
+    },
+    "Generate 24 words" : {
+
+    },
+    "Generate new" : {
+
+    },
+    "Holding your funds" : {
+
+    },
+    "I wrote all 24 words down, in order" : {
+
+    },
+    "Import" : {
+
+    },
+    "Import a seed phrase" : {
+
+    },
+    "In %lld min" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "In %lld min"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "In %lld min"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "It confirms on Stacks in a few minutes." : {
+
+    },
+    "Its accounts and funds stay safe on the blockchain. To use them here again, you'll need the seed phrase words." : {
+
+    },
+    "Keys" : {
+
+    },
+    "Light · Bitcoin" : {
+
+    },
+    "Live" : {
+
+    },
+    "Loading balances…" : {
+
+    },
+    "Lock" : {
+
+    },
+    "Max" : {
+
+    },
+    "My seed phrase" : {
+
+    },
+    "Name" : {
+
+    },
+    "Network fee" : {
+
+    },
+    "New seed phrase" : {
+
+    },
+    "No active account" : {
+
+    },
+    "No funds on any of the %lld subnets." : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "No funds on the %lld subnet."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "No funds on any of the %lld subnets."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Not enough STX for the network fee. You can send up to %@ STX." : {
+
+    },
+    "Not enough STX for the network fee: it's %@ STX and you have %@ STX." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Not enough STX for the network fee: it's %1$@ STX and you have %2$@ STX."
+          }
+        }
+      }
+    },
+    "Not on Charisma's token list, so it can't be sent from here." : {
+
+    },
+    "OK" : {
+
+    },
+    "On this iPhone only, behind Face ID" : {
+
+    },
+    "Prices unavailable: %@" : {
+
+    },
+    "Receive" : {
+
+    },
+    "Recipient" : {
+
+    },
+    "Response" : {
+
+    },
+    "Review" : {
+
+    },
+    "Safety" : {
+
+    },
+    "Seed phrases" : {
+
+    },
+    "Send" : {
+
+    },
+    "Send %@" : {
+
+    },
+    "Send only Stacks (STX) and Stacks tokens to this address." : {
+
+    },
+    "Send the most: %@ STX" : {
+
+    },
+    "Sends use your %@ %@ on Standard. Your %@ on Blaze stays in its subnet; move it with Charisma Swap." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Sends use your %1$@ %2$@ on Standard. Your %3$@ on Blaze stays in its subnet; move it with Charisma Swap."
+          }
+        }
+      }
+    },
+    "Set a passcode on this iPhone to use Blaze Wallet." : {
+
+    },
+    "Show words" : {
+
+    },
+    "Show your seed phrase" : {
+
+    },
+    "Something isn't working" : {
+
+    },
+    "Something went wrong: %@" : {
+
+    },
+    "Stacks network" : {
+
+    },
+    "Status" : {
+
+    },
+    "System" : {
+
+    },
+    "That account is no longer in this wallet." : {
+
+    },
+    "That isn't a valid seed phrase: check each word's spelling and that none are missing." : {
+
+    },
+    "That seed phrase is no longer in this wallet." : {
+
+    },
+    "That's more than one send can carry. Send it in parts." : {
+
+    },
+    "That's more than you have." : {
+
+    },
+    "The Stacks network didn't answer (%lld)." : {
+
+    },
+    "The Stacks network sent something Blaze Wallet can't read." : {
+
+    },
+    "The amount must be more than zero." : {
+
+    },
+    "The network rejected the transfer: %@" : {
+
+    },
+    "The wallet is locked. Unlock it to continue." : {
+
+    },
+    "Theme" : {
+
+    },
+    "These 24 words are the only way to recover this wallet. Anyone who sees them controls your funds, and Blaze Wallet can't recover them." : {
+
+    },
+    "This iPhone couldn't make random words. Try again." : {
+
+    },
+    "This iPhone's Keychain refused (%@)." : {
+
+    },
+    "This wallet" : {
+
+    },
+    "To" : {
+
+    },
+    "Tokens" : {
+
+    },
+    "Total value" : {
+
+    },
+    "Try again" : {
+
+    },
+    "Type these words from what you wrote down." : {
+
+    },
+    "Unlink" : {
+
+    },
+    "Unlink this seed phrase from this iPhone?" : {
+
+    },
+    "Unlink this wallet from this iPhone?" : {
+
+    },
+    "Unlink wallet" : {
+
+    },
+    "Unlock" : {
+
+    },
+    "Unlock your wallet" : {
+
+    },
+    "Use" : {
+
+    },
+    "Vault" : {
+
+    },
+    "View on explorer" : {
+
+    },
+    "Wallet" : {
+
+    },
+    "Word #%lld" : {
+
+    },
+    "Word %@ doesn't match. Check what you wrote down." : {
+
+    },
+    "Write these down" : {
+
+    },
+    "You have %@ %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "You have %1$@ %2$@."
+          }
+        }
+      }
+    },
+    "You have no %@ to send yet." : {
+
+    },
+    "Your %@ is all on Blaze. Move it with Charisma Swap." : {
+
+    },
+    "Your keys stay on this iPhone, behind Face ID." : {
+
+    }
+  },
+  "version" : "1.0"
+}
