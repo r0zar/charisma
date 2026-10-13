@@ -17,8 +17,12 @@ final class Vault {
     private(set) var asksOnAppear = true
     /// Why the launch check failed; the root view offers to retry
     private(set) var startError: Error?
+    /// The wallet was there and is gone: iOS deletes it when this iPhone's passcode is turned off. Welcome says so.
+    private(set) var walletRemoved = false
     private var session: Session?
     private var context: LAContext?
+    /// Counts locks, so a Face ID check that ends after one (the app left mid-prompt) unlocks nothing
+    private var locks = 0
 
     /// The unlocked wallet, for views; nil when locked. It lives only in the Session, so locking forgets it.
     var state: WalletState? { try? session?.read() }
@@ -41,19 +45,39 @@ final class Vault {
     func create(name: String, words: String) async throws {
         var state = WalletState()
         try state.addSeedPhrase(name: name, words: words)
+        let locksBefore = locks
         let context = try await Self.authenticate(reason: String(localized: "Create your wallet"))
         try Keychain.add(JSONEncoder().encode(state), context: context)
+        // Saved either way, but if the app left during Face ID the new wallet waits, locked
+        guard locks == locksBefore else {
+            context.invalidate()
+            phase = .locked
+            return
+        }
         begin(state, context)
     }
 
     func unlock() async throws {
+        let locksBefore = locks
         let context = try await Self.authenticate(reason: String(localized: "Unlock your wallet"))
-        let data = try Keychain.read(context: context)
-        do {
-            begin(try JSONDecoder().decode(WalletState.self, from: data), context)
-        } catch {
-            throw WalletError.unexpected("The saved wallet can't be read: \(error)")
+        guard locks == locksBefore else {
+            context.invalidate()
+            return
         }
+        let data: Data
+        do {
+            data = try Keychain.read(context: context)
+        } catch VaultError.keychain(errSecItemNotFound) {
+            context.invalidate()
+            walletRemoved = true
+            phase = .empty
+            return
+        }
+        guard let state = try? JSONDecoder().decode(WalletState.self, from: data) else {
+            context.invalidate()
+            throw VaultError.unreadable
+        }
+        begin(state, context)
     }
 
     /// Changes the wallet, restarts the 15 minutes and saves it. Nothing changes if saving fails.
@@ -74,11 +98,13 @@ final class Vault {
     }
 
     func lockIfIdle() {
-        if session?.isLocked ?? true { lock() }
+        // Only an unlocked wallet that has gone idle: locking again would change what the lock screen does on return
+        if session?.isLocked == true { lock() }
     }
 
     /// Forgets the wallet until the next unlock. `askOnReturn`: the lock screen asks for Face ID by itself.
     func lock(askOnReturn: Bool = false) {
+        locks += 1
         asksOnAppear = askOnReturn
         session = nil
         context?.invalidate()
@@ -88,9 +114,11 @@ final class Vault {
 
     /// A seed phrase's words, after a fresh Face ID check (they go on screen)
     func revealWords(of seedPhraseId: String) async throws -> String {
-        guard let seed = state?.seedPhrases.first(where: { $0.id == seedPhraseId }) else { throw WalletError.seedPhraseNotFound }
         let check = try await Self.authenticate(reason: String(localized: "Show your seed phrase"))
         check.invalidate()
+        // Read after Face ID: if the wallet locked during the prompt, the words stay where they are
+        guard let state else { throw WalletError.locked }
+        guard let seed = state.seedPhrases.first(where: { $0.id == seedPhraseId }) else { throw WalletError.seedPhraseNotFound }
         return seed.phrase
     }
 
@@ -102,6 +130,7 @@ final class Vault {
     }
 
     private func begin(_ state: WalletState, _ context: LAContext) {
+        walletRemoved = false
         session = Session(state: state)
         self.context = context
         phase = .unlocked

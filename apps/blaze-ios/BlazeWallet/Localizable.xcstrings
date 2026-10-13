@@ -198,16 +198,16 @@
         "es": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld token"
-                }
-              },
               "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld tokens"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld token"
                 }
               },
               "other": {
@@ -222,16 +222,16 @@
         "fr": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld jeton"
-                }
-              },
               "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld jetons"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld jeton"
                 }
               },
               "other": {
@@ -270,16 +270,16 @@
         "pt-BR": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld token"
-                }
-              },
               "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld tokens"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld token"
                 }
               },
               "other": {
@@ -364,16 +364,16 @@
         "es": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld no listado · no está en la lista de tokens de Charisma, puede ser una estafa"
-                }
-              },
               "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld no listados · no están en la lista de tokens de Charisma, pueden ser estafas"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld no listado · no está en la lista de tokens de Charisma, puede ser una estafa"
                 }
               },
               "other": {
@@ -388,16 +388,16 @@
         "fr": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld non listé · absent de la liste de jetons de Charisma, peut-être une arnaque"
-                }
-              },
               "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld non listés · absents de la liste de jetons de Charisma, peut-être des arnaques"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld non listé · absent de la liste de jetons de Charisma, peut-être une arnaque"
                 }
               },
               "other": {
@@ -436,16 +436,16 @@
         "pt-BR": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld não listado · não está na lista de tokens da Charisma, pode ser um golpe"
-                }
-              },
               "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld não listados · não estão na lista de tokens da Charisma, podem ser golpes"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld não listado · não está na lista de tokens da Charisma, pode ser um golpe"
                 }
               },
               "other": {
@@ -530,13 +530,13 @@
         "es": {
           "variations": {
             "plural": {
-              "one": {
+              "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld sin precio"
                 }
               },
-              "many": {
+              "one": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld sin precio"
@@ -554,13 +554,13 @@
         "fr": {
           "variations": {
             "plural": {
-              "one": {
+              "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld sans prix"
                 }
               },
-              "many": {
+              "one": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld sans prix"
@@ -602,13 +602,13 @@
         "pt-BR": {
           "variations": {
             "plural": {
-              "one": {
+              "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld sem preço"
                 }
               },
-              "many": {
+              "one": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld sem preço"
@@ -1268,16 +1268,16 @@
         "es": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Como máximo %lld decimal."
-                }
-              },
               "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "Como máximo %lld decimales."
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Como máximo %lld decimal."
                 }
               },
               "other": {
@@ -1292,16 +1292,16 @@
         "fr": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Au maximum %lld décimale."
-                }
-              },
               "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "Au maximum %lld décimales."
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Au maximum %lld décimale."
                 }
               },
               "other": {
@@ -1340,16 +1340,16 @@
         "pt-BR": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "No máximo %lld casa decimal."
-                }
-              },
               "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "No máximo %lld casas decimais."
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "No máximo %lld casa decimal."
                 }
               },
               "other": {
@@ -3774,13 +3774,13 @@
         "es": {
           "variations": {
             "plural": {
-              "one": {
+              "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "En %lld min"
                 }
               },
-              "many": {
+              "one": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "En %lld min"
@@ -3798,13 +3798,13 @@
         "fr": {
           "variations": {
             "plural": {
-              "one": {
+              "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "Dans %lld min"
                 }
               },
-              "many": {
+              "one": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "Dans %lld min"
@@ -3846,13 +3846,13 @@
         "pt-BR": {
           "variations": {
             "plural": {
-              "one": {
+              "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "Em %lld min"
                 }
               },
-              "many": {
+              "one": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "Em %lld min"
@@ -3947,6 +3947,58 @@
           "stringUnit": {
             "state": "translated",
             "value": "交易几分钟内就会在 Stacks 上确认。"
+          }
+        }
+      }
+    },
+    "It may have gone through already. Check the explorer before you send again.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die Transaktion ist vielleicht schon durchgegangen. Prüfe im Explorer, bevor du erneut sendest."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Puede que ya se haya enviado. Compruébalo en el explorador antes de volver a enviar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le transfert est peut-être déjà passé. Vérifiez dans l’explorateur avant de renvoyer."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "すでに送金されている可能性があります。もう一度送金する前に、エクスプローラーで確認してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이미 처리되었을 수 있습니다. 다시 보내기 전에 탐색기에서 확인하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talvez o envio já tenha sido feito. Confira no explorador antes de enviar de novo."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İşlem zaten gerçekleşmiş olabilir. Yeniden göndermeden önce blok gezgininde kontrol edin."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这笔转账可能已经发出。再次发送前，请先在区块浏览器中查看。"
           }
         }
       }
@@ -4616,16 +4668,16 @@
         "es": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "No hay fondos en %lld subred."
-                }
-              },
               "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "No hay fondos en ninguna de las %lld subredes."
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "No hay fondos en %lld subred."
                 }
               },
               "other": {
@@ -4640,16 +4692,16 @@
         "fr": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Aucun fonds sur %lld sous-réseau."
-                }
-              },
               "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "Aucun fonds sur les %lld sous-réseaux."
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Aucun fonds sur %lld sous-réseau."
                 }
               },
               "other": {
@@ -4688,16 +4740,16 @@
         "pt-BR": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Sem fundos em %lld sub-rede."
-                }
-              },
               "many": {
                 "stringUnit": {
                   "state": "translated",
                   "value": "Sem fundos em nenhuma das %lld sub-redes."
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Sem fundos em %lld sub-rede."
                 }
               },
               "other": {
@@ -5689,54 +5741,54 @@
         }
       }
     },
-    "Show words": {
+    "Show seed phrase": {
       "localizations": {
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wörter zeigen"
+            "value": "Seed-Phrase zeigen"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ver palabras"
+            "value": "Ver frase semilla"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Voir les mots"
+            "value": "Voir la phrase de récupération"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "単語を表示"
+            "value": "シードフレーズを表示"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "단어 보기"
+            "value": "시드 문구 보기"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ver palavras"
+            "value": "Ver frase de recuperação"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kelimeleri göster"
+            "value": "Kurtarma ifadesini göster"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "显示单词"
+            "value": "显示助记词"
           }
         }
       }
@@ -6573,6 +6625,58 @@
         }
       }
     },
+    "The wallet saved on this iPhone can't be read.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die auf diesem iPhone gespeicherte Wallet kann nicht gelesen werden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No se puede leer la billetera guardada en este iPhone."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de lire le portefeuille enregistré sur cet iPhone."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この iPhone に保存されたウォレットを読み込めません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone에 저장된 지갑을 읽을 수 없습니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Não é possível ler a carteira salva neste iPhone."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu iPhone'da kayıtlı cüzdan okunamıyor."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取此 iPhone 上保存的钱包。"
+          }
+        }
+      }
+    },
     "Theme": {
       "localizations": {
         "de": {
@@ -7037,6 +7141,58 @@
           "stringUnit": {
             "state": "translated",
             "value": "重试"
+          }
+        }
+      }
+    },
+    "Turning off this iPhone's passcode removed the wallet from it. Import your seed phrase to restore it.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Durch das Ausschalten des Codes dieses iPhone wurde die Wallet entfernt. Importiere deine Seed-Phrase, um sie wiederherzustellen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Al desactivar el código de este iPhone se eliminó la billetera. Importa tu frase semilla para restaurarla."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La désactivation du code de cet iPhone a supprimé le portefeuille. Importez votre phrase de récupération pour le restaurer."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "この iPhone のパスコードをオフにしたため、ウォレットが削除されました。シードフレーズをインポートして復元してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이 iPhone의 암호를 끄면서 지갑이 삭제되었습니다. 시드 문구를 가져와 복원하세요."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desativar o código deste iPhone removeu a carteira. Importe sua frase de recuperação para restaurá-la."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu iPhone'un parolası kapatıldığı için cüzdan kaldırıldı. Geri yüklemek için kurtarma ifadenizi içe aktarın."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭此 iPhone 的密码后，钱包已被移除。导入你的助记词即可恢复。"
           }
         }
       }

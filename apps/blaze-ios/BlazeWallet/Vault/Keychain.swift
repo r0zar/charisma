@@ -9,6 +9,8 @@ enum VaultError: Error, Equatable {
     /// The person dismissed Face ID or the passcode: not an error to show
     case cancelled
     case keychain(OSStatus)
+    /// The saved wallet isn't a wallet this app can read
+    case unreadable
 }
 
 /// The one Keychain item that holds the wallet. Reading it takes Face ID or the passcode (`.userPresence`); it stays

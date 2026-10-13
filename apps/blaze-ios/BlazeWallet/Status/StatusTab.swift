@@ -6,7 +6,8 @@ struct StatusTab: View {
     let account: Account
 
     @Environment(Vault.self) private var vault
-    @State private var model: StatusModel
+    /// MainView keeps it for the whole unlock
+    let model: StatusModel
 
     private static let interval: TimeInterval = 5 * 60
 
@@ -15,7 +16,7 @@ struct StatusTab: View {
 
     init(account: Account, model: StatusModel) {
         self.account = account
-        _model = State(initialValue: model)
+        self.model = model
     }
 
     var body: some View {
@@ -25,7 +26,7 @@ struct StatusTab: View {
                     HStack {
                         if let checkedAt = diagnostics?.checkedAt {
                             Text("Checked at \(checkedAt.formatted(date: .omitted, time: .shortened))")
-                        } else {
+                        } else if model.checking {
                             Text("Checking…")
                         }
                         Spacer()
@@ -58,6 +59,13 @@ struct StatusTab: View {
                     if model.attemptedFor == account.stxAddress, let attemptedAt = model.attemptedAt,
                        -attemptedAt.timeIntervalSinceNow < Self.interval {
                         guard (try? await Task.sleep(for: .seconds(Self.interval + attemptedAt.timeIntervalSinceNow))) != nil else { return }
+                        // "Check again" may have run meanwhile: measure from the latest attempt
+                        continue
+                    }
+                    if model.checking {
+                        // "Check again" is running, maybe for the account shown before: look again in a moment
+                        guard (try? await Task.sleep(for: .seconds(1))) != nil else { return }
+                        continue
                     }
                     await model.check(address: account.stxAddress)
                 }
@@ -65,9 +73,11 @@ struct StatusTab: View {
         }
     }
 
-    private var state: (text: LocalizedStringKey, tone: String) {
+    /// The network's state; nothing before the first check has started
+    private var state: (text: LocalizedStringKey, tone: String)? {
         if model.error != nil { return ("Error", "danger") }
-        return diagnostics == nil ? ("Checking", "warning") : ("Live", "success")
+        if diagnostics != nil { return ("Live", "success") }
+        return model.checking ? ("Checking", "warning") : nil
     }
 
     @ViewBuilder private var networkSection: some View {
@@ -78,7 +88,7 @@ struct StatusTab: View {
             HStack {
                 Text("Stacks network")
                 Spacer()
-                Text(state.text).foregroundStyle(.brand(state.tone))
+                if let state { Text(state.text).foregroundStyle(.brand(state.tone)) }
             }
         }
     }

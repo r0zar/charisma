@@ -17,7 +17,8 @@ enum ErrorWords {
         case let error as VaultError: vault(error)
         case let error as AppError: app(error)
         case StacksError.randomUnavailable: String(localized: "This iPhone couldn't make random words. Try again.")
-        default: String(localized: "Something went wrong: \(error.localizedDescription)")
+        // Nothing else should reach a screen: its own description, rather than Swift's "error 3"
+        default: String(localized: "Something went wrong: \(String(describing: error))")
         }
     }
 
@@ -75,6 +76,7 @@ enum ErrorWords {
         case .authenticationUnavailable: String(localized: "Face ID and the passcode aren't available on this iPhone right now.")
         case .keychain(let status): String(localized: "This iPhone's Keychain refused (\(String(status))).")
         case .cancelled: String(localized: "Cancelled.")
+        case .unreadable: String(localized: "The wallet saved on this iPhone can't be read.")
         }
     }
 

@@ -77,5 +77,7 @@ final class TokensModel {
             lookedUp.formUnion(missing)
         }
         rows = TokenRows.build(sheet: sheet, list: list, lookups: lookups)
+        // Rows are back (the stream recovers on its own): a failed load is no longer the news
+        error = nil
     }
 }
