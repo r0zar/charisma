@@ -30,7 +30,7 @@ A fully native iPhone app, in Swift and SwiftUI, that does what the Blaze Wallet
 |---|---|
 | Create wallet with a password | Create or import, stored in the Keychain behind Face ID (or the device passcode). No password |
 | Unlock with password | Unlock with Face ID |
-| New seed phrase: name it, 24 words, "I wrote them down", confirm 3 random words; nothing saved until confirmed | Same |
+| New seed phrase: name it, 24 words, "I wrote them down", confirm 3 random words; nothing saved until confirmed | Same. Until confirmed, the words are kept as a draft (Keychain, this device only), so leaving the app, even if iOS closes it meanwhile, comes back to the same words; Cancel forgets them |
 | Import seed phrase: name + words (the field says "12 or 24 words"; any valid BIP39 length passes), checksum checked | Same |
 | Seed phrase names are unique | Same |
 | After Generate or Import, a one-button "Create account" step derives the seed's first account | The first account is derived and made active right away (the one-button step is skipped) |
@@ -170,7 +170,7 @@ All Hiro calls retry on 429: wait for `Retry-After`, otherwise 1 s, 2 s, 4 s, th
 - **Root**: no wallet → Welcome (Create a new wallet / Import a seed phrase). Wallet but locked → Lock screen, which asks for Face ID on appear and has an Unlock button. Unlocked with an active account → tabs **Wallet, Tokens, Status**, with Lock in the toolbar. Unlocked without an active account (every seed unlinked) → only the Wallet tab, showing "No active account" with Generate new / Import, as the extension does.
 - **Wallet**: active account (name, address, Copy, Receive). Seed phrases, each with its accounts (Use / Active), + Account, Show seed phrase, Unlink. Generate new / Import. A Vault section: "Keys: on this iPhone only, behind Face ID", "Auto-lock: after 15 idle minutes", Theme, Lock, Unlink wallet.
 - **Seed words** (import, and the confirmation step of a new seed phrase): fields use the ASCII-capable keyboard with autocapitalization and autocorrection off. Answers are compared after the shared seed-word normalization, so a pasted `İ` or full-width word still matches.
-- **Tokens**: total value card, token rows, unlisted section. Tapping a sendable row opens Send as a sheet (form → review → sent, with "View on explorer" → `https://explorer.hiro.so/txid/0x{txid}?chain=mainnet`). The explorer opens inside the app: leaving the app locks the wallet, which would close a send that's still in progress. The send form shows the extension's note when the token also has a Blaze balance. Blaze-only, unlisted and unknown tokens aren't sendable, and say why.
+- **Tokens**: total value card, token rows, unlisted section. Tapping a sendable row opens Send as a sheet (form → review → sent, with "View on explorer" → `https://explorer.hiro.so/txid/0x{txid}?chain=mainnet`). The explorer opens inside the app: leaving the app locks the wallet, which would close a send that's still in progress. The send form shows the extension's note when the token also has a Blaze balance. Blaze-only, unlisted and unknown tokens aren't sendable, and say why. A send that was signed but got no clear answer stays on Tokens through locks, with View on explorer and Send again (the same transaction), so nothing new is signed on top of it.
 - **Status**: the four cards from the extension, with Check again.
 - **Brand**:
   - `scripts/brand.mjs` turns `packages/brand/tokens.json` colours into an asset catalog, with light and dark values per token. It resolves alias values such as `{accent-soft}`. It copies only DM Mono and Ysabeau Infant, not Matter, until Decision 2 is settled.
@@ -236,4 +236,4 @@ Every backend or vault call either returns real data or throws an error that nam
 
 - Native Swap tab (Charisma swap features in the app).
 - A better-than-usual way for websites to ask for signatures (not the traditional connect flow).
-- App Store or TestFlight distribution. App Store rules require wallets to be published from an organization developer account.
+- App Store distribution. App Store rules require wallets to be published from an organization developer account. TestFlight from Ross's individual account is for his own testing (`scripts/testflight.sh`).
