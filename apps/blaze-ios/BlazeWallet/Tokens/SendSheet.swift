@@ -20,8 +20,6 @@ struct SendSheet: View {
     @State private var txid: String?
     @State private var busy = false
     @State private var error: Error?
-    /// The explorer page open inside the app
-    @State private var page: URL?
     private let hiro = Hiro()
 
     var body: some View {
@@ -40,14 +38,8 @@ struct SendSheet: View {
             }
             // A signed send stays on screen until it's sent or the person chooses Cancel
             .interactiveDismissDisabled(busy || (signed != nil && txid == nil))
-            // Links open inside the app: leaving for Safari would lock the wallet and lose the signed send
-            .environment(\.openURL, OpenURLAction { url in
-                page = url
-                return .handled
-            })
-            .sheet(isPresented: Binding(get: { page != nil }, set: { if !$0 { page = nil } })) {
-                if let page { SafariView(url: page).ignoresSafeArea().privacyCover() }
-            }
+            // Leaving for Safari would lock the wallet and close this sheet
+            .inAppLinks()
         }
     }
 
@@ -174,7 +166,10 @@ struct SendSheet: View {
             // Signing waits on the network: if the wallet locked meanwhile, nothing goes out
             try vault.touch()
             txid = try await Send.broadcast(transaction, hiro: hiro)
+            vault.unsent = nil
         } catch {
+            // Signed but not clearly sent: kept outside this sheet, so a lock can't lose it, and Tokens says so
+            if let signed { vault.unsent = .init(transaction: signed, address: account.stxAddress) }
             self.error = error
         }
     }

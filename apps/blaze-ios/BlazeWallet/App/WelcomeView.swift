@@ -3,9 +3,12 @@ import SwiftUI
 /// No wallet on this iPhone yet: make a new seed phrase or bring one
 struct WelcomeView: View {
     @Environment(Vault.self) private var vault
+    @State private var path: [Route] = []
+
+    private enum Route: Hashable { case create, bring }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack(spacing: 16) {
                 Spacer()
                 Image("BlazeFlame").resizable().scaledToFit().frame(width: 72)
@@ -15,17 +18,17 @@ struct WelcomeView: View {
                     .foregroundStyle(.brand("ink-muted"))
                 Spacer()
                 if vault.walletRemoved {
-                    Text("Turning off this iPhone's passcode removed the wallet from it. Import your seed phrase to restore it.")
+                    Text("The wallet is no longer on this iPhone. Turning off the passcode removes it, and it doesn't move to a new iPhone. Import your seed phrase to restore it.")
                         .multilineTextAlignment(.center)
                         .foregroundStyle(.brand("warning"))
                         .brandFont(.callout)
                 }
-                NavigationLink { NewSeedFlow(mode: .createWallet) } label: {
+                NavigationLink(value: Route.create) {
                     Text("Create a new wallet").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                NavigationLink { ImportSeedView(mode: .createWallet) } label: {
+                NavigationLink(value: Route.bring) {
                     Text("Import a seed phrase").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
@@ -35,6 +38,14 @@ struct WelcomeView: View {
             }
             .padding(24)
             .background(Color.brand("bg"))
+            .navigationDestination(for: Route.self) { route in
+                switch route {
+                case .create: NewSeedFlow(mode: .createWallet, resuming: vault.seedDraft)
+                case .bring: ImportSeedView(mode: .createWallet)
+                }
+            }
         }
+        // A wallet being set up when the app closed picks up at its words
+        .onAppear { if vault.seedDraft?.mode == .createWallet, path.isEmpty { path = [.create] } }
     }
 }

@@ -2,7 +2,7 @@ import SwiftUI
 import WalletCore
 
 /// Where new seed words go: the first ones create the wallet (Face ID once), later ones join it
-enum SeedMode {
+enum SeedMode: String, Codable {
     case createWallet
     case addToWallet
 
@@ -13,6 +13,15 @@ enum SeedMode {
         case .addToWallet: try vault.act { try $0.addSeedPhrase(name: name, words: words) }
         }
     }
+}
+
+/// A new seed phrase being set up: its words and the three to confirm. Kept in the Keychain until it's confirmed, so
+/// leaving the app never loses the words, or swaps them for new ones, while someone is writing them down.
+struct SeedDraft: Codable, Equatable {
+    let mode: SeedMode
+    let name: String
+    let words: [String]
+    let checks: [Int]
 }
 
 extension View {

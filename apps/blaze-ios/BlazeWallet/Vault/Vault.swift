@@ -1,6 +1,7 @@
 import Foundation
 import LocalAuthentication
 import Observation
+import StacksKit
 import WalletCore
 
 /// The wallet behind Face ID. One Keychain item holds the wallet state; one authenticated LAContext per unlocked
@@ -17,12 +18,27 @@ final class Vault {
     private(set) var asksOnAppear = true
     /// Why the launch check failed; the root view offers to retry
     private(set) var startError: Error?
-    /// The wallet was there and is gone: iOS deletes it when this iPhone's passcode is turned off. Welcome says so.
+    /// The wallet was there and is gone: iOS deletes it when this iPhone's passcode is turned off, and a backup restored
+    /// onto another iPhone doesn't bring it. Welcome says so.
     private(set) var walletRemoved = false
+    /// A new seed phrase being set up, until it's confirmed. It outlives locks and the app closing.
+    private(set) var seedDraft: SeedDraft?
+    /// A signed send whose broadcast got no clear answer. It may be on the network already, so it outlives locks (it
+    /// holds no key): Tokens says so and can send these same bytes again, instead of a new send signing on top of it.
+    var unsent: UnsentSend?
     private var session: Session?
     private var context: LAContext?
     /// Counts locks, so a Face ID check that ends after one (the app left mid-prompt) unlocks nothing
     private var locks = 0
+
+    struct UnsentSend: Equatable {
+        let transaction: StacksTransaction
+        /// The account that signed it
+        let address: String
+    }
+
+    /// Set while this iPhone holds a wallet. It stays behind when iOS deletes the wallet, which is how Welcome knows.
+    private static let hadWallet = "rocks.charisma.blazewallet.hadWallet"
 
     /// The unlocked wallet, for views; nil when locked. It lives only in the Session, so locking forgets it.
     var state: WalletState? { try? session?.read() }
@@ -35,10 +51,22 @@ final class Vault {
         startError = nil
         do {
             try Keychain.forgetPreviousInstall()
-            phase = try Keychain.exists() ? .locked : .empty
+            let exists = try Keychain.exists()
+            walletRemoved = !exists && UserDefaults.standard.bool(forKey: Self.hadWallet)
+            if let data = try Keychain.Draft.read() {
+                // A draft from a build that saved it differently can't be resumed: setting up starts again
+                if let draft = try? JSONDecoder().decode(SeedDraft.self, from: data) { seedDraft = draft } else { try Keychain.Draft.delete() }
+            }
+            phase = exists ? .locked : .empty
         } catch {
             startError = error
         }
+    }
+
+    /// Keeps a new seed phrase being set up until it's confirmed, or forgets it (nil)
+    func keep(_ draft: SeedDraft?) throws {
+        if let draft { try Keychain.Draft.save(JSONEncoder().encode(draft)) } else { try Keychain.Draft.delete() }
+        seedDraft = draft
     }
 
     /// The end of Welcome: Face ID once, then the wallet is created with its first seed phrase, unlocked
@@ -48,6 +76,7 @@ final class Vault {
         let locksBefore = locks
         let context = try await Self.authenticate(reason: String(localized: "Create your wallet"))
         try Keychain.add(JSONEncoder().encode(state), context: context)
+        UserDefaults.standard.set(true, forKey: Self.hadWallet)
         // Saved either way, but if the app left during Face ID the new wallet waits, locked
         guard locks == locksBefore else {
             context.invalidate()
@@ -125,6 +154,9 @@ final class Vault {
     /// Removes the wallet from this iPhone; its funds stay on the blockchain
     func unlinkWallet() throws {
         try Keychain.delete()
+        try keep(nil)
+        UserDefaults.standard.removeObject(forKey: Self.hadWallet)
+        unsent = nil
         lock()
         phase = .empty
     }
