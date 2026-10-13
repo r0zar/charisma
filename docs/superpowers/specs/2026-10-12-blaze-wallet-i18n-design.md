@@ -139,6 +139,7 @@ On iOS, seed-word fields also use the ASCII-capable keyboard with autocapitaliza
 
 **Numbers.**
 - The hardcoded `"en-US"` in `tabs/approve.tsx`, `sidepanel/StatusTab.tsx`, `shared/ui.tsx`, `shared/tabs/TransferTab.tsx`, `shared/approvals/SignOrdersContent.tsx` and `shared/approvals/TransactionContent.tsx` becomes the helper's `locale`.
+- `locale` is Chrome's own language when that's a variant of the page's language, and the page's language otherwise. So Latin American Spanish (`es-419`) writes `1,234.5`, where Spain's `es` writes `1.234,5`. `<html lang>` stays the page's language.
 - The precision of each screen follows the shared number rules. That includes the two fixes: the send review and `TransactionContent.tsx` show exact amounts.
 - `parseUnits` and the Max button in `TransferTab.tsx` follow the shared rules for the decimal mark.
 - The amount placeholder (`0.0 STX`) uses the active decimal mark.

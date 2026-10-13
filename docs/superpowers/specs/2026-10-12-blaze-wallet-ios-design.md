@@ -150,7 +150,7 @@ All Hiro calls retry on 429: wait for `Retry-After`, otherwise 1 s, 2 s, 4 s, th
 
 ### Vault (app target)
 
-- One Keychain generic-password item holds the wallet state as JSON. Access: `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly` with `.userPresence` (Face ID, or the device passcode). It's never in backups and never moves to another device; a new phone means importing the seed phrase again.
+- One Keychain generic-password item holds the wallet state as JSON. Access: `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly` with `.userPresence` (Face ID, or the device passcode). It's never in backups and never moves to another device; a new phone means importing the seed phrase again. Turning off the iPhone's passcode makes iOS delete the item: the app then opens on Welcome, which says so and suggests importing the seed phrase.
 - No passcode set on the iPhone → creating fails with "Set a passcode on this iPhone to use Blaze Wallet".
 - One `LAContext` per unlocked session. Lock invalidates it.
   - **Create**, the end of Welcome's create or import: the context is evaluated (Face ID), the item is added with it, and the Session starts with it.
@@ -170,7 +170,7 @@ All Hiro calls retry on 429: wait for `Retry-After`, otherwise 1 s, 2 s, 4 s, th
 - **Root**: no wallet → Welcome (Create a new wallet / Import a seed phrase). Wallet but locked → Lock screen, which asks for Face ID on appear and has an Unlock button. Unlocked with an active account → tabs **Wallet, Tokens, Status**, with Lock in the toolbar. Unlocked without an active account (every seed unlinked) → only the Wallet tab, showing "No active account" with Generate new / Import, as the extension does.
 - **Wallet**: active account (name, address, Copy, Receive). Seed phrases, each with its accounts (Use / Active), + Account, Show seed phrase, Unlink. Generate new / Import. A Vault section: "Keys: on this iPhone only, behind Face ID", "Auto-lock: after 15 idle minutes", Theme, Lock, Unlink wallet.
 - **Seed words** (import, and the confirmation step of a new seed phrase): fields use the ASCII-capable keyboard with autocapitalization and autocorrection off. Answers are compared after the shared seed-word normalization, so a pasted `İ` or full-width word still matches.
-- **Tokens**: total value card, token rows, unlisted section. Tapping a sendable row opens Send as a sheet (form → review → sent, with "View on explorer" → `https://explorer.hiro.so/txid/0x{txid}?chain=mainnet`). The send form shows the extension's note when the token also has a Blaze balance. Blaze-only, unlisted and unknown tokens aren't sendable, and say why.
+- **Tokens**: total value card, token rows, unlisted section. Tapping a sendable row opens Send as a sheet (form → review → sent, with "View on explorer" → `https://explorer.hiro.so/txid/0x{txid}?chain=mainnet`). The explorer opens inside the app: leaving the app locks the wallet, which would close a send that's still in progress. The send form shows the extension's note when the token also has a Blaze balance. Blaze-only, unlisted and unknown tokens aren't sendable, and say why.
 - **Status**: the four cards from the extension, with Check again.
 - **Brand**:
   - `scripts/brand.mjs` turns `packages/brand/tokens.json` colours into an asset catalog, with light and dark values per token. It resolves alias values such as `{accent-soft}`. It copies only DM Mono and Ysabeau Infant, not Matter, until Decision 2 is settled.
