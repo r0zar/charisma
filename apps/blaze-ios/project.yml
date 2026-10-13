@@ -1,0 +1,49 @@
+# Blaze Wallet for iOS. Generate the Xcode project with `xcodegen` in this folder; BlazeWallet.xcodeproj is git-ignored.
+name: BlazeWallet
+options:
+  bundleIdPrefix: rocks.charisma
+  deploymentTarget:
+    iOS: "18.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    # Without this SwiftUI text isn't extracted into Localizable.xcstrings (Xcode's default and XcodeGen's are off)
+    SWIFT_EMIT_LOC_STRINGS: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    CODE_SIGN_STYLE: Automatic
+    # Ross's Apple Developer team id, needed only to run on a real iPhone
+    DEVELOPMENT_TEAM: ""
+packages:
+  BlazeKit:
+    path: BlazeKit
+targets:
+  BlazeWallet:
+    type: application
+    platform: iOS
+    sources:
+      - path: BlazeWallet
+    dependencies:
+      - package: BlazeKit
+        product: StacksKit
+      - package: BlazeKit
+        product: WalletCore
+    info:
+      path: BlazeWallet/Info.plist
+      properties:
+        CFBundleDisplayName: Blaze Wallet
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        CFBundleDevelopmentRegion: en
+        NSFaceIDUsageDescription: Blaze Wallet uses Face ID to unlock your wallet.
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen:
+          UIColorName: bg
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIAppFonts: [DMMono-Regular.woff2, DMMono-Medium.woff2, YsabeauInfant.woff2, YsabeauInfant-Italic.woff2]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: rocks.charisma.blazewallet
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
