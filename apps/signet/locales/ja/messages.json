@@ -1,0 +1,898 @@
+{
+  "extensionDescription": {
+    "message": "Stacks でもっと多くのことができます。指値注文や日時指定の購入は一度署名するだけで自動で実行され、オンチェーンで決済されて、あなたにのみ支払われます。",
+    "description": "Chrome Web Store summary and chrome://extensions description. 132 characters or fewer."
+  },
+  "back": {
+    "message": "戻る",
+    "description": "Button: back to the previous step"
+  },
+  "cancel": {
+    "message": "キャンセル",
+    "description": "Button"
+  },
+  "continue": {
+    "message": "続行",
+    "description": "Button: next step"
+  },
+  "done": {
+    "message": "完了",
+    "description": "Button: close after a send"
+  },
+  "copy": {
+    "message": "コピー",
+    "description": "Button: copy the address"
+  },
+  "copied": {
+    "message": "コピーしました",
+    "description": "Button label for a moment after copying"
+  },
+  "import": {
+    "message": "インポート",
+    "description": "Button: import a seed phrase"
+  },
+  "unlink": {
+    "message": "リンク解除",
+    "description": "Button: remove a seed phrase or the wallet from this browser (funds stay on the blockchain)"
+  },
+  "use": {
+    "message": "使用",
+    "description": "Button: make this account the active one"
+  },
+  "active": {
+    "message": "使用中",
+    "description": "Badge on the active account"
+  },
+  "tryAgain": {
+    "message": "再試行",
+    "description": "Button after a crash"
+  },
+  "name": {
+    "message": "名前",
+    "description": "Field label: a name for a seed phrase"
+  },
+  "send": {
+    "message": "送金",
+    "description": "Button and review label: send tokens"
+  },
+  "to": {
+    "message": "宛先",
+    "description": "Review label: the recipient"
+  },
+  "amount": {
+    "message": "数量",
+    "description": "Field and review label: how much of a token"
+  },
+  "lock": {
+    "message": "ロック",
+    "description": "Button: lock the wallet"
+  },
+  "review": {
+    "message": "確認",
+    "description": "Button: check a send before sending"
+  },
+  "max": {
+    "message": "最大",
+    "description": "Button: fill in the whole balance"
+  },
+  "address": {
+    "message": "アドレス",
+    "description": "Label: a Stacks address"
+  },
+  "tabWallet": {
+    "message": "ウォレット",
+    "description": "Side panel tab"
+  },
+  "tabTokens": {
+    "message": "トークン",
+    "description": "Side panel tab"
+  },
+  "tabStatus": {
+    "message": "ステータス",
+    "description": "Side panel tab"
+  },
+  "lockTheWallet": {
+    "message": "ウォレットをロック",
+    "description": "Tooltip and screen reader label of the lock button"
+  },
+  "unlockLocked": {
+    "message": "ロックされています。続行するにはパスワードを入力してください。",
+    "description": "Lock screen, under the logo"
+  },
+  "unlockChoosePassword": {
+    "message": "このウォレットを保護するパスワードを設定してください。",
+    "description": "First run, under the logo"
+  },
+  "unlockTitle": {
+    "message": "ロック解除",
+    "description": "Card title on the lock screen"
+  },
+  "createWalletTitle": {
+    "message": "ウォレットを作成",
+    "description": "Card title on first run"
+  },
+  "passwordLabel": {
+    "message": "パスワード",
+    "description": "Field label"
+  },
+  "newPasswordLabel": {
+    "message": "新しいパスワード（$1 文字以上）",
+    "description": "Field label on first run. $1 is the minimum length (8)"
+  },
+  "passwordPlaceholder": {
+    "message": "パスワードを入力",
+    "description": "Field placeholder"
+  },
+  "newPasswordPlaceholder": {
+    "message": "安全なパスワード",
+    "description": "Field placeholder on first run"
+  },
+  "passwordAgainLabel": {
+    "message": "もう一度入力",
+    "description": "Field label: repeat the new password"
+  },
+  "passwordAgainPlaceholder": {
+    "message": "同じパスワード",
+    "description": "Field placeholder"
+  },
+  "unlockButton": {
+    "message": "ロック解除",
+    "description": "Button"
+  },
+  "createWalletButton": {
+    "message": "ウォレットを作成",
+    "description": "Button on first run"
+  },
+  "passwordShow": {
+    "message": "表示",
+    "description": "Button: show the password"
+  },
+  "passwordHide": {
+    "message": "非表示",
+    "description": "Button: hide the password"
+  },
+  "errorPasswordsDontMatch": {
+    "message": "パスワードが一致しません",
+    "description": "Error on first run"
+  },
+  "importTitle": {
+    "message": "シードフレーズをインポート",
+    "description": "Card title"
+  },
+  "seedNamePlaceholder": {
+    "message": "私のシードフレーズ",
+    "description": "Placeholder for a seed phrase's name"
+  },
+  "importWordsLabel": {
+    "message": "12 単語または 24 単語",
+    "description": "Field label for the seed words"
+  },
+  "importWordsPlaceholder": {
+    "message": "word word word …",
+    "description": "Placeholder for the seed words. Keep it in English: seed phrases are always English BIP39 words."
+  },
+  "errorSeedNotSaved": {
+    "message": "シードフレーズは保存されませんでした",
+    "description": "Error"
+  },
+  "newSeedTitle": {
+    "message": "新しいシードフレーズ",
+    "description": "Card title"
+  },
+  "generateWords": {
+    "message": "24 単語を生成",
+    "description": "Button"
+  },
+  "writeDownTitle": {
+    "message": "単語を書き留めてください",
+    "description": "Card title over the 24 new words"
+  },
+  "writeDownWarning": {
+    "message": "この 24 単語は、このウォレットを復元する唯一の手段です。これらの単語を見た人は誰でも、あなたの資金を自由に動かせます。また、Blaze Wallet はこれらの単語を復元できません。",
+    "description": "Warning over the new words. Keep it exactly as strong."
+  },
+  "wroteDown": {
+    "message": "24 単語すべてを順番どおりに書き留めました",
+    "description": "Checkbox"
+  },
+  "confirmTitle": {
+    "message": "単語の確認",
+    "description": "Card title"
+  },
+  "confirmNote": {
+    "message": "書き留めた内容を見て、次の単語を入力してください。",
+    "description": "Note over the confirmation fields"
+  },
+  "wordNumber": {
+    "message": "単語 #$1",
+    "description": "Field label. $1 is the word's position, 1 to 24"
+  },
+  "errorWordsDontMatch": {
+    "message": "単語 $1 が一致しません。書き留めた内容を確認してください",
+    "description": "Error. $1 lists positions, for example \"#3, #7\""
+  },
+  "confirmAndSave": {
+    "message": "確認して保存",
+    "description": "Button"
+  },
+  "newAccountTitle": {
+    "message": "新しいアカウント",
+    "description": "Card title"
+  },
+  "newAccountNote": {
+    "message": "このシードフレーズの次のアドレスが、使用中のアカウントになります。",
+    "description": "Note"
+  },
+  "createAccount": {
+    "message": "アカウントを作成",
+    "description": "Button"
+  },
+  "accountName": {
+    "message": "アカウント $1",
+    "description": "An account's name. $1 is its number, starting at 1"
+  },
+  "noActiveAccount": {
+    "message": "使用中のアカウントなし",
+    "description": "Card title when every seed phrase is unlinked"
+  },
+  "addAccountHint": {
+    "message": "下のシードフレーズからアカウントを追加してください。",
+    "description": "Hint under it"
+  },
+  "seedPhrasesTitle": {
+    "message": "シードフレーズ",
+    "description": "Card title"
+  },
+  "noSeedPhrases": {
+    "message": "まだありません。新しく生成するか、お持ちのシードフレーズをインポートしてください。",
+    "description": "Empty state"
+  },
+  "addAccount": {
+    "message": "+ アカウント",
+    "description": "Button: derive the next account of this seed phrase"
+  },
+  "generateNew": {
+    "message": "新規作成",
+    "description": "Button: a new seed phrase"
+  },
+  "confirmUnlinkSeed": {
+    "message": "このブラウザからこのシードフレーズのリンクを解除しますか？\n\nこのシードフレーズのアカウントと資金は、ブロックチェーン上に安全に残ります。ここで再び使うには、シードフレーズの単語が必要です。",
+    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
+  },
+  "vaultTitle": {
+    "message": "保管庫",
+    "description": "Card title: the wallet's settings"
+  },
+  "vaultKeys": {
+    "message": "秘密鍵",
+    "description": "Label"
+  },
+  "vaultKeysValue": {
+    "message": "暗号化済み、このデバイスのみ",
+    "description": "Value of Keys"
+  },
+  "vaultAutoLock": {
+    "message": "自動ロック",
+    "description": "Label"
+  },
+  "vaultAutoLockValue": {
+    "message": "15 分間操作がないとき",
+    "description": "Value of Auto-lock"
+  },
+  "exportButton": {
+    "message": "エクスポート",
+    "description": "Button: download the encrypted wallet backup"
+  },
+  "exportDone": {
+    "message": "ウォレットをエクスポートしました",
+    "description": "Notice after the download"
+  },
+  "exportFailed": {
+    "message": "ウォレットをエクスポートできませんでした",
+    "description": "Notice when the download fails"
+  },
+  "confirmUnlinkWallet": {
+    "message": "このブラウザからこのウォレットのリンクを解除しますか？\n\nすべてのシードフレーズとアカウントがこのデバイスから削除されます。資金はブロックチェーン上に安全に残りますが、再びアクセスするにはシードフレーズが必要です。",
+    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
+  },
+  "themeLabel": {
+    "message": "テーマ",
+    "description": "Label"
+  },
+  "themeSystem": {
+    "message": "システム",
+    "description": "Theme choice: follow the device"
+  },
+  "themeSystemTitle": {
+    "message": "このデバイスの設定に従う",
+    "description": "Tooltip"
+  },
+  "themeLight": {
+    "message": "ライト",
+    "description": "Theme choice"
+  },
+  "themeLightTitle": {
+    "message": "ライト · Bitcoin",
+    "description": "Tooltip: the light look's name. Keep Bitcoin"
+  },
+  "themeDark": {
+    "message": "ダーク",
+    "description": "Theme choice"
+  },
+  "themeDarkTitle": {
+    "message": "ダーク · RPG",
+    "description": "Tooltip: the dark look's name. Keep RPG"
+  },
+  "languageLabel": {
+    "message": "言語",
+    "description": "Label of the language picker"
+  },
+  "languageAutomatic": {
+    "message": "自動",
+    "description": "Language choice: follow Chrome's language"
+  },
+  "tokensTitle": {
+    "message": "トークン",
+    "description": "Card title"
+  },
+  "refresh": {
+    "message": "更新",
+    "description": "Button"
+  },
+  "refreshTitle": {
+    "message": "残高を更新",
+    "description": "Tooltip"
+  },
+  "totalValue": {
+    "message": "総額",
+    "description": "Label over the total in dollars"
+  },
+  "tokenCount_other": {
+    "message": "トークン $1 種類",
+    "description": "Under the total. $1 is the number of tokens"
+  },
+  "withoutPrice_other": {
+    "message": "価格情報なし $1 種類",
+    "description": "Under the total. $1 is the number of tokens with no dollar price"
+  },
+  "loadingBalances": {
+    "message": "残高を読み込み中…",
+    "description": "While balances load"
+  },
+  "pricesUnavailable": {
+    "message": "価格情報を利用できません：$1",
+    "description": "Warning. $1 is the reason, already worded"
+  },
+  "unlisted_other": {
+    "message": "未掲載 $1 種類 · Charisma のトークンリストに掲載されておらず、詐欺の可能性があります",
+    "description": "Toggle for hidden tokens. $1 is how many"
+  },
+  "onBlaze": {
+    "message": "Blaze 上の $1",
+    "description": "A token's Blaze balance. $1 is the amount"
+  },
+  "units": {
+    "message": "$1 単位",
+    "description": "An unknown token's balance in its smallest units. $1 is the number"
+  },
+  "rowUnlisted": {
+    "message": "Charisma のトークンリストに掲載されていないため、ここからは送金できません",
+    "description": "Tooltip on an unlisted token"
+  },
+  "rowUnknown": {
+    "message": "不明なトークンです。最小単位で表示され、ここからは送金できません",
+    "description": "Tooltip on an unknown token"
+  },
+  "rowSend": {
+    "message": "$1 を送金",
+    "description": "Tooltip on a token. $1 is its symbol"
+  },
+  "rowAllOnBlaze": {
+    "message": "$1 はすべて Blaze 上にあります。Charisma Swap で移動してください",
+    "description": "Tooltip. $1 is the token's symbol"
+  },
+  "sendTitle": {
+    "message": "$1 を送金",
+    "description": "Card title. $1 is the token's symbol"
+  },
+  "recipientLabel": {
+    "message": "受取人",
+    "description": "Field label"
+  },
+  "blazeNote": {
+    "message": "送金にはスタンダードの $1 $2 が使われます。Blaze 上の $3 はそのサブネットに残ります。Charisma Swap で移動してください。",
+    "description": "Note on the send form. $1 the Standard amount, $2 the symbol, $3 the Blaze amount"
+  },
+  "sentTitle": {
+    "message": "$1 を送金しました",
+    "description": "Card title after sending. $1 is the token's symbol"
+  },
+  "sentNote": {
+    "message": "Stacks での確定には数分かかります。",
+    "description": "After sending"
+  },
+  "viewOnExplorer": {
+    "message": "エクスプローラーで表示",
+    "description": "Link to the block explorer"
+  },
+  "networkFee": {
+    "message": "ネットワーク手数料",
+    "description": "Review label"
+  },
+  "feeAutomatic": {
+    "message": "自動設定",
+    "description": "Value of Network fee"
+  },
+  "safety": {
+    "message": "安全",
+    "description": "Review label"
+  },
+  "safetyExact": {
+    "message": "この数量だけ、それ以上は送られません",
+    "description": "Value of Safety: the transaction can't move more than this"
+  },
+  "sending": {
+    "message": "送金中…",
+    "description": "Button while sending"
+  },
+  "errorRecipient": {
+    "message": "Stacks アドレス（SP…）を入力してください",
+    "description": "Error on the send form"
+  },
+  "errorAmountLike": {
+    "message": "数量は $1 のように入力してください",
+    "description": "Error. $1 is an example such as 1.5, with this language's decimal mark"
+  },
+  "errorMaxDecimals_other": {
+    "message": "小数点以下は $1 桁までです",
+    "description": "Error. $1 is the token's decimals"
+  },
+  "errorAmountPositive": {
+    "message": "数量は 0 より大きくしてください",
+    "description": "Error"
+  },
+  "errorYouHave": {
+    "message": "残高は $1 $2 です",
+    "description": "Error when the amount is more than the balance. $1 the balance, $2 the symbol"
+  },
+  "checkedAt": {
+    "message": "$1 に確認済み",
+    "description": "When the checks ran. $1 is a time"
+  },
+  "checking": {
+    "message": "確認中…",
+    "description": "While checks run"
+  },
+  "checkAgain": {
+    "message": "再確認",
+    "description": "Button"
+  },
+  "checkingButton": {
+    "message": "確認中",
+    "description": "Button while checks run"
+  },
+  "stateError": {
+    "message": "エラー",
+    "description": "Status pill"
+  },
+  "stateChecking": {
+    "message": "確認中",
+    "description": "Status pill"
+  },
+  "stateLive": {
+    "message": "正常",
+    "description": "Status pill: everything answered"
+  },
+  "somethingWrong": {
+    "message": "問題が発生しています",
+    "description": "Card title over an error"
+  },
+  "stacksNetwork": {
+    "message": "Stacks ネットワーク",
+    "description": "Card title"
+  },
+  "block": {
+    "message": "ブロック",
+    "description": "Label: the latest block number"
+  },
+  "response": {
+    "message": "応答時間",
+    "description": "Label: how fast a server answered"
+  },
+  "tokenListTitle": {
+    "message": "Charisma トークンリスト",
+    "description": "Card title"
+  },
+  "statusTokens": {
+    "message": "トークン数",
+    "description": "Label: how many tokens the list has"
+  },
+  "blazeSubnets": {
+    "message": "Blaze サブネット",
+    "description": "Card title"
+  },
+  "holdingFunds": {
+    "message": "資金を保有中",
+    "description": "Label: how many subnets hold your tokens"
+  },
+  "noFundsOnSubnets_other": {
+    "message": "$1 個のサブネットのいずれにも資金がありません。",
+    "description": "$1 is the number of subnets"
+  },
+  "thisWallet": {
+    "message": "このウォレット",
+    "description": "Card title"
+  },
+  "autoLockIn_other": {
+    "message": "$1 分後",
+    "description": "When the wallet locks itself. $1 is minutes"
+  },
+  "tabCrashed": {
+    "message": "このタブでエラーが発生しました",
+    "description": "Card title over a crash report"
+  },
+  "cardSendStx": {
+    "message": "STX を送金",
+    "description": "Approval card title"
+  },
+  "cardRunTransaction": {
+    "message": "トランザクションを実行",
+    "description": "Approval card title"
+  },
+  "cardSignOrder": {
+    "message": "注文に署名",
+    "description": "Approval card title"
+  },
+  "cardSignOrders_other": {
+    "message": "$1 件の注文に署名",
+    "description": "Approval card title. $1 is the number of orders"
+  },
+  "cardSignMessage": {
+    "message": "メッセージに署名",
+    "description": "Approval card title"
+  },
+  "cardConnect": {
+    "message": "接続",
+    "description": "Approval card title"
+  },
+  "approveSign": {
+    "message": "署名",
+    "description": "Approve button"
+  },
+  "approveSignAll": {
+    "message": "すべてに署名",
+    "description": "Approve button for many orders"
+  },
+  "approveConnect": {
+    "message": "接続",
+    "description": "Approve button"
+  },
+  "deny": {
+    "message": "拒否",
+    "description": "Button: refuse the request"
+  },
+  "denyAndClose": {
+    "message": "拒否して閉じる",
+    "description": "Screen reader label of the close button"
+  },
+  "holdUnlockFirst": {
+    "message": "先にロックを解除",
+    "description": "Approve button while the wallet is locked"
+  },
+  "holdChecking": {
+    "message": "確認中…",
+    "description": "Approve button while the card's visibility is checked"
+  },
+  "lockedNote": {
+    "message": "Blaze Wallet はロックされています。開いてロックを解除してください ›",
+    "description": "Link on the card"
+  },
+  "coveredNote": {
+    "message": "何かがこのカードを覆っています。Blaze Wallet のウィンドウで続行してください ›",
+    "description": "Link on the card"
+  },
+  "errorNoAnswer": {
+    "message": "Blaze Wallet から応答がありませんでした",
+    "description": "Error"
+  },
+  "riskLow": {
+    "message": "低リスク",
+    "description": "Pill on the card"
+  },
+  "riskReview": {
+    "message": "慎重に確認",
+    "description": "Pill on the card"
+  },
+  "askConnect": {
+    "message": "$1 が Blaze Wallet への接続を求めています",
+    "description": "$1 is the website"
+  },
+  "askSignMessage": {
+    "message": "$1 がこのメッセージへの署名を求めています",
+    "description": "$1 is the website"
+  },
+  "askSignOrder": {
+    "message": "$1 がサブネット注文への署名を求めています",
+    "description": "$1 is the website"
+  },
+  "askSignData": {
+    "message": "$1 が $2 向けのデータへの署名を求めています",
+    "description": "$1 is the website, $2 the app the data is for"
+  },
+  "askSignOrders_other": {
+    "message": "$1 が $2 件のサブネット注文への署名を求めています",
+    "description": "$1 is the website, $2 the number of orders"
+  },
+  "askSendStx": {
+    "message": "$1 が STX の送金を求めています",
+    "description": "$1 is the website"
+  },
+  "askRunTransaction": {
+    "message": "$1 がトランザクションの実行を求めています",
+    "description": "$1 is the website"
+  },
+  "shareAddressAs": {
+    "message": "アドレス $1 を共有します",
+    "description": "$1 is the shortened address"
+  },
+  "shareAddress": {
+    "message": "アドレスを共有します",
+    "description": "When there's no active account"
+  },
+  "cantMoveFunds": {
+    "message": "接続しても資金は動かせません。署名のたびに必ず確認を求めます",
+    "description": "Reassurance on the connect card"
+  },
+  "signsAs": {
+    "message": "$1 として署名します",
+    "description": "$1 is the shortened address"
+  },
+  "signsWithActive": {
+    "message": "使用中のアカウントで署名します",
+    "description": "When the address isn't known yet"
+  },
+  "messageMovesNothing": {
+    "message": "メッセージに署名しても資金は動きません",
+    "description": "Reassurance"
+  },
+  "payoutOnlyYou": {
+    "message": "あなたにのみ",
+    "description": "Who a signed order can pay out to"
+  },
+  "payoutSubmitter": {
+    "message": "提出者が選ぶ宛先ならどこへでも",
+    "description": "Who a signed order can pay out to (a warning)"
+  },
+  "orderAction": {
+    "message": "操作",
+    "description": "Label"
+  },
+  "orderToken": {
+    "message": "トークン",
+    "description": "Label"
+  },
+  "amountSmallestUnits": {
+    "message": "数量（最小単位）",
+    "description": "Label for an unknown token's amount"
+  },
+  "sendsTo": {
+    "message": "送金先",
+    "description": "Label: the order pays straight to this address"
+  },
+  "payout": {
+    "message": "支払先",
+    "description": "Label: where the order's funds can go"
+  },
+  "handledBy": {
+    "message": "$1 が処理",
+    "description": "$1 is a contract's name"
+  },
+  "orderId": {
+    "message": "注文 ID",
+    "description": "Label"
+  },
+  "orderData": {
+    "message": "データ",
+    "description": "Label for unrecognized signed data"
+  },
+  "signsAsSentence": {
+    "message": "$1 として署名します。",
+    "description": "A sentence before the next one. $1 is the shortened address"
+  },
+  "orderRunsOnce": {
+    "message": "この署名を持つ人は誰でも、この注文を一度実行できます。",
+    "description": "Note"
+  },
+  "signOnlyRecognized": {
+    "message": "内容に心当たりのあるデータにのみ署名してください。",
+    "description": "Note"
+  },
+  "ordersCount": {
+    "message": "注文数",
+    "description": "Label: how many orders"
+  },
+  "canSpendTotal": {
+    "message": "支出できる合計",
+    "description": "Label"
+  },
+  "smallestUnitsOf": {
+    "message": "$1（$2 の最小単位）",
+    "description": "$1 is a number, $2 a token's contract name"
+  },
+  "ordersRunOnce": {
+    "message": "これらの署名を持つ人は誰でも、各注文を一度ずつ実行できます。",
+    "description": "Note"
+  },
+  "memo": {
+    "message": "メモ",
+    "description": "Label"
+  },
+  "contract": {
+    "message": "コントラクト",
+    "description": "Label"
+  },
+  "function": {
+    "message": "関数",
+    "description": "Label: the contract function called"
+  },
+  "argument": {
+    "message": "引数 $1",
+    "description": "Label: a function argument. $1 is its position"
+  },
+  "allowMode": {
+    "message": "⚠ あなたのトークンはどれでも動く可能性があります（許可モード）",
+    "description": "Warning: the transaction has no limit on what leaves the wallet"
+  },
+  "onlyTheseTransfers": {
+    "message": "次の送金のみ可能です：",
+    "description": "Heading over the transaction's allowed transfers"
+  },
+  "noTokensLeave": {
+    "message": "トークンがウォレットから出ることはありません",
+    "description": "When a transaction allows no transfers"
+  },
+  "sentFrom": {
+    "message": "$1 から送信されます。",
+    "description": "A sentence before the next one. $1 is the shortened address"
+  },
+  "feeSetAutomatically": {
+    "message": "ネットワーク手数料は自動で設定されます。",
+    "description": "Note"
+  },
+  "tokenSmallestUnits": {
+    "message": "$1 $2（最小単位）",
+    "description": "$1 is a number, $2 a token's asset name"
+  },
+  "pcYouSendExactly": {
+    "message": "あなたがちょうど $1 を送金します",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendExactly": {
+    "message": "$1 がちょうど $2 を送金します",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendMoreThan": {
+    "message": "あなたが $1 より多くを送金します",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendMoreThan": {
+    "message": "$1 が $2 より多くを送金します",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendAtLeast": {
+    "message": "あなたが $1 以上を送金します",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendAtLeast": {
+    "message": "$1 が $2 以上を送金します",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendLessThan": {
+    "message": "あなたが $1 未満を送金します",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendLessThan": {
+    "message": "$1 が $2 未満を送金します",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendAtMost": {
+    "message": "あなたが $1 以下を送金します",
+    "description": "A transfer the transaction allows. $1 is an amount with its token"
+  },
+  "pcTheySendAtMost": {
+    "message": "$1 が $2 以下を送金します",
+    "description": "A transfer the transaction allows. $1 is who sends (an address or contract), $2 an amount with its token"
+  },
+  "pcYouSendNft": {
+    "message": "あなたが $1 $2 を送ります",
+    "description": "An NFT transfer the transaction allows. $1 the collection, $2 the item"
+  },
+  "pcTheySendNft": {
+    "message": "$1 が $2 $3 を送ります",
+    "description": "An NFT transfer. $1 who sends, $2 the collection, $3 the item"
+  },
+  "pcYouKeepNft": {
+    "message": "あなたは $1 $2 を保持します",
+    "description": "An NFT the transaction can't move. $1 the collection, $2 the item"
+  },
+  "pcTheyKeepNft": {
+    "message": "$1 は $2 $3 を保持します",
+    "description": "An NFT the transaction can't move. $1 who, $2 the collection, $3 the item"
+  },
+  "pcStacking": {
+    "message": "$1：スタッキング条件",
+    "description": "$1 is who, or the word You"
+  },
+  "pcYou": {
+    "message": "あなた",
+    "description": "Who sends, in pcStacking"
+  },
+  "errorUnexpected": {
+    "message": "問題が発生しました：$1",
+    "description": "Lead-in for an error from a library or a server. $1 is its own text (often English)"
+  },
+  "errorInvalidSeedPhrase": {
+    "message": "有効なシードフレーズではありません。各単語のつづりと、抜けている単語がないかを確認してください",
+    "description": "Error"
+  },
+  "errorSeedNotFound": {
+    "message": "シードフレーズが見つかりません",
+    "description": "Error"
+  },
+  "errorNoActiveAccount": {
+    "message": "Blaze Wallet に使用中のアカウントがありません",
+    "description": "Error"
+  },
+  "errorStacksUnavailable": {
+    "message": "Stacks ネットワークを利用できません（Hiro $1）",
+    "description": "Error. $1 is an HTTP status"
+  },
+  "errorTokenCacheEmpty": {
+    "message": "Charisma のトークンキャッシュからトークンが返されませんでした",
+    "description": "Error"
+  },
+  "errorLocked": {
+    "message": "ウォレットはロックされています",
+    "description": "Error"
+  },
+  "errorLockedIdle": {
+    "message": "15 分間操作がなかったため、ウォレットがロックされました",
+    "description": "Error"
+  },
+  "errorPasswordShort": {
+    "message": "パスワードは $1 文字以上にしてください",
+    "description": "Error. $1 is the minimum length (8)"
+  },
+  "errorWrongPassword": {
+    "message": "パスワードが正しくありません",
+    "description": "Error"
+  },
+  "errorNoWallet": {
+    "message": "ウォレットがまだありません",
+    "description": "Error"
+  },
+  "errorSeedNameTaken": {
+    "message": "「$1」という名前のシードフレーズはすでに存在します",
+    "description": "Error. $1 is the name"
+  },
+  "errorAccountNotFound": {
+    "message": "アカウントが見つかりません",
+    "description": "Error"
+  },
+  "errorBalances": {
+    "message": "残高を読み込めませんでした（$1）",
+    "description": "Error. $1 is an HTTP status"
+  },
+  "errorTokenListUnavailable": {
+    "message": "Charisma のトークンリストを利用できないため、トークンをブロックリストと照合できません",
+    "description": "Error"
+  },
+  "errorRejected": {
+    "message": "ネットワークが送金を拒否しました：$1",
+    "description": "Error. $1 is the network's own reason (English)"
+  },
+  "errorRequestGone": {
+    "message": "このリクエストはもう待機中ではありません",
+    "description": "Error on an approval card the site already closed"
+  }
+}

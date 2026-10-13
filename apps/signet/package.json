@@ -1,8 +1,8 @@
 {
   "name": "signet-signer",
   "displayName": "Blaze Wallet",
-  "version": "0.4.1",
-  "description": "Do more on Stacks. Sign once for limit orders and scheduled buys that run on their own, settled on-chain and paid only to you.",
+  "version": "0.5.0",
+  "description": "__MSG_extensionDescription__",
   "author": "Charisma Labs",
   "scripts": {
     "build": "plasmo build",
@@ -14,7 +14,8 @@
     "package": "plasmo package",
     "package:firefox": "plasmo package --target=firefox-mv2",
     "start:firefox": "web-ext run --source-dir ./build/firefox-mv2-dev",
-    "package:store": "plasmo build && node scripts/store-zip.mjs"
+    "check:locales": "node scripts/check-locales.mjs",
+    "package:store": "node scripts/check-locales.mjs && plasmo build && node scripts/store-zip.mjs"
   },
   "dependencies": {
     "@plasmohq/messaging": "^0.7.1",
@@ -43,7 +44,8 @@
   },
   "manifest": {
     "name": "Blaze Wallet",
-    "description": "Do more on Stacks. Sign once for limit orders and scheduled buys that run on their own, settled on-chain and paid only to you.",
+    "description": "__MSG_extensionDescription__",
+    "default_locale": "en",
     "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnSZTHNAdsOJq1A3Ii/DOZ+Y7xb9KI2Qz1JxNRQty6cLIXA4sm+OwD/tiPgvHJI5zdGXcR+hz9ChnWJLfCp3ju+lRFEJ0Y1cqbVRVN/m7rhp9x/IAFf37uIF2nnb5W3aBeYJzW0r3Kf8SUWvnUvfqYc5mbO1UXi6znHxFmiwekDoXlozDKzT/MSKxTHd1D9yBV0Ht5BCUSNmBPvrZRlbWkotC8rnlbpcWCpYUc7kTmllI9oNnNdgdLbZW3tXnB9KHZubyjK+FM+Ub6IWk0ewlZPHif3PwjSI9KZJWOgtRNSQJ6+JuMJOEGuqGVBQ1xd4Ljv34fC/EYcMeKVghD/5pZwIDAQAB",
     "permissions": [
       "storage",
