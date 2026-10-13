@@ -13,9 +13,6 @@ final class TokensModel {
 
     private let charisma = Charisma()
     private var list: [TokenInfo] = []
-    /// Tokens not on the list, looked up once each; a failed lookup leaves the token unknown (Charisma.lookUp logs it)
-    private var lookups: [String: TokenInfo] = [:]
-    private var lookedUp: Set<String> = []
 
     init(address: String) {
         self.address = address
@@ -69,13 +66,10 @@ final class TokensModel {
         }
     }
 
-    /// Throws only CancellationError, before anything is kept
+    /// Throws only CancellationError, before anything is kept. Tokens not on the list are looked up once per session
+    /// (Charisma keeps them); a failed lookup leaves the token unknown.
     private func show(_ sheet: BalanceSheet) async throws {
-        let missing = TokenRows.unlisted(sheet: sheet, list: list).filter { !lookedUp.contains($0) }
-        if !missing.isEmpty {
-            lookups.merge(try await charisma.lookUp(missing)) { kept, _ in kept }
-            lookedUp.formUnion(missing)
-        }
+        let lookups = try await charisma.lookUp(TokenRows.unlisted(sheet: sheet, list: list))
         rows = TokenRows.build(sheet: sheet, list: list, lookups: lookups)
         // Rows are back (the stream recovers on its own): a failed load is no longer the news
         error = nil
