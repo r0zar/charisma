@@ -270,9 +270,10 @@ async function handleApproval(message: { action: string; requestId: string; appr
       return { origin: request.origin, method: request.method, params: request.params, unlocked, address: account?.stxAddress ?? null }
     }
     case "decide":
-      pending.delete(message.requestId)
-      // Approving is activity: it keeps the wallet from locking for another 15 minutes
+      // Approving is activity: it keeps the wallet from locking for another 15 minutes. It throws when the wallet has
+      // already locked, so it comes first: the request keeps waiting, to approve after unlocking or to deny.
       if (message.approved) await wallet.keepAwake()
+      pending.delete(message.requestId)
       request.decide(!!message.approved)
       chrome.tabs.sendMessage(request.tabId, { type: "signet-hide-approval", requestId: message.requestId }, { frameId: request.frameId })
       return true

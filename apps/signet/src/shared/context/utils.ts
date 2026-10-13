@@ -1,5 +1,5 @@
 import { sendToBackground } from '@plasmohq/messaging'
-import { fromWire } from '~shared/errors'
+import { UnexpectedError, asError, fromWire } from '~shared/errors'
 import { t } from '~shared/i18n'
 import type { HandlerResponse, MessageAction } from './types'
 
@@ -9,7 +9,9 @@ export async function sendMessage<T>(action: MessageAction, data?: any): Promise
     const response = await sendToBackground<{ action: MessageAction, data?: any }, HandlerResponse<T>>({
       name: 'handler',
       body: { action, data }
-    });
+    })
+      // Chrome couldn't reach the background (it restarted, or its port closed): not one of the wallet's worded errors
+      .catch(error => { throw new UnexpectedError(asError(error).message) });
 
     // The background's own errors arrive as keys and are worded here, in this page's language
     if (!response.success) throw fromWire(response.error);

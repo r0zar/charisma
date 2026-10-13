@@ -18,7 +18,8 @@ const LIST_DECIMALS = 6;
 
 /** What someone typed, as raw smallest units, exactly (no floating point): only this language's decimal mark */
 function parseUnits(text: string, decimals: number) {
-  const parts = text.trim().split(decimalMark);
+  // NFKC: a Japanese or Chinese input method in full-width mode types １．５ for 1.5
+  const parts = text.normalize('NFKC').trim().split(decimalMark);
   if (parts.length > 2 || !parts.every(part => /^\d*$/.test(part)) || !parts.some(Boolean)) throw new Error(t('errorAmountLike', `1${decimalMark}5`));
   const [whole, frac = ''] = parts;
   if (frac.length > decimals) throw new Error(plural('errorMaxDecimals', decimals, count(decimals)));

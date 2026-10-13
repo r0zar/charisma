@@ -33,11 +33,15 @@ export function pickLanguage(choice: LanguageChoice) {
 }
 
 const choice = readLanguage()
-export const folder: Folder = choice === "auto" ? match(chrome.i18n.getUILanguage()) : choice
-/** For every Intl formatter on the page */
-export const locale = localeOf(folder)
-// Chinese and Japanese draw some shared characters differently: the page says which language it's in
-document.documentElement.lang = locale
+const chromeLanguage = chrome.i18n.getUILanguage()
+export const folder: Folder = choice === "auto" ? match(chromeLanguage) : choice
+/**
+ * For every Intl formatter on the page: Chrome's own language when it's a variant of the page's (Latin American
+ * Spanish writes 1,234.5 where Spain's writes 1.234,5), otherwise the page's language
+ */
+export const locale = chromeLanguage.split("-")[0].toLowerCase() === localeOf(folder).split("-")[0] ? chromeLanguage : localeOf(folder)
+// Chinese and Japanese draw some shared characters differently: the page says which language its text is in
+document.documentElement.lang = localeOf(folder)
 
 /** A message in the page's language, with $1…$9 filled in */
 export const t = (key: string, ...fills: Fill[]) => format(folder, key, fills)
