@@ -2,6 +2,7 @@
  * A password box with a Show / Hide switch.
  */
 import { useState } from 'react';
+import { t } from '~shared/i18n';
 
 export function PasswordField({ id, value, onChange, onEnter, placeholder, label }: {
   id: string;
@@ -27,7 +28,7 @@ export function PasswordField({ id, value, onChange, onEnter, placeholder, label
           onKeyDown={e => { if (e.key === 'Enter' && value) onEnter(); }}
         />
         <button type="button" className="cx-chip" onClick={() => setShown(s => !s)} aria-pressed={shown}>
-          {shown ? 'Hide' : 'Show'}
+          {shown ? t('passwordHide') : t('passwordShow')}
         </button>
       </div>
     </label>

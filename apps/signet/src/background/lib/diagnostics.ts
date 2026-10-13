@@ -6,6 +6,7 @@ import { listTokens } from "@repo/tokens"
 import * as wallet from "./wallet"
 import { hiroFetch } from "./hiro"
 import { subnetBalances, type SubnetBalance } from "./subnets"
+import { WalletError } from "./wallet-error"
 
 const HIRO = "https://api.hiro.so"
 
@@ -27,18 +28,18 @@ async function timed<T>(work: () => Promise<T>): Promise<{ value: T; latencyMs: 
 
 export async function getDiagnostics(): Promise<Diagnostics> {
   const account = await wallet.getCurrentAccount()
-  if (!account) throw new Error("Blaze Wallet has no active account")
+  if (!account) throw new WalletError("errorNoActiveAccount")
 
   const [network, cache] = await Promise.all([
     timed(async () => {
       const res = await hiroFetch(`${HIRO}/v2/info`)
-      if (!res.ok) throw new Error(`Stacks network unavailable (Hiro ${res.status})`)
+      if (!res.ok) throw new WalletError("errorStacksUnavailable", [res.status])
       return (await res.json()) as { stacks_tip_height: number }
     }),
     timed(listTokens)
   ])
   // listTokens returns [] when the cache fails; there is always at least STX-paired tokens when it works
-  if (cache.value.length === 0) throw new Error("Charisma's token cache returned no tokens")
+  if (cache.value.length === 0) throw new WalletError("errorTokenCacheEmpty")
 
   const subnets = await subnetBalances(account.stxAddress, cache.value)
 

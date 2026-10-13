@@ -6,6 +6,7 @@
  * 15 idle minutes. A wrong password fails AES-GCM authentication and is rejected.
  */
 import type { SeedPhrase, Account, WalletState } from './types';
+import { WalletError } from '../wallet-error';
 
 const VAULT_KEY = 'vault';
 const UNLOCKED_KEY = 'unlocked';
@@ -69,10 +70,10 @@ async function startSession(key: CryptoKey): Promise<void> {
  */
 async function sessionKey(active = false): Promise<CryptoKey> {
   const { [UNLOCKED_KEY]: unlocked } = (await chrome.storage.session.get(UNLOCKED_KEY)) as { [UNLOCKED_KEY]?: Unlocked };
-  if (!unlocked) throw new Error('Wallet is locked');
+  if (!unlocked) throw new WalletError('errorLocked');
   if (Date.now() > unlocked.expiresAt) {
     await lock();
-    throw new Error('Wallet locked after 15 minutes of inactivity');
+    throw new WalletError('errorLockedIdle');
   }
   if (active) await chrome.storage.session.set({ [UNLOCKED_KEY]: { ...unlocked, expiresAt: Date.now() + LOCK_AFTER_MS } });
   return crypto.subtle.importKey('raw', fromBase64(unlocked.key), 'AES-GCM', true, ['encrypt', 'decrypt']);
@@ -101,7 +102,7 @@ export async function unlockOrCreate(password: string): Promise<void> {
   const vault = await readVault();
 
   if (!vault) {
-    if (password.length < MIN_PASSWORD_LENGTH) throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters`);
+    if (password.length < MIN_PASSWORD_LENGTH) throw new WalletError('errorPasswordShort', [MIN_PASSWORD_LENGTH]);
     const salt = crypto.getRandomValues(new Uint8Array(16));
     const key = await deriveKey(password, salt);
     await encrypt(key, toBase64(salt), { seedPhrases: [], accounts: [], activeAccountId: null, isInitialized: true });
@@ -113,7 +114,7 @@ export async function unlockOrCreate(password: string): Promise<void> {
   try {
     await decrypt(key, vault);
   } catch {
-    throw new Error('Wrong password');
+    throw new WalletError('errorWrongPassword');
   }
   await startSession(key);
 }
@@ -136,20 +137,20 @@ export async function lock(): Promise<void> {
 
 export async function getWalletState(): Promise<WalletState> {
   const vault = await readVault();
-  if (!vault) throw new Error('No wallet yet');
+  if (!vault) throw new WalletError('errorNoWallet');
   return decrypt(await sessionKey(), vault);
 }
 
 async function saveWalletState(state: WalletState): Promise<void> {
   const vault = await readVault();
-  if (!vault) throw new Error('No wallet yet');
+  if (!vault) throw new WalletError('errorNoWallet');
   await encrypt(await sessionKey(true), vault.salt, state);
 }
 
 /** The encrypted vault as stored, for backup: it opens only with the password. */
 export async function exportVault(): Promise<Vault> {
   const vault = await readVault();
-  if (!vault) throw new Error('No wallet yet');
+  if (!vault) throw new WalletError('errorNoWallet');
   await sessionKey();
   return vault;
 }
@@ -160,7 +161,7 @@ export async function exportVault(): Promise<Vault> {
 export async function addSeedPhrase(name: string, phrase: string): Promise<SeedPhrase> {
   const state = await getWalletState();
   if (state.seedPhrases.some(sp => sp.name === name)) {
-    throw new Error(`A seed phrase with name "${name}" already exists`);
+    throw new WalletError('errorSeedNameTaken', [name]);
   }
 
   const seedPhrase: SeedPhrase = { id: `seed_${crypto.randomUUID()}`, name, phrase, createdAt: Date.now() };
@@ -227,7 +228,7 @@ export async function getAccountsForSeedPhrase(seedPhraseId: string): Promise<Ac
 
 export async function setActiveAccount(id: string): Promise<boolean> {
   const state = await getWalletState();
-  if (!state.accounts.some(acc => acc.id === id)) throw new Error('Account not found');
+  if (!state.accounts.some(acc => acc.id === id)) throw new WalletError('errorAccountNotFound');
 
   state.accounts.forEach(acc => { acc.isActive = acc.id === id; });
   state.activeAccountId = id;

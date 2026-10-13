@@ -18,6 +18,9 @@ import "@repo/brand/tokens.css"
 import "@repo/brand/fonts.css"
 import "@repo/brand/components.css"
 import { applySavedTheme } from "~shared/styles/theme"
+import { fromWire } from "~shared/errors"
+import { count, plural, t } from "~shared/i18n"
+import { ErrorText } from "~shared/ui"
 import "~shared/styles/style.css"
 
 applySavedTheme()
@@ -37,45 +40,46 @@ interface Details extends ApprovalRequest {
 function cardFor(details: Details) {
   if (details.method === "stx_transferStx" || details.method === "stx_callContract") {
     return {
-      title: details.method === "stx_transferStx" ? "Send STX" : "Run a transaction",
-      approve: "Send",
+      title: details.method === "stx_transferStx" ? t("cardSendStx") : t("cardRunTransaction"),
+      approve: t("send"),
       content: <TransactionContent origin={details.origin} address={details.address} method={details.method} params={details.params as Record<string, any>} />
     }
   }
   if (details.method === "stx_signStructuredMessage") {
     const { message, domain } = details.params as { message: string; domain: string }
     return {
-      title: "Sign an order",
-      approve: "Sign",
+      title: t("cardSignOrder"),
+      approve: t("approveSign"),
       content: <SignOrderContent origin={details.origin} address={details.address} message={message} domain={domain} />
     }
   }
   if (details.method === "blaze_signStructuredMessages") {
     const { messages } = details.params as { messages: string[] }
     return {
-      title: `Sign ${messages.length.toLocaleString("en-US")} orders`,
-      approve: "Sign all",
+      title: plural("cardSignOrders", messages.length, count(messages.length)),
+      approve: t("approveSignAll"),
       content: <SignOrdersContent origin={details.origin} address={details.address} messages={messages} />
     }
   }
   if (details.method === "stx_signMessage") {
     const { message } = details.params as { message: string }
     return {
-      title: "Sign a message",
-      approve: "Sign",
+      title: t("cardSignMessage"),
+      approve: t("approveSign"),
       content: <SignMessageContent origin={details.origin} address={details.address} message={message} />
     }
   }
   return {
-    title: "Connect",
-    approve: "Connect",
+    title: t("cardConnect"),
+    approve: t("approveConnect"),
     content: <ConnectContent origin={details.origin} address={details.address} />
   }
 }
 
 async function ask<T>(action: string, extra: object = {}): Promise<T> {
   const response = await chrome.runtime.sendMessage({ type: "signet-approval", action, requestId, ...extra })
-  if (!response || response.error) throw new Error(response?.error ?? "Blaze Wallet did not answer")
+  // The background's own errors arrive as keys and are worded here, in this page's language
+  if (!response || response.error) throw fromWire(response?.error)
   return response.result
 }
 
@@ -105,7 +109,7 @@ function useProvenVisible(target: React.RefObject<HTMLElement>, ready: boolean) 
 export default function Approve() {
   const frame = useRef<HTMLDivElement>(null)
   const [details, setDetails] = useState<Details | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<Error | null>(null)
   const [stuck, setStuck] = useState(false)
   const [windowId, setWindowId] = useState<number>()
   const { proven: visible, restart } = useProvenVisible(frame, !!details)
@@ -118,7 +122,7 @@ export default function Approve() {
         setDetails(next)
         if (!next.unlocked) timer = setTimeout(load, 1000)
       })
-      .catch(err => setError(err.message))
+      .catch(setError)
     load()
     chrome.windows.getCurrent().then(w => setWindowId(w.id))
     return () => clearTimeout(timer)
@@ -134,10 +138,10 @@ export default function Approve() {
   const decide = (approved: boolean) =>
     ask("decide", { approved })
       .then(() => { if (inWindow) window.close() })
-      .catch(err => setError(err.message))
+      .catch(setError)
 
   const card = details && cardFor(details)
-  const hold = !details?.unlocked ? "Unlock the wallet first" : !visible ? "Checking…" : undefined
+  const hold = !details?.unlocked ? t("holdUnlockFirst") : !visible ? t("holdChecking") : undefined
 
   return (
     <div ref={frame} onPointerDownCapture={() => { if (!visible) restart() }} style={{ position: "fixed", inset: 0, fontFamily: "var(--font-sans)" }}>
@@ -145,7 +149,7 @@ export default function Approve() {
       <style>{inWindow ? "html, body { margin: 0; background: var(--bg); }" : "html { color-scheme: normal !important; } html, body { margin: 0; background: transparent; }"}</style>
       {!details && error && (
         <div className="w-card" style={{ margin: "20px auto" }}>
-          <p className="w-error" role="alert">{error}</p>
+          <ErrorText error={error} />
         </div>
       )}
       {details && card && (
@@ -159,15 +163,15 @@ export default function Approve() {
           {card.content}
           {!details.unlocked && (
             <Note onClick={() => windowId !== undefined && chrome.sidePanel.open({ windowId })}>
-              Blaze Wallet is locked. Open it to unlock ›
+              {t("lockedNote")}
             </Note>
           )}
           {stuck && !inWindow && (
-            <Note onClick={() => ask("window").catch(err => setError(err.message))}>
-              Something is covering this card. Continue in a Blaze Wallet window ›
+            <Note onClick={() => ask("window").catch(setError)}>
+              {t("coveredNote")}
             </Note>
           )}
-          {error && <p className="w-error" role="alert">{error}</p>}
+          <ErrorText error={error} />
         </NotificationPanel>
       )}
     </div>

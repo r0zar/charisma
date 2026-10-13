@@ -29,6 +29,9 @@ import {
   createAccountFromSeed
 } from './seed';
 
+import { normalizeSeedWords } from '~shared/seed-words';
+import { WalletError } from '../wallet-error';
+
 import type {
   SeedPhrase,
   Account,
@@ -70,11 +73,8 @@ export function generateSeedWords(): string {
  * Import an existing seed phrase
  */
 export async function importSeedPhrase(name: string, phrase: string): Promise<SeedPhrase | null> {
-  if (!validateSeedPhrase(phrase)) {
-    throw new Error("That isn't a valid seed phrase: check each word's spelling and that none are missing");
-  }
-
-  return await addSeedPhrase(name, phrase.trim().toLowerCase().split(/\s+/).join(' '));
+  if (!validateSeedPhrase(phrase)) throw new WalletError("errorInvalidSeedPhrase");
+  return await addSeedPhrase(name, normalizeSeedWords(phrase));
 }
 
 /**
@@ -84,7 +84,7 @@ export async function createAccount(options: CreateAccountOptions): Promise<Acco
   // Get the seed phrase
   const seedPhrase = await getSeedPhrase(options.seedPhraseId);
   if (!seedPhrase) {
-    throw new Error("Seed phrase not found");
+    throw new WalletError("errorSeedNotFound");
   }
 
   // Find the next available index if not specified

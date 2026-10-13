@@ -4,6 +4,7 @@ import * as tokens from "../lib/tokens"
 import { getDiagnostics } from "../lib/diagnostics"
 import type { SeedPhrase, Account, CreateAccountOptions } from "../lib/wallet/types"
 import type { MessageAction } from "~shared/context/types"
+import { toWire } from "../lib/wallet-error"
 
 interface MessageRequest {
   action: MessageAction;
@@ -151,7 +152,8 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
     res.send({ success: true, data: response });
   } catch (error) {
     console.error("Error in message handler:", error);
-    res.send({ success: false, error: error.message || "Unknown error" });
+    // A WalletError crosses as its key, so the page words it in its own language
+    res.send({ success: false, error: toWire(error) });
   }
 }
 

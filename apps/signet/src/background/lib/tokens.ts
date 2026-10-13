@@ -11,6 +11,7 @@ import * as wallet from "./wallet"
 import { hiroClient } from "./hiro"
 
 import { BALANCE_SERVICE } from "~shared/balance-service"
+import { WalletError } from "./wallet-error"
 
 export const STX_ID = ".stx"
 
@@ -32,7 +33,7 @@ export interface TokenBalance {
 
 async function activeAccount() {
   const account = await wallet.getCurrentAccount()
-  if (!account) throw new Error("Blaze Wallet has no active account")
+  if (!account) throw new WalletError("errorNoActiveAccount")
   return account
 }
 
@@ -49,7 +50,7 @@ async function tokenMeta(contractId: string): Promise<TokenBalance["meta"]> {
 
 async function readSheet(address: string): Promise<BalanceSheet> {
   const res = await fetch(`${BALANCE_SERVICE}/api/v1/balances/${address}/sheet`, { cache: "no-store" })
-  if (!res.ok) throw new Error(`Couldn't load balances (${res.status})`)
+  if (!res.ok) throw new WalletError("errorBalances", [res.status])
   return res.json() as Promise<BalanceSheet>
 }
 
@@ -62,7 +63,7 @@ export async function getWalletBalances(pushed?: BalanceSheet): Promise<TokenBal
   const sheet = pushed?.address === stxAddress ? pushed : await readSheet(stxAddress)
   // Charisma's token list: blocking a token (scripts/blocklist.mjs in token-cache) takes it off this list
   const list = await listTokens()
-  if (list.length === 0) throw new Error("Charisma's token list is unavailable, so tokens can't be checked against the block list")
+  if (list.length === 0) throw new WalletError("errorTokenListUnavailable")
   const listed = new Set(list.map(token => token.contractId))
   const assetOf = (contractId: string) => list.find(token => token.contractId === contractId)?.identifier ?? ""
 
@@ -97,7 +98,7 @@ export async function getUsdPrices(): Promise<Record<string, number>> {
 export async function sendToken(request: { contractId: string; asset: string; recipient: string; amount: string; memo?: string }) {
   const account = await activeAccount()
   const amount = BigInt(request.amount)
-  if (amount <= 0n) throw new Error("Amount must be more than zero")
+  if (amount <= 0n) throw new WalletError("errorAmountPositive")
 
   const common = { senderKey: account.privateKey, network: "mainnet" as const, client: hiroClient }
   const transaction = request.contractId === STX_ID
@@ -118,6 +119,6 @@ export async function sendToken(request: { contractId: string; asset: string; re
       })
 
   const result = await broadcastTransaction({ transaction, network: "mainnet", client: hiroClient })
-  if ("error" in result) throw new Error(`The network rejected the transfer: ${result.reason ?? result.error}`)
+  if ("error" in result) throw new WalletError("errorRejected", [result.reason ?? result.error])
   return { txid: result.txid }
 }

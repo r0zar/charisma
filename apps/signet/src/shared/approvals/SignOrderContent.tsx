@@ -8,13 +8,14 @@ import { getTokenMetadataStrict } from "@repo/tokens"
 import { RequestHeader } from "./parts/UIComponents"
 import { PermissionLevel } from "./parts/types"
 import { BLAZE_V1_DOMAIN, LEGACY_MULTIHOP_CONTRACT_ID, MULTIHOP_CONTRACT_ID, MULTIHOP_V1_CONTRACT_ID } from "blaze-sdk"
-import { formatUnits, Kv } from "~shared/ui"
+import { t } from "~shared/i18n"
+import { formatUnits, Kv, short } from "~shared/ui"
 
 /** Routers and what they allow once they hold a signed order */
 const ROUTERS: Record<string, { text: string; tone: "success" | "danger" }> = {
-  [MULTIHOP_CONTRACT_ID]: { text: "Only to you", tone: "success" },
-  [MULTIHOP_V1_CONTRACT_ID]: { text: "Only to you", tone: "success" },
-  [LEGACY_MULTIHOP_CONTRACT_ID]: { text: "Wherever the submitter chooses", tone: "danger" },
+  [MULTIHOP_CONTRACT_ID]: { text: "payoutOnlyYou", tone: "success" },
+  [MULTIHOP_V1_CONTRACT_ID]: { text: "payoutOnlyYou", tone: "success" },
+  [LEGACY_MULTIHOP_CONTRACT_ID]: { text: "payoutSubmitter", tone: "danger" },
 }
 
 const BLAZE_NAME = Cl.prettyPrint(BLAZE_V1_DOMAIN.value.name).replace(/"/g, "")
@@ -45,20 +46,20 @@ function BlazeOrder({ fields }: { fields: Record<string, ClarityValue> }) {
   const sendsTo = target?.type === "address"
   return (
     <>
-      <Kv label="Action">{Cl.prettyPrint(fields.intent).replace(/"/g, "")}</Kv>
-      <Kv label="Token">{token ? `${token.symbol} on Blaze` : shortName(contract)}</Kv>
+      <Kv label={t("orderAction")}>{Cl.prettyPrint(fields.intent).replace(/"/g, "")}</Kv>
+      <Kv label={t("orderToken")}>{token ? t("onBlaze", token.symbol) : shortName(contract)}</Kv>
       {amount?.type === "uint" && (
-        <Kv label={token === null ? "Amount (smallest units)" : "Amount"}>
+        <Kv label={token === null ? t("amountSmallestUnits") : t("amount")}>
           {token ? `${formatUnits(BigInt(amount.value), token.decimals)} ${token.symbol}` : token === undefined ? "…" : amount.value.toString()}
         </Kv>
       )}
-      {targetId && sendsTo && <Kv label="Sends to" tone="danger">{targetId}</Kv>}
+      {targetId && sendsTo && <Kv label={t("sendsTo")} tone="danger">{targetId}</Kv>}
       {targetId && !sendsTo && (
-        <Kv label="Payout" tone={router?.tone ?? "warning"}>
-          {router ? `${router.text} (${shortName(targetId)})` : `Handled by ${shortName(targetId)}`}
+        <Kv label={t("payout")} tone={router?.tone ?? "warning"}>
+          {router ? `${t(router.text)} (${shortName(targetId)})` : t("handledBy", shortName(targetId))}
         </Kv>
       )}
-      <Kv label="Order ID">{Cl.prettyPrint(fields.uuid).replace(/"/g, "")}</Kv>
+      <Kv label={t("orderId")}>{Cl.prettyPrint(fields.uuid).replace(/"/g, "")}</Kv>
     </>
   )
 }
@@ -76,19 +77,21 @@ export function SignOrderContent({ origin, address, message, domain }: {
 
   return (
     <div className="w-approval">
-      <RequestHeader level={PermissionLevel.SENSITIVE} origin={origin} message={isBlaze ? "wants you to sign a subnet order" : `wants you to sign data for ${appName}`} />
+      {isBlaze
+        ? <RequestHeader level={PermissionLevel.SENSITIVE} origin={origin} ask="askSignOrder" />
+        : <RequestHeader level={PermissionLevel.SENSITIVE} origin={origin} ask="askSignData" fills={[appName]} />}
 
       <div className="cx-pane">
         {isBlaze
           ? <BlazeOrder fields={(data as TupleCV).value} />
           : data.type === "tuple"
             ? Object.entries((data as TupleCV).value).map(([key, value]) => <Kv key={key} label={key}>{Cl.prettyPrint(value)}</Kv>)
-            : <Kv label="Data">{Cl.prettyPrint(data)}</Kv>}
+            : <Kv label={t("orderData")}>{Cl.prettyPrint(data)}</Kv>}
       </div>
 
       <p className="w-note">
-        {address ? `Signs as ${address.slice(0, 6)}…${address.slice(-4)}. ` : ""}
-        {isBlaze ? "Anyone holding this signature can run this order once." : "Only sign data you recognize."}
+        {address ? `${t("signsAsSentence", short(address))} ` : ""}
+        {isBlaze ? t("orderRunsOnce") : t("signOnlyRecognized")}
       </p>
     </div>
   )

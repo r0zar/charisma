@@ -10,6 +10,7 @@ import { applySavedTheme } from "../shared/styles/theme"
 import "../shared/styles/style.css"
 
 import { SignetProvider, useSignetContext } from "~shared/context/SignetContext"
+import { t } from "~shared/i18n"
 import { WalletTab } from "~shared/wallet/WalletTab"
 import { TransferTab } from "~shared/tabs/TransferTab"
 import { StatusTab } from "./StatusTab"
@@ -27,9 +28,9 @@ const SidePanelWithProvider = () => (
 export default SidePanelWithProvider
 
 const TABS = {
-  wallet: { label: "Wallet", icon: Wallet, Page: WalletTab },
-  tokens: { label: "Tokens", icon: Coins, Page: TransferTab },
-  status: { label: "Status", icon: Activity, Page: StatusTab },
+  wallet: { label: "tabWallet", icon: Wallet, Page: WalletTab },
+  tokens: { label: "tabTokens", icon: Coins, Page: TransferTab },
+  status: { label: "tabStatus", icon: Activity, Page: StatusTab },
 } satisfies Record<string, { label: string; icon: LucideIcon; Page: () => JSX.Element }>
 type Tab = keyof typeof TABS
 
@@ -48,11 +49,11 @@ function SidePanel() {
             const { label, icon: Icon } = TABS[name]
             return (
               <button key={name} type="button" className="w-tab" aria-current={tab === name ? "page" : undefined} onClick={() => setTab(name)}>
-                <Icon size={16} aria-hidden /> {label}
+                <Icon size={16} aria-hidden /> {t(label)}
               </button>
             )
           })}
-          <button type="button" className="w-chrome-btn" onClick={() => endSession()} title="Lock the wallet" aria-label="Lock the wallet">
+          <button type="button" className="w-chrome-btn" onClick={() => endSession()} title={t("lockTheWallet")} aria-label={t("lockTheWallet")}>
             <Lock size={16} aria-hidden />
           </button>
         </nav>
