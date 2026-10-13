@@ -10,13 +10,13 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-12-blaze-wallet-ios-design.md`, section "WalletCore" (and "Errors", "Testing"). Also `docs/superpowers/specs/2026-10-12-blaze-wallet-i18n-design.md`, section "Numbers".
 
-**Baseline:** branch `feat/blaze-ios` with plan 1 done (StacksKit, 23 tests passing).
+**Baseline:** branch `feat/blaze-ios` with plan 1 done (StacksKit, 24 tests passing, Task 10's review fixes included).
 
 ---
 
 ## Working notes for every task
 
-- **The code is pre-tested.** Every file in this plan was compiled and tested before the plan was written: 49 tests in 14 suites. The plan was then replayed task by task in a fresh folder, and every count below matched. The opt-in live checks passed against the real servers on 2026-10-12. Copy the code exactly.
+- **The code is pre-tested.** Every file in this plan was compiled and tested before the plan was written: 50 tests in 14 suites. The plan was then replayed task by task in a fresh folder, and every count below matched. The opt-in live checks passed against the real servers on 2026-10-12. Copy the code exactly.
 - **Commands.** Run every command from the repo root. Swift commands take `--package-path apps/blaze-ios/BlazeKit`.
 - **No mock data, no fallbacks.**
   - Unit tests feed the pure rules hand-built inputs, such as a `BalanceSheet` value.
@@ -354,7 +354,7 @@ public struct WalletState: Codable, Equatable, Sendable {
 - [ ] **Run the tests and watch them pass**
 
 Run: `swift test --package-path apps/blaze-ios/BlazeKit 2>&1 | grep -E "✘|error:|Test run with"`
-Expected: `✔ Test run with 28 tests in 8 suites passed`, and no `✘` lines.
+Expected: `✔ Test run with 29 tests in 8 suites passed`, and no `✘` lines.
 
 - [ ] **Commit**
 
@@ -489,7 +489,7 @@ public struct Session: Sendable {
 - [ ] **Run the tests and watch them pass**
 
 Run: `swift test --package-path apps/blaze-ios/BlazeKit 2>&1 | grep -E "✘|error:|Test run with"`
-Expected: `✔ Test run with 32 tests in 9 suites passed`, and no `✘` lines.
+Expected: `✔ Test run with 33 tests in 9 suites passed`, and no `✘` lines.
 
 - [ ] **Commit**
 
@@ -660,7 +660,7 @@ public enum Amount {
 - [ ] **Run the tests and watch them pass**
 
 Run: `swift test --package-path apps/blaze-ios/BlazeKit 2>&1 | grep -E "✘|error:|Test run with"`
-Expected: `✔ Test run with 37 tests in 10 suites passed`, and no `✘` lines.
+Expected: `✔ Test run with 38 tests in 10 suites passed`, and no `✘` lines.
 
 - [ ] **Commit**
 
@@ -952,7 +952,7 @@ public enum TokenRows {
 - [ ] **Run the tests and watch them pass**
 
 Run: `swift test --package-path apps/blaze-ios/BlazeKit 2>&1 | grep -E "✘|error:|Test run with"`
-Expected: `✔ Test run with 40 tests in 11 suites passed`, and no `✘` lines.
+Expected: `✔ Test run with 41 tests in 11 suites passed`, and no `✘` lines.
 
 - [ ] **Commit**
 
@@ -1331,7 +1331,7 @@ public struct Hiro: Sendable {
 - [ ] **Run the tests and watch them pass**
 
 Run: `swift test --package-path apps/blaze-ios/BlazeKit 2>&1 | grep -E "✘|error:|Test run with"`
-Expected: `✔ Test run with 44 tests in 12 suites passed`, and no `✘` lines.
+Expected: `✔ Test run with 45 tests in 12 suites passed`, and no `✘` lines.
 
 - [ ] **Run the live checks** (needs the network)
 
@@ -1521,7 +1521,7 @@ public enum Send {
 - [ ] **Run the tests and watch them pass**
 
 Run: `swift test --package-path apps/blaze-ios/BlazeKit 2>&1 | grep -E "✘|error:|Test run with"`
-Expected: `✔ Test run with 48 tests in 13 suites passed`, and no `✘` lines.
+Expected: `✔ Test run with 49 tests in 13 suites passed`, and no `✘` lines.
 
 - [ ] **Commit**
 
@@ -1681,7 +1681,7 @@ private extension ContinuousClock {
 - [ ] **Run the tests and watch them pass**
 
 Run: `swift test --package-path apps/blaze-ios/BlazeKit 2>&1 | grep -E "✘|error:|Test run with"`
-Expected: `✔ Test run with 49 tests in 14 suites passed`, and no `✘` lines.
+Expected: `✔ Test run with 50 tests in 14 suites passed`, and no `✘` lines.
 
 - [ ] **Run the live check**
 
@@ -1705,6 +1705,6 @@ git commit -m "feat(blaze-ios): Status checks the network, the token list and ev
 rm -rf apps/blaze-ios/BlazeKit/.build && BLAZE_LIVE=1 swift test --package-path apps/blaze-ios/BlazeKit 2>&1 | grep -E "✘|error:|warning:|Test run with"
 ```
 
-Expected: `✔ Test run with 49 tests in 14 suites passed`, with no errors and no warnings from `Sources/`.
+Expected: `✔ Test run with 50 tests in 14 suites passed`, with no errors and no warnings from `Sources/`.
 
 - [ ] **Confirm the tree is clean** with `git status`, and report the last commit to Ross.

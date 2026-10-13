@@ -19,7 +19,7 @@ Plan 3b then adds the other eight languages.
 
 **Spec:** `docs/superpowers/specs/2026-10-12-blaze-wallet-ios-design.md`, sections "What gets ported", "Vault", "Screens", "Languages" (English here), "Errors", "Testing".
 
-**Baseline:** branch `feat/blaze-ios` with plans 1 and 2 done (49 tests passing).
+**Baseline:** branch `feat/blaze-ios` with plans 1 and 2 done (50 tests passing).
 
 ---
 
