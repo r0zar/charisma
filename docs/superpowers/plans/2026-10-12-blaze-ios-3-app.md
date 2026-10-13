@@ -19,7 +19,7 @@ Plan 3b then adds the other eight languages.
 
 **Spec:** `docs/superpowers/specs/2026-10-12-blaze-wallet-ios-design.md`, sections "What gets ported", "Vault", "Screens", "Languages" (English here), "Errors", "Testing".
 
-**Baseline:** branch `feat/blaze-ios` with plans 1 and 2 done (50 tests passing).
+**Baseline:** branch `feat/blaze-ios` with plans 1 and 2 done, plan 2's Task 9 (its review fixes) included: 56 tests passing.
 
 ---
 
@@ -28,7 +28,8 @@ Plan 3b then adds the other eight languages.
 - **Pre-tested.** Everything here was built and run before the plan was written:
   - the app compiled for the iOS Simulator with no warnings from its own code, after the plan review's fixes (privacy cover on every sheet, Face ID only once the app is in front, Status every 5 minutes)
   - it launched on a temporary iPhone 17 Pro simulator (iOS 26.5), and Welcome drew correctly in both themes, with Ysabeau Infant in Dark
-  - `sync-strings.sh` produced the same 139-key catalog
+  - `sync-strings.sh` produced the same 140-key catalog
+  - and again after plan 2's review fixes: Send signs once, so trying again re-sends the same transaction
 
   Copy the code exactly.
 - **Commands.** Run every command from the repo root, unless a step says `cd`.
@@ -523,12 +524,24 @@ enum ErrorWords {
         case .moreThanBalance(let available):
             if let row { String(localized: "You have \(Format.amount(available, of: row, precision: .exact)) \(Format.symbol(row)).") }
             else { String(localized: "That's more than you have.") }
-        case .missingAssetName(let symbol): String(localized: "Charisma's token list has no asset name for \(symbol), so it can't be sent safely.")
+        case .amountTooLarge: String(localized: "That's more than one send can carry. Send it in parts.")
+        case .unsendable(let reason, let symbol): unsendable(reason, symbol: symbol)
         case .notEnoughSTXForFee(let fee, let stxBalance, let mostSendable):
             if let mostSendable { String(localized: "Not enough STX for the network fee. You can send up to \(Format.stx(mostSendable)) STX.") }
             else { String(localized: "Not enough STX for the network fee: it's \(Format.stx(fee)) STX and you have \(Format.stx(stxBalance)) STX.") }
         case .rejected(let reason): String(localized: "The network rejected the transfer: \(reason)")
         case .unexpected(let message): String(localized: "Something went wrong: \(message)")
+        }
+    }
+
+    /// Why a token can't be sent from the wallet
+    static func unsendable(_ reason: Unsendable, symbol: String) -> String {
+        switch reason {
+        case .unlisted: String(localized: "Not on Charisma's token list, so it can't be sent from here.")
+        case .unknown: String(localized: "An unknown token: shown in its smallest units, and it can't be sent from here.")
+        case .missingAssetName: String(localized: "Charisma's token list has no asset name for \(symbol), so it can't be sent safely.")
+        case .onlyOnBlaze: String(localized: "Your \(symbol) is all on Blaze. Move it with Charisma Swap.")
+        case .nothingToSend: String(localized: "You have no \(symbol) to send yet.")
         }
     }
 
@@ -1579,8 +1592,8 @@ final class TokensModel {
     var listed: [TokenRow] { rows?.filter(\.listed) ?? [] }
     var unlisted: [TokenRow] { rows?.filter { !$0.listed } ?? [] }
 
-    /// The Standard STX balance, which pays every network fee
-    var stxBalance: Int128 { rows?.first(where: \.isSTX)?.standard ?? 0 }
+    /// STX's row: its Standard balance pays every network fee
+    var stx: TokenRow? { rows?.first(where: \.isSTX) }
 
     /// USD value of a row, or nil when the feed has no price for it
     func value(of row: TokenRow) -> Double? {
@@ -1599,7 +1612,7 @@ final class TokensModel {
         do {
             async let sheet = charisma.balanceSheet(address: address)
             list = try await charisma.tokenList()
-            await show(try await sheet)
+            try await show(try await sheet)
         } catch is CancellationError {
             // The tab went away or refreshed again
         } catch {
@@ -1615,15 +1628,20 @@ final class TokensModel {
 
     /// Every sheet the service pushes, until the tab goes away
     func watch() async {
-        for await sheet in charisma.watchBalances(address: address) where !list.isEmpty {
-            await show(sheet)
+        do {
+            for await sheet in charisma.watchBalances(address: address) where !list.isEmpty {
+                try await show(sheet)
+            }
+        } catch {
+            // Only CancellationError: the tab went away
         }
     }
 
-    private func show(_ sheet: BalanceSheet) async {
+    /// Throws only CancellationError, before anything is kept
+    private func show(_ sheet: BalanceSheet) async throws {
         let missing = TokenRows.unlisted(sheet: sheet, list: list).filter { !lookedUp.contains($0) }
         if !missing.isEmpty {
-            lookups.merge(await charisma.lookUp(missing)) { kept, _ in kept }
+            lookups.merge(try await charisma.lookUp(missing)) { kept, _ in kept }
             lookedUp.formUnion(missing)
         }
         rows = TokenRows.build(sheet: sheet, list: list, lookups: lookups)
@@ -1694,12 +1712,13 @@ struct TokensTab: View {
             .task { await model.load() }
             .task { await model.watch() }
             .sheet(item: $sending) { row in
-                SendSheet(row: row, account: account, stxBalance: model.stxBalance).privacyCover()
+                // STX's row is always there once rows are, and a row has to be on screen to be sent
+                if let stx = model.stx { SendSheet(row: row, stx: stx, account: account).privacyCover() }
             }
             .alert(reason.map(Format.symbol) ?? "", isPresented: Binding(get: { reason != nil }, set: { if !$0 { reason = nil } }), presenting: reason) { _ in
                 Button("OK") {}
             } message: { row in
-                Text(Self.unsendableReason(row))
+                if let why = row.unsendable { Text(ErrorWords.unsendable(why, symbol: Format.symbol(row))) }
             }
         }
     }
@@ -1735,18 +1754,6 @@ struct TokensTab: View {
         .buttonStyle(.plain)
     }
 
-    /// Why a row can't be sent from here
-    static func unsendableReason(_ row: TokenRow) -> String {
-        let symbol = Format.symbol(row)
-        switch row.unsendable {
-        case .unlisted: return String(localized: "Not on Charisma's token list, so it can't be sent from here.")
-        case .unknown: return String(localized: "An unknown token: shown in its smallest units, and it can't be sent from here.")
-        case .missingAssetName: return String(localized: "Charisma's token list has no asset name for \(symbol), so it can't be sent safely.")
-        case .onlyOnBlaze: return String(localized: "Your \(symbol) is all on Blaze. Move it with Charisma Swap.")
-        case .nothingToSend: return String(localized: "You have no \(symbol) to send yet.")
-        case nil: return ""
-        }
-    }
 }
 ```
 `apps/blaze-ios/BlazeWallet/Tokens/TokenRowView.swift`:
@@ -1822,21 +1829,25 @@ struct TokenIcon: View {
 `apps/blaze-ios/BlazeWallet/Tokens/SendSheet.swift`:
 
 ```swift
+import StacksKit
 import SwiftUI
 import WalletCore
 
 /// Sending from the Standard balance: recipient and amount, a review with the real network fee, then the txid
 struct SendSheet: View {
     let row: TokenRow
+    /// STX's row: its Standard balance pays the fee
+    let stx: TokenRow
     let account: Account
-    /// The Standard STX balance, which pays the fee
-    let stxBalance: Int128
 
     @Environment(Vault.self) private var vault
     @Environment(\.dismiss) private var dismiss
     @State private var recipient = ""
     @State private var amount = ""
     @State private var review: SendReview?
+    /// The reviewed send, signed once. Sending again re-sends these same bytes, so a send whose answer was lost can't
+    /// go out twice, and from then on this sheet sends nothing else.
+    @State private var signed: StacksTransaction?
     @State private var txid: String?
     @State private var busy = false
     @State private var error: Error?
@@ -1917,7 +1928,16 @@ struct SendSheet: View {
                 if busy { ProgressView() } else { Text("Send") }
             }
             .disabled(busy)
-            Button("Back") { self.review = nil }.disabled(busy)
+            if let signed {
+                // It may be on the network even though no answer came back: the explorer shows whether it is
+                if error != nil {
+                    Link(destination: Format.explorer(signed.txid)) {
+                        Label("View on explorer", systemImage: "arrow.up.right.square")
+                    }
+                }
+            } else {
+                Button("Back") { self.review = nil }.disabled(busy)
+            }
         }
     }
 
@@ -1939,8 +1959,8 @@ struct SendSheet: View {
         defer { busy = false }
         do {
             review = try await Send.review(
-                row: row, recipient: recipient, amount: amount, stxBalance: stxBalance,
-                account: account, locale: .current, hiro: hiro
+                row: row, recipient: recipient, amount: amount, locale: .current, stx: stx,
+                account: account, hiro: hiro
             )
         } catch {
             self.error = error
@@ -1953,7 +1973,14 @@ struct SendSheet: View {
         defer { busy = false }
         do {
             try vault.touch()
-            txid = try await Send.send(review, from: account, hiro: hiro)
+            let transaction: StacksTransaction
+            if let signed {
+                transaction = signed
+            } else {
+                transaction = try await Send.sign(review, from: account, hiro: hiro)
+                signed = transaction
+            }
+            txid = try await Send.broadcast(transaction, hiro: hiro)
         } catch {
             self.error = error
         }
@@ -2001,7 +2028,8 @@ final class StatusModel {
             diagnostics = try await Diagnostics.check(address: StacksAddress(address), charisma: charisma, hiro: hiro, subnets: subnets)
             self.address = address
         } catch is CancellationError {
-            // The tab went away
+            // The tab went away mid-check: not an attempt, so coming back checks at once
+            attemptedAt = nil
         } catch {
             self.error = error
         }
@@ -2171,9 +2199,15 @@ private struct Speed: View {
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%@ on Blaze" : {},
-    "%@ sent" : {},
-    "%@ units" : {},
+    "%@ on Blaze" : {
+
+    },
+    "%@ sent" : {
+
+    },
+    "%@ units" : {
+
+    },
     "%lld tokens" : {
       "localizations" : {
         "en" : {
@@ -2240,17 +2274,39 @@ private struct Speed: View {
         }
       }
     },
-    "+ Account" : {},
-    "12 or 24 words" : {},
-    "A seed phrase named “%@” already exists." : {},
-    "Account %lld" : {},
-    "Active" : {},
-    "Add an account from a seed phrase below." : {},
-    "Address" : {},
-    "After 15 idle minutes" : {},
-    "Amount" : {},
-    "An unknown token: shown in its smallest units, and it can't be sent from here." : {},
-    "Anyone who sees these words controls your funds. Write them down on paper and keep them private." : {},
+    "+ Account" : {
+
+    },
+    "12 or 24 words" : {
+
+    },
+    "A seed phrase named “%@” already exists." : {
+
+    },
+    "Account %lld" : {
+
+    },
+    "Active" : {
+
+    },
+    "Add an account from a seed phrase below." : {
+
+    },
+    "Address" : {
+
+    },
+    "After 15 idle minutes" : {
+
+    },
+    "Amount" : {
+
+    },
+    "An unknown token: shown in its smallest units, and it can't be sent from here." : {
+
+    },
+    "Anyone who sees these words controls your funds. Write them down on paper and keep them private." : {
+
+    },
     "At most %lld decimal places." : {
       "localizations" : {
         "en" : {
@@ -2273,51 +2329,141 @@ private struct Speed: View {
         }
       }
     },
-    "Auto-lock" : {},
-    "Back" : {},
-    "Back to the words" : {},
-    "Blaze subnets" : {},
-    "Block" : {},
-    "Cancel" : {},
-    "Cancelled." : {},
-    "Charisma token list" : {},
-    "Charisma's balance service sent something Blaze Wallet can't read." : {},
-    "Charisma's price feed sent something Blaze Wallet can't read." : {},
-    "Charisma's token list has no asset name for %@, so it can't be sent safely." : {},
-    "Charisma's token list is unavailable, so tokens can't be checked against its block list." : {},
-    "Charisma's token list sent something Blaze Wallet can't read." : {},
-    "Check again" : {},
-    "Checked at %@" : {},
-    "Checking" : {},
-    "Checking…" : {},
-    "Confirm and save" : {},
-    "Confirm your words" : {},
-    "Continue" : {},
-    "Copied" : {},
-    "Copy" : {},
-    "Couldn't load Charisma's token list (%lld)." : {},
-    "Couldn't load balances (%lld)." : {},
-    "Couldn't load prices (%lld)." : {},
-    "Couldn't reach Charisma's balance service. Check your connection." : {},
-    "Couldn't reach Charisma's price feed. Check your connection." : {},
-    "Couldn't reach Charisma's token list. Check your connection." : {},
-    "Couldn't reach the Stacks network. Check your connection." : {},
-    "Create a new wallet" : {},
-    "Create your wallet" : {},
-    "Dark · RPG" : {},
-    "Done" : {},
-    "Enter a Stacks address (SP…)." : {},
-    "Enter an amount like %@." : {},
-    "Error" : {},
-    "Every seed phrase and account is removed from this iPhone. Your funds stay safe on the blockchain; you'll need your seed phrases to get back in." : {},
-    "Exactly this amount, nothing else" : {},
-    "Face ID and the passcode aren't available on this iPhone right now." : {},
-    "Generate 24 words" : {},
-    "Generate new" : {},
-    "Holding your funds" : {},
-    "I wrote all 24 words down, in order" : {},
-    "Import" : {},
-    "Import a seed phrase" : {},
+    "Auto-lock" : {
+
+    },
+    "Back" : {
+
+    },
+    "Back to the words" : {
+
+    },
+    "Blaze subnets" : {
+
+    },
+    "Block" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Cancelled." : {
+
+    },
+    "Charisma token list" : {
+
+    },
+    "Charisma's balance service sent something Blaze Wallet can't read." : {
+
+    },
+    "Charisma's price feed sent something Blaze Wallet can't read." : {
+
+    },
+    "Charisma's token list has no asset name for %@, so it can't be sent safely." : {
+
+    },
+    "Charisma's token list is unavailable, so tokens can't be checked against its block list." : {
+
+    },
+    "Charisma's token list sent something Blaze Wallet can't read." : {
+
+    },
+    "Check again" : {
+
+    },
+    "Checked at %@" : {
+
+    },
+    "Checking" : {
+
+    },
+    "Checking…" : {
+
+    },
+    "Confirm and save" : {
+
+    },
+    "Confirm your words" : {
+
+    },
+    "Continue" : {
+
+    },
+    "Copied" : {
+
+    },
+    "Copy" : {
+
+    },
+    "Couldn't load Charisma's token list (%lld)." : {
+
+    },
+    "Couldn't load balances (%lld)." : {
+
+    },
+    "Couldn't load prices (%lld)." : {
+
+    },
+    "Couldn't reach Charisma's balance service. Check your connection." : {
+
+    },
+    "Couldn't reach Charisma's price feed. Check your connection." : {
+
+    },
+    "Couldn't reach Charisma's token list. Check your connection." : {
+
+    },
+    "Couldn't reach the Stacks network. Check your connection." : {
+
+    },
+    "Create a new wallet" : {
+
+    },
+    "Create your wallet" : {
+
+    },
+    "Dark · RPG" : {
+
+    },
+    "Done" : {
+
+    },
+    "Enter a Stacks address (SP…)." : {
+
+    },
+    "Enter an amount like %@." : {
+
+    },
+    "Error" : {
+
+    },
+    "Every seed phrase and account is removed from this iPhone. Your funds stay safe on the blockchain; you'll need your seed phrases to get back in." : {
+
+    },
+    "Exactly this amount, nothing else" : {
+
+    },
+    "Face ID and the passcode aren't available on this iPhone right now." : {
+
+    },
+    "Generate 24 words" : {
+
+    },
+    "Generate new" : {
+
+    },
+    "Holding your funds" : {
+
+    },
+    "I wrote all 24 words down, in order" : {
+
+    },
+    "Import" : {
+
+    },
+    "Import a seed phrase" : {
+
+    },
     "In %lld min" : {
       "localizations" : {
         "en" : {
@@ -2340,19 +2486,45 @@ private struct Speed: View {
         }
       }
     },
-    "It confirms on Stacks in a few minutes." : {},
-    "Its accounts and funds stay safe on the blockchain. To use them here again, you'll need the seed phrase words." : {},
-    "Keys" : {},
-    "Light · Bitcoin" : {},
-    "Live" : {},
-    "Loading balances…" : {},
-    "Lock" : {},
-    "Max" : {},
-    "My seed phrase" : {},
-    "Name" : {},
-    "Network fee" : {},
-    "New seed phrase" : {},
-    "No active account" : {},
+    "It confirms on Stacks in a few minutes." : {
+
+    },
+    "Its accounts and funds stay safe on the blockchain. To use them here again, you'll need the seed phrase words." : {
+
+    },
+    "Keys" : {
+
+    },
+    "Light · Bitcoin" : {
+
+    },
+    "Live" : {
+
+    },
+    "Loading balances…" : {
+
+    },
+    "Lock" : {
+
+    },
+    "Max" : {
+
+    },
+    "My seed phrase" : {
+
+    },
+    "Name" : {
+
+    },
+    "Network fee" : {
+
+    },
+    "New seed phrase" : {
+
+    },
+    "No active account" : {
+
+    },
     "No funds on any of the %lld subnets." : {
       "localizations" : {
         "en" : {
@@ -2375,7 +2547,9 @@ private struct Speed: View {
         }
       }
     },
-    "Not enough STX for the network fee. You can send up to %@ STX." : {},
+    "Not enough STX for the network fee. You can send up to %@ STX." : {
+
+    },
     "Not enough STX for the network fee: it's %@ STX and you have %@ STX." : {
       "localizations" : {
         "en" : {
@@ -2386,20 +2560,48 @@ private struct Speed: View {
         }
       }
     },
-    "Not on Charisma's token list, so it can't be sent from here." : {},
-    "OK" : {},
-    "On this iPhone only, behind Face ID" : {},
-    "Prices unavailable: %@" : {},
-    "Receive" : {},
-    "Recipient" : {},
-    "Response" : {},
-    "Review" : {},
-    "Safety" : {},
-    "Seed phrases" : {},
-    "Send" : {},
-    "Send %@" : {},
-    "Send only Stacks (STX) and Stacks tokens to this address." : {},
-    "Send the most: %@ STX" : {},
+    "Not on Charisma's token list, so it can't be sent from here." : {
+
+    },
+    "OK" : {
+
+    },
+    "On this iPhone only, behind Face ID" : {
+
+    },
+    "Prices unavailable: %@" : {
+
+    },
+    "Receive" : {
+
+    },
+    "Recipient" : {
+
+    },
+    "Response" : {
+
+    },
+    "Review" : {
+
+    },
+    "Safety" : {
+
+    },
+    "Seed phrases" : {
+
+    },
+    "Send" : {
+
+    },
+    "Send %@" : {
+
+    },
+    "Send only Stacks (STX) and Stacks tokens to this address." : {
+
+    },
+    "Send the most: %@ STX" : {
+
+    },
     "Sends use your %@ %@ on Standard. Your %@ on Blaze stays in its subnet; move it with Charisma Swap." : {
       "localizations" : {
         "en" : {
@@ -2410,46 +2612,129 @@ private struct Speed: View {
         }
       }
     },
-    "Set a passcode on this iPhone to use Blaze Wallet." : {},
-    "Show words" : {},
-    "Show your seed phrase" : {},
-    "Something isn't working" : {},
-    "Something went wrong: %@" : {},
-    "Stacks network" : {},
-    "Status" : {},
-    "System" : {},
-    "That account is no longer in this wallet." : {},
-    "That isn't a valid seed phrase: check each word's spelling and that none are missing." : {},
-    "That seed phrase is no longer in this wallet." : {},
-    "That's more than you have." : {},
-    "The Stacks network didn't answer (%lld)." : {},
-    "The Stacks network sent something Blaze Wallet can't read." : {},
-    "The amount must be more than zero." : {},
-    "The network rejected the transfer: %@" : {},
-    "The wallet is locked. Unlock it to continue." : {},
-    "Theme" : {},
-    "These 24 words are the only way to recover this wallet. Anyone who sees them controls your funds, and Blaze Wallet can't recover them." : {},
-    "This iPhone couldn't make random words. Try again." : {},
-    "This iPhone's Keychain refused (%@)." : {},
-    "This wallet" : {},
-    "To" : {},
-    "Tokens" : {},
-    "Total value" : {},
-    "Try again" : {},
-    "Type these words from what you wrote down." : {},
-    "Unlink" : {},
-    "Unlink this seed phrase from this iPhone?" : {},
-    "Unlink this wallet from this iPhone?" : {},
-    "Unlink wallet" : {},
-    "Unlock" : {},
-    "Unlock your wallet" : {},
-    "Use" : {},
-    "Vault" : {},
-    "View on explorer" : {},
-    "Wallet" : {},
-    "Word #%lld" : {},
-    "Word %@ doesn't match. Check what you wrote down." : {},
-    "Write these down" : {},
+    "Set a passcode on this iPhone to use Blaze Wallet." : {
+
+    },
+    "Show words" : {
+
+    },
+    "Show your seed phrase" : {
+
+    },
+    "Something isn't working" : {
+
+    },
+    "Something went wrong: %@" : {
+
+    },
+    "Stacks network" : {
+
+    },
+    "Status" : {
+
+    },
+    "System" : {
+
+    },
+    "That account is no longer in this wallet." : {
+
+    },
+    "That isn't a valid seed phrase: check each word's spelling and that none are missing." : {
+
+    },
+    "That seed phrase is no longer in this wallet." : {
+
+    },
+    "That's more than one send can carry. Send it in parts." : {
+
+    },
+    "That's more than you have." : {
+
+    },
+    "The Stacks network didn't answer (%lld)." : {
+
+    },
+    "The Stacks network sent something Blaze Wallet can't read." : {
+
+    },
+    "The amount must be more than zero." : {
+
+    },
+    "The network rejected the transfer: %@" : {
+
+    },
+    "The wallet is locked. Unlock it to continue." : {
+
+    },
+    "Theme" : {
+
+    },
+    "These 24 words are the only way to recover this wallet. Anyone who sees them controls your funds, and Blaze Wallet can't recover them." : {
+
+    },
+    "This iPhone couldn't make random words. Try again." : {
+
+    },
+    "This iPhone's Keychain refused (%@)." : {
+
+    },
+    "This wallet" : {
+
+    },
+    "To" : {
+
+    },
+    "Tokens" : {
+
+    },
+    "Total value" : {
+
+    },
+    "Try again" : {
+
+    },
+    "Type these words from what you wrote down." : {
+
+    },
+    "Unlink" : {
+
+    },
+    "Unlink this seed phrase from this iPhone?" : {
+
+    },
+    "Unlink this wallet from this iPhone?" : {
+
+    },
+    "Unlink wallet" : {
+
+    },
+    "Unlock" : {
+
+    },
+    "Unlock your wallet" : {
+
+    },
+    "Use" : {
+
+    },
+    "Vault" : {
+
+    },
+    "View on explorer" : {
+
+    },
+    "Wallet" : {
+
+    },
+    "Word #%lld" : {
+
+    },
+    "Word %@ doesn't match. Check what you wrote down." : {
+
+    },
+    "Write these down" : {
+
+    },
     "You have %@ %@." : {
       "localizations" : {
         "en" : {
@@ -2460,9 +2745,15 @@ private struct Speed: View {
         }
       }
     },
-    "You have no %@ to send yet." : {},
-    "Your %@ is all on Blaze. Move it with Charisma Swap." : {},
-    "Your keys stay on this iPhone, behind Face ID." : {}
+    "You have no %@ to send yet." : {
+
+    },
+    "Your %@ is all on Blaze. Move it with Charisma Swap." : {
+
+    },
+    "Your keys stay on this iPhone, behind Face ID." : {
+
+    }
   },
   "version" : "1.0"
 }
@@ -2514,7 +2805,7 @@ git commit -m "feat(blaze-ios): The app: Face ID vault, Welcome, lock screen, Wa
 - [ ] **Sync the catalog from the code:** `sh apps/blaze-ios/scripts/sync-strings.sh`
 
 Expected:
-- the last line is `Synced 139 lines of keys into BlazeWallet/Localizable.xcstrings`
+- the last line is `Synced 140 lines of keys into BlazeWallet/Localizable.xcstrings`
 - `git status` shows **no change** to `Localizable.xcstrings`, which means every string in the code is already in the catalog, and nothing in it is stale
 
 If the catalog changed, the code and catalog above differ. Compare them and stop.

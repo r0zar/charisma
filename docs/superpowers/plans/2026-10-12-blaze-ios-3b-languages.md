@@ -14,7 +14,7 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-12-blaze-wallet-i18n-design.md` (all of "Shared rules"), and `docs/superpowers/specs/2026-10-12-blaze-wallet-ios-design.md` (section "Languages").
 
-**Baseline:** branch `feat/blaze-ios` with plan 3 done (the English app; `sync-strings.sh` reports 139 keys and changes nothing).
+**Baseline:** branch `feat/blaze-ios` with plan 3 done (the English app; `sync-strings.sh` reports 140 keys and changes nothing).
 
 ---
 
@@ -213,7 +213,7 @@ if (problems.length) {
 ```
 
 Run: `node apps/blaze-ios/scripts/check-strings.mjs 2>&1 | tail -1`
-Expected: `1120 problems` (140 keys × 8 languages, none translated yet).
+Expected: `1128 problems` (141 keys × 8 languages, none translated yet).
 
 - [ ] **Write the import**
 
@@ -397,6 +397,7 @@ git commit -m "feat(blaze-ios): Strings check and translation import" -m "Co-Aut
  "That account is no longer in this wallet.": "해당 계정은 더 이상 이 지갑에 없습니다.",
  "That isn't a valid seed phrase: check each word's spelling and that none are missing.": "유효한 시드 문구가 아닙니다. 각 단어의 철자가 맞는지, 빠진 단어가 없는지 확인하세요.",
  "That seed phrase is no longer in this wallet.": "해당 시드 문구는 더 이상 이 지갑에 없습니다.",
+ "That's more than one send can carry. Send it in parts.": "한 번에 보낼 수 있는 수량을 넘습니다. 여러 번에 나눠 보내세요.",
  "That's more than you have.": "잔액보다 많습니다.",
  "The Stacks network didn't answer (%lld).": "Stacks 네트워크가 응답하지 않았습니다(%lld).",
  "The Stacks network sent something Blaze Wallet can't read.": "Stacks 네트워크에서 Blaze Wallet이 읽을 수 없는 데이터를 받았습니다.",
@@ -556,6 +557,7 @@ git commit -m "feat(blaze-ios): Strings check and translation import" -m "Co-Aut
  "That account is no longer in this wallet.": "该账户已不在此钱包中。",
  "That isn't a valid seed phrase: check each word's spelling and that none are missing.": "这不是有效的助记词：请检查每个单词的拼写，并确认没有遗漏。",
  "That seed phrase is no longer in this wallet.": "该助记词已不在此钱包中。",
+ "That's more than one send can carry. Send it in parts.": "超出了单笔发送的上限。请分几次发送。",
  "That's more than you have.": "超出了你的余额。",
  "The Stacks network didn't answer (%lld).": "Stacks 网络未响应（%lld）。",
  "The Stacks network sent something Blaze Wallet can't read.": "Stacks 网络返回了 Blaze Wallet 无法读取的内容。",
@@ -727,6 +729,7 @@ git commit -m "feat(blaze-ios): Strings check and translation import" -m "Co-Aut
  "That account is no longer in this wallet.": "Esa cuenta ya no está en esta billetera.",
  "That isn't a valid seed phrase: check each word's spelling and that none are missing.": "Esa no es una frase semilla válida: revisa la ortografía de cada palabra y que no falte ninguna.",
  "That seed phrase is no longer in this wallet.": "Esa frase semilla ya no está en esta billetera.",
+ "That's more than one send can carry. Send it in parts.": "Es más de lo que cabe en un solo envío. Envíalo en partes.",
  "That's more than you have.": "Es más de lo que tienes.",
  "The Stacks network didn't answer (%lld).": "La red de Stacks no respondió (%lld).",
  "The Stacks network sent something Blaze Wallet can't read.": "La red de Stacks envió algo que Blaze Wallet no puede leer.",
@@ -898,6 +901,7 @@ git commit -m "feat(blaze-ios): Strings check and translation import" -m "Co-Aut
  "That account is no longer in this wallet.": "Ce compte ne fait plus partie de ce portefeuille.",
  "That isn't a valid seed phrase: check each word's spelling and that none are missing.": "Ce n’est pas une phrase de récupération valide : vérifiez l’orthographe de chaque mot et qu’il n’en manque aucun.",
  "That seed phrase is no longer in this wallet.": "Cette phrase de récupération ne fait plus partie de ce portefeuille.",
+ "That's more than one send can carry. Send it in parts.": "C’est plus qu’un seul envoi ne peut contenir. Envoyez-le en plusieurs fois.",
  "That's more than you have.": "C’est plus que ce que vous avez.",
  "The Stacks network didn't answer (%lld).": "Le réseau Stacks n’a pas répondu (%lld).",
  "The Stacks network sent something Blaze Wallet can't read.": "Le réseau Stacks a envoyé des données que Blaze Wallet ne peut pas lire.",
@@ -1063,6 +1067,7 @@ git commit -m "feat(blaze-ios): Strings check and translation import" -m "Co-Aut
  "That account is no longer in this wallet.": "Dieses Konto ist nicht mehr in dieser Wallet.",
  "That isn't a valid seed phrase: check each word's spelling and that none are missing.": "Das ist keine gültige Seed-Phrase: Prüfe die Schreibweise jedes Wortes und ob eines fehlt.",
  "That seed phrase is no longer in this wallet.": "Diese Seed-Phrase ist nicht mehr in dieser Wallet.",
+ "That's more than one send can carry. Send it in parts.": "Das ist mehr, als auf einmal gesendet werden kann. Sende den Betrag in mehreren Teilen.",
  "That's more than you have.": "Das ist mehr, als du hast.",
  "The Stacks network didn't answer (%lld).": "Das Stacks-Netzwerk hat nicht geantwortet (%lld).",
  "The Stacks network sent something Blaze Wallet can't read.": "Das Stacks-Netzwerk hat Daten gesendet, die Blaze Wallet nicht lesen kann.",
@@ -1228,6 +1233,7 @@ git commit -m "feat(blaze-ios): Strings check and translation import" -m "Co-Aut
  "That account is no longer in this wallet.": "O hesap artık bu cüzdanda değil.",
  "That isn't a valid seed phrase: check each word's spelling and that none are missing.": "Bu geçerli bir kurtarma ifadesi değil: her kelimenin yazımını ve eksik kelime olmadığını kontrol edin.",
  "That seed phrase is no longer in this wallet.": "O kurtarma ifadesi artık bu cüzdanda değil.",
+ "That's more than one send can carry. Send it in parts.": "Bu, tek seferde gönderilebilecek miktardan fazla. Parçalara bölerek gönderin.",
  "That's more than you have.": "Bu, sahip olduğunuzdan fazla.",
  "The Stacks network didn't answer (%lld).": "Stacks ağı yanıt vermedi (%lld).",
  "The Stacks network sent something Blaze Wallet can't read.": "Stacks ağı, Blaze Wallet tarafından okunamayan bir yanıt gönderdi.",
@@ -1387,6 +1393,7 @@ git commit -m "feat(blaze-ios): Strings check and translation import" -m "Co-Aut
  "That account is no longer in this wallet.": "そのアカウントはもうこのウォレットにありません。",
  "That isn't a valid seed phrase: check each word's spelling and that none are missing.": "有効なシードフレーズではありません。各単語のつづりと、抜けている単語がないかを確認してください。",
  "That seed phrase is no longer in this wallet.": "そのシードフレーズはもうこのウォレットにありません。",
+ "That's more than one send can carry. Send it in parts.": "1 回で送金できる数量を超えています。分けて送金してください。",
  "That's more than you have.": "残高を超えています。",
  "The Stacks network didn't answer (%lld).": "Stacks ネットワークから応答がありませんでした（%lld）。",
  "The Stacks network sent something Blaze Wallet can't read.": "Stacks ネットワークから、Blaze Wallet が読み取れないデータが届きました。",
@@ -1558,6 +1565,7 @@ git commit -m "feat(blaze-ios): Strings check and translation import" -m "Co-Aut
  "That account is no longer in this wallet.": "Essa conta não está mais nesta carteira.",
  "That isn't a valid seed phrase: check each word's spelling and that none are missing.": "Essa frase de recuperação não é válida: confira a grafia de cada palavra e se não falta nenhuma.",
  "That seed phrase is no longer in this wallet.": "Essa frase de recuperação não está mais nesta carteira.",
+ "That's more than one send can carry. Send it in parts.": "É mais do que um único envio pode levar. Envie em partes.",
  "That's more than you have.": "É mais do que você tem.",
  "The Stacks network didn't answer (%lld).": "A rede Stacks não respondeu (%lld).",
  "The Stacks network sent something Blaze Wallet can't read.": "A rede Stacks enviou algo que a Blaze Wallet não consegue ler.",
@@ -1605,8 +1613,8 @@ rm -rf /tmp/blaze-translations
 ```
 
 Expected:
-- `ko: 140 strings` and so on for each language
-- `Synced 139 lines of keys into BlazeWallet/Localizable.xcstrings`
+- `ko: 141 strings` and so on for each language
+- `Synced 140 lines of keys into BlazeWallet/Localizable.xcstrings`
 - `All strings are translated into 8 languages`
 
 - [ ] **Commit**
