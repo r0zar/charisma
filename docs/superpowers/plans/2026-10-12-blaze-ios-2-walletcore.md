@@ -60,6 +60,8 @@ All paths are inside `apps/blaze-ios/BlazeKit`.
 - Create: `Sources/WalletCore/WalletError.swift`, `Sources/WalletCore/Log.swift`, `Sources/WalletCore/WalletState.swift`
 - Test: `Tests/WalletCoreTests/Fixtures.swift`, `Tests/WalletCoreTests/WalletStateTests.swift`
 
+- [ ] **Make the source folder:** `mkdir -p apps/blaze-ios/BlazeKit/Sources/WalletCore`
+
 - [ ] **Replace `Package.swift`**
 
 ```swift
@@ -182,12 +184,9 @@ struct WalletStateTests {
 }
 ```
 
-- [ ] **Run the tests and watch them fail**
+- [ ] **Write the errors and the log first**
 
-Run: `swift test --package-path apps/blaze-ios/BlazeKit 2>&1 | grep -E "error:" | head`
-Expected: the build fails because `WalletState` doesn't exist yet.
-
-- [ ] **Write the errors, the log and the wallet state**
+SwiftPM won't load a library target with no source files in it. So these two come before the red step, which then fails on the missing `WalletState` as intended.
 
 `Sources/WalletCore/WalletError.swift`:
 
@@ -256,6 +255,13 @@ enum Log {
     static let network = Logger(subsystem: "rocks.charisma.blazewallet", category: "network")
 }
 ```
+
+- [ ] **Run the tests and watch them fail**
+
+Run: `swift test --package-path apps/blaze-ios/BlazeKit 2>&1 | grep -E "error:" | head`
+Expected: the build fails because `WalletState` doesn't exist yet.
+
+- [ ] **Write the wallet state**
 
 `Sources/WalletCore/WalletState.swift`:
 
