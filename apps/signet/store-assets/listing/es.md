@@ -21,4 +21,7 @@ Tu frase semilla y tus claves se cifran en tu navegador con tu contraseña y nun
 CLARO U OSCURO
 Los temas Claro · Bitcoin y Oscuro · RPG de Charisma. Blaze Wallet sigue el tema de tu dispositivo, o puedes elegir uno en la Bóveda.
 
+EN TU IDIOMA
+English, 한국어, 简体中文, Español, Français, Deutsch, Türkçe, 日本語 y Português (Brasil). Blaze Wallet sigue el idioma de Chrome, o puedes elegir uno en la Bóveda.
+
 Blaze Wallet no requiere registro y no tiene analíticas ni rastreo.

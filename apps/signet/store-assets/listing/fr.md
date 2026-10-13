@@ -21,4 +21,7 @@ Votre phrase de récupération et vos clés sont chiffrées dans votre navigateu
 CLAIR OU SOMBRE
 Les thèmes Clair · Bitcoin et Sombre · RPG de Charisma. Blaze Wallet suit le réglage de votre appareil, ou choisissez-en un dans le Coffre-fort.
 
+DANS VOTRE LANGUE
+English, 한국어, 简体中文, Español, Français, Deutsch, Türkçe, 日本語 et Português (Brasil). Blaze Wallet suit la langue de Chrome, ou choisissez-en une dans le Coffre-fort.
+
 Blaze Wallet : aucun compte à créer, aucune statistique d’utilisation, aucun traçage.

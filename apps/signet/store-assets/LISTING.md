@@ -41,6 +41,9 @@ Upload `build/blaze-wallet-chrome.zip` (made by `pnpm package:store` in apps/sig
 > LIGHT OR DARK
 > Charisma's Light · Bitcoin and Dark · RPG looks. Blaze Wallet follows your device, or pick one in the Vault.
 >
+> IN YOUR LANGUAGE
+> English, 한국어, 简体中文, Español, Français, Deutsch, Türkçe, 日本語 and Português (Brasil). Blaze Wallet follows Chrome's language, or pick one in the Vault.
+>
 > Blaze Wallet has no accounts, no analytics and no tracking.
 
 **Graphics:**
