@@ -18,8 +18,9 @@ struct MnemonicTests {
     }
 
     @Test func allZeroEntropyGivesTheStandardTestPhrases() {
-        #expect(Mnemonic.phrase(entropy: Data(repeating: 0, count: 16)) == Vectors.all.phrases[0].phrase)
-        #expect(Mnemonic.phrase(entropy: Data(repeating: 0, count: 32)) == Vectors.all.phrases[1].phrase)
+        for (bytes, vector) in zip([16, 20, 24, 28, 32], Vectors.all.phrases) {
+            #expect(Mnemonic.phrase(entropy: Data(repeating: 0, count: bytes)) == vector.phrase)
+        }
     }
 
     @Test func rejectsBadPhrases() {
@@ -29,6 +30,11 @@ struct MnemonicTests {
         #expect(!Mnemonic.isValid(words.dropLast().joined(separator: " ")))
         #expect(!Mnemonic.isValid((words.dropLast() + ["wallet!"]).joined(separator: " ")))
         #expect(throws: StacksError.invalidSeedPhrase) { try Mnemonic.seed("abandon abandon") }
+        // Extra spaces would change the seed, so they're refused (normalize first)
+        let phrase = Vectors.all.phrases[0].phrase
+        for spaced in [" " + phrase, phrase + " ", phrase.replacingOccurrences(of: "about", with: " about")] {
+            #expect(!Mnemonic.isValid(spaced))
+        }
     }
 
     @Test func normalizesWhatPeopleTypeOrPaste() {

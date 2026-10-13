@@ -10,6 +10,8 @@ public enum StacksError: Error, Equatable, Sendable {
     case invalidAddress
     /// Not a valid contract name (a letter, then letters, digits, - or _, at most 128 characters)
     case invalidContractName
+    /// Not a valid Clarity asset name (a letter, then letters, digits or -_!?+<>=/*, at most 128 characters)
+    case invalidAssetName
     /// A private key that isn't 32 bytes (or 33 ending in 01), or isn't a valid secp256k1 key
     case invalidKey
     /// Bytes that aren't one of the Clarity values StacksKit reads

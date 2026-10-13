@@ -26,5 +26,8 @@ struct ClarityTests {
         #expect(throws: StacksError.invalidClarityValue) { try ClarityValue(serialized: Data([0x03])) }      // bool true
         #expect(throws: StacksError.invalidClarityValue) { try ClarityValue(serialized: Data([0x01, 0x00])) } // short uint
         #expect(throws: StacksError.invalidClarityValue) { try ClarityValue(serialized: Data([0x09, 0x09])) } // leftover
+        // Only (ok u…): (ok none) and nested oks are refused without recursing
+        #expect(throws: StacksError.invalidClarityValue) { try ClarityValue(serialized: Data([0x07, 0x09])) }
+        #expect(throws: StacksError.invalidClarityValue) { try ClarityValue(serialized: Data(repeating: 0x07, count: 10_000)) }
     }
 }
