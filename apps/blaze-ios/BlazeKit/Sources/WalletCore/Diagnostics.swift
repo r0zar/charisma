@@ -27,7 +27,8 @@ public struct Diagnostics: Sendable {
     public static func check(address: StacksAddress, charisma: Charisma, hiro: Hiro, subnets: SubnetReader) async throws -> Diagnostics {
         let clock = ContinuousClock()
         async let network = clock.measured { try await hiro.tipHeight() }
-        async let tokens = clock.measured { try await charisma.tokenList() }
+        // Fresh: Status checks the service itself, not the copy the app keeps
+        async let tokens = clock.measured { try await charisma.tokenList(fresh: true) }
         let (height, networkLatency) = try await network
         let (list, tokenListLatency) = try await tokens
         return Diagnostics(

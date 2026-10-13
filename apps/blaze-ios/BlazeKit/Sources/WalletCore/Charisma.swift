@@ -7,6 +7,8 @@ public struct Charisma: Sendable {
     static let prices = URL(string: "https://lakehouse.charisma.rocks/api/token-prices?limit=1000")!
 
     let http: HTTP
+    /// One for the whole app: every Charisma shares it
+    static let cache = TokenCache()
 
     public init(session: URLSession = .shared) {
         http = HTTP(session: session)
@@ -16,11 +18,14 @@ public struct Charisma: Sendable {
         try await http.get(Self.balances.appending(path: address).appending(path: "sheet"), from: .balances)
     }
 
-    /// Charisma's token list. Blocking a token (a scam) takes it off this list, so an empty list is an error.
-    public func tokenList() async throws -> [TokenInfo] {
-        let list = try await http.get(Self.tokens, from: .tokenList, as: [TokenInfo].self)
-        guard !list.isEmpty else { throw WalletError.tokenListUnavailable }
-        return list
+    /// Charisma's token list. Blocking a token (a scam) takes it off this list, so an empty list is an error. It's kept
+    /// for the 10 minutes the service's Cache-Control allows, unless `fresh` (Status checks the service itself).
+    public func tokenList(fresh: Bool = false) async throws -> [TokenInfo] {
+        try await Self.cache.list(maxAge: fresh ? 0 : 600) { [http] in
+            let list = try await http.get(Self.tokens, from: .tokenList, as: [TokenInfo].self)
+            guard !list.isEmpty else { throw WalletError.tokenListUnavailable }
+            return list
+        }
     }
 
     /// One token's details, for tokens that aren't on the list
@@ -29,30 +34,11 @@ public struct Charisma: Sendable {
         return try await http.get(Self.tokens.appending(path: contractId), from: .tokenList, as: Answer.self).data
     }
 
-    /// Details for tokens that aren't on the list, all at once. A failed lookup is logged and left out, so that token
-    /// shows as unknown (the extension's rule): one bad token never blanks the Tokens tab. Throws only
-    /// CancellationError.
+    /// Details for tokens that aren't on the list: each looked up once per session, four at a time. A failed lookup is
+    /// logged and left out, so that token shows as unknown (the extension's rule): one bad token never blanks the
+    /// Tokens tab. Throws only CancellationError.
     public func lookUp(_ contractIds: [String]) async throws -> [String: TokenInfo] {
-        try await withThrowingTaskGroup(of: (String, TokenInfo?).self) { group in
-            for id in contractIds {
-                group.addTask {
-                    do {
-                        return (id, try await token(id))
-                    } catch is CancellationError {
-                        // The screen went away: not a failed lookup
-                        throw CancellationError()
-                    } catch {
-                        Log.balances.error("Couldn't look up \(id, privacy: .public): \(error, privacy: .public)")
-                        return (id, nil)
-                    }
-                }
-            }
-            var found: [String: TokenInfo] = [:]
-            for try await (id, info) in group {
-                if let info { found[id] = info }
-            }
-            return found
-        }
+        try await Self.cache.details(of: contractIds) { id in try await token(id) }
     }
 
     /// USD per whole token, by contract id (".stx" for STX)
