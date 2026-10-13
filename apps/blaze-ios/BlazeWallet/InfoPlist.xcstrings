@@ -1,18 +1,66 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "NSFaceIDUsageDescription" : {
-      "comment" : "Privacy - Face ID Usage Description",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Blaze Wallet uses Face ID to unlock your wallet."
+  "sourceLanguage": "en",
+  "strings": {
+    "NSFaceIDUsageDescription": {
+      "comment": "Privacy - Face ID Usage Description",
+      "extractionState": "manual",
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blaze Wallet verwendet Face ID, um deine Wallet zu entsperren."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blaze Wallet uses Face ID to unlock your wallet."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blaze Wallet usa Face ID para desbloquear tu billetera."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blaze Wallet utilise Face ID pour déverrouiller votre portefeuille."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blaze Wallet は Face ID を使用してウォレットのロックを解除します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blaze Wallet은 Face ID를 사용하여 지갑의 잠금을 해제합니다."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A Blaze Wallet usa o Face ID para desbloquear sua carteira."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blaze Wallet, cüzdanınızın kilidini açmak için Face ID kullanır."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Blaze Wallet 使用面容 ID 解锁你的钱包。"
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }
