@@ -173,7 +173,7 @@ All Hiro calls retry on 429: wait for `Retry-After`, otherwise 1 s, 2 s, 4 s, th
 - **Tokens**: total value card, token rows, unlisted section. Tapping a sendable row opens Send as a sheet (form → review → sent, with "View on explorer" → `https://explorer.hiro.so/txid/0x{txid}?chain=mainnet`). The explorer opens inside the app: leaving the app locks the wallet, which would close a send that's still in progress. The send form shows the extension's note when the token also has a Blaze balance. Blaze-only, unlisted and unknown tokens aren't sendable, and say why. A send that was signed but got no clear answer stays on Tokens through locks, with View on explorer and Send again (the same transaction), so nothing new is signed on top of it.
 - **Status**: the four cards from the extension, with Check again.
 - **Brand**:
-  - `scripts/brand.mjs` turns `packages/brand/tokens.json` colours into an asset catalog, with light and dark values per token. It resolves alias values such as `{accent-soft}`. It copies only DM Mono and Ysabeau Infant, not Matter, until Decision 2 is settled.
+  - `scripts/brand.mjs` turns `packages/brand/tokens.json` colours into an asset catalog, with light and dark values per token. It resolves alias values such as `{accent-soft}`. It copies DM Mono, Ysabeau Infant and Matter (Decision 2, settled).
   - Its output in `BlazeWallet/Brand/` is committed, so opening the project needs no Node. Re-run the script when `tokens.json` changes.
   - The Theme setting maps to `preferredColorScheme`.
   - Fonts: DM Mono for numbers and addresses, Ysabeau Infant for Dark. For Light, see Decisions.
@@ -229,7 +229,7 @@ Every backend or vault call either returns real data or throws an error that nam
 ## Decisions for Ross
 
 1. **Export → Show seed phrase.** The extension's Export is an encrypted file that opens only with the wallet password, and the iOS app has no password. Recommended: replace it with Show seed phrase behind Face ID, since the words are the real backup and work in any Stacks wallet.
-2. **Matter font in Light.** Matter is a commercial font (Displaay), and web licences often don't cover apps. If Ross's licence covers apps, bundle it. Until then Light uses SF Pro, the next font in the brand's own Light stack (`"Matter", -apple-system, …`).
+2. **Matter font in Light.** Matter is a commercial font (Displaay), and web licences often don't cover apps. If Ross's licence covers apps, bundle it. Until then Light uses SF Pro, the next font in the brand's own Light stack (`"Matter", -apple-system, …`). **Settled 2026-10-13:** Ross confirmed Matter can be used, so Light uses it. The brand's `Matter-Medium.woff2` is Matter SQ Regular (its name table says so), and the web uses it as weight 500; the app does the same for every weight but regular.
 3. **Apple team.** The simulator needs nothing. Running on Ross's iPhone needs his Apple Developer team ID in `project.yml`.
 
 ## Later

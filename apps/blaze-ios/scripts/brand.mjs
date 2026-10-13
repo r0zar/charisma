@@ -68,9 +68,12 @@ json(join(catalog, "AppIcon.appiconset/Contents.json"), {
   info
 })
 
-// The open-licence fonts and their licences. Matter (Light's font) is commercial and stays out until its licence is
-// confirmed to cover apps (iOS spec, Decision 2); Light uses the system font meanwhile.
-const FONTS = ["DMMono-Regular.woff2", "DMMono-Medium.woff2", "YsabeauInfant.woff2", "YsabeauInfant-Italic.woff2", "OFL-DMMono.txt", "OFL-YsabeauInfant.txt"]
+// The fonts, with the open-licence ones' licences. Matter is commercial; Ross confirmed its licence covers the app
+// (iOS spec, Decision 2).
+const FONTS = [
+  "DMMono-Regular.woff2", "DMMono-Medium.woff2", "YsabeauInfant.woff2", "YsabeauInfant-Italic.woff2", "Matter-Regular.woff2",
+  "Matter-Medium.woff2", "OFL-DMMono.txt", "OFL-YsabeauInfant.txt"
+]
 for (const font of FONTS) copyFileSync(join(brand, "fonts", font), join(mkdirIn(out, "Fonts"), font))
 
 function mkdirIn(parent, name) {
