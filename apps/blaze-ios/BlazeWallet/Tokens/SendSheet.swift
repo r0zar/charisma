@@ -149,6 +149,11 @@ struct SendSheet: View {
         }
     }
 
+    private static func isRefusal(_ error: Error) -> Bool {
+        if case .rejected = error as? WalletError { return true }
+        return false
+    }
+
     private func send(_ review: SendReview) async {
         guard !busy else { return }
         error = nil
@@ -166,10 +171,12 @@ struct SendSheet: View {
             // Signing waits on the network: if the wallet locked meanwhile, nothing goes out
             try vault.touch()
             txid = try await Send.broadcast(transaction, hiro: hiro)
-            vault.unsent = nil
+            // Only this send's own warning: another account's unclear send still needs checking
+            if vault.unsent?.transaction == transaction { vault.unsent = nil }
         } catch {
-            // Signed but not clearly sent: kept outside this sheet, so a lock can't lose it, and Tokens says so
-            if let signed { vault.unsent = .init(transaction: signed, address: account.stxAddress) }
+            // Signed but not clearly sent: kept outside this sheet, so a lock can't lose it, and Tokens says so. A refusal
+            // is clear (the network didn't take it), so it isn't one; an earlier unclear attempt's warning stays.
+            if let signed, !Self.isRefusal(error) { vault.unsent = .init(transaction: signed, address: account.stxAddress) }
             self.error = error
         }
     }
