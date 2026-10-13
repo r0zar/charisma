@@ -43,7 +43,7 @@ targets:
         UILaunchScreen:
           UIColorName: bg
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
-        UIAppFonts: [DMMono-Regular.woff2, DMMono-Medium.woff2, YsabeauInfant.woff2, YsabeauInfant-Italic.woff2]
+        UIAppFonts: [DMMono-Regular.woff2, DMMono-Medium.woff2, YsabeauInfant.woff2, YsabeauInfant-Italic.woff2, Matter-Regular.woff2, Matter-Medium.woff2]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: rocks.charisma.blazewallet

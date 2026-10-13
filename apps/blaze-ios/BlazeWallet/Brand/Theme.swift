@@ -21,7 +21,7 @@ enum Theme {
 }
 
 extension View {
-    /// Words: Ysabeau Infant in Dark · RPG, the system font in Light · Bitcoin (Matter waits on its licence)
+    /// Words: Ysabeau Infant in Dark · RPG, Matter in Light · Bitcoin
     func brandFont(_ style: Font.TextStyle, weight: Font.Weight = .regular) -> some View {
         modifier(BrandFont(style: style, weight: weight, mono: false))
     }
@@ -44,7 +44,9 @@ private struct BrandFont: ViewModifier {
         } else if scheme == .dark {
             content.font(.custom("Ysabeau Infant", size: Self.size(style), relativeTo: style).weight(weight))
         } else {
-            content.font(.system(style, weight: weight))
+            // Matter has two files and no synthesized weights (tokens.json): any other weight is the brand's 500 file,
+            // which is Matter SQ, as on the web
+            content.font(.custom(weight == .regular ? "Matter-Regular" : "MatterSQ-Regular", size: Self.size(style), relativeTo: style))
         }
     }
 
