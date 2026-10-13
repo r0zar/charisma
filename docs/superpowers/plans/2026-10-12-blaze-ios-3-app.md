@@ -19,7 +19,7 @@ Plan 3b then adds the other eight languages.
 
 **Spec:** `docs/superpowers/specs/2026-10-12-blaze-wallet-ios-design.md`, sections "What gets ported", "Vault", "Screens", "Languages" (English here), "Errors", "Testing".
 
-**Baseline:** branch `feat/blaze-ios` with plans 1 and 2 done (49 tests passing).
+**Baseline:** branch `feat/blaze-ios` with plans 1 and 2 done (50 tests passing).
 
 ---
 
@@ -958,6 +958,8 @@ struct LockView: View {
         .padding(24)
         .background(Color.brand("bg"))
         .task(id: scenePhase) {
+            // Leaving the app again earns another automatic ask when it comes back
+            if scenePhase == .background { asked = false }
             // Face ID can only ask while the app is in front; a lock from the background waits for it
             guard scenePhase == .active, vault.asksOnAppear, !asked else { return }
             asked = true
@@ -1975,6 +1977,9 @@ final class StatusModel {
     private(set) var diagnostics: Diagnostics?
     /// The address `diagnostics` is for: switching accounts checks again at once
     private(set) var address: String?
+    /// When the last check started, and for which address, failed or not: the next one waits 5 minutes from here
+    private(set) var attemptedAt: Date?
+    private(set) var attemptedFor: String?
     private(set) var error: Error?
     private(set) var checking = false
 
@@ -1987,6 +1992,8 @@ final class StatusModel {
     }
 
     func check(address: String) async {
+        attemptedAt = Date()
+        attemptedFor = address
         error = nil
         checking = true
         defer { checking = false }
@@ -2060,9 +2067,10 @@ struct StatusTab: View {
             .task {
                 // Each check is ~38 Hiro reads: once per unlock and every 5 minutes while open, not on every visit
                 while !Task.isCancelled {
-                    if let checkedAt = diagnostics?.checkedAt,
-                       -checkedAt.timeIntervalSinceNow < Self.interval {
-                        guard (try? await Task.sleep(for: .seconds(Self.interval + checkedAt.timeIntervalSinceNow))) != nil else { return }
+                    // Five minutes from the last attempt, failed or not: offline or rate-limited, it never spins
+                    if model.attemptedFor == account.stxAddress, let attemptedAt = model.attemptedAt,
+                       -attemptedAt.timeIntervalSinceNow < Self.interval {
+                        guard (try? await Task.sleep(for: .seconds(Self.interval + attemptedAt.timeIntervalSinceNow))) != nil else { return }
                     }
                     await model.check(address: account.stxAddress)
                 }
