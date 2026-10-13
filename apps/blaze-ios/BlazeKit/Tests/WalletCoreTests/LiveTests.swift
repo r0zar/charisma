@@ -32,14 +32,17 @@ struct LiveTests {
     }
 
     @Test func theBalanceStreamStopsWithItsReader() async throws {
-        let stream = Charisma().watchBalances(address: TestPhrase.account0)
+        let (ended, connection) = AsyncStream.makeStream(of: URLError.Code?.self)
+        let session = URLSession(configuration: .ephemeral, delegate: ConnectionEnds(connection), delegateQueue: nil)
+        let stream = Charisma(session: session).watchBalances(address: TestPhrase.account0)
         let reader = Task {
             for await _ in stream {}
         }
         try await Task.sleep(for: .seconds(2))
         reader.cancel()
-        // Returns: cancelling the reader ended the stream (the suite's time limit fails it otherwise)
-        await reader.value
+        // The connection itself closes, cancelled, rather than staying open behind a reader that has gone
+        var codes = ended.makeAsyncIterator()
+        #expect(await codes.next() == .cancelled)
     }
 
     @Test func reviewAndSignAgainstTheNetwork() async throws {
@@ -57,9 +60,9 @@ struct LiveTests {
             guard case WalletError.notEnoughSTXForFee(let fee, let stxBalance, let mostSendable) = error else { return false }
             return fee > 100 && stxBalance == 100 && mostSendable == 0
         }
-        // Signed, never broadcast: the txid is known before anything is sent
+        // Signed at the reviewed fee, never broadcast
         let signed = try await Send.sign(review, from: account, hiro: Hiro())
-        #expect(signed.txid.count == 64)
+        #expect(signed.signature != Data(repeating: 0, count: 65) && signed.fee == UInt64(review.fee))
     }
 
     @Test func hiroAnswersAreReadable() async throws {
@@ -85,5 +88,19 @@ struct LiveTests {
             guard case WalletError.rejected(let reason) = error else { return false }
             return !reason.isEmpty
         }
+    }
+}
+
+/// Tells a test how each of a session's connections ended: nil when it finished cleanly. Tasks made by `bytes(for:)`
+/// don't call the session's didCompleteWithError, but every task's metrics arrive once it has ended.
+private final class ConnectionEnds: NSObject, URLSessionTaskDelegate, Sendable {
+    let ended: AsyncStream<URLError.Code?>.Continuation
+
+    init(_ ended: AsyncStream<URLError.Code?>.Continuation) {
+        self.ended = ended
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didFinishCollecting metrics: URLSessionTaskMetrics) {
+        ended.yield((task.error as? URLError)?.code)
     }
 }

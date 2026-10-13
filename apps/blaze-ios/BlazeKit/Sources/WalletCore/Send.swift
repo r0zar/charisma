@@ -61,9 +61,11 @@ public enum Send {
     /// Checks everything a send needs, estimating the network fee. `locale` reads the typed amount. `stx` is the STX row:
     /// the fee comes out of its Standard balance.
     ///
-    /// It takes the STX row, not its balance, because Swift 6.3 can pass an Int128 argument of an async function, and
-    /// the arguments after it, corrupted: a 1 STX balance arrived as a 30-digit number. Async functions here take no
-    /// Int128 arguments; pass the struct that holds the number.
+    /// It takes the STX row, not its balance. Swift 6.3 debug builds on arm64 can corrupt an async function's Int128 or
+    /// UInt128 argument, and the arguments after it, when it comes late in a long argument list (a large return value
+    /// counts as one more): a 1 STX balance arrived as a 33-digit number. A small struct or tuple holding the number is
+    /// corrupted the same way; a large struct such as TokenRow goes by reference and arrives intact. So async functions
+    /// here take no 128-bit argument, bare or wrapped.
     public static func review(
         row: TokenRow, recipient recipientText: String, amount amountText: String, locale: Locale, stx: TokenRow,
         account: Account, hiro: Hiro

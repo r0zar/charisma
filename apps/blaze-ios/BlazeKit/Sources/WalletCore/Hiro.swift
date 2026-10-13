@@ -63,10 +63,11 @@ public struct Hiro: Sendable {
         guard (200..<300).contains(response.statusCode) else {
             throw WalletError.requestFailed(.stacks, status: response.statusCode)
         }
-        let answered = try http.decode(data, from: .stacks, as: String.self)
+        // The network took it, so its answer is only a cross-check: an unreadable one never fails the send
+        let answered = try? http.decode(data, from: .stacks, as: String.self)
         let txid = transaction.txid
         if answered != txid && answered != "0x" + txid {
-            Log.network.error("Hiro answered txid \(answered, privacy: .public), the signed transaction is \(txid, privacy: .public)")
+            Log.network.error("Hiro answered txid \(answered ?? "unreadable", privacy: .public), the signed transaction is \(txid, privacy: .public)")
         }
         return txid
     }
