@@ -18,6 +18,15 @@ export interface NftCollection {
 }
 
 // `nft:` keys belong to an older NFT system that shares this KV, so collections keep their own prefix
+export interface TokenQuery {
+    offset: number;
+    limit: number;
+    /** trait type → the value a token must have */
+    traits?: Record<string, string>;
+    /** 'id', 'name', or a trait type */
+    sort?: string;
+}
+
 const collectionKey = (contractId: string) => `nft-collection:${contractId}`;
 const slugKey = (slug: string) => `nft-slug:${slug}`;
 const tokensKey = (contractId: string) => `nft-tokens:${contractId}`;
@@ -48,12 +57,32 @@ export class NftService {
         return kv.hget<TokenMetadata>(tokensKey(contractId), tokenId);
     }
 
-    /** One page of a collection's tokens, in token id order */
-    static async listTokens(contractId: string, offset: number, limit: number) {
-        const ids = (await kv.hkeys(tokensKey(contractId))).sort((a, b) => Number(a) - Number(b) || a.localeCompare(b));
-        const page = ids.slice(offset, offset + limit);
-        const metadata = page.length ? await kv.hmget<Record<string, TokenMetadata>>(tokensKey(contractId), ...page) : null;
-        return { total: ids.length, tokens: page.map(id => ({ id, ...metadata![id] })) };
+    /**
+     * One page of a collection's tokens matching every `traits` filter (trait type → value), sorted by token id, name,
+     * or a trait type. Also counts every trait value across the whole collection, for building filters.
+     */
+    static async listTokens(contractId: string, { offset, limit, traits = {}, sort = 'id' }: TokenQuery) {
+        const all = Object.entries(await kv.hgetall<Record<string, TokenMetadata>>(tokensKey(contractId)) ?? {})
+            .map(([id, token]) => ({ id, ...token }));
+        const valueOf = (token: TokenMetadata, type: string) => token.attributes?.find(a => a.trait_type === type)?.value;
+
+        const traitCounts: Record<string, Record<string, number>> = {};
+        for (const token of all) {
+            for (const { trait_type, value } of token.attributes ?? []) {
+                const values = (traitCounts[trait_type] ??= {});
+                values[String(value)] = (values[String(value)] ?? 0) + 1;
+            }
+        }
+
+        const byId = (a: { id: string }, b: { id: string }) => Number(a.id) - Number(b.id) || a.id.localeCompare(b.id);
+        const matches = all
+            .filter(token => Object.entries(traits).every(([type, value]) => String(valueOf(token, type)) === value))
+            .sort((a, b) =>
+                sort === 'id' ? byId(a, b)
+                    : sort === 'name' ? (a.name ?? '').localeCompare(b.name ?? '') || byId(a, b)
+                        : String(valueOf(a, sort) ?? '').localeCompare(String(valueOf(b, sort) ?? '')) || byId(a, b));
+
+        return { total: matches.length, tokens: matches.slice(offset, offset + limit), traits: traitCounts };
     }
 
     static async saveCollection(collection: NftCollection) {
