@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { fetchPrices, toInvestPrice } from '@/lib/prices-api';
 
 const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -9,16 +10,6 @@ const headers = {
     'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900'
 };
 
-interface TokenMetadata {
-    name: string;
-    symbol: string;
-    decimals: number;
-    description: string;
-    image: string;
-    contractId: string;
-    total_supply: number;
-    identifier: string;
-}
 
 export async function OPTIONS() {
     return new NextResponse(null, { status: 204, headers });
@@ -51,34 +42,8 @@ export async function GET(
 
         console.log(`[Price API] Fetching price for token: ${tokenId}`);
 
-        // Fetch token price and metadata in parallel
-        const lakehouseUrl = new URL('https://lakehouse.charisma.rocks/api/token-prices');
-        lakehouseUrl.searchParams.set('token', tokenId);
-        lakehouseUrl.searchParams.set('limit', '1');
-
-        const [pricesResponse, tokensResponse] = await Promise.all([
-            fetch(lakehouseUrl.toString(), {
-                headers: { 'User-Agent': 'dex-cache/1.0' }
-            }),
-            fetch('https://tokens.charisma.rocks/api/v1/sip10', {
-                headers: { 'User-Agent': 'dex-cache/1.0' }
-            })
-        ]);
-
-        if (!pricesResponse.ok) {
-            throw new Error(`Lakehouse API error: ${pricesResponse.status} ${pricesResponse.statusText}`);
-        }
-
-        if (!tokensResponse.ok) {
-            throw new Error(`Tokens API error: ${tokensResponse.status} ${tokensResponse.statusText}`);
-        }
-
-        const [lakehouseData, tokensData] = await Promise.all([
-            pricesResponse.json(),
-            tokensResponse.json()
-        ]);
-
-        if (!lakehouseData.prices || lakehouseData.prices.length === 0) {
+        const [priced] = (await fetchPrices([tokenId])).tokens;
+        if (!priced) {
             return NextResponse.json({
                 status: 'error',
                 error: 'Token not found',
@@ -89,38 +54,19 @@ export async function GET(
             });
         }
 
-        const priceData = lakehouseData.prices[0];
-        const metadata = tokensData.find((token: TokenMetadata) => token.contractId === tokenId);
         const processingTime = Date.now() - startTime;
-
-        // Transform lakehouse response with accurate metadata
-        const transformedData = {
-            tokenId: priceData.token_contract_id,
-            symbol: metadata?.symbol || 'UNKNOWN',
-            name: metadata?.name || 'Unknown Token',
-            decimals: metadata?.decimals || 6,
-            image: metadata?.image || '',
-            usdPrice: priceData.usd_price,
-            sbtcRatio: priceData.sbtc_price,
-            confidence: Math.min(1, Math.max(0, 1 - (priceData.final_convergence_percent || 0) / 100)),
-            lastUpdated: new Date(priceData.calculated_at).getTime(),
-            totalLiquidity: 0,
-            isLpToken: false,
-            intrinsicValue: priceData.usd_price,
-            marketPrice: priceData.usd_price
-        };
+        const transformedData = toInvestPrice(priced);
 
         // Add calculation details if requested
         if (includeDetails) {
             (transformedData as any).calculationDetails = {
-                priceSource: 'lakehouse',
-                iterationsToConverge: priceData.iterations_to_converge,
-                finalConvergencePercent: priceData.final_convergence_percent,
-                calculatedAt: priceData.calculated_at
+                priceSource: 'prices.charisma.rocks',
+                roundTripLossPercent: priced.roundTripLoss,
+                calculatedAt: priced.updatedAt
             };
         }
 
-        console.log(`[Price API] Retrieved ${metadata?.symbol || 'UNKNOWN'} price in ${processingTime}ms: $${priceData.usd_price.toFixed(6)}`)
+        console.log(`[Price API] Retrieved ${priced.symbol} price in ${processingTime}ms: $${priced.usd}`)
 
         return NextResponse.json({
             status: 'success',
@@ -128,8 +74,8 @@ export async function GET(
             metadata: {
                 processingTimeMs: processingTime,
                 includeDetails,
-                lakehouseData: true,
-                lastUpdated: lakehouseData.summary.last_updated
+                source: 'prices.charisma.rocks',
+                lastUpdated: priced.updatedAt
             }
         }, {
             status: 200,

@@ -1,6 +1,7 @@
 export * from './token-cache-client';
 export * from './prices';
 export * from './lakehouse-client';
+export * from './prices-client';
 export * from './balance-client';
 
 export type { TokenCacheData } from './token-cache-client';

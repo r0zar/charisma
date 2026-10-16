@@ -1,5 +1,5 @@
 import { type LineData } from 'lightweight-charts';
-import { lakehouseClient, type LakehouseHistoryPoint } from '@repo/tokens';
+import { pricesClient, type PriceCandle, type PriceInterval } from '@repo/tokens';
 
 export interface ChartPriceSeriesData {
   [contractId: string]: LineData[];
@@ -13,11 +13,11 @@ export class PriceSeriesService {
   private cache = new Map<string, { data: LineData[]; timestamp: number }>();
   private cacheTTL = 5 * 60 * 1000; // 5 minutes
 
-  private convertToLineData(history: LakehouseHistoryPoint[]): LineData[] {
-    return history
-      .map(point => ({
-        time: Math.floor(new Date(point.timestamp).getTime() / 1000) as any,
-        value: point.usd_price
+  private convertToLineData(candles: PriceCandle[]): LineData[] {
+    return candles
+      .map(c => ({
+        time: c.time as any,
+        value: c.close
       }))
       .filter(point => point.value > 0 && !isNaN(point.value))
       .sort((a, b) => Number(a.time) - Number(b.time));
@@ -50,23 +50,18 @@ export class PriceSeriesService {
     try {
       console.log(`[PRICE-SERVICE] Fetching ${timeframe} data for ${contractId.substring(0, 10)}`);
       
-      // The lakehouse returns hourly points regardless of interval, so limit = hours of history
-      const hoursByTimeframe: Record<string, number> = {
-        '1h': 24,
-        '24h': 24,
-        '7d': 7 * 24,
-        '30d': 30 * 24,
+      // Candle size and count for each timeframe: 5-minute points up to a day, then hourly and 4-hourly
+      const spans: Record<string, { interval: PriceInterval; limit: number }> = {
+        '1h': { interval: '5m', limit: 12 },
+        '24h': { interval: '5m', limit: 288 },
+        '7d': { interval: '1h', limit: 7 * 24 },
+        '30d': { interval: '4h', limit: 30 * 6 },
       };
-      const interval = 'hour';
-      const limit = hoursByTimeframe[timeframe] ?? hoursByTimeframe['24h'];
+      const { interval, limit } = spans[timeframe] ?? spans['24h'];
+      const days = { '5m': 1, '1h': 7, '4h': 30, '1d': 365, '1w': 365 }[interval];
+      const candles = await pricesClient.history(contractId, { interval, limit, from: new Date(Date.now() - days * 86400_000) });
       
-      // Use lakehouse client (no fake fallback data)
-      const history = await lakehouseClient.getPriceHistoryWithFallback(contractId, {
-        interval,
-        limit
-      });
-      
-      const lineData = this.convertToLineData(history);
+      const lineData = this.convertToLineData(candles);
       
       // Cache the result
       this.cache.set(cacheKey, { data: lineData, timestamp: Date.now() });
@@ -118,8 +113,7 @@ export class PriceSeriesService {
    */
   async getCurrentPrice(contractId: string): Promise<number | null> {
     try {
-      const priceData = await lakehouseClient.getTokenPrice(contractId);
-      return priceData?.usd_price || null;
+      return (await pricesClient.get(contractId)).usd;
     } catch (error) {
       console.error(`[PRICE-SERVICE] Error fetching current price for ${contractId}:`, error);
       return null;
@@ -131,12 +125,8 @@ export class PriceSeriesService {
    */
   async getAllTokens(): Promise<Array<{ tokenId: string; symbol: string; usdPrice: number }>> {
     try {
-      const prices = await lakehouseClient.getCurrentPrices({ limit: 1000 });
-      return prices.map(p => ({
-        tokenId: p.token_contract_id,
-        symbol: p.token_contract_id.split('.').pop() || p.token_contract_id,
-        usdPrice: p.usd_price
-      }));
+      const { tokens } = await pricesClient.list();
+      return tokens.map(t => ({ tokenId: t.contractId, symbol: t.symbol, usdPrice: t.usd }));
     } catch (error) {
       console.error('[PRICE-SERVICE] Error fetching all tokens:', error);
       return [];

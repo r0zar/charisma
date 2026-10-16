@@ -1,3 +1,4 @@
+import { fetchPrices } from '@/lib/prices-api';
 // Stub service to replace missing @services/prices until proper refactor
 export interface TokenPriceData {
     tokenId: string;
@@ -26,34 +27,21 @@ export class PriceSeriesAPI {
     constructor(private storage: PriceSeriesStorage) {}
 
     async getBulkCurrentPrices({ tokenIds }: { tokenIds: string[] }): Promise<PriceAPIResponse> {
-        // Stub implementation that calls the new lakehouse API
         try {
-            const lakehouseUrl = new URL('https://lakehouse.charisma.rocks/api/token-prices');
-            lakehouseUrl.searchParams.set('limit', '1000');
-
-            const response = await fetch(lakehouseUrl.toString());
-            if (!response.ok) {
-                throw new Error(`API error: ${response.status}`);
-            }
-
-            const data = await response.json();
             const prices: Record<string, TokenPriceData> = {};
-
-            data.prices.forEach((price: any) => {
-                if (tokenIds.includes(price.token_contract_id)) {
-                    const reliability = Math.min(1, Math.max(0, 1 - (price.final_convergence_percent || 0) / 100));
-                    prices[price.token_contract_id] = {
-                        tokenId: price.token_contract_id,
-                        symbol: price.token_contract_id.split('.').pop()?.toUpperCase() || 'UNKNOWN',
-                        usdPrice: price.usd_price,
-                        sbtcRatio: price.sbtc_price,
-                        reliability: reliability,
-                        confidence: reliability,
-                        lastUpdated: new Date(price.calculated_at).getTime(),
-                        source: 'lakehouse'
-                    };
-                }
-            });
+            for (const t of (await fetchPrices(tokenIds)).tokens) {
+                const reliability = t.roundTripLoss === null ? 1 : Math.max(0, 1 - t.roundTripLoss / 100);
+                prices[t.contractId] = {
+                    tokenId: t.contractId,
+                    symbol: t.symbol,
+                    usdPrice: t.usd,
+                    sbtcRatio: t.sbtc,
+                    reliability,
+                    confidence: reliability,
+                    lastUpdated: Date.parse(t.updatedAt),
+                    source: 'prices.charisma.rocks'
+                };
+            }
 
             return {
                 success: true,

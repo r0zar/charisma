@@ -5,7 +5,7 @@ const fetchMock = vi.fn();
 
 beforeEach(() => {
   fetchMock.mockReset();
-  fetchMock.mockResolvedValue(new Response(JSON.stringify({ price_history: [] }), { status: 200 }));
+  fetchMock.mockResolvedValue(new Response(JSON.stringify({ candles: [] }), { status: 200 }));
   vi.stubGlobal('fetch', fetchMock);
 });
 
@@ -20,10 +20,10 @@ function requestedParams(): URLSearchParams {
 
 describe('PriceSeriesService timeframes', () => {
   it.each([
-    ['24h', 'hour', '24'],
-    ['7d', 'hour', '168'],
-    ['30d', 'hour', '720'],
-  ])('%s requests %s buckets with limit %s', async (timeframe, interval, limit) => {
+    ['24h', '5m', '288'],
+    ['7d', '1h', '168'],
+    ['30d', '4h', '180'],
+  ])('%s requests %s candles with limit %s', async (timeframe: string, interval: string, limit: string) => {
     await new PriceSeriesService().fetchSingleSeries('SP1.token', timeframe);
 
     const params = requestedParams();
