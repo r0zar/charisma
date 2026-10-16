@@ -1,0 +1,9 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": ["GOOGLE_CLOUD_CREDENTIALS", "GOOGLE_CLOUD_PROJECT", "BIGQUERY_DATASET", "CRON_SECRET"]
+    }
+  }
+}
