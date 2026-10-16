@@ -1,0 +1,35 @@
+{
+  "name": "recovery",
+  "version": "0.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev -p 3015",
+    "lint": "next lint",
+    "check-types": "tsc --noEmit",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@repo/brand": "workspace:^",
+    "@stacks/connect": "8.1.9",
+    "@stacks/transactions": "7.1.0",
+    "lucide-react": "0.525.0",
+    "next": "15.4.10",
+    "react": "^19.0.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "^15.3.5",
+    "@repo/eslint-config": "workspace:*",
+    "@repo/typescript-config": "workspace:*",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9.31.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}

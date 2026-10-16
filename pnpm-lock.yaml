@@ -1359,6 +1359,64 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@24.0.15)(@vitest/ui@2.1.9)(happy-dom@18.0.1)(jsdom@26.1.0(bufferutil@4.1.0)(canvas@3.1.2)(utf-8-validate@6.0.6))(less@4.9.1)(lightningcss@1.30.1)(sass@1.105.1)(terser@5.43.1)
 
+  apps/recovery:
+    dependencies:
+      '@repo/brand':
+        specifier: workspace:^
+        version: link:../../packages/brand
+      '@stacks/connect':
+        specifier: 8.1.9
+        version: 8.1.9
+      '@stacks/transactions':
+        specifier: 7.1.0
+        version: 7.1.0
+      lucide-react:
+        specifier: 0.525.0
+        version: 0.525.0(react@19.1.0)
+      next:
+        specifier: 15.4.10
+        version: 15.4.10(@babel/core@7.28.0)(@opentelemetry/api@1.9.0)(babel-plugin-macros@3.1.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(sass@1.105.1)
+      react:
+        specifier: ^19.0.0
+        version: 19.1.0
+      react-dom:
+        specifier: ^19.1.0
+        version: 19.1.0(react@19.1.0)
+    devDependencies:
+      '@next/eslint-plugin-next':
+        specifier: ^15.3.5
+        version: 15.4.2
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../../packages/config-eslint
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../../packages/config-typescript
+      '@tailwindcss/postcss':
+        specifier: ^4
+        version: 4.1.11
+      '@types/node':
+        specifier: ^24
+        version: 24.0.15
+      '@types/react':
+        specifier: ^19
+        version: 19.1.8
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.1.6(@types/react@19.1.8)
+      eslint:
+        specifier: ^9.31.0
+        version: 9.31.0(jiti@2.4.2)
+      postcss:
+        specifier: ^8.5.6
+        version: 8.5.6
+      tailwindcss:
+        specifier: ^4
+        version: 4.1.11
+      typescript:
+        specifier: ^5
+        version: 5.8.3
+
   apps/signet:
     dependencies:
       '@plasmohq/messaging':
@@ -23292,7 +23350,7 @@ snapshots:
       debug: 4.4.1
       invariant: 2.2.4
       metro: 0.82.5(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-      metro-config: 0.82.5(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      metro-config: 0.82.5(bufferutil@4.1.0)
       metro-core: 0.82.5
       semver: 7.7.2
     transitivePeerDependencies:
@@ -24902,7 +24960,7 @@ snapshots:
   '@stacks/auth@7.1.0':
     dependencies:
       '@noble/secp256k1': 1.7.1
-      '@stacks/common': 7.3.1
+      '@stacks/common': 7.6.0
       '@stacks/encryption': 7.6.0
       '@stacks/network': 7.6.0
       '@stacks/profile': 7.1.0
@@ -24945,7 +25003,7 @@ snapshots:
   '@stacks/connect@8.1.9':
     dependencies:
       '@scure/base': 1.2.6
-      '@stacks/common': 7.0.2
+      '@stacks/common': 7.6.0
       '@stacks/connect-ui': 8.0.0
       '@stacks/network': 7.6.0
       '@stacks/network-v6': '@stacks/network@6.17.0'
@@ -25138,7 +25196,7 @@ snapshots:
 
   '@stacks/profile@7.1.0':
     dependencies:
-      '@stacks/common': 7.3.1
+      '@stacks/common': 7.6.0
       '@stacks/network': 7.6.0
       '@stacks/transactions': 7.6.0
       jsontokens: 4.0.1
@@ -25152,7 +25210,7 @@ snapshots:
   '@stacks/storage@7.1.0':
     dependencies:
       '@stacks/auth': 7.1.0
-      '@stacks/common': 7.3.1
+      '@stacks/common': 7.6.0
       '@stacks/encryption': 7.6.0
       '@stacks/network': 7.6.0
       base64-js: 1.5.1
@@ -25175,7 +25233,7 @@ snapshots:
     dependencies:
       '@noble/hashes': 1.1.5
       '@noble/secp256k1': 1.7.1
-      '@stacks/common': 7.0.2
+      '@stacks/common': 7.6.0
       '@stacks/network': 7.6.0
       c32check: 2.0.0
       lodash.clonedeep: 4.5.0
@@ -32999,22 +33057,6 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
-    optional: true
-
-  metro-config@0.82.5(bufferutil@4.1.0)(utf-8-validate@6.0.6):
-    dependencies:
-      connect: 3.7.0
-      cosmiconfig: 5.2.1
-      flow-enums-runtime: 0.0.6
-      jest-validate: 29.7.0
-      metro: 0.82.5(bufferutil@4.1.0)(utf-8-validate@6.0.6)
-      metro-cache: 0.82.5
-      metro-core: 0.82.5
-      metro-runtime: 0.82.5
-    transitivePeerDependencies:
-      - bufferutil
-      - supports-color
-      - utf-8-validate
 
   metro-core@0.82.5:
     dependencies:
@@ -33106,7 +33148,6 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
-    optional: true
 
   metro-transform-worker@0.82.5(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     dependencies:
@@ -33174,7 +33215,6 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
-    optional: true
 
   metro@0.82.5(bufferutil@4.1.0)(utf-8-validate@6.0.6):
     dependencies:
@@ -33202,7 +33242,7 @@ snapshots:
       metro-babel-transformer: 0.82.5
       metro-cache: 0.82.5
       metro-cache-key: 0.82.5
-      metro-config: 0.82.5(bufferutil@4.1.0)(utf-8-validate@6.0.6)
+      metro-config: 0.82.5(bufferutil@4.1.0)
       metro-core: 0.82.5
       metro-file-map: 0.82.5
       metro-resolver: 0.82.5

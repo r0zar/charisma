@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+/* Charisma brand tokens, fonts and Tailwind utilities */
+@import "@repo/brand/tokens.css";
+@import "@repo/brand/fonts.css";
+@import "@repo/brand/theme.css";
+
+@layer base {
+  *    { @apply border-line; }
+  html { background-color: var(--chrome); }
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-variant-numeric: tabular-nums;
+  }
+  button:not(:disabled), [role="button"]:not(:disabled) { cursor: pointer; }
+}
