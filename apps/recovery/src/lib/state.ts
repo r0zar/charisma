@@ -116,8 +116,10 @@ export const getRecoveryState = unstable_cache(loadState, ['recovery-state-v2'],
 
 /** A wallet's IOU balances in base units */
 export async function iouBalances(address: string): Promise<Record<IouKey, string>> {
-  const json = await getJson<{ fungible_tokens: Record<string, { balance: string }> }>(`${HIRO}/extended/v1/address/${address}/balances`);
-  return Object.fromEntries(TOKENS.map(t => [t.key, json.fungible_tokens[`${t.iou.contractId}::${t.iou.asset}`]?.balance ?? '0'])) as Record<IouKey, string>;
+  const balances = await Promise.all(TOKENS.map(async t =>
+    [t.key, (await getJson<{ balance: string }>(`${HIRO}/extended/v2/addresses/${address}/balances/ft/${t.iou.contractId}::${t.iou.asset}`)).balance] as const,
+  ));
+  return Object.fromEntries(balances) as Record<IouKey, string>;
 }
 
 export { DECIMALS };
