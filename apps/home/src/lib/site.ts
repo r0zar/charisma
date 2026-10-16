@@ -15,6 +15,7 @@ export const APP_GROUPS: { title: string; apps: App[] }[] = [
   {
     title: 'Trade', apps: [
       { name: 'Swap', href: 'https://swap.charisma.rocks', line: 'Best price on every swap' },
+      { name: 'Prices', href: 'https://prices.charisma.rocks', line: 'Live prices and charts' },
       { name: 'Zesty', href: 'https://zesty.charisma.rocks', line: 'Pick a side on ZEST' },
       { name: 'Meme Roulette', href: 'https://lol.charisma.rocks', line: 'Pump a meme together' },
     ],
