@@ -27,7 +27,7 @@ interface EnhancedTokenSummary extends TokenSummary {
 interface TokenTableProps {
     tokens: (TokenSummary | EnhancedTokenSummary)[];
     compareId: string | null;
-    priceHistories?: Record<string, any[]>;
+    priceHistories?: Record<string, number[]>;
     hasEnhancedData?: boolean;
 }
 
@@ -474,7 +474,7 @@ interface TokenRowProps {
     showBalances: boolean;
     address: string | null;
     compareToken: TokenSummary | null;
-    priceHistory?: any[];
+    priceHistory?: number[];
     hasEnhancedData: boolean;
 }
 
@@ -486,10 +486,7 @@ const TokenRow = React.memo(function TokenRow({
     priceHistory,
     hasEnhancedData
 }: TokenRowProps) {
-    const sparklineData = useMemo(() => {
-        if (!priceHistory || priceHistory.length < 2) return null;
-        return priceHistory.map(entry => entry.usdPrice || entry.price);
-    }, [priceHistory]);
+    const sparklineData = priceHistory && priceHistory.length >= 2 ? priceHistory : null;
 
     const isArbitrageOpp = 'arbitrageOpportunity' in token && token.arbitrageOpportunity?.profitable;
 

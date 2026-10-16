@@ -9,7 +9,7 @@ import { usePrices } from '@/contexts/token-price-context';
 
 interface MarketHighlightsProps {
     tokenSummaries: TokenSummary[];
-    priceHistories?: Record<string, any[]>;
+    priceHistories?: Record<string, number[]>;
     className?: string;
 }
 

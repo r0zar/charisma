@@ -48,7 +48,7 @@ interface EnhancedTokenSummary extends TokenSummary {
 
 interface Props {
     tokens: (TokenSummary | EnhancedTokenSummary)[];
-    priceHistories?: Record<string, any[]>;
+    priceHistories?: Record<string, number[]>;
     arbitrageOpportunities?: any[];
 }
 

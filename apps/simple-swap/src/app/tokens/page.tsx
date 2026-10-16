@@ -4,6 +4,7 @@ import { listTokens as listMetadata, listPrices } from '@/lib/contract-registry-
 import type { TokenSummary } from "@/types/token-types";
 import { calculateMarketCap, findClosestPrice } from "@/lib/utils/token-utils";
 import TokensPageClient from "@/components/tokens/tokens-page-client";
+import { pricesClient, type TokenPrice } from '@repo/tokens';
 import { ComparisonTokenProvider } from '@/contexts/comparison-token-context';
 
 // Use static generation with ISR for better performance
@@ -37,7 +38,7 @@ interface EnhancedTokenSummary extends TokenSummary {
     };
 }
 
-async function getTokenSummaries(): Promise<TokenSummary[]> {
+async function getTokenSummaries(market: Map<string, TokenPrice>): Promise<TokenSummary[]> {
     const summaries: TokenSummary[] = [];
 
     try {
@@ -55,14 +56,15 @@ async function getTokenSummaries(): Promise<TokenSummary[]> {
         // Step 3: Combine metadata with price data
         for (const [contractId, meta] of metaMap) {
             const price = prices[contractId];
+            const change = market.get(contractId)?.change;
 
             // Include all tokens, even without prices for better UX
             const summary: TokenSummary = {
                 ...meta,
                 price: price || null,
-                change1h: null, // Would need historical data API
-                change24h: null, // Would need historical data API
-                change7d: null, // Would need historical data API
+                change1h: change?.['1h'] ?? null,
+                change24h: change?.['24h'] ?? null,
+                change7d: change?.['7d'] ?? null,
                 lastUpdated: price ? Date.now() : null,
                 marketCap: price ? calculateMarketCap(
                     price,
@@ -95,7 +97,7 @@ async function getTokenSummaries(): Promise<TokenSummary[]> {
 }
 
 export default async function TokensPage() {
-    let priceHistories: Record<string, any[]> = {};
+    let priceHistories: Record<string, number[]> = {};
     let arbitrageOpportunities: any[] = [];
 
     // Get the base token data using cached APIs
@@ -103,7 +105,10 @@ export default async function TokensPage() {
 
     try {
         console.log('[TokensPage] Fetching token summaries from cached APIs...');
-        tokens = await getTokenSummaries();
+        // Changes and 7-day sparklines come from prices.charisma.rocks
+        const market = await pricesClient.list({ sparkline: true });
+        priceHistories = Object.fromEntries(market.tokens.filter(t => t.sparkline?.length).map(t => [t.contractId, t.sparkline!]));
+        tokens = await getTokenSummaries(new Map(market.tokens.map(t => [t.contractId, t])));
         console.log(`[TokensPage] Fetched ${tokens.length} tokens`);
 
         // Log sample token data
