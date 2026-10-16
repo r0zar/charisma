@@ -9,6 +9,8 @@ export interface NftCollection {
     slug: string;
     name: string;
     description?: string;
+    /** Cover image: the first token's */
+    image?: string;
     /** Blob URL prefix the collection's images live under */
     imageBase: string;
     tokenCount: number;
@@ -29,8 +31,28 @@ export class NftService {
         return contractId ? kv.get<NftCollection>(collectionKey(contractId)) : null;
     }
 
+    static async listCollections(): Promise<NftCollection[]> {
+        const keys: string[] = [];
+        let cursor = 0;
+        do {
+            const [next, batch] = await kv.scan(cursor, { match: 'nft:*', count: 1000 });
+            cursor = Number(next);
+            keys.push(...batch);
+        } while (cursor !== 0);
+        if (!keys.length) return [];
+        return (await kv.mget<NftCollection[]>(...keys)).filter(Boolean);
+    }
+
     static async getToken(contractId: string, tokenId: string): Promise<TokenMetadata | null> {
         return kv.hget<TokenMetadata>(tokensKey(contractId), tokenId);
+    }
+
+    /** One page of a collection's tokens, in token id order */
+    static async listTokens(contractId: string, offset: number, limit: number) {
+        const ids = (await kv.hkeys(tokensKey(contractId))).sort((a, b) => Number(a) - Number(b) || a.localeCompare(b));
+        const page = ids.slice(offset, offset + limit);
+        const metadata = page.length ? await kv.hmget<Record<string, TokenMetadata>>(tokensKey(contractId), ...page) : null;
+        return { total: ids.length, tokens: page.map(id => ({ id, ...metadata![id] })) };
     }
 
     static async saveCollection(collection: NftCollection) {

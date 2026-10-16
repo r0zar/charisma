@@ -52,9 +52,11 @@ await Promise.all(Array.from({ length: 8 }, async () => {
 }));
 
 // Token metadata, 200 per write
-const ids = Object.keys(tokens);
+const ids = Object.keys(tokens).sort((a, b) => Number(a) - Number(b) || a.localeCompare(b));
 for (let i = 0; i < ids.length; i += 200) {
     await NftService.saveTokens(contractId, Object.fromEntries(ids.slice(i, i + 200).map(id => [id, tokens[id]])));
 }
-await NftService.saveCollection({ contractId, slug, name, description, imageBase, tokenCount: ids.length, lastUpdated: new Date().toISOString() });
+await NftService.saveCollection({
+    contractId, slug, name, description, image: tokens[ids[0]]?.image, imageBase, tokenCount: ids.length, lastUpdated: new Date().toISOString(),
+});
 console.log(`Done: ${base}<id>.json (images under ${imageBase})`);
