@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { removeVault, refreshVaultData } from '@/app/actions';
 import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers, ArrowRightLeft, Shield } from 'lucide-react';
+import { ChevronDown, ChevronUp, Coins, Layers, ArrowRightLeft, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { Vault } from '@/lib/pool-service';
+import { dexName } from '@/lib/protocols';
 import Image from 'next/image';
 
 // Utility to truncate contract id for display
@@ -60,33 +59,6 @@ const formatUsdValue = (value: number | null): string => {
     }
 };
 
-// Format timestamp to readable date
-const formatTimestamp = (timestamp?: number): string => {
-    if (!timestamp) return 'Never';
-    return new Date(timestamp).toLocaleString();
-};
-
-// Calculate time since last update for status indicator
-const getTimeSinceUpdate = (timestamp?: number): { status: 'fresh' | 'normal' | 'stale'; text: string } => {
-    if (!timestamp) return { status: 'stale', text: 'Never updated' };
-
-    const now = Date.now();
-    const diff = now - timestamp;
-
-    // Less than 1 hour
-    if (diff < 60 * 60 * 1000) {
-        return { status: 'fresh', text: 'Updated recently' };
-    }
-    // Less than 24 hours
-    else if (diff < 24 * 60 * 60 * 1000) {
-        return { status: 'normal', text: 'Updated today' };
-    }
-    // More than 24 hours
-    else {
-        return { status: 'stale', text: 'Needs update' };
-    }
-};
-
 // Calculate USD value based on token amount and price
 const calculateUsdValue = (amount: number, decimals: number, contractId: string, prices: KraxelPriceData | null): number | null => {
     if (!prices || !contractId) return null;
@@ -131,12 +103,9 @@ interface Props {
 }
 
 export default function VaultList({ vaults }: Props) {
-    const [refreshing, setRefreshing] = useState<string | null>(null);
-    const [removing, setRemoving] = useState<string | null>(null);
     const [expandedVault, setExpandedVault] = useState<string | null>(null);
     const [prices, setPrices] = useState<KraxelPriceData | null>(null);
     const [filteredType, setFilteredType] = useState<string | null>(null);
-    const isDev = process.env.NODE_ENV === 'development';
 
     // Filter vaults by type if filter is active
     const filteredVaults = filteredType
@@ -157,20 +126,6 @@ export default function VaultList({ vaults }: Props) {
         };
         fetchPrices();
     }, []);
-
-    const handleRefresh = async (id: string) => {
-        setRefreshing(id);
-        await refreshVaultData(id);
-        window.location.reload();
-        setRefreshing(null);
-    };
-
-    const handleRemove = async (id: string) => {
-        setRemoving(id);
-        await removeVault(id);
-        window.location.reload();
-        setRemoving(null);
-    };
 
     const toggleExpand = (id: string) => {
         setExpandedVault(expandedVault === id ? null : id);
@@ -227,16 +182,12 @@ export default function VaultList({ vaults }: Props) {
                                 <th className="p-4 font-semibold text-muted-foreground">Name</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Contract</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Type</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Protocol</th>
+                                <th className="p-4 font-semibold text-muted-foreground">DEX</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Tokens</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Status</th>
-                                <th className="p-4 font-semibold text-muted-foreground text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {filteredVaults.map(v => {
-                                const isRefreshing = refreshing === v.contractId;
-                                const isRemoving = removing === v.contractId;
                                 const isExpanded = expandedVault === v.contractId;
                                 const vaultType = v.type?.toUpperCase() || 'POOL';
 
@@ -246,9 +197,6 @@ export default function VaultList({ vaults }: Props) {
                                     : vaultType === 'ENERGY'
                                         ? `/energy`
                                         : `/vaults/${v.contractId}`;
-
-                                const lastUpdated = (v as any).reservesLastUpdatedAt;
-                                const updateStatus = getTimeSinceUpdate(lastUpdated);
 
                                 return (
                                     <React.Fragment key={v.contractId}>
@@ -266,15 +214,8 @@ export default function VaultList({ vaults }: Props) {
                                                             />
                                                         </div>
                                                     )}
-                                                    <div>
-                                                        <div className="font-semibold text-foreground group-hover:text-accent-text group-hover:underline">
-                                                            {v.name}
-                                                        </div>
-                                                        {lastUpdated && (
-                                                            <div className="text-xs text-muted-foreground mt-0.5">
-                                                                Updated: {formatTimestamp(lastUpdated)}
-                                                            </div>
-                                                        )}
+                                                    <div className="font-semibold text-foreground group-hover:text-accent-text group-hover:underline">
+                                                        {v.name}
                                                     </div>
                                                 </Link>
                                                 <button onClick={() => toggleExpand(v.contractId)} className="ml-auto text-muted-foreground p-1 px-3 rounded-full hover:bg-surface-hover">
@@ -294,7 +235,7 @@ export default function VaultList({ vaults }: Props) {
                                                 </Badge>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
-                                                <Badge variant="outline">{v.protocol || 'UNKNOWN'}</Badge>
+                                                <Badge variant="outline">{dexName(v.protocol)}</Badge>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
                                                 {v.tokenA && v.tokenB ? (
@@ -325,51 +266,15 @@ export default function VaultList({ vaults }: Props) {
                                                     <span className="text-muted-foreground">-</span>
                                                 )}
                                             </td>
-                                            <td className="p-4 whitespace-nowrap">
-                                                <Badge
-                                                    variant={updateStatus.status === 'stale' ? 'destructive' : 'outline'}
-                                                    className={`capitalize ${updateStatus.status === 'fresh' ? 'border-success/50 text-success bg-success/10 ' : ''}`}
-                                                >
-                                                    {updateStatus.status}
-                                                </Badge>
-                                            </td>
-                                            <td className="p-4 whitespace-nowrap text-right space-x-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={(e) => { e.stopPropagation(); handleRefresh(v.contractId); }}
-                                                    disabled={isRefreshing || isRemoving}
-                                                    title="Refresh Vault Data"
-                                                >
-                                                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                                                </Button>
-                                                {isDev && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={(e) => { e.stopPropagation(); handleRemove(v.contractId); }}
-                                                        disabled={isRemoving || isRefreshing}
-                                                        title="Remove Vault (Dev Only)"
-                                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                )}
-                                            </td>
                                         </tr>
                                         {isExpanded && (
                                             <tr className="bg-muted/10 border-t border-border">
-                                                <td colSpan={7} className="px-6 py-5">
+                                                <td colSpan={5} className="px-6 py-5">
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                                         <div className="space-y-3">
                                                             <div className="space-y-1">
                                                                 <h4 className="text-sm font-medium text-muted-foreground">Description</h4>
                                                                 <p className="text-sm">{v.description || 'N/A'}</p>
-                                                            </div>
-
-                                                            <div className="space-y-1">
-                                                                <h4 className="text-sm font-medium text-muted-foreground">Engine Contract</h4>
-                                                                <p className="text-sm font-mono bg-muted/50 px-2 py-1 rounded inline-block">{v.engineContractId || 'N/A'}</p>
                                                             </div>
 
                                                             <div className="space-y-1">

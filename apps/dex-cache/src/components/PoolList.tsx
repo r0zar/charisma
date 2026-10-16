@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { removeVault, refreshVaultData, blacklistVault } from '@/app/actions';
 import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Trash2, ChevronDown, ChevronUp, Coins, Layers, Ban, ArrowUp, ArrowDown } from 'lucide-react';
+import { ChevronDown, ChevronUp, Coins, Layers, ArrowUp, ArrowDown } from 'lucide-react';
 import Link from 'next/link';
 import { Vault } from '@/lib/pool-service';
+import { dexName } from '@/lib/protocols';
 import Image from 'next/image';
 import { useApp } from '@/lib/context/app-context';
 import { useUserPoolPositions } from '@/hooks/useUserPoolPositions';
@@ -54,33 +53,6 @@ const formatUsdValue = (value: number | null): string => {
     }
 };
 
-// Format timestamp to readable date
-const formatTimestamp = (timestamp?: number): string => {
-    if (!timestamp) return 'Never';
-    return new Date(timestamp).toLocaleString();
-};
-
-// Calculate time since last update for status indicator
-const getTimeSinceUpdate = (timestamp?: number): { status: 'fresh' | 'normal' | 'stale'; text: string } => {
-    if (!timestamp) return { status: 'stale', text: 'Never updated' };
-
-    const now = Date.now();
-    const diff = now - timestamp;
-
-    // Less than 1 hour
-    if (diff < 60 * 60 * 1000) {
-        return { status: 'fresh', text: 'Updated recently' };
-    }
-    // Less than 24 hours
-    else if (diff < 24 * 60 * 60 * 1000) {
-        return { status: 'normal', text: 'Updated today' };
-    }
-    // More than 24 hours
-    else {
-        return { status: 'stale', text: 'Needs update' };
-    }
-};
-
 // Calculate USD value based on token amount and price
 const calculateUsdValue = (amount: number, decimals: number, contractId: string, prices: KraxelPriceData | null): number | null => {
     if (!prices || !contractId) return null;
@@ -98,14 +70,10 @@ interface Props {
 }
 
 export default function PoolList({ vaults, prices: serverPrices }: Props) {
-    const [refreshing, setRefreshing] = useState<string | null>(null);
-    const [removing, setRemoving] = useState<string | null>(null);
-    const [blacklisting, setBlacklisting] = useState<string | null>(null);
     const [expandedVault, setExpandedVault] = useState<string | null>(null);
     const [prices, setPrices] = useState<KraxelPriceData | null>(serverPrices || null);
     const [sortBy, setSortBy] = useState<'fee' | 'tvl' | 'myTvl' | null>('tvl');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-    const isDev = process.env.NODE_ENV === 'development';
 
     const { stxAddress } = useApp();
     const { positions, loading: positionsLoading } = useUserPoolPositions(stxAddress, vaults, prices);
@@ -122,27 +90,6 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
         };
         fetchPrices();
     }, [serverPrices]);
-
-    const handleRefresh = async (id: string) => {
-        setRefreshing(id);
-        await refreshVaultData(id);
-        window.location.reload();
-        setRefreshing(null);
-    };
-
-    const handleRemove = async (id: string) => {
-        setRemoving(id);
-        await removeVault(id);
-        window.location.reload();
-        setRemoving(null);
-    };
-
-    const handleBlacklist = async (id: string) => {
-        setBlacklisting(id);
-        await blacklistVault(id);
-        window.location.reload();
-        setBlacklisting(null);
-    };
 
     const toggleExpand = (id: string) => {
         setExpandedVault(expandedVault === id ? null : id);
@@ -219,6 +166,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                         <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider">
                             <tr>
                                 <th className="p-4 font-semibold text-muted-foreground">Name</th>
+                                <th className="p-4 font-semibold text-muted-foreground">DEX</th>
                                 <th className="p-4 font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => handleSort('myTvl')}>
                                     My TVL
                                     {sortBy === 'myTvl' && (sortDir === 'asc' ? <ArrowUp className="inline w-3 h-3 ml-1" /> : <ArrowDown className="inline w-3 h-3 ml-1" />)}
@@ -232,17 +180,11 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                     Liquidity
                                     {sortBy === 'tvl' && (sortDir === 'asc' ? <ArrowUp className="inline w-3 h-3 ml-1" /> : <ArrowDown className="inline w-3 h-3 ml-1" />)}
                                 </th>
-                                <th className="p-4 font-semibold text-muted-foreground">Status</th>
-                                <th className="p-4 font-semibold text-muted-foreground text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
                             {sortedVaults.map(v => {
-                                const isRefreshing = refreshing === v.contractId;
-                                const isRemoving = removing === v.contractId;
-                                const isBlacklisting = blacklisting === v.contractId;
                                 const isExpanded = expandedVault === v.contractId;
-                                const isLoading = isRefreshing || isRemoving || isBlacklisting;
 
                                 const formattedReservesA = formatTokenAmount(v.reservesA || 0, v.tokenA?.decimals || 0);
                                 const formattedReservesB = formatTokenAmount(v.reservesB || 0, v.tokenB?.decimals || 0);
@@ -261,9 +203,6 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                 const formattedUsdValueB = formatUsdValue(usdValueB);
                                 const formattedTotalUsdValue = formatUsdValue(finalTotalUsdValue);
 
-                                const lastUpdated = (v as any).reservesLastUpdatedAt;
-                                const updateStatus = getTimeSinceUpdate(lastUpdated);
-
                                 return (
                                     <React.Fragment key={v.contractId}>
                                         <tr className={`${isExpanded ? 'bg-muted/20' : 'hover:bg-muted/10'} transition-colors`}>
@@ -280,20 +219,16 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                             />
                                                         </div>
                                                     )}
-                                                    <div>
-                                                        <div className="font-semibold text-foreground group-hover:text-accent-text group-hover:underline">
-                                                            {v.name} <span className="text-muted-foreground font-normal">({v.symbol})</span>
-                                                        </div>
-                                                        {lastUpdated && (
-                                                            <div className="text-xs text-muted-foreground mt-0.5">
-                                                                Updated: {formatTimestamp(lastUpdated)}
-                                                            </div>
-                                                        )}
+                                                    <div className="font-semibold text-foreground group-hover:text-accent-text group-hover:underline">
+                                                        {v.name} <span className="text-muted-foreground font-normal">({v.symbol})</span>
                                                     </div>
                                                 </Link>
                                                 <button onClick={() => toggleExpand(v.contractId)} className="ml-auto text-muted-foreground p-1 px-3 rounded-full hover:bg-surface-hover">
                                                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                                 </button>
+                                            </td>
+                                            <td className="p-4 whitespace-nowrap">
+                                                <Badge variant="outline">{dexName(v.protocol)}</Badge>
                                             </td>
                                             <td className="p-4 whitespace-nowrap text-sm">
                                                 {!stxAddress ? (
@@ -344,53 +279,10 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                     </span>
                                                 </div>
                                             </td>
-                                            <td className="p-4 whitespace-nowrap">
-                                                <Badge
-                                                    variant={updateStatus.status === 'stale' ? 'destructive' : 'outline'}
-                                                    className={`capitalize ${updateStatus.status === 'fresh' ? 'border-success/50 text-success bg-success/10 ' : ''}`}
-                                                >
-                                                    {updateStatus.status}
-                                                </Badge>
-                                            </td>
-                                            <td className="p-4 whitespace-nowrap text-right space-x-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={(e) => { e.stopPropagation(); handleRefresh(v.contractId); }}
-                                                    disabled={isLoading}
-                                                    title="Refresh Vault Data"
-                                                >
-                                                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-                                                </Button>
-                                                {isDev && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={(e) => { e.stopPropagation(); handleBlacklist(v.contractId); }}
-                                                        disabled={isLoading}
-                                                        title="Add to Blacklist (Dev Only)"
-                                                        className="text-accent-text hover:text-accent-text hover:bg-accent/10"
-                                                    >
-                                                        <Ban className={`w-4 h-4 ${isBlacklisting ? 'animate-spin' : ''}`} />
-                                                    </Button>
-                                                )}
-                                                {isDev && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={(e) => { e.stopPropagation(); handleRemove(v.contractId); }}
-                                                        disabled={isLoading}
-                                                        title="Remove Vault (Dev Only)"
-                                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                )}
-                                            </td>
                                         </tr>
                                         {isExpanded && (
                                             <tr className="bg-muted/10 border-t border-border">
-                                                <td colSpan={7} className="px-6 py-5">
+                                                <td colSpan={6} className="px-6 py-5">
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                                         <div className="space-y-3">
                                                             <div className="space-y-1">
@@ -401,11 +293,6 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                             <div className="space-y-1">
                                                                 <h4 className="text-sm font-medium text-muted-foreground">Description</h4>
                                                                 <p className="text-sm">{v.description || 'N/A'}</p>
-                                                            </div>
-
-                                                            <div className="space-y-1">
-                                                                <h4 className="text-sm font-medium text-muted-foreground">Engine Contract</h4>
-                                                                <p className="text-sm font-mono bg-muted/50 px-2 py-1 rounded inline-block">{v.engineContractId || 'N/A'}</p>
                                                             </div>
 
                                                             <div className="space-y-1">

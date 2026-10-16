@@ -5,7 +5,6 @@ import {
     getVaultData,
     Vault,
     getManagedVaultIds as getVaultIdsFromService,
-    removeVaults as removeVaultsFromService,
     getFungibleTokenBalance,
     getLpTokenTotalSupply,
     getLiquidityOperationQuote,
@@ -18,42 +17,6 @@ import {
 
 import { OP_ADD_LIQUIDITY, OP_REMOVE_LIQUIDITY, OP_SWAP_A_TO_B, OP_SWAP_B_TO_A } from '@/lib/utils';
 import { getStxTotalSupply } from '@repo/polyglot';
-
-/** Force refresh vault data */
-export async function refreshVaultData(contractId: string): Promise<{ success: boolean; error?: string; vault?: Vault }> {
-    if (!contractId) return { success: false, error: 'ContractId required' };
-    console.log(`Starting forced refresh for vault: ${contractId}`);
-    try {
-        const refreshedVault = await getVaultData(contractId);
-        if (refreshedVault) {
-            console.log(`Refresh process initiated for ${contractId}. Revalidating path.`);
-            revalidatePath('/');
-            return { success: true, vault: refreshedVault };
-        } else {
-            console.error(`Refresh failed for ${contractId}: Vault not found or cache error.`);
-            return { success: false, error: 'Vault not found or failed to process during refresh.' };
-        }
-    } catch (error: any) {
-        console.error(`Failed refresh vault ${contractId}:`, error);
-        return { success: false, error: error.message || 'Failed during refresh' };
-    }
-}
-
-// Action to remove a vault (dev only)
-export async function removeVault(contractId: string): Promise<{ success: boolean; error?: string }> {
-    if (process.env.NODE_ENV !== 'development') {
-        return { success: false, error: 'Action only available in development.' };
-    }
-    if (!contractId) return { success: false, error: 'ContractId required.' };
-
-    try {
-        await removeVaultsFromService([contractId]);
-        return { success: true };
-    } catch (error: any) {
-        console.error(`Failed removing vault ${contractId}:`, error);
-        return { success: false, error: error.message || 'Failed to remove vault' };
-    }
-}
 
 /**
  * Server Action to add a vault to the blacklist.

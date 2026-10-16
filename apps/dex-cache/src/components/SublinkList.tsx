@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { refreshVaultData } from '@/app/actions';
 import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Coins, ExternalLink, Flame, ArrowRightLeft } from 'lucide-react';
+import { Coins, ExternalLink, Flame, ArrowRightLeft } from 'lucide-react';
 import { knownBlazeVersion } from 'blaze-sdk';
 import Link from 'next/link';
 import { Vault } from '@/lib/pool-service';
@@ -61,20 +60,6 @@ const formatTokenAmount = (amount: number, decimals: number): string => {
     }
 };
 
-const formatTimestamp = (timestamp?: number): string => {
-    if (!timestamp) return 'Never';
-    return new Date(timestamp).toLocaleString();
-};
-
-const getTimeSinceUpdate = (timestamp?: number): { status: 'fresh' | 'normal' | 'stale'; text: string } => {
-    if (!timestamp) return { status: 'stale', text: 'Never updated' };
-    const now = Date.now();
-    const diff = now - timestamp;
-    if (diff < 60 * 60 * 1000) return { status: 'fresh', text: 'Updated recently' };
-    if (diff < 24 * 60 * 60 * 1000) return { status: 'normal', text: 'Updated today' };
-    return { status: 'stale', text: 'Needs update' };
-};
-
 const calculateUsdValue = (amount: number, decimals: number, contractId: string, prices: KraxelPriceData | null): number | null => {
     if (!prices || !contractId) return null;
     const price = prices[contractId];
@@ -96,8 +81,6 @@ interface SublinkListProps {
 }
 
 export default function SublinkList({ vaults, prices }: SublinkListProps) {
-    const [refreshing, setRefreshing] = useState<string | null>(null);
-
     // Fetch prices client-side if they weren't provided as props
     const [localPrices, setLocalPrices] = useState<KraxelPriceData | null>(prices || null);
 
@@ -118,13 +101,6 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
 
     // Use the provided prices or the locally fetched ones
     const effectivePrices = prices || localPrices;
-
-    const handleRefresh = async (id: string) => {
-        setRefreshing(id);
-        await refreshVaultData(id);
-        window.location.reload(); // Consider optimistic updates instead of reload
-        setRefreshing(null);
-    };
 
     if (!vaults || vaults.length === 0) {
         return (
@@ -167,8 +143,6 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
                         </thead>
                         <tbody className="divide-y divide-border">
                             {vaults.map(sublink => {
-                                const isRefreshingThis = refreshing === sublink.contractId;
-
                                 // Use enriched TVL data if available, otherwise show no data
                                 const totalUsdLiquidity = sublink.tvlData?.tvlUsd || null;
                                 const formattedTotalUsd = formatUsdValue(totalUsdLiquidity);
@@ -227,19 +201,6 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
                                             </td>
                                             <td className="p-4 whitespace-nowrap text-right">
                                                 <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline"
-                                                        onClick={() => handleRefresh(sublink.contractId)}
-                                                        disabled={isRefreshingThis}
-                                                    >
-                                                        {isRefreshingThis ? (
-                                                            <RefreshCw className="h-4 w-4 animate-spin" />
-                                                        ) : (
-                                                            <RefreshCw className="h-4 w-4" />
-                                                        )}
-                                                        <span className="sr-only">Refresh</span>
-                                                    </Button>
                                                     <Link href={`/sublinks/${encodeURIComponent(sublink.contractId)}`}>
                                                         <Button size="sm" variant="default">
                                                             <ExternalLink className="h-4 w-4" />
