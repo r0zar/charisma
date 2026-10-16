@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/card";
 
 // Define the contract types
-export type ContractType = 'sip10' | 'liquidity-pool' | 'custom' | 'audit' | 'sublink';
+export type ContractType = 'sip10' | 'sip009' | 'liquidity-pool' | 'custom' | 'audit' | 'sublink';
 
 // Contract data interface
 export interface Contract {

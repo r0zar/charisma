@@ -1,6 +1,6 @@
 "use client"
 
-import { Rocket, Layers, ArrowRight, Coins, Globe, Vault } from 'lucide-react';
+import { Rocket, Layers, ArrowRight, Coins, Globe, Vault, Images } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ContractType } from '@/components/contracts/contracts-list';
 import { useApp } from '@/lib/context/app-context';
@@ -41,6 +41,11 @@ const TemplatesPage = () => {
             return;
         }
 
+        if (templateId === 'sip009-collection') {
+            router.push('/templates/sip009');
+            return;
+        }
+
         if (templateId === 'liquidity-pool-subnet') {
             router.push('/templates/liquidity-pool-subnet');
             return;
@@ -75,6 +80,25 @@ const TemplatesPage = () => {
                         'Minting and burning functions',
                         'Transfer and approve functionality',
                         'Metadata support'
+                    ],
+                    enabled: true
+                }
+            ]
+        },
+        {
+            group: 'NFT Templates',
+            items: [
+                {
+                    id: 'sip009-collection',
+                    title: 'NFT Collection',
+                    description: 'Launch a SIP-009 NFT collection with a public mint page. Upload your art to Charisma Metadata, set a price, and share the link.',
+                    icon: <Images className="h-6 w-6" />,
+                    type: 'sip009' as ContractType,
+                    features: [
+                        'SIP-009 compliant',
+                        'Mint in order, with art hidden until minted',
+                        'Payments go straight to you',
+                        'Optional limit per wallet',
                     ],
                     enabled: true
                 }
