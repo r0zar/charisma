@@ -40,3 +40,30 @@ export const toInvestPrice = (t: PricedToken) => ({
     intrinsicValue: t.usd,
     marketPrice: t.usd,
 });
+
+/** A token's price as the energy calculations use it */
+export interface TokenPriceData {
+    tokenId: string;
+    symbol: string;
+    usdPrice: number;
+    sbtcRatio: number;
+    /** 1 for a healthy pool, lower as a $1 round trip loses more */
+    reliability: number;
+    confidence: number;
+    lastUpdated: number;
+    source: string;
+}
+
+export function toTokenPriceData(t: PricedToken): TokenPriceData {
+    const reliability = t.roundTripLoss === null ? 1 : Math.max(0, 1 - t.roundTripLoss / 100);
+    return {
+        tokenId: t.contractId,
+        symbol: t.symbol,
+        usdPrice: t.usd,
+        sbtcRatio: t.sbtc,
+        reliability,
+        confidence: reliability,
+        lastUpdated: Date.parse(t.updatedAt),
+        source: 'prices.charisma.rocks',
+    };
+}

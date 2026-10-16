@@ -1,5 +1,4 @@
-import { PriceAPIResponse, PriceSeriesAPI, PriceSeriesStorage, TokenPriceData } from '@/services/prices';
-const priceSeriesService = new PriceSeriesAPI(new PriceSeriesStorage());
+import { fetchPrices, toTokenPriceData, type TokenPriceData } from '@/lib/prices-api';
 
 // Energy-related token contract IDs
 export const ENERGY_TOKENS = {
@@ -60,7 +59,7 @@ export async function fetchEnergyTokenPrices(useCache = true): Promise<{
 
         // Fetch prices for all tokens
         console.log('[EnergyPriceService] Calling getMultipleTokenPrices...');
-        const priceMap = await priceSeriesService.getBulkCurrentPrices({ tokenIds });
+        const priceMap = { data: { prices: Object.fromEntries((await fetchPrices(tokenIds)).tokens.map(t => [t.contractId, toTokenPriceData(t)])) } };
         console.log('[EnergyPriceService] Received price map:', priceMap);
 
         const errors: PriceError[] = [];
