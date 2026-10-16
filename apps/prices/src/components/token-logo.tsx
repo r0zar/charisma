@@ -9,10 +9,16 @@ const hue = (symbol: string) => [...symbol].reduce((h, c) => (h * 31 + c.charCod
 /** A token's logo. When there's none, or it fails to load, its first letter on a colored badge. */
 export function TokenLogo({ src, symbol, size = 28 }: { src?: string; symbol: string; size?: number }) {
   const [broken, setBroken] = useState(false);
+  const [tiny, setTiny] = useState(false);
   const img = useRef<HTMLImageElement>(null);
-  // An image that failed before the page came alive never fires onError, so check once on mount too.
-  // Tiny images are real: DMT's logo is a single on-chain pixel, shown here as a solid circle.
-  const check = (el: HTMLImageElement | null) => { if (el?.complete && el.naturalWidth === 0) setBroken(true); };
+  // Images that finished before the page came alive never fire onLoad/onError, so check once on mount too.
+  // A failed image is 0px wide. A tiny one is pixel art (DMT's logo is a single on-chain pixel), so it scales up
+  // crisp; everything else scales smoothly.
+  const check = (el: HTMLImageElement | null) => {
+    if (!el?.complete) return;
+    if (el.naturalWidth === 0) setBroken(true);
+    else setTiny(el.naturalWidth <= 16);
+  };
   useEffect(() => check(img.current), [src]);
   const style = { width: size, height: size };
   if (!src || broken) {
@@ -26,5 +32,5 @@ export function TokenLogo({ src, symbol, size = 28 }: { src?: string; symbol: st
       </span>
     );
   }
-  return <img ref={img} src={src} alt="" style={style} loading="lazy" onError={() => setBroken(true)} className="shrink-0 rounded-full bg-surface-raised object-cover [image-rendering:pixelated]" />;
+  return <img ref={img} src={src} alt="" style={style} loading="lazy" onError={() => setBroken(true)} onLoad={e => check(e.currentTarget)} className={`shrink-0 rounded-full bg-surface-raised object-cover ${tiny ? '[image-rendering:pixelated]' : ''}`} />;
 }
