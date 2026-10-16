@@ -6,13 +6,13 @@ import { useEffect, useRef, useState } from 'react';
 /** A steady color per symbol, so each token's letter badge looks the same everywhere */
 const hue = (symbol: string) => [...symbol].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
 
-/** A token's logo. When there's none, it fails to load, or it's a blank placeholder: its first letter on a colored badge. */
+/** A token's logo. When there's none, or it fails to load, its first letter on a colored badge. */
 export function TokenLogo({ src, symbol, size = 28 }: { src?: string; symbol: string; size?: number }) {
   const [broken, setBroken] = useState(false);
   const img = useRef<HTMLImageElement>(null);
-  // A failed image (0px wide) or a placeholder pixel counts as missing. Images that finished before the page
-  // came alive never fire onLoad/onError, so check once on mount too.
-  const check = (el: HTMLImageElement | null) => { if (el?.complete && el.naturalWidth <= 2) setBroken(true); };
+  // An image that failed before the page came alive never fires onError, so check once on mount too.
+  // Tiny images are real: DMT's logo is a single on-chain pixel, shown here as a solid circle.
+  const check = (el: HTMLImageElement | null) => { if (el?.complete && el.naturalWidth === 0) setBroken(true); };
   useEffect(() => check(img.current), [src]);
   const style = { width: size, height: size };
   if (!src || broken) {
@@ -26,5 +26,5 @@ export function TokenLogo({ src, symbol, size = 28 }: { src?: string; symbol: st
       </span>
     );
   }
-  return <img ref={img} src={src} alt="" style={style} loading="lazy" onError={() => setBroken(true)} onLoad={e => check(e.currentTarget)} className="shrink-0 rounded-full bg-surface-raised object-cover" />;
+  return <img ref={img} src={src} alt="" style={style} loading="lazy" onError={() => setBroken(true)} className="shrink-0 rounded-full bg-surface-raised object-cover [image-rendering:pixelated]" />;
 }
