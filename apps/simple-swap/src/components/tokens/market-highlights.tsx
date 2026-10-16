@@ -6,6 +6,7 @@ import Image from "next/image";
 import type { TokenSummary } from "@/types/token-types";
 import { cn, getIpfsUrl } from "@/lib/utils";
 import { usePrices } from '@/contexts/token-price-context';
+import { getHostUrl } from '@modules/discovery';
 
 interface MarketHighlightsProps {
     tokenSummaries: TokenSummary[];
@@ -268,7 +269,7 @@ function CleanTokenHighlight({ token, rank, type, getPrice, sparklineData }: Tok
             onClick={() => {
                 if (token.contractId && typeof token.contractId === 'string' && token.contractId.trim()) {
                     try {
-                        window.location.href = `/tokens/${encodeURIComponent(token.contractId)}`;
+                        window.location.href = `${getHostUrl('prices')}/token/${encodeURIComponent(token.contractId)}`;
                     } catch (error) {
                         console.error('Failed to navigate to token page:', error, token);
                     }

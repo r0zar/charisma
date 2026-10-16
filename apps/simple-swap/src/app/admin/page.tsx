@@ -1,7 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { TrendingUp, Settings, Database, Activity, BarChart3, Twitter } from 'lucide-react';
+import { TrendingUp, Database, Twitter } from 'lucide-react';
 import { ADMIN_CONFIG } from '@/lib/admin-config';
 
 export const metadata: Metadata = {
@@ -9,33 +9,11 @@ export const metadata: Metadata = {
     description: 'Administrative interface for Simple Swap management',
 };
 
-function StatsSkeleton() {
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {[...Array(4)].map((_, i) => (
-                <div key={i} className="bg-card overflow-hidden shadow rounded-lg border border-border">
-                    <div className="p-5">
-                        <div className="animate-pulse">
-                            <div className="flex items-center">
-                                <div className="w-8 h-8 bg-muted rounded-md"></div>
-                                <div className="ml-5 flex-1">
-                                    <div className="h-4 bg-muted rounded w-24 mb-2"></div>
-                                    <div className="h-6 bg-muted rounded w-16"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-}
-
 const adminActions = [
     {
-        title: 'Price Dashboard',
-        description: 'Monitor and manage historic price data for tokens',
-        href: '/admin/prices',
+        title: 'Prices',
+        description: 'Live prices, charts and recorder health on Charisma Prices',
+        href: 'https://prices.charisma.rocks',
         icon: <TrendingUp className="w-6 h-6" />,
         color: 'orange',
     },
@@ -52,27 +30,6 @@ const adminActions = [
         href: '/admin/twitter-triggers',
         icon: <Twitter className="w-6 h-6" />,
         color: 'blue',
-    },
-    {
-        title: 'Chart Diagnostics',
-        description: 'Diagnose and test conditional token chart data loading issues',
-        href: '/admin/chart-diagnostics',
-        icon: <BarChart3 className="w-6 h-6" />,
-        color: 'teal',
-    },
-    {
-        title: 'System Monitoring',
-        description: 'Monitor system performance and health metrics',
-        href: '/admin/monitoring',
-        icon: <Activity className="w-6 h-6" />,
-        color: 'green',
-    },
-    {
-        title: 'Configuration',
-        description: 'Manage system settings and configurations',
-        href: '/admin/config',
-        icon: <Settings className="w-6 h-6" />,
-        color: 'purple',
     },
 ];
 
@@ -130,8 +87,7 @@ export default function AdminDashboard() {
                         <div className="mt-2 text-sm text-muted-foreground">
                             <ul className="list-disc list-inside space-y-1">
                                 <li>Administrative changes may take a few minutes to propagate across the system</li>
-                                <li>Price data is automatically updated every {ADMIN_CONFIG.CRON_FREQUENCY_MINUTES} minute via cron jobs</li>
-                                <li>Always monitor system performance after making configuration changes</li>
+                                <li>Prices are recorded every 5 minutes by Charisma Prices (prices.charisma.rocks)</li>
                                 <li>Order execution and position monitoring run continuously</li>
                             </ul>
                         </div>

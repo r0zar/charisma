@@ -3,6 +3,7 @@
 import React from 'react';
 import { X, TrendingUp, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
+import { getHostUrl } from '@modules/discovery';
 
 interface ArbitrageOpportunity {
     tokenId: string;
@@ -55,7 +56,7 @@ export default function ArbitrageAlerts({ opportunities, onClose }: ArbitrageAle
                 {sortedOpportunities.map((opp) => (
                     <Link
                         key={opp.tokenId}
-                        href={`/tokens/${encodeURIComponent(opp.tokenId)}`}
+                        href={`${getHostUrl('prices')}/token/${encodeURIComponent(opp.tokenId)}`}
                         className="group relative bg-surface hover:bg-surface-selected rounded-xl p-4 transition-all duration-200 border border-line hover:border-warning/30"
                     >
                         {/* Token info */}

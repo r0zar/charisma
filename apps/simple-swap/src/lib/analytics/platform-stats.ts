@@ -65,10 +65,10 @@ const MONTH = 30 * DAY;
 
 /** USD price per whole token by contract id (".stx" for STX), from the same feed the swap app uses */
 async function currentPrices(): Promise<Record<string, number>> {
-  const res = await fetch(`${getHostUrl('lakehouse')}/api/token-prices?limit=1000`, { signal: AbortSignal.timeout(15000) });
-  if (!res.ok) throw new Error(`Token prices are unavailable (lakehouse ${res.status})`);
-  const { prices } = (await res.json()) as { prices: { token_contract_id: string; usd_price: number }[] };
-  return Object.fromEntries(prices.map(p => [p.token_contract_id, p.usd_price]));
+  const res = await fetch(`${getHostUrl('prices')}/api/v1/prices`, { signal: AbortSignal.timeout(15000) });
+  if (!res.ok) throw new Error(`Token prices are unavailable (prices API ${res.status})`);
+  const { tokens } = (await res.json()) as { tokens: { contractId: string; usd: number }[] };
+  return Object.fromEntries(tokens.map(t => [t.contractId, t.usd]));
 }
 
 /** USD in every Charisma pool: both reserves at today's prices */

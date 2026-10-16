@@ -59,7 +59,7 @@ export default function BlazeWalletPrivacy() {
             it can appear briefly in our hosting provider&apos;s request logs.
           </li>
           <li>
-            <strong>Charisma&apos;s token list and prices (tokens.charisma.rocks, lakehouse.charisma.rocks)</strong>:
+            <strong>Charisma&apos;s token list and prices (tokens.charisma.rocks, prices.charisma.rocks)</strong>:
             requests for token names, logos, decimals and prices. These requests do not include your address.
           </li>
           <li>

@@ -11,6 +11,7 @@ import { useWallet } from '@/contexts/wallet-context';
 import { useTokenMetadata } from '@/contexts/token-metadata-context';
 import { formatCompactNumber } from '@/lib/swap-utils';
 import { getIpfsUrl } from '@/lib/utils';
+import { getHostUrl } from '@modules/discovery';
 
 // Enhanced token interface
 interface EnhancedTokenSummary extends TokenSummary {
@@ -497,7 +498,7 @@ const TokenRow = React.memo(function TokenRow({
         >
             {/* Token */}
             <td className="p-4 sticky left-0 backdrop-blur-sm z-10 w-[14rem]">
-                <Link href={`/tokens/${encodeURIComponent(token.contractId)}`} className="flex items-center gap-3">
+                <Link href={`${getHostUrl('prices')}/token/${encodeURIComponent(token.contractId)}`} className="flex items-center gap-3">
                     <div className="h-8 w-8 rounded-xl bg-surface flex items-center justify-center overflow-hidden">
                         <TokenImage token={token} />
                     </div>

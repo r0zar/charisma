@@ -4,8 +4,6 @@ import { kv } from "@vercel/kv";
 import { processSingleBlazeIntentByPid } from "@/lib/blaze-intent-server"; // Adjust path as needed
 import { callReadOnlyFunction, getAccountBalances, type AccountBalancesResponse } from "@repo/polyglot";
 // import { balanceClient, type BalanceResponse, fetchMetadata } from '@repo/tokens';
-// KEEP COMMENTED - lakehouseClient was causing the hang
-// import { lakehouseClient } from '@repo/tokens';
 import { principalCV } from "@stacks/transactions";
 import { loadVaults, Router, listTokens as listSwappableTokens } from 'dexterity-sdk'
 // import { TokenCacheData, listPrices, type KraxelPriceData, getTokenMetadataWithDiscovery } from "@/lib/contract-registry-adapter";
@@ -352,6 +350,17 @@ export async function checkBidderBalance(
     }
 }
 
+/** One token's latest price from prices.charisma.rocks */
+interface FeedPrice { usd: number; change: Record<'1h' | '24h' | '7d' | '30d', number | null>; liquidityUsd: number; roundTripLoss: number | null; updatedAt: string }
+
+/** Every priced token's latest price, by contract id (".stx" for STX). Plain fetch: importing @repo/tokens here once hung SSR. */
+async function priceFeed(): Promise<Map<string, FeedPrice>> {
+    const res = await fetch('https://prices.charisma.rocks/api/v1/prices', { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error(`The prices API answered HTTP ${res.status}`);
+    const { tokens } = (await res.json()) as { tokens: (FeedPrice & { contractId: string })[] };
+    return new Map(tokens.map(t => [t.contractId, t]));
+}
+
 /**
  * Server action to fetch token prices using cached data with fallback
  */
@@ -359,29 +368,14 @@ export async function getPrices(): Promise<KraxelPriceData> {
     try {
         console.log('[getPrices] Server action - fetching token prices from working data client');
         
-        // Use direct API call to lakehouse instead of client to avoid SSR hang
-        const lakehouseUrl = process.env.NEXT_PUBLIC_LAKEHOUSE_URL || process.env.LAKEHOUSE_URL || 'https://lakehouse.charisma.rocks';
-        const response = await fetch(`${lakehouseUrl}/api/token-prices?limit=1000`, {
-            headers: { 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(10000)
-        });
-        const data = await response.json();
-        const priceArray = data.prices;
-        
-        // Convert to KraxelPriceData format
         const priceData: KraxelPriceData = {};
-        priceArray.forEach(price => {
-            priceData[price.token_contract_id] = price.usd_price;
-        });
+        (await priceFeed()).forEach((t, id) => { priceData[id] = t.usd; });
         
         console.log(`[getPrices] Server action - successfully fetched ${Object.keys(priceData).length} prices`);
         return priceData;
         
     } catch (error) {
-        console.error('[getPrices] Server action - data client failed, falling back to contract-registry:', error);
-        
-        // Fallback to empty prices since contract-registry was causing SSR hang
-        console.error('[getPrices] Server action - lakehouse failed, no fallback available:', error);
+        console.error('[getPrices] Server action - the prices API failed:', error);
         return {};
     }
 }
@@ -550,15 +544,7 @@ export async function getTokenPricesAction(tokenIds: string[]): Promise<{
             tokenIds = tokenIds.slice(0, 50);
         }
         
-        // Get prices from lakehouse API directly to avoid SSR hang
-        const lakehouseUrl = process.env.NEXT_PUBLIC_LAKEHOUSE_URL || process.env.LAKEHOUSE_URL || 'https://lakehouse.charisma.rocks';
-        const response = await fetch(`${lakehouseUrl}/api/token-prices?limit=1000`, {
-            headers: { 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(10000)
-        });
-        const data = await response.json();
-        const allPrices = data.prices;
-        const priceMap = new Map(allPrices.map(p => [p.token_contract_id, p]));
+        const priceMap = await priceFeed();
         
         // Convert to expected format
         const cachedPrices: Record<string, any> = {};
@@ -566,18 +552,17 @@ export async function getTokenPricesAction(tokenIds: string[]): Promise<{
             const price = priceMap.get(tokenId);
             if (price) {
                 cachedPrices[tokenId] = {
-                    usdPrice: price.usd_price,
-                    confidence: 1.0, // lakehouse doesn't provide confidence
-                    lastUpdated: Date.now(),
-                    // Default values for missing properties
-                    change24h: undefined,
+                    usdPrice: price.usd,
+                    confidence: price.roundTripLoss === null ? 1 : Math.max(0, 1 - price.roundTripLoss / 100),
+                    lastUpdated: Date.parse(price.updatedAt),
+                    change24h: price.change['24h'] ?? undefined,
                     isLpToken: false,
                     intrinsicValue: undefined,
                     marketPrice: undefined,
                     priceDeviation: undefined,
                     isArbitrageOpportunity: false,
                     pathsUsed: 1,
-                    totalLiquidity: 0,
+                    totalLiquidity: price.liquidityUsd,
                     priceSource: 'market' as const
                 };
             }
@@ -673,19 +658,12 @@ export async function getTokenPriceAction(contractId: string): Promise<{
     try {
         console.log(`[getTokenPriceAction] Fetching cached price for ${contractId}`);
         
-        // Use lakehouse API directly to avoid SSR hang
-        const lakehouseUrl = process.env.NEXT_PUBLIC_LAKEHOUSE_URL || process.env.LAKEHOUSE_URL || 'https://lakehouse.charisma.rocks';
-        const response = await fetch(`${lakehouseUrl}/api/token-prices?token=${contractId}&limit=1`, {
-            headers: { 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(10000)
-        });
-        const data = await response.json();
-        const tokenPrice = data.prices && data.prices.length > 0 ? data.prices[0] : null;
+        const tokenPrice = (await priceFeed()).get(contractId);
         
-        if (tokenPrice && tokenPrice.usd_price > 0) {
+        if (tokenPrice && tokenPrice.usd > 0) {
             return {
                 success: true,
-                price: tokenPrice.usd_price
+                price: tokenPrice.usd
             };
         } else {
             return {
@@ -716,20 +694,12 @@ export async function getStxPriceAction(): Promise<{
     try {
         console.log('[getStxPriceAction] Fetching cached STX price');
         
-        // Get STX price from lakehouse API directly to avoid SSR hang
-        const lakehouseUrl = process.env.NEXT_PUBLIC_LAKEHOUSE_URL || process.env.LAKEHOUSE_URL || 'https://lakehouse.charisma.rocks';
-        const response = await fetch(`${lakehouseUrl}/api/token-prices?limit=1000`, {
-            headers: { 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(10000)
-        });
-        const data = await response.json();
-        const prices = data.prices;
-        const stxToken = prices.find(p => p.token_contract_id.includes('stx') || p.token_contract_id.includes('STX'));
-        const stxPrice = stxToken?.usd_price || 0;
+        const stx = (await priceFeed()).get('.stx');
+        if (!stx) throw new Error('The prices API has no STX price');
         
         return {
             success: true,
-            price: stxPrice
+            price: stx.usd
         };
         
     } catch (error) {
@@ -755,15 +725,7 @@ export async function checkPriceAvailabilityAction(contractIds: string[]): Promi
         
         const availability: Record<string, boolean> = {};
         
-        // Get all available prices from lakehouse API directly to avoid SSR hang
-        const lakehouseUrl = process.env.NEXT_PUBLIC_LAKEHOUSE_URL || process.env.LAKEHOUSE_URL || 'https://lakehouse.charisma.rocks';
-        const response = await fetch(`${lakehouseUrl}/api/token-prices?limit=1000`, {
-            headers: { 'Accept': 'application/json' },
-            signal: AbortSignal.timeout(10000)
-        });
-        const data = await response.json();
-        const allPrices = data.prices;
-        const availableTokenIds = new Set(allPrices.map(p => p.token_contract_id));
+        const availableTokenIds = await priceFeed();
         
         // Check availability for each requested contract ID
         contractIds.forEach(contractId => {

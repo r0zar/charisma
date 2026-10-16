@@ -2,6 +2,10 @@ import { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@repo/brand'],
+  // Token detail pages live on Charisma Prices now
+  async redirects() {
+    return [{ source: '/tokens/:contractId', destination: 'https://prices.charisma.rocks/token/:contractId', permanent: true }];
+  },
   async headers() {
     return [{
       source: "/:path*",

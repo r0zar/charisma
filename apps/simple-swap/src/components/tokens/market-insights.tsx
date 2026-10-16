@@ -6,6 +6,7 @@ import { ArrowUpRight, TrendingUp, AlertTriangle } from 'lucide-react';
 import type { TokenSummary } from '@/types/token-types';
 import { cn } from '@/lib/utils';
 import { useComparisonToken } from '@/contexts/comparison-token-context';
+import { getHostUrl } from '@modules/discovery';
 
 interface MarketInsightsProps {
     tokenSummaries: TokenSummary[];
@@ -248,7 +249,7 @@ function TokenInsightCard({ tokenWithScore, isArbitrage }: { tokenWithScore: Tok
 
     return (
         <Link
-            href={`/tokens/${encodeURIComponent(token.contractId)}`}
+            href={`${getHostUrl('prices')}/token/${encodeURIComponent(token.contractId)}`}
             className={cn(
  "group block p-3 rounded-xl transition-all duration-200",
                 isArbitrage
