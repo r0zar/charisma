@@ -180,10 +180,10 @@ export default function VaultList({ vaults }: Props) {
                         <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider">
                             <tr>
                                 <th className="p-4 font-semibold text-muted-foreground">Name</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Contract</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Type</th>
                                 <th className="p-4 font-semibold text-muted-foreground">DEX</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Tokens</th>
+                                <th className="p-4 font-semibold text-muted-foreground">Contract</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -221,9 +221,6 @@ export default function VaultList({ vaults }: Props) {
                                                 <button onClick={() => toggleExpand(v.contractId)} className="ml-auto text-muted-foreground p-1 px-3 rounded-full hover:bg-surface-hover">
                                                     {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                                                 </button>
-                                            </td>
-                                            <td className="p-4 whitespace-nowrap font-mono text-xs">
-                                                <Badge variant="outline">{truncateContractId(v.contractId)}</Badge>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
                                                 <Badge className={`
@@ -265,6 +262,9 @@ export default function VaultList({ vaults }: Props) {
                                                 ) : (
                                                     <span className="text-muted-foreground">-</span>
                                                 )}
+                                            </td>
+                                            <td className="p-4 whitespace-nowrap font-mono text-xs">
+                                                <Badge variant="outline">{truncateContractId(v.contractId)}</Badge>
                                             </td>
                                         </tr>
                                         {isExpanded && (

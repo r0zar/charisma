@@ -3,9 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { listPrices, KraxelPriceData } from '@repo/tokens';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, ExternalLink, Flame, ArrowRightLeft } from 'lucide-react';
+import { Coins, Flame, ArrowRightLeft } from 'lucide-react';
 import { knownBlazeVersion } from 'blaze-sdk';
 import Link from 'next/link';
 import { Vault } from '@/lib/pool-service';
@@ -134,11 +133,10 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
                         <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider">
                             <tr>
                                 <th className="p-4 font-semibold text-muted-foreground">Name</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Contract ID</th>
-                                <th className="p-4 font-semibold text-muted-foreground">Token</th>
                                 <th className="p-4 font-semibold text-muted-foreground">Bridge</th>
-                                <th className="p-4 font-semibold text-muted-foreground">TVL</th>
-                                <th className="p-4 font-semibold text-muted-foreground text-right">Actions</th>
+                                <th className="p-4 font-semibold text-muted-foreground">Token</th>
+                                <th className="p-4 font-semibold text-muted-foreground">Liquidity</th>
+                                <th className="p-4 font-semibold text-muted-foreground">Contract</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -164,17 +162,6 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
                                                     </Link>
                                                 </div>
                                             </td>
-                                            <td className="p-4 whitespace-nowrap font-mono text-xs">
-                                                <Badge variant="outline">{truncateContractId(sublink.contractId)}</Badge>
-                                            </td>
-                                            <td className="p-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-2">
-                                                    {sublink.tokenA?.image && (
-                                                        <Image width={20} height={20} src={sublink.tokenA.image} alt={sublink.tokenA.symbol} className="w-5 h-5 rounded-full object-contain bg-card p-px border border-border" />
-                                                    )}
-                                                    <span>{sublink.tokenA?.symbol}</span>
-                                                </div>
-                                            </td>
                                             <td className="p-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                                     <span>Stacks</span>
@@ -190,6 +177,14 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
                                                 </div>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
+                                                <div className="flex items-center gap-2">
+                                                    {sublink.tokenA?.image && (
+                                                        <Image width={20} height={20} src={sublink.tokenA.image} alt={sublink.tokenA.symbol} className="w-5 h-5 rounded-full object-contain bg-card p-px border border-border" />
+                                                    )}
+                                                    <span>{sublink.tokenA?.symbol}</span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 whitespace-nowrap">
                                                 <div className="flex flex-col items-start">
                                                     <span className="font-medium text-foreground">{formattedTotalUsd}</span>
                                                     {sublink.tvlData && (
@@ -199,15 +194,8 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="p-4 whitespace-nowrap text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Link href={`/sublinks/${encodeURIComponent(sublink.contractId)}`}>
-                                                        <Button size="sm" variant="default">
-                                                            <ExternalLink className="h-4 w-4" />
-                                                            <span className="ml-2 hidden sm:inline">View</span>
-                                                        </Button>
-                                                    </Link>
-                                                </div>
+                                            <td className="p-4 whitespace-nowrap font-mono text-xs">
+                                                <Badge variant="outline">{truncateContractId(sublink.contractId)}</Badge>
                                             </td>
                                         </tr>
                                     </React.Fragment>
