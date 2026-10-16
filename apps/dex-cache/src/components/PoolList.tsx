@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Coins, Layers, ArrowUp, ArrowDown } from 'lucide-react';
 import Link from 'next/link';
 import { Vault } from '@/lib/pool-service';
-import { dexName } from '@/lib/protocols';
+import DexBadge from '@/components/DexBadge';
 import Image from 'next/image';
 import { useApp } from '@/lib/context/app-context';
 import { useUserPoolPositions } from '@/hooks/useUserPoolPositions';
@@ -228,7 +228,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                 </button>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
-                                                <Badge variant="outline">{dexName(v.protocol)}</Badge>
+                                                <DexBadge protocol={v.protocol} />
                                             </td>
                                             <td className="p-4 whitespace-nowrap text-sm">
                                                 {!stxAddress ? (

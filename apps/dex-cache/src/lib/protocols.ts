@@ -1,11 +1,11 @@
-/** The name people know each DEX by, keyed by a vault's `protocol` */
-const DEX_NAMES: Record<string, string> = {
-    CHARISMA: 'Charisma',
-    BITFLOW: 'Bitflow',
-    ALEX: 'ALEX',
-    ARKADIKO: 'Arkadiko',
-    VELAR: 'Velar',
-    FAKTORY: 'fak.fun',
+/** The DEX behind each vault, keyed by its `protocol`: the name people know it by, and its team's icon */
+const DEXES: Record<string, { name: string; icon?: string }> = {
+    CHARISMA: { name: 'Charisma', icon: '/dex/charisma.png' },
+    BITFLOW: { name: 'Bitflow', icon: '/dex/bitflow.svg' },
+    ALEX: { name: 'ALEX', icon: '/dex/alex.png' },
+    ARKADIKO: { name: 'Arkadiko', icon: '/dex/arkadiko.png' },
+    VELAR: { name: 'Velar', icon: '/dex/velar.png' },
+    FAKTORY: { name: 'fak.fun', icon: '/dex/fakfun.png' },
 };
 
-export const dexName = (protocol: string) => DEX_NAMES[protocol] ?? protocol;
+export const dexOf = (protocol: string) => DEXES[protocol] ?? { name: protocol };

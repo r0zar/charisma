@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Coins, Layers, ArrowRightLeft, Shield } from 'lucide-react';
 import Link from 'next/link';
 import { Vault } from '@/lib/pool-service';
-import { dexName } from '@/lib/protocols';
+import DexBadge from '@/components/DexBadge';
 import Image from 'next/image';
 
 // Utility to truncate contract id for display
@@ -235,7 +235,7 @@ export default function VaultList({ vaults }: Props) {
                                                 </Badge>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
-                                                <Badge variant="outline">{dexName(v.protocol)}</Badge>
+                                                <DexBadge protocol={v.protocol} />
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
                                                 {v.tokenA && v.tokenB ? (
