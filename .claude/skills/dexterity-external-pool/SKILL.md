@@ -94,12 +94,15 @@ pnpm add -D @stacks/clarinet-sdk @stacks/transactions @stacks/encryption @stacks
 
 1. Interface and `get-name` etc. read back correctly.
 2. Live quotes over the public API, including a size sweep to find where the read budget breaks.
-3. Tiny real round trip (`scripts/live-swap.mjs 01 1000000`, then `00 <received>`) with deny-mode
-   post-conditions: sender ≤ amount, **external pool** ≥ 99% of the quote. Confirm dy == quote exactly.
+3. **Ask Ross first** (which contracts, which wallet, how much). Then a tiny real round trip
+   (`scripts/live-swap.mjs 01 1000000`, then `00 <received>`) with deny-mode post-conditions:
+   sender ≤ amount, **external pool** ≥ 99% of the quote. Confirm dy == quote exactly.
+   If a live script is interrupted, check the wallet's recent txs: it may already have broadcast.
 
 ## 7. Metadata and registration
 
-`scripts/register.mjs` signs both requests with the deployer key:
+`scripts/register.mjs` signs both requests with the deployer key. Each signature covers
+`JSON.stringify({message, timestamp})` and is sent with an `x-timestamp` header; it expires after 5 minutes.
 - **Metadata** → `POST https://metadata.charisma.rocks/api/v1/metadata/<id>`, signing the message `<id>`.
   Posts merge into the existing entry.
 - **Vault registry** → `POST https://invest.charisma.rocks/api/v1/admin/vaults/<id>/confirm`, signing the

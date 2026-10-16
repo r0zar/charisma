@@ -10,7 +10,9 @@ import { bytesToHex } from '@stacks/common';
 import { WRAPPER_NAME, DEPLOYER, readKey } from './config.mjs';
 const PROTOCOL = 'BITFLOW'; // BITFLOW | ALEX | VELAR | ...
 const privateKey = await readKey();
-const sign = (message) => ({ 'content-type': 'application/json', 'x-public-key': privateKeyToPublic(privateKey), 'x-signature': signMessageHashRsv({ messageHash: bytesToHex(hashMessage(message)), privateKey }) });
+// Signed payload is {message, timestamp} (blaze-sdk signedFetchWithTimestamp); a signature is good for 5 minutes
+const sign = (message) => { const timestamp = Date.now(); return { 'content-type': 'application/json', 'x-public-key': privateKeyToPublic(privateKey), 'x-timestamp': String(timestamp),
+  'x-signature': signMessageHashRsv({ messageHash: bytesToHex(hashMessage(JSON.stringify({ message, timestamp }))), privateKey }) }; };
 const ID = `${DEPLOYER}.${WRAPPER_NAME}`;
 const [step, file] = process.argv.slice(2);
 const meta = JSON.parse(fs.readFileSync(file, 'utf8'));
