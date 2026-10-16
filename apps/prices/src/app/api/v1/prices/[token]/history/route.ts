@@ -10,6 +10,7 @@ const MAX_LIMIT = 2000;
 export async function GET(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   try {
     const token = decodeURIComponent((await params).token);
+    if (token.length > 160) return fail(400, 'That is not a contract id. Use "<address>.<contract-name>" or ".stx".');
     const q = req.nextUrl.searchParams;
     const interval = (q.get('interval') ?? '1h') as Interval;
     if (!INTERVALS.includes(interval)) return fail(400, `interval must be one of ${INTERVALS.join(', ')}`);

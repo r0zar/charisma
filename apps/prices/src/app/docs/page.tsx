@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import { CopyPrompt } from '@/components/copy-prompt';
 import { SiteHeader } from '@/components/site-header';
+import { aiPrompt } from '@/lib/ai-prompt';
 
 export const metadata: Metadata = {
   title: 'Prices API | Charisma Prices',
@@ -87,9 +89,10 @@ const ENDPOINTS: Endpoint[] = [
 const NOTES: [string, string][] = [
   ['How prices are made', 'Every 5 minutes we buy about $1 of each token with sBTC through Charisma’s router and sell it straight back. The midpoint of those two prices cancels out fees. Dollar prices use Kraken’s BTC/USD. Blaze subnet tokens trade 1:1 with their base token, so they share its price.'],
   ['Junk filtering', 'A price more than 3x away from its token’s hourly median, or 10x away from its daily median, is left out of candles and changes. The raw history is kept untouched.'],
-  ['Thin liquidity', 'roundTripLoss is the percent lost buying about $1 and selling straight back. Above 25% we set thin: true, because the price moves easily and is less reliable.'],
+  ['Round-trip cost', 'roundTripLoss is the percent lost buying about $1 and selling it straight back, which shows how easy a token is to trade. 1–3% is healthy. Above 25% we set thin: true, because the price moves easily and is less reliable.'],
   ['Stale prices', 'stale: true means a token hasn’t been priced in the last 15 minutes, usually because its pools have no route right now. We keep showing its last known price.'],
-  ['Freshness and limits', 'No key is needed, and any website can call it (CORS is open). Answers are cached at the edge for 1 minute (prices) to 30 minutes (weekly candles), so please don’t poll faster than once a minute.'],
+  ['Freshness and limits', 'No key is needed, and any website can call it (CORS is open). Answers are cached and refresh as soon as new prices land, about every 5 minutes, so polling more than once a minute gains nothing. Past history never changes, so it’s cached for a day.'],
+  ['For AI assistants', 'Everything on this page is also one plain-text prompt at /llms.txt.'],
 ];
 
 function Code({ children }: { children: string }) {
@@ -111,6 +114,10 @@ export default function Docs() {
           <header className="grid gap-3">
             <h1 className="text-3xl font-bold tracking-tight text-balance">Prices API</h1>
             <p className="max-w-[65ch] text-ink-body">Live and historical prices for every token on Charisma, recorded every 5 minutes since July 2025. Free, public and no key needed.</p>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-accent-line bg-accent-soft p-4">
+              <p className="min-w-0 flex-1 text-sm text-ink-body"><span className="font-semibold text-ink">Building with AI?</span> Copy one prompt that explains everything below, then tell your AI what you want to make.</p>
+              <CopyPrompt text={aiPrompt()} />
+            </div>
             <p className="text-sm text-ink-muted">Base URL</p>
             <Code>{BASE}</Code>
           </header>

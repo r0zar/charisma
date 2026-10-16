@@ -1,6 +1,13 @@
+import { unstable_cache } from 'next/cache';
 import { CANDLES_TABLE, PRICES_TABLE, query, table } from './bigquery';
 import { CLEAN_POINTS } from './candles';
 import { listTokens, poolBalances, type TokenInfo } from './sources';
+
+/**
+ * Every read is cached once on the server and shared by all visitors, so BigQuery is only asked when the answer
+ * could have changed. The recorder revalidates this tag right after each 5-minute run.
+ */
+export const PRICES_TAG = 'prices';
 
 /** A price older than this is flagged stale */
 const STALE_MS = 15 * 60_000;
@@ -41,7 +48,8 @@ interface PriceRow {
 const pct = (now: number, then: number | null) => (then && then > 0 ? (100 * (now - then)) / then : null);
 
 /** Latest clean price of every token, with its 1h, 24h, 7d and 30d change */
-async function latestPrices(): Promise<PriceRow[]> {
+const latestPrices = unstable_cache(queryLatestPrices, ['latest-prices'], { revalidate: 300, tags: [PRICES_TAG] });
+async function queryLatestPrices(): Promise<PriceRow[]> {
   const now = Date.now();
   return query<PriceRow>(`
     WITH clean AS (${CLEAN_POINTS()}),
@@ -67,22 +75,20 @@ async function latestPrices(): Promise<PriceRow[]> {
   );
 }
 
-/** Hourly USD closes for the last 7 days, thinned to SPARK_POINTS per token */
-async function sparklines(tokens: string[]): Promise<Map<string, number[]>> {
+/** Every token's hourly USD closes for the last 7 days, thinned to SPARK_POINTS each (one query for all tokens) */
+const allSparklines = unstable_cache(async () => {
   const rows = await query<{ token: string; closes: number[] }>(`
     SELECT token_contract_id AS token, ARRAY_AGG(close_usd ORDER BY bucket) AS closes
     FROM ${table(CANDLES_TABLE)}
-    WHERE resolution = '1h' AND bucket >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY) AND token_contract_id IN UNNEST(@tokens)
-    GROUP BY token`,
-    { tokens }, { tokens: ['STRING'] },
-  );
-  return new Map(rows.map(r => {
+    WHERE resolution = '1h' AND bucket >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 7 DAY)
+    GROUP BY token`);
+  return rows.map(r => {
     const step = Math.max(1, r.closes.length / SPARK_POINTS);
     const thin = Array.from({ length: Math.min(SPARK_POINTS, r.closes.length) }, (_, i) => r.closes[Math.floor(i * step)]);
     thin[thin.length - 1] = r.closes[r.closes.length - 1];
-    return [r.token, thin];
-  }));
-}
+    return [r.token, thin] as [string, number[]];
+  });
+}, ['sparklines'], { revalidate: 900, tags: [PRICES_TAG] });
 
 /** Every priced token with its name, logo, price, changes and liquidity. Pass `only` to narrow the list. */
 export async function getMarket({ only, sparkline = false }: { only?: string[]; sparkline?: boolean } = {}): Promise<{ btcUsd: number | null; tokens: TokenPrice[] }> {
@@ -90,7 +96,7 @@ export async function getMarket({ only, sparkline = false }: { only?: string[]; 
   const info = new Map(tokens.map(t => [t.contractId, t]));
   const wanted = only ? new Set(only) : null;
   const picked = rows.filter(r => info.has(r.token) && (!wanted || wanted.has(r.token)));
-  const sparks = sparkline && picked.length ? await sparklines(picked.map(r => r.token)) : null;
+  const sparks = sparkline && picked.length ? new Map(await allSparklines()) : null;
   const btc = rows.find(r => r.token === 'SM3VDXK3WZZSA84XXFKAFAF15NNZX32CTSG82JFQ4.sbtc-token')?.usd ?? null;
 
   const list = picked.map((r): TokenPrice => {
@@ -114,8 +120,25 @@ export async function getMarket({ only, sparkline = false }: { only?: string[]; 
 const DEFAULT_SPAN: Record<Interval, number> = { '5m': 1, '1h': 7, '4h': 30, '1d': 3650, '1w': 3650 };
 const MAX_SPAN: Record<Interval, number> = { '5m': 7, '1h': 90, '4h': 365, '1d': 3650, '1w': 3650 };
 
-/** OHLC candles for one token, oldest first. 5m candles are the raw 5-minute points. */
+/** Window edges snap to this grid, so near-identical requests share one cached answer */
+const SNAP_MS: Record<Interval, number> = { '5m': 300_000, '1h': 3600_000, '4h': 3600_000, '1d': 3600_000, '1w': 3600_000 };
+
+/**
+ * OHLC candles for one token, oldest first. 5m candles are the raw 5-minute points.
+ * A window reaching the present is refreshed with each recording; a window wholly in the past never changes,
+ * so it's kept for a day.
+ */
 export async function getHistory(token: string, interval: Interval, quote: Quote, opts: { from?: Date; to?: Date; limit: number }): Promise<Candle[]> {
+  const snap = SNAP_MS[interval];
+  const live = !opts.to || opts.to.getTime() >= Date.now() - snap;
+  const to = live ? null : Math.ceil(opts.to!.getTime() / snap) * snap;
+  const from = opts.from ? Math.floor(opts.from.getTime() / snap) * snap : null;
+  const run = () => queryHistory(token, interval, quote, { from: from === null ? undefined : new Date(from), to: to === null ? undefined : new Date(to), limit: opts.limit });
+  const key = ['history', token, interval, quote, String(from), String(to), String(opts.limit)];
+  return unstable_cache(run, key, live ? { revalidate: 300, tags: [PRICES_TAG] } : { revalidate: 86400 })();
+}
+
+async function queryHistory(token: string, interval: Interval, quote: Quote, opts: { from?: Date; to?: Date; limit: number }): Promise<Candle[]> {
   const to = opts.to ?? new Date();
   const from = opts.from ?? new Date(to.getTime() - DEFAULT_SPAN[interval] * 86400_000);
   if (to.getTime() - from.getTime() > MAX_SPAN[interval] * 86400_000) {
@@ -149,8 +172,9 @@ export async function getHistory(token: string, interval: Interval, quote: Quote
   }));
 }
 
-/** When prices were last recorded and how many tokens that run priced */
-export async function getHealth() {
+/** When prices were last recorded and how many tokens that run priced (cached 30 seconds) */
+export const getHealth = unstable_cache(queryHealth, ['health'], { revalidate: 30 });
+async function queryHealth() {
   const [last] = await query<{ last_at: { value: string } | null; tokens: number }>(`
     SELECT MAX(calculated_at) AS last_at, COUNTIF(calculated_at = (SELECT MAX(calculated_at) FROM ${table(PRICES_TABLE)} WHERE calculated_at > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 DAY))) AS tokens
     FROM ${table(PRICES_TABLE)} WHERE calculated_at > TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 DAY)`);
@@ -159,8 +183,9 @@ export async function getHealth() {
   return { ok: ageSeconds !== null && ageSeconds * 1000 <= STALE_MS, lastRecordedAt: at, ageSeconds, tokensPriced: last?.tokens ?? 0 };
 }
 
-/** All-time high and low (from daily candles) and the first day this token was priced */
-export async function getTokenStats(token: string) {
+/** All-time high and low (from daily candles) and the first day this token was priced (cached an hour) */
+export const getTokenStats = (token: string) => unstable_cache(() => queryTokenStats(token), ['token-stats', token], { revalidate: 3600 })();
+async function queryTokenStats(token: string) {
   const [row] = await query<{ ath: { v: number; day: { value: string } } | null; atl: { v: number; day: { value: string } } | null; since: { value: string } | null }>(`
     SELECT
       ARRAY_AGG(STRUCT(high_usd AS v, bucket AS day) ORDER BY high_usd DESC LIMIT 1)[SAFE_OFFSET(0)] AS ath,
