@@ -7,6 +7,7 @@ export const metadata: Metadata = { title: 'Apps' };
 const APPS = [
   ['Charisma', 'charisma.rocks', 'Crest + Charisma', 'The front door. Links every app below.'],
   ['Charisma Swap', 'swap.charisma.rocks', 'App lockup', 'Swap, orders, analytics, DCA, range, in & out, fiat.'],
+  ['Charisma Prices', 'prices.charisma.rocks', 'App lockup', 'Live and historical token prices, charts and a free API.'],
   ['Charisma Invest', 'invest.charisma.rocks', 'App lockup', 'Yield and liquidity pools.'],
   ['Charisma Launchpad', 'launchpad.charisma.rocks', 'App lockup', 'Deploy tokens and pools from templates.'],
   ['Charisma Tokens', 'tokens.charisma.rocks', 'App lockup', 'Token data and API.'],
@@ -17,7 +18,7 @@ const APPS = [
   ['Blaze Wallet', 'wallet.charisma.rocks', 'Endorsed', 'The wallet for Stacks and Blaze subnets: sign once for orders that run on their own. In the Chrome Web Store.'],
   ['Meme Roulette', 'lol.charisma.rocks', 'Endorsed', 'A group token pump game.'],
   ['Tokemon', 'bots.charisma.rocks', 'Endorsed', 'Trading-bot manager. Coming soon.'],
-  ['Lakehouse', 'lakehouse.charisma.rocks', 'Endorsed', '3D graph of the Stacks network, plus a data API.'],
+  ['Lakehouse', 'lakehouse.charisma.rocks', 'Endorsed', '3D graph of the Stacks network.'],
 ];
 
 export default function AppsPage() {

@@ -5,221 +5,137 @@ title: Prices API
 
 # Prices API
 
-Read current and historical token prices over HTTP, or through `@repo/tokens` inside the monorepo.
+Read current and historical token prices over HTTP from [prices.charisma.rocks](https://prices.charisma.rocks), or through `@repo/tokens` inside the monorepo.
 
 ```mermaid
 flowchart LR
-  app["Your app"] -->|"GET /api/v1/prices"| invest["invest.charisma.rocks"]
-  invest -->|"current prices"| lh["lakehouse.charisma.rocks"]
-  invest -->|"names, symbols, decimals"| meta["tokens.charisma.rocks /api/v1/sip10"]
-  app -->|"GET /api/token-prices and /history"| lh
-  lh -->|"SQL query"| bq[("BigQuery")]
+  app["Your app"] -->|"GET /api/v1/..."| prices["prices.charisma.rocks"]
+  prices -->|"cached SQL"| bq[("BigQuery")]
+  old["Older apps"] -->|"GET /api/v1/prices"| invest["invest.charisma.rocks"]
+  invest --> prices
 ```
 
-Both hosts are public, need no key and allow any origin.
+Public, no key, any origin. Base URL: `https://prices.charisma.rocks/api/v1`.
 
-## Invest: prices with metadata
+:::tip Building with an AI assistant?
+[`https://prices.charisma.rocks/llms.txt`](https://prices.charisma.rocks/llms.txt) is this whole API as one prompt. Paste it into your assistant, or use the **Copy AI prompt** button on any token page.
+:::
 
-### `GET https://invest.charisma.rocks/api/v1/prices`
+## `GET /prices`
 
-| Param | Default | Notes |
-|---|---|---|
-| `token` | none | Contract ID. Returns 0 or 1 entries. |
-| `limit` | `100` | 1–1000. Anything else returns 500. |
-| `minPrice` | `0` | Minimum USD price. |
+Every priced token, sorted by liquidity.
 
-Sorted by `usdPrice`, highest first. Sample `?limit=2`:
+| Query | Meaning |
+|---|---|
+| `tokens` | Optional. Comma-separated contract IDs to return only those. |
+| `sparkline` | Optional. `1` adds `sparkline`: 42 USD closes over 7 days. |
 
 ```json
 {
-  "status": "success",
-  "data": [
+  "btcUsd": 81345.3,
+  "updatedAt": "2026-10-16T18:40:34.494Z",
+  "count": 93,
+  "tokens": [
     {
-      "tokenId": "SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin",
-      "symbol": "xBTC",
-      "name": "Wrapped Bitcoin",
-      "decimals": 8,
-      "image": "https://assets.hiro.so/api/mainnet/token-metadata-api/SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin/1.png",
-      "usdPrice": 108275.811917799,
-      "sbtcRatio": 1.273045291,
-      "confidence": 1,
-      "lastUpdated": 1790907317895,
-      "totalLiquidity": 0,
-      "isLpToken": false,
-      "intrinsicValue": 108275.811917799,
-      "marketPrice": 108275.811917799
-    },
-    {
-      "tokenId": "SP14NS8MVBRHXMM96BQY0727AJ59SWPV7RMHC0NCG.pontis-bridge-pBTC",
-      "symbol": "pBTC",
-      "name": "Pontis Bitcoin",
-      "decimals": 8,
-      "image": "https://assets.hiro.so/api/mainnet/token-metadata-api/SP14NS8MVBRHXMM96BQY0727AJ59SWPV7RMHC0NCG.pontis-bridge-pBTC/1.png",
-      "usdPrice": 86831.750687487,
-      "sbtcRatio": 1.02091824,
-      "confidence": 1,
-      "lastUpdated": 1790907317895,
-      "totalLiquidity": 0,
-      "isLpToken": false,
-      "intrinsicValue": 86831.750687487,
-      "marketPrice": 86831.750687487
+      "contractId": ".stx",
+      "symbol": "STX",
+      "name": "Stacks Token",
+      "image": "https://charisma.rocks/stx-logo.png",
+      "decimals": 6,
+      "usd": 0.395826,
+      "sbtc": 0.000004866,
+      "change": { "1h": -0.63, "24h": -2.12, "7d": 2.6, "30d": 69.6 },
+      "liquidityUsd": 1578132,
+      "roundTripLoss": 1.2,
+      "thin": false,
+      "updatedAt": "2026-10-16T18:40:34.494Z",
+      "stale": false
     }
-  ],
-  "metadata": {
-    "count": 2,
-    "totalTokensAvailable": 63,
-    "processingTimeMs": 1973,
-    "lakehouseData": true,
-    "lastUpdated": "2026-10-02T02:15:17.895Z",
-    "queryParams": { "token_filter": null, "limit": 2, "min_price": 0 }
-  }
+  ]
 }
 ```
-
-### `GET https://invest.charisma.rocks/api/v1/prices/{contractId}`
-
-One token under `data`, same fields. `?details=true` adds `calculationDetails` (`priceSource`, `calculatedAt` and two always-0 fields).
-
-### Fields
 
 | Field | Meaning |
 |---|---|
-| `tokenId` | Contract ID. Use it as the key. |
-| `usdPrice` | USD per whole token. |
-| `sbtcRatio` | sBTC per whole token. |
-| `lastUpdated` | When the job wrote this price, Unix ms. |
-| `symbol`, `name`, `decimals`, `image` | From `tokens.charisma.rocks/api/v1/sip10`; placeholders when missing. |
-| `confidence`, `totalLiquidity`, `isLpToken`, `intrinsicValue`, `marketPrice` | Legacy: always `1`, `0`, `false`, `usdPrice`, `usdPrice`. |
+| `contractId` | `.stx` for STX, otherwise `<address>.<contract-name>`. Use it as the key. |
+| `symbol`, `name`, `image`, `decimals` | From the Charisma token list. `image` can be missing. |
+| `type`, `base` | `type: "SUBNET"` marks a Blaze subnet copy; it shares `base`'s price. |
+| `usd`, `sbtc` | Price per whole token in dollars and in sBTC (× 100,000,000 for sats). |
+| `change` | Percent change over `1h`, `24h`, `7d` and `30d`. `null` without enough history. |
+| `liquidityUsd` | Dollar value of the token held in Charisma's pools. |
+| `roundTripLoss` | Percent lost buying about $1 and selling it straight back. `null` for prices from before 16 October 2026. |
+| `thin` | `roundTripLoss` over 25%: the price moves easily and is less reliable. |
+| `updatedAt`, `stale` | When it was last priced; `stale` once that's over 15 minutes ago. |
 
-| Status | When |
+## `GET /prices/{contractId}`
+
+One token with the same fields, plus its `sparkline`. 404 with an `error` message if it has never been priced.
+
+## `GET /prices/{contractId}/history`
+
+Open, high, low and close per period, oldest first.
+
+| Query | Meaning |
 |---|---|
-| 200 | Success. An unknown `token` returns `data: []`. |
-| 404 | `/prices/{contractId}` has no price: `{"status":"error","error":"Token not found",...}` |
-| 500 | Lakehouse or metadata fetch failed, or bad `limit`. |
+| `interval` | `5m`, `1h` (default), `4h`, `1d` or `1w`. 5m candles are the raw 5-minute prices, so open = high = low = close. |
+| `quote` | `usd` (default) or `sbtc`. |
+| `from`, `to` | Optional. ISO dates or Unix seconds. Defaults: the last day (5m), 7 days (1h), 30 days (4h) or everything (1d, 1w). |
+| `limit` | 1 to 2000, default 500. The newest candles are kept. |
 
-Cache: `public, s-maxage=300, stale-while-revalidate=900`, so a response can trail the latest run by 20 minutes or more.
-
-## Lakehouse: raw prices
-
-No metadata, snake_case fields, straight from BigQuery.
-
-### `GET https://lakehouse.charisma.rocks/api/token-prices`
-
-The latest row per token, sorted by `usd_price`, highest first.
-
-| Param | Default | Notes |
-|---|---|---|
-| `token` | none | Contract ID. |
-| `limit` | `100` | Integer, 1–1000. |
-| `minPrice` | `0` | USD, 0 or more. |
-
-Sample `?limit=2&minPrice=0.05`:
+One request covers at most 7 days of 5m, 90 days of 1h or 365 days of 4h candles; past that it answers 400 with the limit in the message.
 
 ```json
-{
-  "prices": [
-    {
-      "token_contract_id": "SP3DX3H4FEYZJZ586MFBS25ZW3HZDMEW92260R2PR.Wrapped-Bitcoin",
-      "sbtc_price": 1.273045291,
-      "usd_price": 108275.811917799,
-      "price_source": "multihop_quote",
-      "iterations_to_converge": 0,
-      "final_convergence_percent": 0,
-      "calculated_at": "2026-10-02T02:15:17.895Z"
-    },
-    {
-      "token_contract_id": "SP14NS8MVBRHXMM96BQY0727AJ59SWPV7RMHC0NCG.pontis-bridge-pBTC",
-      "sbtc_price": 1.02091824,
-      "usd_price": 86831.750687487,
-      "price_source": "multihop_quote",
-      "iterations_to_converge": 0,
-      "final_convergence_percent": 0,
-      "calculated_at": "2026-10-02T02:15:17.895Z"
-    }
-  ],
-  "summary": {
-    "total_tokens": 22,
-    "min_price": 0.092012633,
-    "max_price": 108275.811917799,
-    "avg_price": 18273.431916046,
-    "last_updated": "2026-10-02T02:15:17.895Z"
-  },
-  "query_params": { "token_filter": null, "limit": 2, "min_price": 0.05 }
-}
+{ "token": ".stx", "interval": "1d", "quote": "usd", "count": 289,
+  "candles": [{ "time": 1767225600, "open": 0.6785, "high": 0.6835, "low": 0.6577, "close": 0.6626, "points": 288 }] }
 ```
 
-`price_source` is `multihop_quote` from the current job; older rows (VELAR's, for one) say `tvl_weighted_iteration`.
+`time` is the candle's start in Unix seconds, ready for TradingView's lightweight-charts.
 
-### `GET https://lakehouse.charisma.rocks/api/token-prices/history`
+## `GET /health`
 
-Raw rows for one token, newest first: one row per 5-minute run.
+`{ ok, lastRecordedAt, ageSeconds, tokensPriced }`. Answers 503 when the last recording is over 15 minutes old, so uptime monitors can watch it.
 
-| Param | Default | Notes |
-|---|---|---|
-| `token` | required | Contract ID. |
-| `start`, `end` | last 30 days | ISO date or timestamp. The default applies only when both are missing. |
-| `limit` | `1000` | Integer, 1–10000. |
+## Caching
 
-`interval` is validated but not applied: rows are never grouped, so `min_usd_price` and `max_usd_price` equal `usd_price` and `data_points` is 1. `summary.price_statistics` covers the whole window, not just the returned rows.
+Every answer is cached on the server and shared. Current prices refresh as soon as each 5-minute run lands, so polling faster than once a minute gains nothing. A history window that's wholly in the past never changes and is kept for a day. `from` and `to` snap to the candle grid (5 minutes for 5m, otherwise the hour), so near-identical requests share one answer.
 
-```json
-{
-  "price_history": [
-    {
-      "timestamp": "2026-10-02T02:15:17.895Z",
-      "sbtc_price": 1.082e-06,
-      "usd_price": 0.092012633,
-      "min_usd_price": 0.092012633,
-      "max_usd_price": 0.092012633,
-      "data_points": 1
-    },
-    {
-      "timestamp": "2026-10-02T02:10:33.949Z",
-      "sbtc_price": 1.082e-06,
-      "usd_price": 0.092026913,
-      "min_usd_price": 0.092026913,
-      "max_usd_price": 0.092026913,
-      "data_points": 1
-    }
-  ],
-  "summary": {
-    "token_contract_id": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token",
-    "total_days": 31,
-    "data_range": { "start": "2026-09-02T03:00:25.569Z", "end": "2026-10-02T02:15:17.895Z" },
-    "price_statistics": { "all_time_min": 0.048658298, "all_time_max": 0.092747251, "average_price": 0.06862098 },
-    "total_data_points": 2
-  },
-  "query_params": { "token": "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token", "start_date": null, "end_date": null, "interval": "hour", "limit": 2 }
-}
-```
+## Invest: the older shape
 
-| Status | When |
+`GET https://invest.charisma.rocks/api/v1/prices` (with `token`, `limit`, `minPrice`) and `/api/v1/prices/{contractId}` keep their original response shape for older apps, read from the prices API:
+
+| Field | Meaning |
 |---|---|
-| 200 | Success. An unknown token returns an empty list. |
-| 400 | Bad `limit`, `minPrice`, `start`, `end` or `interval`, or no `token` on `/history`: `{"error":"..."}` |
-| 500 | BigQuery failed. |
+| `tokenId`, `symbol`, `name`, `decimals`, `image` | As above. |
+| `usdPrice`, `sbtcRatio` | `usd` and `sbtc`. |
+| `confidence` | `1 − roundTripLoss / 100`, or 1 for older prices. |
+| `totalLiquidity` | `liquidityUsd`. |
+| `lastUpdated` | `updatedAt` in Unix ms. |
 
-Cache: current prices `s-maxage=300`; history `s-maxage=7200, stale-while-revalidate=86400`, so history can trail by 2 hours or more.
+New code should call prices.charisma.rocks directly.
 
 ## `@repo/tokens`
 
 ```ts
-import { listPrices, lakehouseClient } from '@repo/tokens';
+import { pricesClient, listPrices } from '@repo/tokens';
 
-const CHA = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token';
-
-const prices = await listPrices(); // { [contractId]: usdPrice }
-const chaUsd = prices[CHA];
-
-const rows = await lakehouseClient.getCurrentPrices({ limit: 1000 });
-const history = await lakehouseClient.getPriceHistory(CHA, { start: '2026-09-01', limit: 10000 });
+const { tokens } = await pricesClient.list({ sparkline: true });
+const cha = await pricesClient.get('SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token');
+const candles = await pricesClient.history('.stx', { interval: '1d', from: new Date('2026-01-01') });
 ```
+
+| Method | Returns | On error |
+|---|---|---|
+| `pricesClient.list({ tokens?, sparkline? })` | `{ btcUsd, updatedAt, count, tokens: TokenPrice[] }` | Throws |
+| `pricesClient.get(contractId)` | `TokenPrice` | Throws, including 404 |
+| `pricesClient.history(contractId, { interval?, quote?, from?, to?, limit? })` | `PriceCandle[]` | Throws |
+
+15-second timeout. It always calls production.
 
 ### `listPrices()`
 
 ```mermaid
 flowchart LR
-  lp["listPrices()"] -->|"top 100 by price"| invest["invest /api/v1/prices"]
+  lp["listPrices()"] -->|"up to 100 tokens"| invest["invest /api/v1/prices"]
   lp -->|"server only"| stx["STXTools /tokens"]
   invest --> avg["Average per token"]
   stx --> avg
@@ -228,25 +144,10 @@ flowchart LR
 
 - On the server it averages STXTools with the invest API. The browser skips STXTools, so server and browser can disagree.
 - 5-second timeout per source. Returns `{}`, not an error, when every source fails.
-- It asks invest for `limit=100`, so only the 100 highest-priced tokens come from Charisma.
 - `listPricesInternal()` and `listPricesSTXTools()` use one source each.
-
-### `lakehouseClient`
-
-| Method | Returns | On error |
-|---|---|---|
-| `getCurrentPrices({ token?, limit?, minPrice? })` | `LakehousePricePoint[]` | Throws |
-| `getTokenPrice(contractId)` | `LakehousePricePoint \| null` | `null` |
-| `getPriceHistory(contractId, { start?, end?, limit? })` | `LakehouseHistoryPoint[]` | Throws |
-| `getPriceHistoryWithFallback(contractId, { limit? })` | `LakehouseHistoryPoint[]` | `[]` |
-
-Default timeout 10 seconds (`new LakehouseClient({ timeout })`). It always calls production, while `listPrices()` calls `localhost:3003` in development unless `NEXT_PUBLIC_DISCOVERY_USE_PRODUCTION` lists `invest` or `all`.
 
 ## Gotchas
 
-- All the [known limits](./overview.md#known-limits) apply: key on contract ID (two different tokens even share the symbol `B`) and check `lastUpdated`.
-- Prices are stored to 9 decimal places, so cheap tokens round down: PEPE shows `sbtcRatio: 0`. Use `usdPrice`.
-- History's default `limit` of 1000 rows covers about 3.5 days. Pass `limit=10000` for the full 30.
-- `getPriceHistoryWithFallback` defaults to 24 rows: 2 hours, not 24.
-- Rows before 2026-10-01 00:35 UTC are hourly, from earlier versions of the job.
-- Uncached invest requests take about 2 seconds (it fetches the whole metadata list). Call the lakehouse directly if you don't need metadata.
+- All the [known limits](./overview.md#known-limits) apply: key on contract ID (two different tokens even share the symbol `B`), and check `thin` and `stale`.
+- Prices before 16 October 2026 were stored to 9 decimal places, so the cheapest tokens' older `sbtc` history is rounded. Candles work out `sbtc` from `usd` and that run's BTC price instead.
+- Until February 2026 history is hourly at best and covers about 11 tokens.
