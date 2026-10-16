@@ -487,7 +487,10 @@ export class Router {
       return out;
     }
 
-    if (nextPath.length > this.config.maxHops) {
+    // A trade in or out of a subnet spends a step on the 1:1 wrap, so it gets one extra step (5 fits every router).
+    // Subnet tokens only connect to their own base token, so the search is no wider than a normal trade's.
+    const limit = this.config.maxHops + (nextPath[0].type === 'SUBNET' || this.nodes.get(to)?.token.type === 'SUBNET' ? 1 : 0);
+    if (nextPath.length > limit) {
       if (this.config.debug && path.length === 0) {
         console.log(`[router] findAllPaths: Max hops (${this.config.maxHops}) reached for ${from} -> ${to}`);
       }
