@@ -2,8 +2,13 @@
 
 export const CHARISMA = 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS';
 export const ENGINE = `${CHARISMA}.recovery-engine`;
-/** Wallets that belong to Charisma: the deployer and the old DAO / bitgear deployer */
-export const CHARISMA_WALLETS = [CHARISMA, 'SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ'];
+/** Wallets that belong to Charisma: the deployer, the old DAO / bitgear deployer, tearout.btc, and kraqen.btc (an admin who made the IOU pools) */
+export const CHARISMA_WALLETS = [
+  CHARISMA,
+  'SP2D5BGGJ956A635JG7CJQ59FTRFRB0893514EZPJ',
+  'SP1WXD5423MC1W0M4NSE9WF03X0561ARFX3Y9AQ3F',
+  'SPGYCP878RYFVT03ZT8TWGPKNYTSQB1578VVXHGE',
+];
 
 export type IouKey = 'welsh' | 'roo' | 'stx';
 
