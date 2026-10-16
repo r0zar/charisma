@@ -4,7 +4,7 @@ import Foundation
 public struct Charisma: Sendable {
     static let balances = URL(string: "https://swap.charisma.rocks/api/v1/balances")!
     static let tokens = URL(string: "https://tokens.charisma.rocks/api/v1/sip10")!
-    static let prices = URL(string: "https://lakehouse.charisma.rocks/api/token-prices?limit=1000")!
+    static let prices = URL(string: "https://prices.charisma.rocks/api/v1/prices")!
 
     let http: HTTP
     /// One for the whole app: every Charisma shares it
@@ -44,12 +44,12 @@ public struct Charisma: Sendable {
     /// USD per whole token, by contract id (".stx" for STX)
     public func usdPrices() async throws -> [String: Double] {
         struct Price: Decodable {
-            let token_contract_id: String
-            let usd_price: Double
+            let contractId: String
+            let usd: Double
         }
-        struct Answer: Decodable { let prices: [Price] }
-        let prices = try await http.get(Self.prices, from: .prices, as: Answer.self).prices
-        return Dictionary(prices.map { ($0.token_contract_id, $0.usd_price) }, uniquingKeysWith: { first, _ in first })
+        struct Answer: Decodable { let tokens: [Price] }
+        let prices = try await http.get(Self.prices, from: .prices, as: Answer.self).tokens
+        return Dictionary(prices.map { ($0.contractId, $0.usd) }, uniquingKeysWith: { first, _ in first })
     }
 
     /// The address's balance sheet now and every time it changes, pushed by the service (no polling). Reconnects on

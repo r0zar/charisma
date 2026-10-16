@@ -6,7 +6,7 @@ public enum Service: String, Sendable {
     case balances
     /// Charisma's token list, tokens.charisma.rocks
     case tokenList
-    /// Charisma's price feed, lakehouse.charisma.rocks
+    /// Charisma's price feed, prices.charisma.rocks
     case prices
     /// The Stacks network, through Hiro (api.hiro.so)
     case stacks
