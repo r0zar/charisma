@@ -17,7 +17,8 @@ export interface NftCollection {
     lastUpdated: string;
 }
 
-const collectionKey = (contractId: string) => `nft:${contractId}`;
+// `nft:` keys belong to an older NFT system that shares this KV, so collections keep their own prefix
+const collectionKey = (contractId: string) => `nft-collection:${contractId}`;
 const slugKey = (slug: string) => `nft-slug:${slug}`;
 const tokensKey = (contractId: string) => `nft-tokens:${contractId}`;
 
@@ -35,7 +36,7 @@ export class NftService {
         const keys: string[] = [];
         let cursor = 0;
         do {
-            const [next, batch] = await kv.scan(cursor, { match: 'nft:*', count: 1000 });
+            const [next, batch] = await kv.scan(cursor, { match: 'nft-collection:*', count: 1000 });
             cursor = Number(next);
             keys.push(...batch);
         } while (cursor !== 0);
