@@ -140,6 +140,9 @@ export class Cryptonomicon {
                 return undefined;
             });
 
+            // 3d. Post-conditions name the asset, so the identifier has to be one the contract defines (metadata JSON can get it wrong)
+            const assetNames = await this.getTokenAssetNames(contractId).catch(() => [] as string[]);
+
             // 4. Generate default metadata when external sources fail
             const defaultMetadata = this.generateDefaultMetadata(contractId, fallbackContractData);
 
@@ -153,6 +156,7 @@ export class Cryptonomicon {
             };
             delete finalMetadata.decimals;
             if (decimals !== undefined) finalMetadata.decimals = decimals;
+            if (assetNames.length && !assetNames.includes(finalMetadata.identifier)) finalMetadata.identifier = assetNames[0];
 
             // 4b. Override total_supply with the on-chain value if fetched successfully
             if (onChainSupply !== undefined) {
@@ -281,39 +285,24 @@ export class Cryptonomicon {
     }
 
     /**
+     * Get the names of the fungible tokens the contract defines
+     */
+    async getTokenAssetNames(contractId: string): Promise<string[]> {
+        const [contractAddress, contractName] = contractId.split('.');
+        if (!contractAddress || !contractName) return [];
+        const contractInterface = await getContractInterface(contractAddress, contractName);
+        return (contractInterface?.fungible_tokens ?? []).map((ft: any) => ft?.name).filter(Boolean);
+    }
+
+    /**
      * Get the token identifier from the contract interface
      */
     async getTokenIdentifier(contractId: string): Promise<string | undefined> {
         try {
-            const [contractAddress, contractName] = contractId.split('.');
-            if (!contractAddress || !contractName) {
-                if (this.config.debug) console.warn(`Invalid contractId for getTokenIdentifier: ${contractId}`);
-                return undefined;
-            }
-
-            const contractInterface = await getContractInterface(contractAddress, contractName);
-
-            if (contractInterface && contractInterface.fungible_tokens && Array.isArray(contractInterface.fungible_tokens) && contractInterface.fungible_tokens.length > 0) {
-                if (this.config.debug) {
-                    console.debug(`[${contractId}] Found ${contractInterface.fungible_tokens.length} fungible tokens in contract interface`);
-                }
-
-                // Extract the first fungible token identifier
-                // In most cases, contracts have a single fungible token
-                const fungibleToken = contractInterface.fungible_tokens[0] as any;
-                if (fungibleToken && typeof fungibleToken === 'object' && fungibleToken.name) {
-                    const identifier = fungibleToken.name;
-                    if (this.config.debug) {
-                        console.debug(`[${contractId}] Token identifier from contract interface: ${identifier}`);
-                    }
-                    return identifier;
-                }
-            }
-
-            if (this.config.debug) {
-                console.debug(`[${contractId}] No fungible tokens found in contract interface or interface is null`);
-            }
-            return undefined;
+            // In most cases, contracts have a single fungible token
+            const identifier = (await this.getTokenAssetNames(contractId))[0];
+            if (this.config.debug) console.debug(`[${contractId}] Token identifier from contract interface: ${identifier}`);
+            return identifier;
         } catch (error) {
             if (this.config.debug) {
                 console.warn(`Failed to get token identifier for ${contractId}:`, error);
