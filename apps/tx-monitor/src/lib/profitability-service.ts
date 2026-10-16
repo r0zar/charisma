@@ -14,8 +14,7 @@ import {
   HistoricalPricePoint,
   TimeRange
 } from './profitability-types';
-import { listPrices } from '@repo/tokens';
-import { getHostUrl } from '@modules/discovery';
+import { listPrices, pricesClient, type PriceInterval } from '@repo/tokens';
 
 /**
  * Calculate profitability for a completed trade activity
@@ -600,105 +599,21 @@ async function getCurrentPrices(contractIds: string[]): Promise<CurrentPriceData
 }
 
 /**
- * Get historical price data for tokens 
+ * USD price history for both tokens of a trade, from prices.charisma.rocks. The candle size fits the time span:
+ * 5-minute prices for a couple of days, then hourly, 4-hourly and daily.
  */
 async function getHistoricalPriceData(
-  _inputContractId: string,
-  _outputContractId: string,
-  _startTimestamp: number,
-  _endTimestamp: number
-): Promise<HistoricalPricePoint[][]> {
-  return {} as any; // Placeholder for actual implementation
-}
-
-/**
- * Fallback to get historical data via API call to simple-swap
- */
-async function _getHistoricalDataFromPriceStore(
   inputContractId: string,
   outputContractId: string,
   startTimestamp: number,
   endTimestamp: number
 ): Promise<HistoricalPricePoint[][]> {
-  try {
-    if (!inputContractId || !outputContractId) {
-      console.warn(`[getHistoricalDataFromPriceStore] Missing contract IDs`);
-      return [[], []];
-    }
-
-    // Convert timestamps to seconds for the API
-    const fromSeconds = Math.floor(startTimestamp / 1000);
-    const toSeconds = Math.floor(endTimestamp / 1000);
-
-    // Call simple-swap API endpoint directly (same as main function but as fallback)
-    const contractIds = [inputContractId, outputContractId].join(',');
-    const url = `${getHostUrl('swap')}/api/price-series/bulk?contractIds=${encodeURIComponent(contractIds)}&from=${fromSeconds}&to=${toSeconds}`;
-
-    console.log(`[getHistoricalDataFromPriceStore] Calling simple-swap API as fallback: ${url}`);
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error(`API call failed with status ${response.status}`);
-    }
-
-    const data = await response.json();
-
-    // Convert API response to our format
-    const inputData = data[inputContractId] || [];
-    const outputData = data[outputContractId] || [];
-
-    const inputHistory: HistoricalPricePoint[] = inputData.map((point: { time: number, value: number }) => ({
-      timestamp: point.time * 1000, // Convert back to milliseconds
-      price: point.value,
-      source: 'price-store-api'
-    }));
-
-    const outputHistory: HistoricalPricePoint[] = outputData.map((point: { time: number, value: number }) => ({
-      timestamp: point.time * 1000, // Convert back to milliseconds
-      price: point.value,
-      source: 'price-store-api'
-    }));
-
-    console.log(`[getHistoricalDataFromPriceStore] Retrieved ${inputHistory.length} points for ${inputContractId}, ${outputHistory.length} points for ${outputContractId} via API`);
-
-    return [inputHistory, outputHistory];
-  } catch (error) {
-    console.error(`[_getHistoricalDataFromPriceStore] Error calling simple-swap API:`, error);
-
-    // Final fallback to minimal static data if everything fails
-    console.warn(`[_getHistoricalDataFromPriceStore] Using minimal fallback data for ${inputContractId}, ${outputContractId}`);
-
-    const getSimplePrice = (contractId: string): number => {
-      if (contractId.includes('usdc') || contractId.includes('USDC') ||
-        contractId.includes('usdt') || contractId.includes('USDT') ||
-        contractId.includes('dai') || contractId.includes('DAI')) {
-        return 1.0;
-      }
-      return 1.0;
-    };
-
-    const inputPrice = getSimplePrice(inputContractId);
-    const outputPrice = getSimplePrice(outputContractId);
-
-    return [
-      [{
-        timestamp: startTimestamp,
-        price: inputPrice,
-        source: 'fallback'
-      }],
-      [{
-        timestamp: startTimestamp,
-        price: outputPrice,
-        source: 'fallback'
-      }]
-    ];
-  }
+  const days = (endTimestamp - startTimestamp) / 86400_000;
+  const interval: PriceInterval = days <= 2 ? '5m' : days <= 60 ? '1h' : days <= 300 ? '4h' : '1d';
+  const history = (contractId: string) =>
+    pricesClient.history(contractId, { interval, from: new Date(startTimestamp), to: new Date(endTimestamp), limit: 2000 })
+      .then(candles => candles.map(c => ({ timestamp: c.time * 1000, price: c.close, source: 'prices.charisma.rocks' })));
+  return Promise.all([history(inputContractId), history(outputContractId)]);
 }
 
 /**
