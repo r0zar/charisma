@@ -5,11 +5,13 @@ import Link from 'next/link';
 import { ArrowLeft, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { NftCollection } from '@/lib/nft-service';
 import type { TokenMetadata } from '@/lib/metadata-service';
 
 const PAGE = 60;
-const SELECT = 'h-9 rounded-md border bg-card px-2 text-sm cursor-pointer';
+// A dropdown item's value can't be empty, so "no filter" has its own
+const ALL = '__all__';
 
 type Token = TokenMetadata & { id: string };
 
@@ -80,18 +82,24 @@ export function NftCollectionDetail({ contractId }: { contractId: string }) {
 
             <div className="flex flex-wrap items-center gap-2 mb-6">
                 {traitTypes.map(type => (
-                    <select key={type} className={SELECT} value={filters[type] ?? ''} onChange={e => setFilter(type, e.target.value)}>
-                        <option value="">All {type}</option>
-                        {Object.entries(traitCounts[type]).sort(([a], [b]) => a.localeCompare(b)).map(([value, count]) => (
-                            <option key={value} value={value}>{value} ({count.toLocaleString()})</option>
-                        ))}
-                    </select>
+                    <Select key={type} value={filters[type] ?? ALL} onValueChange={value => setFilter(type, value === ALL ? '' : value)}>
+                        <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value={ALL}>All {type}</SelectItem>
+                            {Object.entries(traitCounts[type]).sort(([a], [b]) => a.localeCompare(b)).map(([value, count]) => (
+                                <SelectItem key={value} value={value}>{value} ({count.toLocaleString()})</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 ))}
-                <select className={SELECT} value={sort} onChange={e => setSort(e.target.value)}>
-                    <option value="id">Sort: Token #</option>
-                    <option value="name">Sort: Name</option>
-                    {traitTypes.map(type => <option key={type} value={type}>Sort: {type}</option>)}
-                </select>
+                <Select value={sort} onValueChange={setSort}>
+                    <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="id">Sort: Token #</SelectItem>
+                        <SelectItem value="name">Sort: Name</SelectItem>
+                        {traitTypes.map(type => <SelectItem key={type} value={type}>Sort: {type}</SelectItem>)}
+                    </SelectContent>
+                </Select>
                 {Object.keys(filters).length > 0 && (
                     <Button variant="ghost" size="sm" onClick={() => setFilters({})} className="gap-1">
                         <X className="h-4 w-4" /> Clear filters
