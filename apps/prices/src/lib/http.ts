@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 
 const CORS = { 'Access-Control-Allow-Origin': '*' };
 
-/** JSON for anyone to read, cached at the edge for `seconds` and served stale while it refreshes */
+/** JSON for anyone to read, cached at the edge for `seconds`, then served stale for at most that long again while it refreshes */
 export const ok = (data: unknown, seconds: number) =>
-  NextResponse.json(data, { headers: { ...CORS, 'Cache-Control': `public, max-age=${Math.min(seconds, 60)}, s-maxage=${seconds}, stale-while-revalidate=${seconds * 10}` } });
+  NextResponse.json(data, { headers: { ...CORS, 'Cache-Control': `public, max-age=${Math.min(seconds, 60)}, s-maxage=${seconds}, stale-while-revalidate=${seconds}` } });
 
 /** An error that explains itself; never cached */
 export const fail = (status: number, error: string) =>
