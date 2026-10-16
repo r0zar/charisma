@@ -23,6 +23,10 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ collection
 
     if (path.length === 1) {
         const tokenId = path[0].replace(/\.json$/, '');
+        // Pieces mint in order, so an unminted piece stays a surprise
+        if (collection.hideUnminted && !(Number(tokenId) <= await NftService.mintedCount(collection.contractId))) {
+            return NextResponse.json({ error: `Token ${tokenId} isn't minted yet` }, { status: 404, headers: PUBLIC });
+        }
         const token = await NftService.getToken(collection.contractId, tokenId);
         if (!token) {
             return NextResponse.json({ error: `Unknown token: ${tokenId}` }, { status: 404, headers: PUBLIC });
@@ -32,6 +36,9 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ collection
         });
     }
 
+    if (!collection.imageBase) {
+        return NextResponse.json({ error: `${key} has no images yet` }, { status: 404, headers: PUBLIC });
+    }
     const image = await fetch(`${collection.imageBase}${path.join('/')}`);
     if (!image.ok) {
         return NextResponse.json({ error: `Unknown image: ${path.join('/')}` }, { status: 404, headers: PUBLIC });
@@ -40,6 +47,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ collection
         headers: {
             ...PUBLIC,
             'Content-Type': image.headers.get('content-type') ?? 'application/octet-stream',
+            'X-Content-Type-Options': 'nosniff',
             'Cache-Control': 'public, max-age=31536000, immutable',
         },
     });

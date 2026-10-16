@@ -1,8 +1,11 @@
 "use client"
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import type { NftCollection } from '@/lib/nft-service';
 
 /** Every NFT collection metadata hosts, as cards that open the collection */
@@ -18,11 +21,21 @@ export function NftCollectionList() {
             .catch(e => setError(String(e)));
     }, []);
 
+    const header = (
+        <div className="flex justify-end mb-6">
+            <Button asChild>
+                <Link href="/dashboard/nft/new"><Plus className="h-4 w-4" /> New collection</Link>
+            </Button>
+        </div>
+    );
+
     if (error) return <p className="py-12 text-center text-destructive">Couldn't load NFT collections: {error}</p>;
     if (!collections) return <p className="py-12 text-center text-muted-foreground">Loading NFT collections...</p>;
-    if (!collections.length) return <p className="py-12 text-center text-muted-foreground">No NFT collections yet.</p>;
+    if (!collections.length) return <>{header}<p className="py-12 text-center text-muted-foreground">No NFT collections yet.</p></>;
 
     return (
+        <>
+        {header}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {collections.map(c => (
                 <button
@@ -43,5 +56,6 @@ export function NftCollectionList() {
                 </button>
             ))}
         </div>
+        </>
     );
 }

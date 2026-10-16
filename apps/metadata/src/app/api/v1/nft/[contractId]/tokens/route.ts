@@ -6,7 +6,7 @@ const PUBLIC = { 'Access-Control-Allow-Origin': '*' };
 /**
  * GET /api/v1/nft/<contractId>/tokens?offset=0&limit=60&sort=id&trait=Type:Buckler&trait=Realm:Nirvana
  * The collection, one page of its tokens that have every given trait, and each trait value's count.
- * sort is 'id', 'name', or a trait type.
+ * sort is 'id', 'name', or a trait type. Collections that hide unminted pieces list only minted ones.
  */
 export async function GET(req: NextRequest, ctx: { params: Promise<{ contractId: string }> }) {
     const { contractId } = await ctx.params;
@@ -24,9 +24,11 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ contractId:
         if (!collection) {
             return NextResponse.json({ success: false, error: `Unknown collection: ${contractId}` }, { status: 404, headers: PUBLIC });
         }
-        const result = await NftService.listTokens(collection.contractId, { offset, limit, traits, sort });
+        const maxId = collection.hideUnminted ? await NftService.mintedCount(collection.contractId) : undefined;
+        const result = await NftService.listTokens(collection.contractId, { offset, limit, traits, sort, maxId });
         return NextResponse.json({ success: true, collection, ...result }, {
-            headers: { ...PUBLIC, 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=900' },
+            // Launchpad collections change with every mint, so they're cached briefly
+            headers: { ...PUBLIC, 'Cache-Control': collection.hideUnminted ? 'public, s-maxage=15' : 'public, s-maxage=300, stale-while-revalidate=900' },
         });
     } catch (error) {
         console.error(`Error listing tokens for ${contractId}:`, error);

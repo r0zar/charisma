@@ -77,6 +77,9 @@ export function NftCollectionDetail({ contractId }: { contractId: string }) {
                         <code className="font-mono break-all select-all">{tokenUri}</code>
                     </div>
                     {collection.description && <p className="text-sm text-muted-foreground max-w-2xl">{collection.description}</p>}
+                    {collection.hideUnminted && (
+                        <p className="text-sm text-muted-foreground max-w-2xl">Pieces mint in order and appear here as they're minted, so each one stays a surprise.</p>
+                    )}
                 </div>
             </div>
 

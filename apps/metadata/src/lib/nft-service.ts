@@ -1,5 +1,6 @@
 import { kv } from '@vercel/kv';
 import { put } from '@vercel/blob';
+import { cvToValue, hexToCV } from '@stacks/transactions';
 import type { TokenMetadata } from './metadata-service';
 
 /** A SIP-009 collection whose token metadata and images this service owns */
@@ -14,6 +15,8 @@ export interface NftCollection {
     /** Blob URL prefix the collection's images live under */
     imageBase: string;
     tokenCount: number;
+    /** Launchpad collections mint in order, so a token's metadata stays hidden until it's minted */
+    hideUnminted?: boolean;
     lastUpdated: string;
 }
 
@@ -25,14 +28,16 @@ export interface TokenQuery {
     traits?: Record<string, string>;
     /** 'id', 'name', or a trait type */
     sort?: string;
+    /** Only tokens with a numeric id up to this one */
+    maxId?: number;
 }
 
 const collectionKey = (contractId: string) => `nft-collection:${contractId}`;
 const slugKey = (slug: string) => `nft-slug:${slug}`;
 const tokensKey = (contractId: string) => `nft-tokens:${contractId}`;
+const mintedKey = (contractId: string) => `nft-minted:${contractId}`;
 
-/** The base URI a contract points at: token metadata is `<base><id>.json`, images `<base><field>/<file>` */
-export const nftBaseUri = (slug: string) => `https://metadata.charisma.rocks/nft/${slug}/`;
+export { nftBaseUri } from './nft-urls';
 
 export class NftService {
     /** A collection by its contract id or its slug */
@@ -61,9 +66,10 @@ export class NftService {
      * One page of a collection's tokens matching every `traits` filter (trait type → value), sorted by token id, name,
      * or a trait type. Also counts every trait value across the whole collection, for building filters.
      */
-    static async listTokens(contractId: string, { offset, limit, traits = {}, sort = 'id' }: TokenQuery) {
+    static async listTokens(contractId: string, { offset, limit, traits = {}, sort = 'id', maxId }: TokenQuery) {
         const all = Object.entries(await kv.hgetall<Record<string, TokenMetadata>>(tokensKey(contractId)) ?? {})
-            .map(([id, token]) => ({ id, ...token }));
+            .map(([id, token]) => ({ id, ...token }))
+            .filter(token => maxId === undefined || Number(token.id) <= maxId);
         const valueOf = (token: TokenMetadata, type: string) => token.attributes?.find(a => a.trait_type === type)?.value;
 
         const traitCounts: Record<string, Record<string, number>> = {};
@@ -96,6 +102,40 @@ export class NftService {
 
     static async saveTokens(contractId: string, tokens: Record<string, TokenMetadata>) {
         await kv.hset(tokensKey(contractId), tokens);
+    }
+
+    static async countTokens(contractId: string): Promise<number> {
+        return kv.hlen(tokensKey(contractId));
+    }
+
+    /** Drops every token, so a fresh upload doesn't leave old ones behind */
+    static async clearTokens(contractId: string) {
+        await kv.del(tokensKey(contractId));
+    }
+
+    /** How many tokens the contract has minted (its last token id), read from the chain at most every 15 seconds */
+    static async mintedCount(contractId: string): Promise<number> {
+        const cached = await kv.get<number>(mintedKey(contractId));
+        if (cached !== null) return cached;
+
+        const apiKey = process.env.HIRO_API_KEY;
+        if (!apiKey) throw new Error('HIRO_API_KEY is not set, so minted tokens cannot be read from the chain');
+        const [address, name] = contractId.split('.');
+        const res = await fetch(`https://api.hiro.so/v2/contracts/call-read/${address}/${name}/get-last-token-id`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey },
+            body: JSON.stringify({ sender: address, arguments: [] }),
+        });
+        if (!res.ok) throw new Error(`Reading ${contractId}'s last token id failed: HTTP ${res.status}`);
+        const read = await res.json();
+
+        // Not deployed yet: nothing is minted
+        let minted = 0;
+        if (read.okay) minted = Number(cvToValue(hexToCV(read.result)).value);
+        else if (!String(read.cause).includes('NoSuchContract')) throw new Error(`Reading ${contractId}'s last token id failed: ${read.cause}`);
+
+        await kv.set(mintedKey(contractId), minted, { ex: 15 });
+        return minted;
     }
 
     /** Stores one of the collection's images at `<path>` and returns its blob URL */
