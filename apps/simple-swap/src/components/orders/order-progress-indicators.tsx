@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { AtSign, Package, Repeat, Split, TrendingDown, TrendingUp, Zap } from 'lucide-react';
 import { ConditionDisplayData } from '@/lib/orders/condition-formatter';
 import { StrategyDisplayData } from '@/lib/orders/strategy-formatter';
 import { cn } from '@/lib/utils';
@@ -31,7 +32,7 @@ export const PriceProgressBar: React.FC<PriceProgressBarProps> = ({ progressData
             <TooltipTrigger asChild>
                 <div className={cn("w-full", className)}>
                     <div className="flex items-center justify-between text-xs text-ink-muted mb-1">
-                        <span>{isGoingUp ? '↗️' : '↘️'}</span>
+                        {isGoingUp ? <TrendingUp className="h-3.5 w-3.5" aria-label="Going up" /> : <TrendingDown className="h-3.5 w-3.5" aria-label="Going down" />}
                         <span>{Math.round(progressPercent)}% to target</span>
                     </div>
                     <div className={`w-full h-2 rounded-full ${trackColor} overflow-hidden`}>
@@ -83,15 +84,8 @@ export const StrategyProgressBar: React.FC<StrategyProgressBarProps> = ({ strate
         }
     };
 
-    const getStatusIcon = () => {
-        switch (type) {
-            case 'split': return '🔀';
-            case 'dca': return '📈';
-            case 'batch': return '📦';
-            case 'twitter': return '🐦';
-            default: return '⚡';
-        }
-    };
+    const StatusIcon = { split: Split, dca: Repeat, batch: Package, twitter: AtSign }[type as string] ?? Zap;
+    const typeLabel = ({ dca: 'DCA', split: 'Split', batch: 'Batch', twitter: 'Tweet' } as Record<string, string>)[type as string] ?? type;
 
     return (
         <Tooltip>
@@ -99,8 +93,8 @@ export const StrategyProgressBar: React.FC<StrategyProgressBarProps> = ({ strate
                 <div className={cn("w-full", className)}>
                     <div className="flex items-center justify-between text-xs text-ink-muted mb-1">
                         <span className="flex items-center gap-1">
-                            <span>{getStatusIcon()}</span>
-                            <span className="capitalize">{type} Strategy</span>
+                            <StatusIcon className="h-3.5 w-3.5" aria-hidden />
+                            <span>{typeLabel} strategy</span>
                         </span>
                         <span>{completedOrders}/{totalOrders} completed</span>
                     </div>
@@ -149,12 +143,12 @@ export const ConditionStatusIndicator: React.FC<ConditionStatusIndicatorProps> =
     conditionData, 
     className 
 }) => {
-    const { humanReadableText, shortText, directionIcon, contextualInfo, isManualOrder } = conditionData;
+    const { humanReadableText, shortText, directionIcon: DirectionIcon, contextualInfo, isManualOrder } = conditionData;
 
     if (isManualOrder) {
         return (
             <div className={cn("flex items-center gap-2 text-sm", className)}>
-                <span className="text-lg">{directionIcon}</span>
+                <DirectionIcon className="h-5 w-5 shrink-0 text-ink-muted" aria-hidden />
                 <div>
                     <div className="text-ink font-medium">{humanReadableText}</div>
                     <div className="text-xs text-ink-muted">{contextualInfo}</div>
@@ -167,7 +161,7 @@ export const ConditionStatusIndicator: React.FC<ConditionStatusIndicatorProps> =
         <Tooltip>
             <TooltipTrigger asChild>
                 <div className={cn("flex items-center gap-2 text-sm cursor-default", className)}>
-                    <span className="text-lg">{directionIcon}</span>
+                    <DirectionIcon className="h-5 w-5 shrink-0 text-ink-muted" aria-hidden />
                     <div className="flex-1">
                         <div className="text-ink font-medium">{shortText}</div>
                         <div className="text-xs text-ink-muted">{contextualInfo}</div>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { CircleCheck, ShieldCheck, Target } from 'lucide-react';
 import TokenDropdown from '@/components/TokenDropdown';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 import { usePrices } from '@/contexts/token-price-context';
@@ -270,7 +271,7 @@ export default function InAndOutPage() {
                 <div className="rounded-xl border border-line bg-surface p-4 space-y-6">
                     {phase === 'done' ? (
                         <div className="space-y-4">
-                            <div className="text-lg font-medium text-ink">You&apos;re in ✓</div>
+                            <div className="flex items-center gap-2 text-lg font-medium text-ink">You&apos;re in <CircleCheck className="h-5 w-5 text-success" aria-hidden /></div>
                             <p className="text-sm text-ink-muted">
                                 Buying {buy?.symbol} now. It sells into {cashOut?.symbol} at {targetRatio && fmt(targetRatio)} {cashOut?.symbol}
                                 {safetyRatio ? `, or at ${fmt(safetyRatio)} if it drops first` : ''}. You can close this page.
@@ -337,7 +338,7 @@ export default function InAndOutPage() {
                                     </div>
                                 )}
                                 <div className="flex justify-between text-xs text-ink-muted pt-1">
-                                    <span>🎯 Sell when it&apos;s up {!TARGETS.includes(targetPct) && `(+${(targetPct * 100).toFixed(1)}%)`}</span>
+                                    <span className="flex items-center gap-1.5"><Target className="h-3.5 w-3.5" aria-hidden />Sell when it&apos;s up {!TARGETS.includes(targetPct) && `(+${(targetPct * 100).toFixed(1)}%)`}</span>
                                     {targetRatio && cashOut && <span className="font-mono">{fmt(targetRatio)} {cashOut.symbol}</span>}
                                 </div>
                                 <div className="flex gap-2">
@@ -350,7 +351,7 @@ export default function InAndOutPage() {
                                     </div>
                                 )}
                                 <label className="flex items-center justify-between gap-3 pt-1 text-sm text-ink-body cursor-pointer">
-                                    <span>🛡️ Safety net: sell if it falls {SAFETY * 100}%{safetyRatio && cashOut ? ` (${fmt(safetyRatio)} ${cashOut.symbol})` : ''}</span>
+                                    <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 shrink-0" aria-hidden />Safety net: sell if it falls {SAFETY * 100}%{safetyRatio && cashOut ? ` (${fmt(safetyRatio)} ${cashOut.symbol})` : ''}</span>
                                     <input type="checkbox" checked={safetyOn} onChange={e => setSafetyOn(e.target.checked)} className="h-4 w-4 cursor-pointer accent-white" />
                                 </label>
                             </Step>

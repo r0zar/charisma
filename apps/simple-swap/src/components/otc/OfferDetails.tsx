@@ -151,7 +151,7 @@ export default function EnhancedOfferDetails({ offer, subnetTokens, offerTokenMe
                                 }`}
                             title={timeInfo.absolute}
                         >
-                            {timeInfo.isVeryRecent && "🟢 "}
+                            {timeInfo.isVeryRecent && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-success align-middle" aria-label="Just now" />}
                             {timeInfo.relative}
                         </span>
                     </CardDescription>

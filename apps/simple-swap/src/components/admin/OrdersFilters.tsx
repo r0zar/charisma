@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, Download, SlidersHorizontal, X, Zap, Clock } from 'lucide-react';
+import { Search, Filter, Calendar, Download, SlidersHorizontal, X, Zap, Clock, ListFilter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
@@ -235,11 +235,11 @@ export function OrdersFilters() {
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 >
                     <option value="all">All Statuses</option>
-                    <option value="open">🟢 Open Orders</option>
-                    <option value="broadcasted">🟡 Pending Orders</option>
-                    <option value="confirmed">✅ Confirmed Orders</option>
-                    <option value="cancelled">⚪ Cancelled Orders</option>
-                    <option value="failed">🔴 Failed Orders</option>
+                    <option value="open">Open Orders</option>
+                    <option value="broadcasted">Pending Orders</option>
+                    <option value="confirmed">Confirmed Orders</option>
+                    <option value="cancelled">Cancelled Orders</option>
+                    <option value="failed">Failed Orders</option>
                 </select>
 
                 {/* Order Type Filter */}
@@ -249,10 +249,10 @@ export function OrdersFilters() {
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 >
                     <option value="all">All Order Types</option>
-                    <option value="limit">📊 Limit Orders</option>
-                    <option value="dca">🔄 DCA Orders</option>
-                    <option value="perpetual">⚡ Perpetual Positions</option>
-                    <option value="sandwich">🥪 Sandwich Orders</option>
+                    <option value="limit">Limit Orders</option>
+                    <option value="dca">DCA Orders</option>
+                    <option value="perpetual">Perpetual Positions</option>
+                    <option value="sandwich">Sandwich Orders</option>
                 </select>
 
                 {/* Date Range Filter */}
@@ -262,11 +262,11 @@ export function OrdersFilters() {
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 >
                     <option value="all">All Time</option>
-                    <option value="today">📅 Today</option>
-                    <option value="week">📆 This Week</option>
-                    <option value="month">🗓️ This Month</option>
-                    <option value="quarter">📋 This Quarter</option>
-                    <option value="custom">⚙️ Custom Range</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="quarter">This Quarter</option>
+                    <option value="custom">Custom Range</option>
                 </select>
             </div>
 
@@ -307,9 +307,9 @@ export function OrdersFilters() {
                                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:border-ring focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                             >
                                 <option value="all">All Priorities</option>
-                                <option value="high">🔴 High Priority</option>
-                                <option value="medium">🟡 Medium Priority</option>
-                                <option value="low">⚪ Low Priority</option>
+                                <option value="high">High Priority</option>
+                                <option value="medium">Medium Priority</option>
+                                <option value="low">Low Priority</option>
                             </select>
                             <p className="text-xs text-muted-foreground">Filter by execution priority level</p>
                         </div>
@@ -414,7 +414,8 @@ export function OrdersFilters() {
                             </span>
                         ) : (
                             <span className="flex items-center gap-2">
-                                📊 Showing all orders • No filters applied
+                                <ListFilter className="h-3.5 w-3.5" aria-hidden />
+                                Showing all orders • No filters applied
                             </span>
                         )}
                     </div>

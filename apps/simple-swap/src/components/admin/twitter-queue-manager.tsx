@@ -94,16 +94,16 @@ export function TwitterQueueManager() {
                 
                 // Show detailed results for connection tests
                 if (action === 'test-connection') {
-                    alert('✅ BaaS v2 connection test successful!\n\nThe connection to browserless.io BaaS v2 is working properly.');
+                    alert('BaaS v2 connection test successful!\n\nThe connection to browserless.io BaaS v2 is working properly.');
                 }
                 
                 if (action === 'test-browserql') {
-                    alert('✅ BrowserQL connection test successful!\n\nThe connection to browserless.io BrowserQL is working properly.');
+                    alert('BrowserQL connection test successful!\n\nThe connection to browserless.io BrowserQL is working properly.');
                 }
                 
                 if (action === 'test-both') {
-                    const baasStatus = result.data?.baas?.success ? '✅ Success' : '❌ Failed';
-                    const bqlStatus = result.data?.browserql?.success ? '✅ Success' : '❌ Failed';
+                    const baasStatus = result.data?.baas?.success ? 'Success' : 'Failed';
+                    const bqlStatus = result.data?.browserql?.success ? 'Success' : 'Failed';
                     alert(`Connection Test Results:\n\nBaaS v2: ${baasStatus}\nBrowserQL: ${bqlStatus}\n\nBoth services are ready for use!`);
                 }
                 
@@ -113,11 +113,11 @@ export function TwitterQueueManager() {
                 if ((action === 'test-connection' || action === 'test-browserql') && result.data?.details) {
                     const details = result.data.details;
                     const serviceName = action === 'test-connection' ? 'BaaS v2' : 'BrowserQL';
-                    alert(`❌ ${serviceName} connection test failed:\n\n${result.error}\n\nError Details:\n- Type: ${details.name}\n- Message: ${details.message}`);
+                    alert(`${serviceName} connection test failed:\n\n${result.error}\n\nError Details:\n- Type: ${details.name}\n- Message: ${details.message}`);
                 } else if (action === 'test-both') {
                     const baasError = result.data?.baas?.error || 'Unknown error';
                     const bqlError = result.data?.browserql?.error || 'Unknown error';
-                    alert(`❌ Connection tests failed:\n\nBaaS v2: ${baasError}\nBrowserQL: ${bqlError}\n\nCheck your browserless configuration.`);
+                    alert(`Connection tests failed:\n\nBaaS v2: ${baasError}\nBrowserQL: ${bqlError}\n\nCheck your browserless configuration.`);
                 } else {
                     throw new Error(result.error || 'Action failed');
                 }
@@ -128,7 +128,7 @@ export function TwitterQueueManager() {
             // Show specific error message for connection tests
             if (action === 'test-connection' || action === 'test-browserql' || action === 'test-both') {
                 const serviceName = action === 'test-connection' ? 'BaaS v2' : action === 'test-browserql' ? 'BrowserQL' : 'Connection';
-                alert(`❌ ${serviceName} test failed:\n\n${(error as Error).message}\n\nPlease check:\n- BROWSERLESS_TOKEN is valid\n- Network connectivity\n- Browserless service status`);
+                alert(`${serviceName} test failed:\n\n${(error as Error).message}\n\nPlease check:\n- BROWSERLESS_TOKEN is valid\n- Network connectivity\n- Browserless service status`);
             } else {
                 throw error;
             }

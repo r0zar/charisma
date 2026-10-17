@@ -6,7 +6,7 @@ import { TokenDef } from "@/types/otc";
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Clock, User, CheckCircle, XCircle, Wallet, ExternalLink } from "lucide-react";
+import { AlertCircle, AlertTriangle, Clock, User, CheckCircle, XCircle, Wallet, ExternalLink, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useWallet } from "@/contexts/wallet-context";
 import { signedFetch } from 'blaze-sdk';
@@ -428,7 +428,7 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                                                         }`}
                                                     title={timeInfo.absolute}
                                                 >
-                                                    {timeInfo.isVeryRecent && "🟢 "}
+                                                    {timeInfo.isVeryRecent && <span className="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-success align-middle" aria-label="Just now" />}
                                                     {timeInfo.relative}
                                                 </span>
                                             </div>
@@ -437,7 +437,7 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                                             {bid.message && bid.message.trim() && (
                                                 <div className="mt-2 p-2 bg-muted/20 rounded text-xs">
                                                     <div className="flex items-center gap-1 mb-1">
-                                                        <span className="font-medium text-primary">💬 Message:</span>
+                                                        <MessageSquare className="h-3 w-3 text-primary" aria-hidden /><span className="font-medium text-primary">Message:</span>
                                                     </div>
                                                     <p className="text-muted-foreground italic">
                                                         "{bid.message.trim()}"
@@ -461,12 +461,12 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                                                             {balanceInfo.sufficient ? (
                                                                 <>
                                                                     <CheckCircle className="h-3 w-3" />
-                                                                    <span>✓ Sufficient balance ({balanceInfo.humanReadableBalance.toLocaleString()} {symbol})</span>
+                                                                    <span>Sufficient balance ({balanceInfo.humanReadableBalance.toLocaleString()} {symbol})</span>
                                                                 </>
                                                             ) : (
                                                                 <>
                                                                     <XCircle className="h-3 w-3" />
-                                                                    <span>⚠ Insufficient balance ({balanceInfo.humanReadableBalance.toLocaleString()} / {balanceInfo.humanReadableRequired.toLocaleString()} {symbol})</span>
+                                                                    <span>Insufficient balance ({balanceInfo.humanReadableBalance.toLocaleString()} / {balanceInfo.humanReadableRequired.toLocaleString()} {symbol})</span>
                                                                 </>
                                                             )}
                                                         </div>
@@ -492,7 +492,7 @@ export function EnhancedActiveBids({ bids, subnetTokens, offer, onBidUpdate }: A
                                             >
                                                 Accept Bid
                                                 {balanceInfo && !balanceInfo.sufficient && (
-                                                    <span className="ml-1 text-xs">⚠</span>
+                                                    <AlertTriangle className="ml-1 h-3 w-3" aria-label="Insufficient balance" />
                                                 )}
                                             </Button>
                                         )}

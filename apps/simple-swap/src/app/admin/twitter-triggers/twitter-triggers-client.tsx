@@ -885,11 +885,11 @@ export default function TwitterTriggersClient() {
 
                 if (summary) {
                     if (summary.successful > 0) {
-                        toastMessage = `✅ ${summary.successful} order${summary.successful > 1 ? 's' : ''} executed successfully`;
+                        toastMessage = `${summary.successful} order${summary.successful > 1 ? 's' : ''} executed successfully`;
                     } else if (summary.overflow > 0) {
-                        toastMessage = `⚠️ ${summary.overflow} overflow execution${summary.overflow > 1 ? 's' : ''} (need more orders)`;
+                        toastMessage = `${summary.overflow} overflow execution${summary.overflow > 1 ? 's' : ''} (need more orders)`;
                     } else if (summary.failed > 0) {
-                        toastMessage = `❌ ${summary.failed} execution${summary.failed > 1 ? 's' : ''} failed`;
+                        toastMessage = `${summary.failed} execution${summary.failed > 1 ? 's' : ''} failed`;
                     }
 
                     if (summary.total > 0) {

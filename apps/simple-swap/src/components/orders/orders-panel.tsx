@@ -5,7 +5,7 @@ import { useWallet } from "@/contexts/wallet-context";
 import type { LimitOrder } from "@/lib/orders/types";
 import { Button } from "../ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from "../ui/dialog";
-import { ClipboardList, Search, ExternalLink } from "lucide-react";
+import { ClipboardList, Search, ExternalLink, type LucideIcon } from "lucide-react";
 import { TokenCacheData } from "@/lib/contract-registry-adapter";
 import { toast } from "sonner";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "../ui/tooltip";
@@ -106,7 +106,7 @@ const TransactionStatusIndicator: React.FC<{ txid: string | undefined }> = ({ tx
 };
 
 // Premium Status Badge with Apple/Tesla design
-export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string; conditionIcon?: string | null }> = ({ status, txid, failureReason, conditionIcon }) => {
+export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string; conditionIcon?: LucideIcon | null }> = ({ status, txid, failureReason, conditionIcon: ConditionIcon }) => {
     const statusConfig: Record<LimitOrder["status"], { color: string, bgColor: string, borderColor: string, label: string, indicatorColor: string }> = {
         open: {
             color: "text-accent-text",
@@ -164,9 +164,9 @@ export const PremiumStatusBadge: React.FC<BadgeProps & { txid?: string; conditio
         <div className={`relative inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border backdrop-blur-sm transition-all duration-200 ${config.color} ${config.bgColor} ${config.borderColor}`}>
             <div className={`w-1.5 h-1.5 rounded-full ${config.indicatorColor} ${status === 'open' ? 'animate-pulse' : ''}`} />
             <span>{config.label}</span>
-            {conditionIcon && (
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-surface-raised border border-line rounded-full flex items-center justify-center text-[10px] leading-none">
-                    {conditionIcon}
+            {ConditionIcon && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-surface-raised border border-line rounded-full flex items-center justify-center text-ink-muted">
+                    <ConditionIcon className="h-2.5 w-2.5" aria-hidden />
                 </div>
             )}
         </div>
@@ -843,7 +843,7 @@ export default function OrdersPanel({ embedded = false }: { embedded?: boolean }
                             )}
                             <div className="flex items-center gap-6 text-sm text-ink-muted">
                                 <span>
-                                    {strategyGroups.length} {strategyGroups.length === 1 ? 'strategy' : 'strategies'}
+                                    {strategyGroups.length} {strategyGroups.length === 1 ? 'strategy' : 'strategies'}{' '}
                                     ({strategyGroups.reduce((n, g) => n + g.orders.length, 0)} {activeFilter === 'all' ? 'total' : activeFilter} orders)
                                 </span>
                                 <span>Page {pagination.page} of {pagination.totalPages}</span>

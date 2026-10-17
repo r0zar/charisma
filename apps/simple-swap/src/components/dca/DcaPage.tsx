@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { CircleCheck } from 'lucide-react';
 import TokenDropdown from '@/components/TokenDropdown';
 import { Chip } from '@/components/advanced/Chip';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
@@ -203,7 +204,7 @@ export default function DcaPage() {
             <div className="rounded-xl border border-line bg-surface p-4 space-y-5">
                 {phase === 'done' ? (
                     <div className="space-y-4">
-                        <div className="text-lg font-medium text-ink">Your DCA is running ✓</div>
+                        <div className="flex items-center gap-2 text-lg font-medium text-ink">Your DCA is running <CircleCheck className="h-5 w-5 text-success" aria-hidden /></div>
                         <p className="text-sm text-ink-muted">
                             {buys.toLocaleString('en-US')} buys of {to?.symbol}, {everyLabel}. The first runs now. You can close this page.
                         </p>

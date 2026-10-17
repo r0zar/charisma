@@ -1,4 +1,5 @@
 import { StrategyDisplayData } from '@/lib/orders/strategy-formatter';
+import type { LucideIcon } from 'lucide-react';
 import { formatOrderStatusTime, formatStrategyStatusTime, getConditionIcon } from '@/lib/date-utils';
 
 /**
@@ -18,7 +19,7 @@ export function getStrategyStatusTime(strategyData: StrategyDisplayData) {
 /**
  * Gets the appropriate condition icon for a strategy
  */
-export function getStrategyConditionIcon(strategyData: StrategyDisplayData): string | null {
+export function getStrategyConditionIcon(strategyData: StrategyDisplayData): LucideIcon | null {
     const { type, orders } = strategyData;
     const firstOrder = orders[0];
     

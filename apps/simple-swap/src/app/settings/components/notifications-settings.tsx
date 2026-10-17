@@ -5,7 +5,7 @@ import { useWallet } from '@/contexts/wallet-context';
 import { UserNotificationSettings, ChannelSpecificPreference } from '@/types/notification-settings';
 import { signMessage, type SignedMessage } from 'blaze-sdk';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, TriangleAlert } from 'lucide-react';
 
 // Helper to get default channel preference to avoid repetition
 const getDefaultChannelPref = (): ChannelSpecificPreference => ({ enabled: false, recipientId: '' });
@@ -308,7 +308,7 @@ export default function NotificationsSettings() {
                 <Card className="bg-danger/10 border-danger/30">
                     <CardContent className="p-4">
                         <div className="flex items-start gap-3">
-                            <div className="text-danger mt-0.5">⚠️</div>
+                            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-danger" aria-hidden />
                             <div>
                                 <h4 className="text-danger font-semibold">Error</h4>
                                 <p className="text-danger/80 text-sm">{error}</p>

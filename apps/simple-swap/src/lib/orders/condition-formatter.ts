@@ -1,10 +1,11 @@
+import { TrendingDown, TrendingUp, TriangleAlert, User, Zap, type LucideIcon } from 'lucide-react';
 import { LimitOrder } from './types';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
 
 export interface ConditionDisplayData {
     humanReadableText: string;
     shortText: string;
-    directionIcon: string;
+    directionIcon: LucideIcon;
     progressData?: {
         creationPrice: number;
         currentPrice: number;
@@ -30,7 +31,7 @@ export function formatOrderCondition(
         return {
             humanReadableText: "Execute immediately",
             shortText: "Immediate execution",
-            directionIcon: "⚡",
+            directionIcon: Zap,
             contextualInfo: "This order will be executed automatically right away",
             isManualOrder: true
         };
@@ -41,7 +42,7 @@ export function formatOrderCondition(
         return {
             humanReadableText: "Manual execution required",
             shortText: "Manual order",
-            directionIcon: "👤",
+            directionIcon: User,
             contextualInfo: "This order must be manually executed via the interface or API",
             isManualOrder: true
         };
@@ -52,7 +53,7 @@ export function formatOrderCondition(
         return {
             humanReadableText: "Invalid condition token",
             shortText: "Invalid condition",
-            directionIcon: "⚠️",
+            directionIcon: TriangleAlert,
             contextualInfo: "Unable to load condition token information",
             isManualOrder: true
         };
@@ -66,7 +67,7 @@ export function formatOrderCondition(
     // Generate human-readable text based on direction
     const isGoingUp = order.direction === 'gt';
     const directionWord = isGoingUp ? 'reaches' : 'drops to';
-    const directionIcon = isGoingUp ? '↗️' : '↘️';
+    const directionIcon = isGoingUp ? TrendingUp : TrendingDown;
     
     const formattedTarget = formatPrice(targetPrice);
     const humanReadableText = `When ${symbol} ${directionWord} ${baseSymbol === 'USD' ? '$' : ''}${formattedTarget}${baseSymbol !== 'USD' ? ` ${baseSymbol}` : ''} or ${isGoingUp ? 'higher' : 'lower'}`;

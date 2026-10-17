@@ -31,6 +31,7 @@ import {
     DollarSign,
     Wallet,
     AlertTriangle,
+    Check,
     CheckCircle
 } from 'lucide-react';
 import { useWallet } from '@/contexts/wallet-context';
@@ -372,7 +373,7 @@ const BidDialog: React.FC<BidDialogProps> = ({
                                                 </span>
                                                 {bidAmountNum > 0 && (
                                                     <span className="text-xs">
-                                                        {balanceStatus === 'sufficient' ? '✓' : balanceStatus === 'insufficient' ? '(Insufficient)' : ''}
+                                                        {balanceStatus === 'sufficient' ? <Check className="inline h-3 w-3" aria-label="Sufficient balance" /> : balanceStatus === 'insufficient' ? '(Insufficient)' : ''}
                                                     </span>
                                                 )}
                                             </div>

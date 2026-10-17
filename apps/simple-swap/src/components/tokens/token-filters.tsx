@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Download, Heart, TrendingUp } from "lucide-react";
+import { Coins, Download, Heart, Landmark, Search, TrendingUp, Vote, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface TokenFiltersProps {
@@ -23,12 +23,12 @@ export default function TokenFilters({
 }: TokenFiltersProps) {
 
     const categories = [
-        { id: "all", label: "All Tokens", icon: "🔍" },
-        { id: "stablecoin", label: "Stablecoins", icon: "💰" },
-        { id: "defi", label: "DeFi", icon: "🏦" },
-        { id: "governance", label: "Governance", icon: "🗳️" },
+        { id: "all", label: "All Tokens", icon: Search },
+        { id: "stablecoin", label: "Stablecoins", icon: Coins },
+        { id: "defi", label: "DeFi", icon: Landmark },
+        { id: "governance", label: "Governance", icon: Vote },
         // Conditionally add arbitrage category
-        ...(hasArbitrageCategory ? [{ id: "arbitrage", label: "Arbitrage", icon: "⚡" }] : [])
+        ...(hasArbitrageCategory ? [{ id: "arbitrage", label: "Arbitrage", icon: Zap }] : [])
     ];
 
     const sortOptions = [
@@ -76,7 +76,7 @@ export default function TokenFilters({
                                     : "text-ink-muted hover:text-ink hover:bg-surface border border-transparent"
                             )}
                         >
-                            <span className="text-xs">{category.icon}</span>
+                            <category.icon className="h-3 w-3" aria-hidden />
                             {category.label}
                             {category.id === "arbitrage" && hasArbitrageCategory && (
                                 <TrendingUp className="h-3 w-3" />

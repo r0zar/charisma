@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import TokenDropdown from '../TokenDropdown';
-import { ChevronDown, Info, DollarSign } from 'lucide-react';
+import { ChevronDown, Info, DollarSign, Lightbulb, TriangleAlert } from 'lucide-react';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { getTriggerChartProps } from '@/lib/trigger-chart-props';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
@@ -201,7 +201,7 @@ export default function LimitConditionSection() {
                         
                         <div className="bg-warning/[0.08] border border-warning/[0.15] rounded-xl p-4">
                             <div className="flex items-center gap-2 mb-2">
-                                <span className="text-lg">⚠️</span>
+                                <TriangleAlert className="h-4 w-4 text-warning" aria-hidden />
                                 <h4 className="font-medium text-warning">Important Notes</h4>
                             </div>
                             <div className="space-y-2 text-xs text-warning">
@@ -252,7 +252,7 @@ export default function LimitConditionSection() {
 
                         <div className="bg-accent/[0.08] border border-accent/[0.15] rounded-xl p-4">
                             <div className="flex items-center gap-2 mb-2">
-                                <span className="text-lg">💡</span>
+                                <Lightbulb className="h-4 w-4 text-accent-text" aria-hidden />
                                 <h4 className="font-medium text-accent-text">Pro Strategy</h4>
                             </div>
                             <p className="text-xs text-accent-text leading-relaxed">

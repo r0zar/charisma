@@ -5,6 +5,7 @@ import { useWallet } from '@/contexts/wallet-context';
 import { UserNotificationSettings, ChannelSpecificPreference } from '@/types/notification-settings';
 import { signMessage, type SignedMessage } from 'blaze-sdk';
 import { Header } from "@/components/layout/header";
+import { Bell } from "lucide-react";
 
 // Helper to get default channel preference to avoid repetition
 const getDefaultChannelPref = (): ChannelSpecificPreference => ({ enabled: false, recipientId: '' });
@@ -294,7 +295,7 @@ function NotificationSettingsContent() {
                         <div className="flex flex-col items-center justify-center py-16 text-ink-muted">
                             <div className="relative mb-6">
                                 <div className="h-16 w-16 rounded-2xl bg-surface border border-line flex items-center justify-center">
-                                    <div className="h-8 w-8 text-ink-faint">🔔</div>
+                                    <Bell className="h-8 w-8 text-ink-faint" aria-hidden />
                                 </div>
                             </div>
                             <h3 className="text-lg font-medium text-ink-body mb-2">Connect Your Wallet</h3>

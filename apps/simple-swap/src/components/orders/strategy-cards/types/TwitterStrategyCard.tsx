@@ -9,7 +9,7 @@ import { StrategyProgressBar } from '../../order-progress-indicators';
 import { getOrderTimestamps } from '@/lib/date-utils';
 import { truncateAddress, truncateSmartContract } from '@/lib/address-utils';
 import TokenLogo from '../../../TokenLogo';
-import { ChevronDown, ExternalLink, Copy, Check, Zap, Trash2, MessageCircle, Users } from 'lucide-react';
+import { ChevronDown, ExternalLink, Copy, Check, Zap, Trash2, MessageCircle, Users, BadgeCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -272,7 +272,7 @@ export const TwitterStrategyCard: React.FC<TwitterStrategyCardProps> = (props) =
                                                         <div className="ml-2 text-right">
                                                             <span className="font-mono text-ink-body text-xs block">{truncateAddress(order.recipient)}</span>
                                                             {order.metadata?.execution?.bnsName && (
-                                                                <span className="text-accent-text text-xs">📛 {order.metadata.execution.bnsName}</span>
+                                                                <span className="inline-flex items-center gap-1 text-accent-text text-xs"><BadgeCheck className="h-3 w-3" aria-hidden />{order.metadata.execution.bnsName}</span>
                                                             )}
                                                         </div>
                                                     </div>
@@ -367,7 +367,7 @@ export const TwitterStrategyCard: React.FC<TwitterStrategyCardProps> = (props) =
                                                             {order.metadata.execution.bnsName && (
                                                                 <div className="flex justify-between">
                                                                     <span className="text-ink-muted">BNS Name:</span>
-                                                                    <span className="text-accent-text">📛 {order.metadata.execution.bnsName}</span>
+                                                                    <span className="inline-flex items-center gap-1 text-accent-text"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />{order.metadata.execution.bnsName}</span>
                                                                 </div>
                                                             )}
                                                             {order.metadata.execution.executedAt && (

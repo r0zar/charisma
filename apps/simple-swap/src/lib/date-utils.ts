@@ -1,3 +1,4 @@
+import { AtSign, Clock, Hand, Package, Split, Target, Zap, type LucideIcon } from 'lucide-react';
 import type { LimitOrder } from '@/lib/orders/types';
 /**
  * Date formatting utilities for the orders UI
@@ -435,49 +436,49 @@ interface OrderConditionInfo {
 
 /**
  * Determines the appropriate condition icon for an order
- * Returns the emoji icon that represents the order's execution condition
+ * Returns the icon that represents the order's execution condition
  */
 export function getConditionIcon(
     order: OrderConditionInfo,
     strategyType?: LimitOrder['strategyType'] | 'single' | 'split' | 'batch'
-): string | null {
+): LucideIcon | null {
     // For Twitter strategy orders, prioritize Twitter-based execution
     if (strategyType === 'twitter') {
-        return '🐦';
+        return AtSign;
     }
 
     // For DCA strategy orders, prioritize time-based execution
     if (strategyType === 'dca') {
-        return '⏰';
+        return Clock;
     }
 
     // For split/batch strategy orders
     if (strategyType === 'split') {
-        return '🔀';
+        return Split;
     }
 
     if (strategyType === 'batch') {
-        return '📦';
+        return Package;
     }
 
     // Check for immediate execution (wildcard condition)
     if (order.conditionToken === '*' && order.targetPrice === '0' && order.direction === 'gt') {
-        return '⚡';
+        return Zap;
     }
 
     // Check for price-based conditions
     if (order.conditionToken && order.targetPrice && order.direction) {
-        return '💰';
+        return Target;
     }
 
     // Check for time-based execution windows
     if (order.validFrom || order.validTo) {
-        return '⏰';
+        return Clock;
     }
 
     // Manual/programmatic execution (no conditions)
     if (!order.conditionToken || !order.targetPrice || !order.direction) {
-        return '🎯';
+        return Hand;
     }
 
     return null;

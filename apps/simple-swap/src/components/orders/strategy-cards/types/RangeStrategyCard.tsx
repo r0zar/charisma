@@ -11,7 +11,7 @@ import type { RangeSettings } from '@/lib/range/types';
 import { usePriceSeriesService } from '@/lib/charts/price-series-service';
 import { useBalances } from '@/contexts/wallet-balance-context';
 import { useWallet } from '@/contexts/wallet-context';
-import { ChevronDown } from 'lucide-react';
+import { ArrowLeftRight, ArrowUpDown, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const usd = (n: number) => `${n < 0 ? '−' : '+'}$${Math.abs(n).toFixed(2)}`;
@@ -87,7 +87,7 @@ export const RangeStrategyCard: React.FC<RangeStrategyCardProps> = (props) => {
     if (decA === undefined || decB === undefined) {
         return (
             <BaseStrategyCard {...props} onClick={() => onToggleExpansion(id)}>
-                <div className="text-sm text-ink-body">Range swap · {symA} ⇄ {symB} · {orders.length} orders</div>
+                <div className="flex items-center gap-1 text-sm text-ink-body">Range swap · {symA}<ArrowLeftRight className="h-3.5 w-3.5 text-ink-muted" aria-label="and" />{symB} · {orders.length} orders</div>
                 <div className="text-xs text-accent-text">Token decimals are missing for {decA === undefined ? symA : symB}, so amounts and profit can&apos;t be shown.</div>
             </BaseStrategyCard>
         );
@@ -123,7 +123,7 @@ export const RangeStrategyCard: React.FC<RangeStrategyCardProps> = (props) => {
         <BaseStrategyCard {...props} onClick={() => onToggleExpansion(id)}>
             <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
-                    <div className="text-sm font-medium text-ink">↕ {symA} ⇄ {symB}</div>
+                    <div className="flex items-center gap-1.5 text-sm font-medium text-ink"><ArrowUpDown className="h-3.5 w-3.5 text-ink-muted" aria-hidden />{symA}<ArrowLeftRight className="h-3.5 w-3.5 text-ink-muted" aria-label="and" />{symB}</div>
                     <div className="text-xs text-ink-muted">Range swap · {cadence} · window {currentWindow} of {range.windows} · started {new Date(range.createdAt).toLocaleDateString()}</div>
                 </div>
                 <div className="flex items-center gap-2">

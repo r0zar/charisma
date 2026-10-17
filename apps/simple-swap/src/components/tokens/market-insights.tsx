@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowUpRight, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Activity, ArrowUpRight, Crown, Lightbulb, RefreshCw, Rocket, TrendingUp, AlertTriangle, Zap } from 'lucide-react';
 import type { TokenSummary } from '@/types/token-types';
 import { cn } from '@/lib/utils';
 import { useComparisonToken } from '@/contexts/comparison-token-context';
@@ -177,17 +177,10 @@ function ImmersiveInsightRow({ insight, index }: { insight: MarketInsight; index
         return 'text-accent-text';
     };
 
-    const getInsightIcon = (type: MarketInsight['type']) => {
-        switch (type) {
-            case 'arbitrage_alert': return '⚡';
-            case 'momentum_cluster': return '📈';
-            case 'price_correlation': return '🔄';
-            case 'market_cap_leaders': return '👑';
-            case 'volatility_sync': return '⚡';
-            case 'breakout_candidates': return '🚀';
-            default: return '💡';
-        }
-    };
+    const InsightIcon = {
+        arbitrage_alert: Zap, momentum_cluster: TrendingUp, price_correlation: RefreshCw,
+        market_cap_leaders: Crown, volatility_sync: Activity, breakout_candidates: Rocket,
+    }[insight.type as string] ?? Lightbulb;
 
     const isArbitrageInsight = insight.type === 'arbitrage_alert';
 
@@ -199,7 +192,7 @@ function ImmersiveInsightRow({ insight, index }: { insight: MarketInsight; index
             {/* Clean header */}
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-start gap-3">
-                    <span className="text-lg">{getInsightIcon(insight.type)}</span>
+                    <InsightIcon className="mt-0.5 h-5 w-5 shrink-0 text-ink-muted" aria-hidden />
                     <div>
                         <h3 className={cn(
  "font-medium mb-1",

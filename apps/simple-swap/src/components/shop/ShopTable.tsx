@@ -304,7 +304,7 @@ const TableRowComponent = React.memo(({
                                             </div>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                            <p>✅ Offer creator has sufficient balance for all offered tokens</p>
+                                            <p className="flex items-center gap-1.5"><CheckCircle className="h-3.5 w-3.5 text-success" aria-hidden />Offer creator has sufficient balance for all offered tokens</p>
                                         </TooltipContent>
                                     </Tooltip>
                                 );
@@ -321,7 +321,7 @@ const TableRowComponent = React.memo(({
                                         </TooltipTrigger>
                                         <TooltipContent>
                                             <div>
-                                                <p>⚠️ Insufficient balance for:</p>
+                                                <p className="flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5 text-warning" aria-hidden />Insufficient balance for:</p>
                                                 <ul className="mt-1 space-y-1">
                                                     {balanceStatus.insufficientTokens.map((token, idx) => (
                                                         <li key={idx} className="text-xs">• {token}</li>
