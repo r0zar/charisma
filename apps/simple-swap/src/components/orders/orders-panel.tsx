@@ -369,7 +369,8 @@ export default function OrdersPanel({ embedded = false }: { embedded?: boolean }
 
             if (usePagination) {
                 params.append('page', '1');
-                params.append('limit', '50'); // Get recent orders for strategy grouping
+                params.append('limit', '50'); // 50 most recent strategies or single orders
+                params.append('group', 'strategy'); // each strategy arrives with all its orders, so its card adds up
                 params.append('sortBy', 'createdAt');
                 params.append('sortOrder', 'desc');
 
@@ -843,7 +844,7 @@ export default function OrdersPanel({ embedded = false }: { embedded?: boolean }
                             <div className="flex items-center gap-6 text-sm text-ink-muted">
                                 <span>
                                     {strategyGroups.length} {strategyGroups.length === 1 ? 'strategy' : 'strategies'}
-                                    ({pagination.total} {activeFilter === 'all' ? 'total' : activeFilter} orders)
+                                    ({strategyGroups.reduce((n, g) => n + g.orders.length, 0)} {activeFilter === 'all' ? 'total' : activeFilter} orders)
                                 </span>
                                 <span>Page {pagination.page} of {pagination.totalPages}</span>
                                 <div className="flex items-center gap-2">

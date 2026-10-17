@@ -33,7 +33,8 @@ export async function GET(req: Request) {
                 return NextResponse.json({ error: 'Invalid limit parameter (1-50)' }, { status: 400 });
             }
             
-            const result = await listOrdersPaginated(owner, page, limit, sortBy, sortOrder, statusFilter, searchQuery);
+            const groupStrategies = searchParams.get('group') === 'strategy';
+            const result = await listOrdersPaginated(owner, page, limit, sortBy, sortOrder, statusFilter, searchQuery, groupStrategies);
             return NextResponse.json({ 
                 status: 'success', 
                 data: result.orders.map(toPublicOrder),

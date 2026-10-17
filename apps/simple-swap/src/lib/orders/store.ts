@@ -83,7 +83,9 @@ export async function listOrdersPaginated(
     sortBy: 'createdAt' | 'status' = 'createdAt',
     sortOrder: 'asc' | 'desc' = 'desc',
     statusFilter?: 'all' | 'open' | 'broadcasted' | 'confirmed' | 'failed' | 'cancelled' | 'filled',
-    searchQuery?: string
+    searchQuery?: string,
+    /** Page by strategy: each strategy counts once and arrives with all its orders */
+    groupStrategies = false
 ): Promise<PaginatedOrdersResult> {
     const map = await kv.hgetall<Record<string, unknown>>(HASH_KEY);
     const all: LimitOrder[] = map ? Object.values(map).map((v) => (typeof v === 'string' ? JSON.parse(v) : v) as LimitOrder) : [];
@@ -142,12 +144,27 @@ export async function listOrdersPaginated(
         return 0;
     });
 
+    // A page holds whole strategies when asked: a DCA's hundreds of orders share one creation time, so paging single
+    // orders would hand the strategy card an arbitrary slice of them
+    const units: LimitOrder[][] = [];
+    if (groupStrategies) {
+        const byKey = new Map<string, LimitOrder[]>();
+        for (const o of sorted) {
+            const key = o.strategyId ?? o.uuid;
+            const unit = byKey.get(key);
+            if (unit) unit.push(o);
+            else { const fresh = [o]; byKey.set(key, fresh); units.push(fresh); }
+        }
+    } else {
+        for (const o of sorted) units.push([o]);
+    }
+
     // Pagination calculation
-    const total = sorted.length;
+    const total = units.length;
     const totalPages = Math.ceil(total / limit);
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
-    const orders = sorted.slice(startIndex, endIndex);
+    const orders = units.slice(startIndex, endIndex).flat();
 
     return {
         orders,
