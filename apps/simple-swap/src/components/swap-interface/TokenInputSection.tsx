@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import TokenDropdown from '../TokenDropdown';
-import { ChevronDown } from 'lucide-react';
+import { ChartLine } from 'lucide-react';
 import TokenLogo from '../TokenLogo';
 import ConditionTokenChartWrapper from '../condition-token-chart-wrapper';
 import { TokenCacheData } from '@/lib/contract-registry-adapter';
@@ -171,10 +171,12 @@ export default function TokenInputSection() {
                     <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setShowChart(!showChart); }}
-                        className="h-8 w-8 rounded-lg bg-surface border border-line text-ink-body hover:text-ink hover:bg-surface-hover hover:border-line-strong transition-all duration-200 flex items-center justify-center backdrop-blur-sm flex-shrink-0"
+                        className={`h-8 w-8 rounded-lg border transition-all duration-200 flex items-center justify-center backdrop-blur-sm flex-shrink-0 ${showChart ? 'bg-accent/10 border-accent/30 text-accent-text' : 'bg-surface border-line text-ink-body hover:text-ink hover:bg-surface-hover hover:border-line-strong'}`}
                         title={showChart ? 'Hide price chart' : 'Show price chart'}
+                        aria-label={showChart ? 'Hide price chart' : 'Show price chart'}
+                        aria-pressed={showChart}
                     >
-                        <ChevronDown className={`w-4 h-4 transition-transform ${showChart ? 'rotate-180' : ''}`} />
+                        <ChartLine className="w-4 h-4" aria-hidden />
                     </button>
                 )}
             </div>
