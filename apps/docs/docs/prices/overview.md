@@ -49,7 +49,7 @@ History starts on 29 July 2025. Until February 2026 only about 11 tokens were pr
 
 ## Routes
 
-The router (`dexterity-sdk`) searches paths of up to 4 hops through Charisma pools and wrapped external pools from Bitflow, ALEX, Arkadiko and Velar. A trade in or out of a Blaze subnet gets one extra step for the 1:1 wrap. Bitflow DLMM (bin) pools and stableswaps don't reveal a price from their reserves, so the router probes each with a tiny live quote (`withSpotPrices`) to rank routes. The top-ranked routes are then quoted on-chain, and the best output wins.
+The router (`dexterity-sdk`) searches paths of up to 4 hops through Charisma pools and wrapped external pools from Bitflow, ALEX, Arkadiko and Velar. A trade in or out of a Blaze subnet gets one extra step for the 1:1 wrap. It uses real on-chain quotes only: hop by hop it quotes every pool out of every token reached and keeps the most of each, so a pool whose balances don't show its price (Bitflow DLMM bin pools, stableswaps) can't hide the best route.
 
 Stablecoins get no special treatment. There is no $1 override: a stablecoin is worth whatever its route says.
 

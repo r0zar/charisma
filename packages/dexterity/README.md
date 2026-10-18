@@ -25,11 +25,19 @@ const router = await createRouter({ maxHops: 4 }); // loads vaults from https://
 const best = await router.findBestRoute('.stx', 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token', 1_000_000);
 ```
 
+`findBestRoute` uses real on-chain quotes only: hop by hop it quotes every pool out of every token reached and keeps
+the most of each token, up to `maxHops` (default 4, one more for a trade in or out of a subnet). Nothing is
+estimated, so a pool whose balances don't show its price (bin or stable pools) can't hide the best route.
+
 `buildSwapTransaction` and `buildSwapPostConditions` build the contract call with deny-mode post-conditions for a
-route. Bin (DLMM) and stableswap pools are priced with an on-chain spot-price probe (`withSpotPrices`).
+route.
 
 `findBestRoute` returns an empty route (`amountOut: 0`) when no path connects the tokens, and throws, saying why,
 when paths exist but none can be quoted.
+
+## 2.0
+
+2.0 finds routes with real quotes only. `withSpotPrices`, `isPricedByQuote`, `Vault.spotPrice` and `maxPathsToEvaluate` are gone, and `maxHops` defaults to 4 (was 5).
 
 ## 1.0
 
