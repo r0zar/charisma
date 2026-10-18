@@ -4,6 +4,7 @@ import {
   defaultConfig,
   buildSwapTransaction,
   fetchQuote,
+  withSpotPrices,
   Vault,
   Token,
 } from "../index";
@@ -264,4 +265,35 @@ describe("dexterity-sdk (mocked)", () => {
     await expect(fetchQuote('.stx', 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.token-a', 1_000_000))
       .rejects.toThrow('Network error');
   }, 10000); // 10 second timeout for retry test
+});
+
+describe("withSpotPrices", () => {
+  // A lopsided bin pool (like Bitflow LEO-STX): almost all A, so a 0.01%-of-A probe walks every bin of B
+  const binVault: Vault = {
+    ...mockVault,
+    contractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitflow-a-b',
+    externalPoolId: 'SM1FKXGNZJWSTWDWXQZJNF7B5TV5ZB235JTCXYXKD.dlmm-pool-a-b-v-1-bps-50',
+    fee: 0,
+    reservesA: 77_489_673_092_771,
+    reservesB: 529_752,
+  };
+  /** Quotes at 1 B per 4,000 A, but like the public API, fails any quote over `maxIn` (too many bins read) */
+  const binPoolQuoting = (maxIn: number) => (_contractId: string, _fn: string, args: any[]) => {
+    const amount = Number(args[0].value);
+    if (amount > maxIn) return Promise.reject(new Error('CostBalanceExceeded'));
+    return Promise.resolve({ value: { dx: { value: String(amount) }, dy: { value: String(amount / 4_000) }, dk: { value: '0' } } });
+  };
+
+  beforeEach(() => vi.clearAllMocks());
+
+  it("prices a bin pool from a smaller probe when the first is too big to quote", async () => {
+    mockCallReadOnly.mockImplementation(binPoolQuoting(1_000_000_000));
+    const [priced] = await withSpotPrices([binVault]);
+    expect(priced?.spotPrice).toBe(1 / 4_000);
+  });
+
+  it("leaves a bin pool it can't price out of routing instead of ranking it by reserves", async () => {
+    mockCallReadOnly.mockImplementation(binPoolQuoting(0));
+    expect(await withSpotPrices([binVault, mockVault])).toEqual([mockVault]);
+  });
 });

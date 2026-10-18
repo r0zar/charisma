@@ -834,21 +834,23 @@ export const loadVaults = async (router: Router, dexCacheUrl: string = getDexCac
 
 /**
  * Give each bin or stable pool its current price from a tiny live quote (about 0.01% of its A balance), so route
- * ranking sees the real price. A pool whose quote fails keeps no spotPrice and is ranked as x·y=k.
+ * ranking sees the real price. In a lopsided bin pool even that probe can walk so many bins that the quote runs past
+ * the public API's read limit, so a failed probe is retried 100× smaller. A pool that still can't be priced is left
+ * out: its reserves don't imply its price, and ranking it as x·y=k crowds real routes out of the quoted top paths.
  */
 export const withSpotPrices = async (vaults: Vault[]): Promise<Vault[]> =>
-  Promise.all(vaults.map(async (v) => {
+  (await Promise.all(vaults.map(async (v) => {
     if (!isPricedByQuote(v) || v.reservesA <= 0) return v;
-    const probe = Math.max(1, Math.floor(v.reservesA / 10_000));
-    const q = await quoteVault(v, probe, OPCODES.SWAP_A_TO_B);
-    if (!q || q.dx <= 0 || q.dy <= 0) {
-      console.warn(`[router] couldn't price pool ${v.contractId}; ranking it by reserves`);
-      return v;
+    for (let probe = Math.max(1, Math.floor(v.reservesA / 10_000)); probe >= 1; probe = Math.floor(probe / 100)) {
+      const q = await quoteVault(v, probe, OPCODES.SWAP_A_TO_B);
+      if (!q || q.dx <= 0 || q.dy <= 0) continue;
+      // Undo the pool fee so the spot price is fee-free; estimateOutput applies the fee once
+      const feeMultiplier = 1 - v.fee / 1_000_000;
+      return { ...v, spotPrice: q.dy / q.dx / (feeMultiplier || 1) };
     }
-    // Undo the pool fee so the spot price is fee-free; estimateOutput applies the fee once
-    const feeMultiplier = 1 - v.fee / 1_000_000;
-    return { ...v, spotPrice: q.dy / q.dx / (feeMultiplier || 1) };
-  }));
+    console.warn(`[router] couldn't price pool ${v.contractId}; leaving it out of routing`);
+    return null;
+  }))).filter((v): v is Vault => v !== null);
 
 export const createRouter = async (cfg: Partial<RouterConfig> = {}) => {
   const router = new Router({ ...defaultConfig, ...cfg });
