@@ -274,11 +274,15 @@ describe("findBestRoute: exact search", () => {
   const pool = (name: string, a: Token, b: Token, reservesA = 1_000_000, reservesB = 1_000_000): Vault => ({
     ...mockVault, contractId: `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.${name}`, tokenA: a, tokenB: b, reservesA, reservesB,
   });
-  /** Each pool pays `rate` units of B per unit of A (and the inverse for B → A); pools in `failing` can't be quoted */
-  const quoting = (rates: Record<string, number>, failing: string[] = []) => (contractId: string, _fn: string, args: any[]) => {
+  /**
+   * Each pool pays `rate` units of B per unit of A (and the inverse for B → A); pools in `failing` can't be quoted,
+   * and a pool in `caps` quotes 0 for more than its cap, like ALEX's LiALEX pool past its max-in ratio
+   */
+  const quoting = (rates: Record<string, number>, failing: string[] = [], caps: Record<string, number> = {}) => (contractId: string, _fn: string, args: any[]) => {
     const name = contractId.split('.')[1];
     if (failing.includes(name)) return Promise.reject(new Error('quote failed'));
     const amount = Number(args[0].value);
+    if (amount > (caps[name] ?? Infinity)) return Promise.resolve({ value: { dx: { value: String(amount) }, dy: { value: '0' }, dk: { value: '0' } } });
     const op = parseInt(args[1].value.value.slice(0, 2), 16);
     const rate = op === OPCODES.SWAP_B_TO_A ? 1 / rates[name] : rates[name];
     return Promise.resolve({ value: { dx: { value: String(amount) }, dy: { value: String(Math.floor(amount * rate)) }, dk: { value: '0' } } });
@@ -337,6 +341,38 @@ describe("findBestRoute: exact search", () => {
     // Out through the pool paying 2 B per A, back through the one paying 1 A per B
     expect(route.amountOut).toBe(2_000_000);
     expect(route.hops.map(h => name(h.vault))).toEqual(['a-b-1', 'a-b-2']);
+  });
+
+  it("brings a pool that caps how much it takes the most it will take", async () => {
+    // B arrives as 2.0M and 1.8M (one hop) and 1.6M and 1.4M (two hops, through C); b-d refuses more than 1.7M
+    mockCallReadOnly.mockImplementation(quoting({ 'a-b-1': 2, 'a-b-2': 1.8, 'a-c': 1, 'c-b-1': 1.6, 'c-b-2': 1.4, 'b-d': 1 }, [], { 'b-d': 1_700_000 }));
+    const router = new Router({ ...defaultConfig });
+    router.loadVaults([pool('a-b-1', a, b), pool('a-b-2', a, b), pool('a-c', a, c), pool('c-b-1', c, b), pool('c-b-2', c, b), pool('b-d', b, d)]);
+    const route = await router.findBestRoute(a.contractId, d.contractId, 1_000_000);
+    expect(route.amountOut).toBe(1_600_000);
+    expect(route.hops.map(h => name(h.vault))).toEqual(['a-c', 'c-b-1', 'b-d']);
+  });
+
+  it("keeps a smaller amount from a longer route when a pool further on caps what it takes", async () => {
+    // Like sBTC → LiALEX on 18 Oct: the direct L route brings 2M of X, over x-y's cap; going through S brings 1.5M
+    const [l, s, x, y] = ['l', 's', 'x', 'y'].map(n => token(n));
+    mockCallReadOnly.mockImplementation(quoting({ 'a-l': 2, 'a-s': 1, 's-l': 1.5, 'l-x': 1, 'x-y': 1 }, [], { 'x-y': 1_700_000 }));
+    const router = new Router({ ...defaultConfig });
+    router.loadVaults([pool('a-l', a, l), pool('a-s', a, s), pool('s-l', s, l), pool('l-x', l, x), pool('x-y', x, y)]);
+    const route = await router.findBestRoute(a.contractId, y.contractId, 1_000_000);
+    expect(route.amountOut).toBe(1_500_000);
+    expect(route.hops.map(h => name(h.vault))).toEqual(['a-s', 's-l', 'l-x', 'x-y']);
+  });
+
+  it("asks a pool that refuses everything only twice: the most and the least it could be given", async () => {
+    // C arrives as 1M, 0.5M and 0.25M; c-b takes nothing
+    mockCallReadOnly.mockImplementation(quoting({ 'a-b': 1, 'a-c-1': 1, 'a-c-2': 0.5, 'a-c-3': 0.25, 'c-b': 1 }, [], { 'c-b': 0 }));
+    const router = new Router({ ...defaultConfig });
+    router.loadVaults([pool('a-b', a, b), pool('a-c-1', a, c), pool('a-c-2', a, c), pool('a-c-3', a, c), pool('c-b', c, b)]);
+    const route = await router.findBestRoute(a.contractId, b.contractId, 1_000_000);
+    expect(route.hops.map(h => name(h.vault))).toEqual(['a-b']);
+    const asked = mockCallReadOnly.mock.calls.filter(([id]) => id.endsWith('.c-b')).map(([, , args]) => Number(args[0].value));
+    expect(asked).toEqual([1_000_000, 250_000]);
   });
 
   it("returns an empty route, without quoting, when no pools connect the tokens", async () => {

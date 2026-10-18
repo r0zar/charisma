@@ -377,7 +377,8 @@ export class Router {
 
   /**
    * Best route (most output) between two tokens, found with real quotes only. Hop by hop it quotes every pool out of
-   * every token held so far and keeps the most of each token, so no guess about a pool can hide the best route.
+   * every token held and keeps the most of each token at that hop, so no guess about a pool can hide the best route.
+   * (A route with less of a token is kept for the next hop too: a pool further on may cap how much it takes.)
    * No path between the tokens → an empty route (amountOut 0). Paths exist but none can be quoted → throws, saying why.
    */
   async findBestRoute(from: string, to: string, amount: number): Promise<Route> {
@@ -390,53 +391,82 @@ export class Router {
     // Subnet tokens only connect to their own base token, so the search is no wider than a normal trade's.
     const maxHops = this.config.maxHops + (start.type === 'SUBNET' || end.type === 'SUBNET' ? 1 : 0);
     const hopsTo = this.hopsTo(to);
-    /** The most of each token held at any hop so far: a later route holding less of it can't do better from there */
-    const most = new Map([[from, amount]]);
+    /** Every route found to each token, for a pool that won't take the most of it */
+    const held = new Map<string, Reach[]>();
+    /** The least each pool refused, per direction: a cap or a read limit refuses every bigger amount too */
+    const refused = new Map<string, number>();
     let frontier: Reach[] = [{ token: start, amount, hops: [] }];
     let best: Reach | null = null;
-    let quotes = 0;
+    let tried = 0;
+
+    // Within the hop limit, toward a token that can still reach `to` in time. A route never reuses a pool or revisits
+    // a token, except arriving back at `to`, which closes a loop when from === to.
+    const canMove = (r: Reach, vault: Vault, id: string) =>
+      (hopsTo.get(id) ?? Infinity) <= maxHops - r.hops.length - 1
+      && !r.hops.some(h => h.vault.contractId === vault.contractId)
+      && (id === to || (id !== from && !r.hops.some(h => h.tokenOut.contractId === id)));
+
+    const move = async (r: Reach, vault: Vault, target: Token): Promise<Reach | null> => {
+      const opcode = this.opcodeFor(r.token, target, vault);
+      const key = `${vault.contractId}-${opcode}`;
+      if (r.amount >= (refused.get(key) ?? Infinity)) return null;
+      const delta = await this.getCachedQuote(vault, r.amount, opcode);
+      // A pool that would refuse the trade quotes 0
+      if (!delta || delta.dy <= 0) {
+        refused.set(key, r.amount);
+        return null;
+      }
+      const step: Hop = { vault, tokenIn: r.token, tokenOut: target, opcode, quote: { amountIn: r.amount, amountOut: delta.dy } };
+      return { token: target, amount: delta.dy, hops: [...r.hops, step] };
+    };
+
+    // A pool can cap what it takes (ALEX's max-in ratio, a bin pool's read limit). When one refuses the most of a token,
+    // ask it for the least held: refusing that too, it takes nothing; otherwise halve in on the most it takes.
+    const mostTaken = async (r: Reach, vault: Vault, target: Token): Promise<Reach | null> => {
+      const less = (held.get(r.token.contractId) ?? []).filter(x => x.amount < r.amount && canMove(x, vault, target.contractId));
+      if (!less.length) return null;
+      let taken = await move(less[less.length - 1], vault, target);
+      if (!taken) return null;
+      let [lo, hi] = [0, less.length - 1];
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1;
+        const got = await move(less[mid], vault, target);
+        if (got) [hi, taken] = [mid, got];
+        else lo = mid + 1;
+      }
+      return taken;
+    };
 
     for (let hop = 1; hop <= maxHops && frontier.length; hop++) {
-      // Every pool out of every token held, toward a token that can still reach `to` in the hops left. A route never
-      // reuses a pool or revisits a token, except arriving back at `to`, which closes a loop when from === to.
+      // Every pool out of every token held
       const moves = frontier.flatMap(r => Array.from(this.nodes.get(r.token.contractId)!.edges.values())
-        .filter(e => {
-          const id = e.target.contractId;
-          if ((hopsTo.get(id) ?? Infinity) > maxHops - hop) return false;
-          if (r.hops.some(h => h.vault.contractId === e.vault.contractId)) return false;
-          return id === to || (id !== from && !r.hops.some(h => h.tokenOut.contractId === id));
-        })
+        .filter(e => canMove(r, e.vault, e.target.contractId))
         .map(e => ({ r, vault: e.vault, target: this.nodes.get(e.target.contractId)!.token })));
-      quotes += moves.length;
+      tried += moves.length;
+      const quoted = await Promise.all(moves.map(m => move(m.r, m.vault, m.target)));
+      const keep = (reaches: (Reach | null)[]) => reaches.forEach(r => r && held.set(r.token.contractId, [...(held.get(r.token.contractId) ?? []), r].sort((x, y) => y.amount - x.amount)));
+      keep(quoted);
+      const capped = await Promise.all(moves.map((m, i) => (quoted[i] ? null : mostTaken(m.r, m.vault, m.target))));
+      keep(capped);
 
-      const reached = await Promise.all(moves.map(async ({ r, vault, target }): Promise<Reach | null> => {
-        const opcode = this.opcodeFor(r.token, target, vault);
-        const delta = await this.getCachedQuote(vault, r.amount, opcode);
-        // A pool that would refuse the trade quotes 0, so it leads nowhere
-        if (!delta || delta.dy <= 0) return null;
-        const step: Hop = { vault, tokenIn: r.token, tokenOut: target, opcode, quote: { amountIn: r.amount, amountOut: delta.dy } };
-        return { token: target, amount: delta.dy, hops: [...r.hops, step] };
-      }));
-
-      // Keep the most of each token. Arriving at `to` ends that route; the rest go on to the next hop.
+      // Keep the most of each token at this hop. Arriving at `to` ends that route; the rest go on to the next hop.
       const kept = new Map<string, Reach>();
-      for (const r of reached) {
+      for (const r of [...quoted, ...capped]) {
         if (!r) continue;
         const id = r.token.contractId;
         if (id === to) {
           if (r.amount > (best?.amount ?? 0)) best = r;
-        } else if (r.amount > (most.get(id) ?? 0)) {
-          most.set(id, r.amount);
+        } else if (r.amount > (kept.get(id)?.amount ?? 0)) {
           kept.set(id, r);
         }
       }
       frontier = Array.from(kept.values());
     }
 
-    if (this.config.debug) console.log(`[router] ${from} → ${to}: ${quotes} pool quotes, best ${best?.amount ?? 0}`);
+    if (this.config.debug) console.log(`[router] ${from} → ${to}: ${tried} pools tried, best ${best?.amount ?? 0}`);
     if (best) return { path: [start, ...best.hops.map(h => h.tokenOut)], hops: best.hops, amountIn: amount, amountOut: best.amount };
-    if (!quotes) return { path: [], hops: [], amountIn: 0, amountOut: 0 };
-    throw new Error(`No usable route from ${from} to ${to}: none of the ${quotes} pool quotes on the way led there`);
+    if (!tried) return { path: [], hops: [], amountIn: 0, amountOut: 0 };
+    throw new Error(`No usable route from ${from} to ${to}: none of the ${tried} pools tried on the way led there`);
   }
 
   /** quick health snapshot */

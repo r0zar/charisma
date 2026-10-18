@@ -420,3 +420,20 @@ Expected: 0 worse. (Without a key, expect some "worse" rows that are really 429s
 - [ ] **Step 3:** Spot-check `https://swap.charisma.rocks/api/v1/quote` (add 1 to amounts to skip the CDN cache): 100 USDCx → sBTC about 122k sats; sBTC 1000 → PEPE and back about 990 sats; `.stx` → CHA works.
 - [ ] **Step 4:** After the next 5-minute recording, USDCx's `roundTripLoss` on `https://prices.charisma.rocks/api/v1/prices/SP120SBRBQJ00MCWS7TM5R8WJNTTKD5K0HFRC2CNE.usdcx` is under 1%.
 - [ ] **Step 5:** Check `charisma-simple-swap` runtime logs over the next hour for `429` / `Too Many Requests` and report what's there.
+
+---
+
+## Addendum: what Task 3 found
+
+The first mainnet comparison (120 quotes) had 22 better, 97 the same and **1 worse: sBTC → LiALEX found no route** (the old router got 184.98 LiALEX).
+
+- ALEX's LiALEX pool (`alex-alex-lialex`) quotes 0 for more than about 17.0B ALEX (its max-in ratio). The best 1000-sat routes bring 17.5–17.8B; only a longer, worse route (sBTC → STX → LEO → ALEX, 16.5B) fits.
+- "Keep the most of each token at any hop" threw that route away at LEO, a hop before it mattered.
+- On live searches 22% of pool quotes are refused, almost all by pools that refuse everything (`rock-*`, dust pools).
+
+Changes to Task 1's search:
+1. Routes are compared only within a hop: the most of each token **at each hop** goes on, so a longer route with less of a token still gets its turn. (This is the cost that was measured for the design.)
+2. Each search remembers every route to each token. When a pool refuses the most of a token, it is asked for the least held: refusing that too, it takes nothing (one extra quote); otherwise a binary search finds the most it takes.
+3. Each search remembers the least amount each pool refused, per direction, and skips bigger amounts there.
+
+Tests added: the capped-pool binary search, a pool that refuses everything is asked only twice, and the LiALEX shape (fails on the first version).
