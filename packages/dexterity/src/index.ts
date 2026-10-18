@@ -1,11 +1,10 @@
 /*--------------------------------------------------------------
- * Charisma DEX ― Optimized Router with Quote Caching & Estimation
+ * Charisma DEX ― Router: exact route search with real quotes
  *
+ *  ‣ Finds the best route with on-chain quotes only, hop by hop
  *  ‣ Quote result caching with TTL
- *  ‣ Reserve-based estimation for path pruning
- *  ‣ Reduced RPC calls by 80%+
  *
- *  All business logic lives in testable, side‑effect‑free helpers, 
+ *  All business logic lives in testable, side‑effect‑free helpers,
  *  keeping the mutable surface small and predictable.
  *-------------------------------------------------------------*/
 
@@ -53,20 +52,11 @@ export interface Vault {
   tokenB: Token;
   reservesA: number;
   reservesB: number;
-  /**
-   * Bin-based (DLMM) pools only: units of B per unit of A at the current price, from a tiny live quote.
-   * Their total balances are spread across price bins, so they don't give the price the way an
-   * x·y=k pool's reserves do.
-   */
-  spotPrice?: number;
   /** Asset this pool swaps STX through ("contract::token"), e.g. Arkadiko's wSTX; see stxWrapperPostConditions */
   stxWrapper?: string;
   /** The pool sends part of the input on to a fee address (e.g. Velar), so it also sends some of the input token */
   forwardsInputFee?: boolean;
 }
-
-/** Bitflow DLMM (bin) and stableswap pools: their reserves don't imply their price, unlike x·y=k pools */
-export const isPricedByQuote = (v: Vault): boolean => /dlmm-pool|stableswap/.test(v.externalPoolId ?? '');
 
 export interface GraphEdge { vault: Vault; target: Token }
 export interface GraphNode { token: Token; edges: Map<string, GraphEdge> }
@@ -90,16 +80,14 @@ export interface RouterConfig {
   defaultSlippage: number; // e.g. 0.01 = 1 %
   routerContractId?: string;
   quoteCacheTTL?: number; // milliseconds
-  maxPathsToEvaluate?: number; // limit paths evaluated with real quotes
 }
 
 export const defaultConfig: RouterConfig = {
-  maxHops: 5,
+  maxHops: 4,
   debug: false,
   defaultSlippage: 0.01,
   routerContractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.multihop',
   quoteCacheTTL: 30000, // 30 seconds
-  maxPathsToEvaluate: 3, // real-quote only the 3 best estimated paths
 };
 
 export interface Hop {
@@ -140,10 +128,11 @@ interface CachedQuote {
   timestamp: number;
 }
 
-// Path with estimated output for sorting
-interface EstimatedPath {
-  path: Token[];
-  estimatedOutput: number;
+/** Part of a route found so far: how much of `token` it holds after `hops` */
+interface Reach {
+  token: Token;
+  amount: number;
+  hops: Hop[];
 }
 
 /***************************************************************
@@ -365,297 +354,89 @@ export class Router {
     }
   }
 
-  /**
-   * Estimate output based on reserves (for path pruning)
-   * This is a simplified constant product formula - use only for ranking!
-   */
-  private estimateOutput(
-    vault: Vault,
-    amountIn: number,
-    opcode: number
-  ): number {
-    const feeMultiplier = 1 - (vault.fee / 1_000_000);
+  /** A hop from a to b through vault: a 1:1 wrap into or out of a subnet, otherwise a swap in the pool's direction */
+  private opcodeFor(a: Token, b: Token, vault: Vault): number {
+    if (a.type !== 'SUBNET' && b.type === 'SUBNET') return OPCODES.OP_DEPOSIT;
+    if (a.type === 'SUBNET' && b.type !== 'SUBNET') return OPCODES.OP_WITHDRAW;
+    return a.contractId === vault.tokenA.contractId ? OPCODES.SWAP_A_TO_B : OPCODES.SWAP_B_TO_A;
+  }
 
-    // Handle special opcodes
-    if (opcode === OPCODES.OP_DEPOSIT || opcode === OPCODES.OP_WITHDRAW) {
-      // For subnet operations, assume 1:1 with small fee
-      return amountIn * feeMultiplier;
+  /** The fewest hops from each token to `to` through the pools (no quotes) */
+  private hopsTo(to: string): Map<string, number> {
+    const hops = new Map([[to, 0]]);
+    const queue = [to];
+    for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
+      for (const e of this.nodes.get(id)!.edges.values()) {
+        if (hops.has(e.target.contractId)) continue;
+        hops.set(e.target.contractId, hops.get(id)! + 1);
+        queue.push(e.target.contractId);
+      }
     }
-
-    // Bin pools: straight line at the current price, capped by what the pool holds
-    if (vault.spotPrice) {
-      if (opcode === OPCODES.SWAP_A_TO_B) return Math.min(vault.reservesB, amountIn * vault.spotPrice) * feeMultiplier;
-      if (opcode === OPCODES.SWAP_B_TO_A) return Math.min(vault.reservesA, amountIn / vault.spotPrice) * feeMultiplier;
-      return 0;
-    }
-
-    // Standard swap estimation using constant product formula
-    if (opcode === OPCODES.SWAP_A_TO_B) {
-      if (vault.reservesA === 0 || vault.reservesB === 0) return 0;
-
-      const k = vault.reservesA * vault.reservesB;
-      const newReserveA = vault.reservesA + amountIn;
-      const newReserveB = k / newReserveA;
-      const amountOut = vault.reservesB - newReserveB;
-
-      return Math.max(0, amountOut * feeMultiplier);
-    } else if (opcode === OPCODES.SWAP_B_TO_A) {
-      if (vault.reservesA === 0 || vault.reservesB === 0) return 0;
-
-      const k = vault.reservesA * vault.reservesB;
-      const newReserveB = vault.reservesB + amountIn;
-      const newReserveA = k / newReserveB;
-      const amountOut = vault.reservesA - newReserveA;
-
-      return Math.max(0, amountOut * feeMultiplier);
-    }
-
-    return 0;
+    return hops;
   }
 
   /**
-   * Estimate entire path output without making RPC calls
-   */
-  private estimatePath(path: Token[], amount: number): number {
-    let currentAmount = amount;
-
-    for (let i = 0; i < path.length - 1; i++) {
-      const a = path[i];
-      const b = path[i + 1];
-      const node = this.nodes.get(a.contractId);
-      if (!node) return 0;
-
-      // Find best vault estimate for this hop
-      let bestEstimate = 0;
-
-      for (const edge of Array.from(node.edges.values())) {
-        if (edge.target.contractId !== b.contractId) continue;
-
-        // Determine opcode
-        const isInSubnet = a.type === 'SUBNET';
-        const isOutSubnet = b.type === 'SUBNET';
-        let opcode: number;
-
-        if (!isInSubnet && isOutSubnet) {
-          opcode = OPCODES.OP_DEPOSIT;
-        } else if (isInSubnet && !isOutSubnet) {
-          opcode = OPCODES.OP_WITHDRAW;
-        } else {
-          opcode = a.contractId === edge.vault.tokenA.contractId
-            ? OPCODES.SWAP_A_TO_B
-            : OPCODES.SWAP_B_TO_A;
-        }
-
-        const estimate = this.estimateOutput(edge.vault, currentAmount, opcode);
-        if (estimate > bestEstimate) {
-          bestEstimate = estimate;
-        }
-      }
-
-      if (bestEstimate === 0) return 0;
-      currentAmount = bestEstimate;
-    }
-
-    return currentAmount;
-  }
-
-  /**
-   * Depth‑first search for all simple paths up to `maxHops`.
-   */
-  private findAllPaths(
-    from: string,
-    to: string,
-    path: Token[] = [],
-  ): Token[][] {
-    const out: Token[][] = [];
-    const node = this.nodes.get(from);
-    if (!node) {
-      if (this.config.debug && path.length === 0) {
-        console.log(`[router] findAllPaths: No node found for ${from}`);
-      }
-      return out;
-    }
-
-    const nextPath = [...path, node.token];
-
-    // Terminal condition – found target & visited at least one edge
-    if (from === to && nextPath.length >= 2) {
-      if (this.config.debug) {
-        console.log(`[router] findAllPaths: Found path to target ${to}, length: ${nextPath.length}`);
-      }
-      out.push(nextPath);
-      return out;
-    }
-
-    // A trade in or out of a subnet spends a step on the 1:1 wrap, so it gets one extra step (5 fits every router).
-    // Subnet tokens only connect to their own base token, so the search is no wider than a normal trade's.
-    const limit = this.config.maxHops + (nextPath[0].type === 'SUBNET' || this.nodes.get(to)?.token.type === 'SUBNET' ? 1 : 0);
-    if (nextPath.length > limit) {
-      if (this.config.debug && path.length === 0) {
-        console.log(`[router] findAllPaths: Max hops (${this.config.maxHops}) reached for ${from} -> ${to}`);
-      }
-      return out;
-    }
-
-    // Group by target token so we evaluate each pool later
-    const groups = new Map<string, GraphEdge[]>();
-    node.edges.forEach(e => {
-      const tid = e.target.contractId;
-      if (!groups.has(tid)) groups.set(tid, []);
-      groups.get(tid)!.push(e);
-    });
-
-    if (this.config.debug && path.length === 0) {
-      console.log(`[router] findAllPaths: Node ${from} has ${node.edges.size} edges to ${groups.size} unique targets`);
-    }
-
-    // DFS once per neighbour token (evaluatePath picks the best pool per hop), never revisiting a token,
-    // except returning to the destination, which closes a loop when from === to (arbitrage)
-    groups.forEach((_edges, tgt) => {
-      if (tgt !== to && nextPath.some(t => t.contractId === tgt)) return;
-      out.push(...this.findAllPaths(tgt, to, nextPath));
-    });
-
-    return out;
-  }
-
-  /**
-   * Evaluate concrete path by greedily picking best pool at each hop.
-   * Now uses cached quotes.
-   */
-  private async evaluatePath(path: Token[], amount: number): Promise<Route> {
-    let cur = amount;
-    const hops: Hop[] = [];
-
-    for (let i = 0; i < path.length - 1; i++) {
-      const a = path[i];
-      const b = path[i + 1];
-      const node = this.nodes.get(a.contractId);
-      if (!node) throw new Error('node miss');
-
-      // All pools connecting a → b, never reusing a pool earlier in this route (out and back through one pool only loses)
-      const edges = Array.from(node.edges.values()).filter(
-        e => e.target.contractId === b.contractId && !hops.some(h => h.vault.contractId === e.vault.contractId),
-      );
-      if (!edges.length) throw new Error('edge miss');
-
-      /** best quoted delta amongst parallel pools */
-      let best: { q: Quote; e: GraphEdge } | null = null;
-
-      for (const e of edges) {
-        // Determine opcode based on token types and vault order
-        const isInSubnet = a.type === 'SUBNET';
-        const isOutSubnet = b.type === 'SUBNET';
-        let op: number;
-
-        if (!isInSubnet && isOutSubnet) {
-          op = OPCODES.OP_DEPOSIT;
-        } else if (isInSubnet && !isOutSubnet) {
-          op = OPCODES.OP_WITHDRAW;
-        } else {
-          // Standard swap (both subnet or both not subnet, or type is undefined/not SUBNET)
-          op = a.contractId === e.vault.tokenA.contractId
-            ? OPCODES.SWAP_A_TO_B
-            : OPCODES.SWAP_B_TO_A;
-        }
-
-        // Use cached quote
-        const delta = await this.getCachedQuote(e.vault, cur, op);
-        if (!delta) continue;
-        const q: Quote = {
-          amountIn: delta.dx,
-          amountOut: delta.dy,
-          expectedPrice: delta.dy / cur,
-          minimumReceived: Math.floor(delta.dy * (1 - this.config.defaultSlippage)),
-          fee: e.vault.fee,
-          opcode: op,
-        };
-        if (!best || q.amountOut > best.q.amountOut) best = { q, e };
-      }
-      if (!best) throw new Error('quoting failed');
-
-      hops.push({
-        vault: best.e.vault,
-        tokenIn: a,
-        tokenOut: b,
-        opcode: best.q.opcode,
-        quote: { amountIn: cur, amountOut: best.q.amountOut },
-      });
-      cur = best.q.amountOut;
-    }
-
-    return { path, hops, amountIn: amount, amountOut: cur };
-  }
-
-  /**
-   * Best route (highest output) between two tokens, pruned by estimates first.
+   * Best route (most output) between two tokens, found with real quotes only. Hop by hop it quotes every pool out of
+   * every token held so far and keeps the most of each token, so no guess about a pool can hide the best route.
    * No path between the tokens → an empty route (amountOut 0). Paths exist but none can be quoted → throws, saying why.
    */
-  async findBestRoute(
-    from: string,
-    to: string,
-    amount: number,
-  ): Promise<Route> {
-    // Clear stale cache entries periodically
+  async findBestRoute(from: string, to: string, amount: number): Promise<Route> {
     this.clearStaleCache();
+    const start = this.nodes.get(from)?.token;
+    const end = this.nodes.get(to)?.token;
+    if (!start || !end) return { path: [], hops: [], amountIn: 0, amountOut: 0 };
 
-    if (this.config.debug) {
-      console.log(`[router] findBestRoute: Starting path search from ${from} to ${to}, amount: ${amount}`);
-    }
+    // A trade in or out of a subnet spends a step on the 1:1 wrap, so it gets one extra step.
+    // Subnet tokens only connect to their own base token, so the search is no wider than a normal trade's.
+    const maxHops = this.config.maxHops + (start.type === 'SUBNET' || end.type === 'SUBNET' ? 1 : 0);
+    const hopsTo = this.hopsTo(to);
+    /** The most of each token held at any hop so far: a later route holding less of it can't do better from there */
+    const most = new Map([[from, amount]]);
+    let frontier: Reach[] = [{ token: start, amount, hops: [] }];
+    let best: Reach | null = null;
+    let quotes = 0;
 
-    // Find all possible paths
-    const paths = this.findAllPaths(from, to);
-    if (!paths.length) {
-      if (this.config.debug) {
-        console.log(`[router] findBestRoute: No paths found from ${from} to ${to}`);
+    for (let hop = 1; hop <= maxHops && frontier.length; hop++) {
+      // Every pool out of every token held, toward a token that can still reach `to` in the hops left. A route never
+      // reuses a pool or revisits a token, except arriving back at `to`, which closes a loop when from === to.
+      const moves = frontier.flatMap(r => Array.from(this.nodes.get(r.token.contractId)!.edges.values())
+        .filter(e => {
+          const id = e.target.contractId;
+          if ((hopsTo.get(id) ?? Infinity) > maxHops - hop) return false;
+          if (r.hops.some(h => h.vault.contractId === e.vault.contractId)) return false;
+          return id === to || (id !== from && !r.hops.some(h => h.tokenOut.contractId === id));
+        })
+        .map(e => ({ r, vault: e.vault, target: this.nodes.get(e.target.contractId)!.token })));
+      quotes += moves.length;
+
+      const reached = await Promise.all(moves.map(async ({ r, vault, target }): Promise<Reach | null> => {
+        const opcode = this.opcodeFor(r.token, target, vault);
+        const delta = await this.getCachedQuote(vault, r.amount, opcode);
+        // A pool that would refuse the trade quotes 0, so it leads nowhere
+        if (!delta || delta.dy <= 0) return null;
+        const step: Hop = { vault, tokenIn: r.token, tokenOut: target, opcode, quote: { amountIn: r.amount, amountOut: delta.dy } };
+        return { token: target, amount: delta.dy, hops: [...r.hops, step] };
+      }));
+
+      // Keep the most of each token. Arriving at `to` ends that route; the rest go on to the next hop.
+      const kept = new Map<string, Reach>();
+      for (const r of reached) {
+        if (!r) continue;
+        const id = r.token.contractId;
+        if (id === to) {
+          if (r.amount > (best?.amount ?? 0)) best = r;
+        } else if (r.amount > (most.get(id) ?? 0)) {
+          most.set(id, r.amount);
+          kept.set(id, r);
+        }
       }
-      return {
-        path: [],
-        hops: [],
-        amountIn: 0,
-        amountOut: 0
-      };
+      frontier = Array.from(kept.values());
     }
 
-    if (this.config.debug) {
-      console.log(`[router] found ${paths.length} paths from ${from} to ${to}`);
-    }
-
-    // Estimate output for all paths
-    const estimatedPaths: EstimatedPath[] = paths.map(path => ({
-      path,
-      estimatedOutput: this.estimatePath(path, amount),
-    }));
-
-    // Sort by estimated output (best first)
-    estimatedPaths.sort((a, b) => b.estimatedOutput - a.estimatedOutput);
-
-    // Only evaluate top N paths with real quotes
-    const pathsToEvaluate = estimatedPaths
-      .slice(0, this.config.maxPathsToEvaluate!)
-      .map(ep => ep.path);
-
-    if (this.config.debug) {
-      console.log(`[router] evaluating top ${pathsToEvaluate.length} paths with real quotes`);
-      console.log(`[router] best estimated output: ${estimatedPaths[0]?.estimatedOutput}`);
-    }
-
-    // Evaluate selected paths with actual quotes
-    const settled = await Promise.allSettled(pathsToEvaluate.map(p => this.evaluatePath(p, amount)));
-
-    // A pool that would refuse the trade quotes 0, so a zero-output route isn't a route
-    const ok = settled.flatMap(r => (r.status === 'fulfilled' && r.value.amountOut > 0 ? [r.value] : []));
-
-    if (this.config.debug) {
-      console.log(`[router] ${ok.length} valid routes found`);
-      console.log(`[router] cache size: ${this.quoteCache.size} entries`);
-    }
-
-    if (!ok.length) {
-      const reasons = settled.flatMap(r => (r.status === 'rejected' ? [r.reason instanceof Error ? r.reason.message : String(r.reason)] : []));
-      throw new Error(`No usable route from ${from} to ${to} (${pathsToEvaluate.length} paths tried): ${reasons.length ? [...new Set(reasons)].join('; ') : 'every route quoted 0'}`);
-    }
-    return ok.sort((a, b) => b.amountOut - a.amountOut)[0];
+    if (this.config.debug) console.log(`[router] ${from} → ${to}: ${quotes} pool quotes, best ${best?.amount ?? 0}`);
+    if (best) return { path: [start, ...best.hops.map(h => h.tokenOut)], hops: best.hops, amountIn: amount, amountOut: best.amount };
+    if (!quotes) return { path: [], hops: [], amountIn: 0, amountOut: 0 };
+    throw new Error(`No usable route from ${from} to ${to}: none of the ${quotes} pool quotes on the way led there`);
   }
 
   /** quick health snapshot */
@@ -827,30 +608,10 @@ export const fetchVaults = async (dexCacheUrl: string = getDexCacheUrl()): Promi
  * Convenience wrapper – populate Router straight from dex‑cache.
  */
 export const loadVaults = async (router: Router, dexCacheUrl: string = getDexCacheUrl()): Promise<Vault[]> => {
-  const vaults = await withSpotPrices(await fetchVaults(dexCacheUrl));
+  const vaults = await fetchVaults(dexCacheUrl);
   router.loadVaults(vaults);
   return vaults;
 };
-
-/**
- * Give each bin or stable pool its current price from a tiny live quote (about 0.01% of its A balance), so route
- * ranking sees the real price. In a lopsided bin pool even that probe can walk so many bins that the quote runs past
- * the public API's read limit, so a failed probe is retried 100× smaller. A pool that still can't be priced is left
- * out: its reserves don't imply its price, and ranking it as x·y=k crowds real routes out of the quoted top paths.
- */
-export const withSpotPrices = async (vaults: Vault[]): Promise<Vault[]> =>
-  (await Promise.all(vaults.map(async (v) => {
-    if (!isPricedByQuote(v) || v.reservesA <= 0) return v;
-    for (let probe = Math.max(1, Math.floor(v.reservesA / 10_000)); probe >= 1; probe = Math.floor(probe / 100)) {
-      const q = await quoteVault(v, probe, OPCODES.SWAP_A_TO_B);
-      if (!q || q.dx <= 0 || q.dy <= 0) continue;
-      // Undo the pool fee so the spot price is fee-free; estimateOutput applies the fee once
-      const feeMultiplier = 1 - v.fee / 1_000_000;
-      return { ...v, spotPrice: q.dy / q.dx / (feeMultiplier || 1) };
-    }
-    console.warn(`[router] couldn't price pool ${v.contractId}; leaving it out of routing`);
-    return null;
-  }))).filter((v): v is Vault => v !== null);
 
 export const createRouter = async (cfg: Partial<RouterConfig> = {}) => {
   const router = new Router({ ...defaultConfig, ...cfg });

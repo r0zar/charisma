@@ -4,7 +4,7 @@ import {
   defaultConfig,
   buildSwapTransaction,
   fetchQuote,
-  withSpotPrices,
+  OPCODES,
   Vault,
   Token,
 } from "../index";
@@ -267,33 +267,82 @@ describe("dexterity-sdk (mocked)", () => {
   }, 10000); // 10 second timeout for retry test
 });
 
-describe("withSpotPrices", () => {
-  // A lopsided bin pool (like Bitflow LEO-STX): almost all A, so a 0.01%-of-A probe walks every bin of B
-  const binVault: Vault = {
-    ...mockVault,
-    contractId: 'SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.bitflow-a-b',
-    externalPoolId: 'SM1FKXGNZJWSTWDWXQZJNF7B5TV5ZB235JTCXYXKD.dlmm-pool-a-b-v-1-bps-50',
-    fee: 0,
-    reservesA: 77_489_673_092_771,
-    reservesB: 529_752,
-  };
-  /** Quotes at 1 B per 4,000 A, but like the public API, fails any quote over `maxIn` (too many bins read) */
-  const binPoolQuoting = (maxIn: number) => (_contractId: string, _fn: string, args: any[]) => {
+describe("findBestRoute: exact search", () => {
+  const token = (name: string, type = 'SIP10'): Token => ({
+    ...mockTokenA, type, contractId: `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.${name}`, symbol: name.toUpperCase(), identifier: name,
+  });
+  const pool = (name: string, a: Token, b: Token, reservesA = 1_000_000, reservesB = 1_000_000): Vault => ({
+    ...mockVault, contractId: `SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.${name}`, tokenA: a, tokenB: b, reservesA, reservesB,
+  });
+  /** Each pool pays `rate` units of B per unit of A (and the inverse for B → A); pools in `failing` can't be quoted */
+  const quoting = (rates: Record<string, number>, failing: string[] = []) => (contractId: string, _fn: string, args: any[]) => {
+    const name = contractId.split('.')[1];
+    if (failing.includes(name)) return Promise.reject(new Error('quote failed'));
     const amount = Number(args[0].value);
-    if (amount > maxIn) return Promise.reject(new Error('CostBalanceExceeded'));
-    return Promise.resolve({ value: { dx: { value: String(amount) }, dy: { value: String(amount / 4_000) }, dk: { value: '0' } } });
+    const op = parseInt(args[1].value.value.slice(0, 2), 16);
+    const rate = op === OPCODES.SWAP_B_TO_A ? 1 / rates[name] : rates[name];
+    return Promise.resolve({ value: { dx: { value: String(amount) }, dy: { value: String(Math.floor(amount * rate)) }, dk: { value: '0' } } });
   };
+  const [a, b, c, d] = ['a', 'b', 'c', 'd'].map(n => token(n));
+  const name = (v: Vault) => v.contractId.split('.')[1];
 
   beforeEach(() => vi.clearAllMocks());
 
-  it("prices a bin pool from a smaller probe when the first is too big to quote", async () => {
-    mockCallReadOnly.mockImplementation(binPoolQuoting(1_000_000_000));
-    const [priced] = await withSpotPrices([binVault]);
-    expect(priced?.spotPrice).toBe(1 / 4_000);
+  it("finds the direct pool even when four lopsided pools look far better on paper", async () => {
+    const decoys = [1, 2, 3, 4].map(i => token(`c${i}`));
+    // Balances like Bitflow LEO-STX on 18 Oct: plenty of the token out, almost none in, so x·y=k math promises a fortune
+    const vaults = [pool('direct', a, b), ...decoys.flatMap(x => [pool(`a-${x.identifier}`, a, x, 1, 1e12), pool(`${x.identifier}-b`, x, b, 1, 1e12)])];
+    mockCallReadOnly.mockImplementation(quoting({ direct: 0.9, ...Object.fromEntries(decoys.flatMap(x => [[`a-${x.identifier}`, 1], [`${x.identifier}-b`, 0.01]])) }));
+    const router = new Router({ ...defaultConfig });
+    router.loadVaults(vaults);
+    const route = await router.findBestRoute(a.contractId, b.contractId, 1_000_000);
+    expect(route.amountOut).toBe(900_000);
+    expect(route.hops.map(h => name(h.vault))).toEqual(['direct']);
   });
 
-  it("leaves a bin pool it can't price out of routing instead of ranking it by reserves", async () => {
-    mockCallReadOnly.mockImplementation(binPoolQuoting(0));
-    expect(await withSpotPrices([binVault, mockVault])).toEqual([mockVault]);
+  it("takes a two-hop route when it pays more than the direct pool", async () => {
+    mockCallReadOnly.mockImplementation(quoting({ 'a-b': 1, 'a-c': 0.5, 'c-b': 4 }));
+    const router = new Router({ ...defaultConfig });
+    router.loadVaults([pool('a-b', a, b), pool('a-c', a, c), pool('c-b', c, b)]);
+    const route = await router.findBestRoute(a.contractId, b.contractId, 1_000_000);
+    expect(route.amountOut).toBe(2_000_000);
+    expect(route.path.map(t => t.identifier)).toEqual(['a', 'c', 'b']);
+    expect(route.hops.map(h => h.quote)).toEqual([{ amountIn: 1_000_000, amountOut: 500_000 }, { amountIn: 500_000, amountOut: 2_000_000 }]);
+  });
+
+  it("routes around a pool whose quote fails", async () => {
+    mockCallReadOnly.mockImplementation(quoting({ 'a-b': 1, 'a-c': 0.5, 'c-b': 1 }, ['a-b']));
+    const router = new Router({ ...defaultConfig });
+    router.loadVaults([pool('a-b', a, b), pool('a-c', a, c), pool('c-b', c, b)]);
+    const route = await router.findBestRoute(a.contractId, b.contractId, 1_000_000);
+    expect(route.amountOut).toBe(500_000);
+    expect(route.hops.map(h => name(h.vault))).toEqual(['a-c', 'c-b']);
+  });
+
+  it("gives a trade out of a subnet one extra hop for the 1:1 unwrap", async () => {
+    const sa: Token = { ...token('a-subnet', 'SUBNET'), base: a.contractId };
+    mockCallReadOnly.mockImplementation(quoting({ 'a-wrap': 1, 'a-b': 2 }));
+    const router = new Router({ ...defaultConfig, maxHops: 1 });
+    router.loadVaults([pool('a-wrap', a, sa), pool('a-b', a, b)]);
+    const route = await router.findBestRoute(sa.contractId, b.contractId, 1_000_000);
+    expect(route.hops.map(h => h.opcode)).toEqual([OPCODES.OP_WITHDRAW, OPCODES.SWAP_A_TO_B]);
+    expect(route.amountOut).toBe(2_000_000);
+  });
+
+  it("closes a loop back to the starting token when from and to are the same", async () => {
+    mockCallReadOnly.mockImplementation(quoting({ 'a-b-1': 2, 'a-b-2': 1 }));
+    const router = new Router({ ...defaultConfig });
+    router.loadVaults([pool('a-b-1', a, b), pool('a-b-2', a, b)]);
+    const route = await router.findBestRoute(a.contractId, a.contractId, 1_000_000);
+    // Out through the pool paying 2 B per A, back through the one paying 1 A per B
+    expect(route.amountOut).toBe(2_000_000);
+    expect(route.hops.map(h => name(h.vault))).toEqual(['a-b-1', 'a-b-2']);
+  });
+
+  it("returns an empty route, without quoting, when no pools connect the tokens", async () => {
+    const router = new Router({ ...defaultConfig });
+    router.loadVaults([pool('a-b', a, b), pool('c-d', c, d)]);
+    expect(await router.findBestRoute(a.contractId, c.contractId, 1_000_000)).toEqual({ path: [], hops: [], amountIn: 0, amountOut: 0 });
+    expect(mockCallReadOnly).not.toHaveBeenCalled();
   });
 });
