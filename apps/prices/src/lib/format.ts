@@ -13,6 +13,8 @@ export function formatPrice(n: number, prefix = '$'): string {
   let zeros = Math.floor(-Math.log10(n));
   let sig = Math.round(n * 10 ** (zeros + 4));
   if (sig >= 10000) { zeros -= 1; sig = Math.round(sig / 10); }
+  // Just under $1 (0.99996) rounds up to a whole dollar
+  if (zeros < 0) return formatPrice(1, prefix);
   const digits = sig.toString().replace(/0+$/, '') || '0';
   if (zeros < 4) return `${prefix}0.${'0'.repeat(zeros)}${digits}`;
   const count = String(zeros).split('').map(d => SUBSCRIPT[Number(d)]).join('');
