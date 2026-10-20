@@ -71,12 +71,12 @@ async function currentPrices(): Promise<Record<string, number>> {
   return Object.fromEntries(tokens.map(t => [t.contractId, t.usd]));
 }
 
-/** USD in every Charisma pool: both reserves at today's prices */
+/** USD in every Charisma pool: both reserves at today's prices. Vaults that mint their output hold none */
 function poolTvl(vaults: Vault[], prices: Record<string, number>): number {
   const side = (token: { contractId: string; decimals: number }, reserve: number) =>
     (reserve / 10 ** token.decimals) * (prices[token.contractId] ?? 0);
   return vaults
-    .filter(v => v.type === 'POOL' && v.tokenA && v.tokenB)
+    .filter(v => v.type === 'POOL' && v.tokenA && v.tokenB && !v.mints?.length)
     .reduce((sum, v) => sum + side(v.tokenA!, v.reservesA) + side(v.tokenB!, v.reservesB), 0);
 }
 
@@ -86,6 +86,8 @@ interface Vault {
   tokenB?: { contractId: string; decimals: number };
   reservesA: number;
   reservesB: number;
+  /** Tokens the vault creates as output (e.g. StackingDAO); its reserves are capacity, not holdings */
+  mints?: string[];
   type: string;
 }
 

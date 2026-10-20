@@ -27,6 +27,8 @@ export interface Hop {
         externalPoolId?: string;
         stxWrapper?: string;  // Asset the pool swaps STX through ("contract::token"), e.g. Arkadiko's wSTX
         forwardsInputFee?: boolean;  // The pool sends part of the input on to a fee address (e.g. Velar)
+        mints?: string[];  // Tokens the vault creates as output (e.g. StackingDAO): nobody sends them
+        alsoSends?: { principal: string; asset: string; max: number }[];  // Protocol contracts that may also send during a swap, capped at max
         type: string;
     };
     opcode: number;        // Opcode for the vault operation
@@ -206,8 +208,9 @@ export function buildPostConditions(route: Route, routerCID: string, slippage: n
             builder.addLte(routerCID, getAssetId(hop.tokenIn), amtInWithSlippage);
         }
 
-        // Vault sends output tokens back to router (GTE with slippage protection - require receiving minimum)
-        if (!isSubnet(hop.tokenOut)) {
+        // Vault sends output tokens back to router (GTE with slippage protection - require receiving minimum).
+        // Minted output leaves nobody's balance, so there is no sender to hold to a minimum
+        if (!isSubnet(hop.tokenOut) && !hop.vault.mints?.includes(hop.tokenOut.contractId)) {
             const outputPrincipal = getOutputPrincipal(hop);
             const amtOutWithSlippage = builder.applyGteSlippage(amtOut);
             builder.addGte(outputPrincipal, getAssetId(hop.tokenOut), amtOutWithSlippage);
@@ -217,6 +220,9 @@ export function buildPostConditions(route: Route, routerCID: string, slippage: n
         if (hop.vault.forwardsInputFee && !isSubnet(hop.tokenIn)) {
             builder.addLte(getOutputPrincipal(hop), getAssetId(hop.tokenIn), builder.applyLteSlippage(amtIn));
         }
+
+        // The vault's protocol may also move its own tokens during a swap (e.g. paying out pending rewards)
+        hop.vault.alsoSends?.forEach(({ principal, asset, max }) => builder.addLte(principal, asset, BigInt(max)));
 
         // Some pools swap STX through a wrapper token: STX in is wrapped and the router pays the wrapper in;
         // STX out arrives as the wrapper and is unwrapped from the router

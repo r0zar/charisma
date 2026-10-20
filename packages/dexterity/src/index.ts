@@ -56,6 +56,13 @@ export interface Vault {
   stxWrapper?: string;
   /** The pool sends part of the input on to a fee address (e.g. Velar), so it also sends some of the input token */
   forwardsInputFee?: boolean;
+  /** Tokens this vault creates as output (e.g. StackingDAO): nobody sends them, so they get no output post-condition */
+  mints?: string[];
+  /**
+   * Other contracts the vault's protocol may send from during a swap (e.g. StackingDAO paying out pending rewards),
+   * each capped at `max` base units. `asset` is "contract::token" or ".stx".
+   */
+  alsoSends?: { principal: string; asset: string; max: number }[];
 }
 
 export interface GraphEdge { vault: Vault; target: Token }
@@ -583,10 +590,15 @@ export const buildSwapPostConditions = async (
 
   return [
     mk(tokenIn, maxIn, sender, 'lte'),
-    mk(tokenOut, minOut, vault.externalPoolId || vault.contractId, 'gte'),
+    // Minted output leaves nobody's balance, so there is no sender to hold to a minimum
+    ...(vault.mints?.includes(tokenOut.contractId) ? [] : [mk(tokenOut, minOut, vault.externalPoolId || vault.contractId, 'gte')]),
     ...stxWrapperPostConditions(hop, sender, maxIn, minOut, BigInt(Math.ceil(Number(amtOut) * (1 + effectiveSlippage)))),
     // The pool forwards a slice of the input to its fee address; it can never be more than the input
     ...(vault.forwardsInputFee ? [mk(tokenIn, maxIn, vault.externalPoolId || vault.contractId, 'lte')] : []),
+    ...(vault.alsoSends ?? []).map(({ principal, asset, max }) => {
+      const [contractId, identifier] = asset.split('::');
+      return mk({ contractId, identifier } as Token, BigInt(max), principal, 'lte');
+    }),
   ];
 };
 

@@ -95,8 +95,9 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
         setExpandedVault(expandedVault === id ? null : id);
     };
 
-    // Compute TVL for each vault
+    // Compute TVL for each vault. Vaults that mint their output report capacity, not holdings
     const getTvl = (v: Vault) => {
+        if (v.mints?.length) return null;
         const usdValueA = calculateUsdValue(v.reservesA || 0, v.tokenA?.decimals || 0, v.tokenA?.contractId as `${string}.${string}`, prices);
         const usdValueB = calculateUsdValue(v.reservesB || 0, v.tokenB?.decimals || 0, v.tokenB?.contractId as `${string}.${string}`, prices);
         let totalUsdValue = 0;
@@ -192,12 +193,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                 const usdValueA = calculateUsdValue(v.reservesA || 0, v.tokenA?.decimals || 0, v.tokenA?.contractId as `${string}.${string}`, prices);
                                 const usdValueB = calculateUsdValue(v.reservesB || 0, v.tokenB?.decimals || 0, v.tokenB?.contractId as `${string}.${string}`, prices);
 
-                                // Calculate total USD value from available prices (handle missing prices gracefully)
-                                let totalUsdValue = 0;
-                                if (usdValueA !== null) totalUsdValue += usdValueA;
-                                if (usdValueB !== null) totalUsdValue += usdValueB;
-                                // If no prices available at all, show null
-                                const finalTotalUsdValue = (usdValueA === null && usdValueB === null) ? null : totalUsdValue;
+                                const finalTotalUsdValue = getTvl(v);
 
                                 const formattedUsdValueA = formatUsdValue(usdValueA);
                                 const formattedUsdValueB = formatUsdValue(usdValueB);

@@ -23,6 +23,8 @@ interface RequestBody {
         engineContractId?: string,
         stxWrapper?: string,
         forwardsInputFee?: boolean,
+        mints?: string[],
+        alsoSends?: { principal: string; asset: string; max: number }[],
         type?: string,
         protocol?: string
     };
@@ -49,6 +51,8 @@ interface Vault {
     engineContractId: string;
     stxWrapper?: string; // Asset the pool swaps STX through, e.g. Arkadiko's wSTX ("contract::token")
     forwardsInputFee?: boolean; // The pool sends part of the input on to a fee address (e.g. Velar)
+    mints?: string[]; // Tokens the vault creates as output (e.g. StackingDAO): nobody sends them
+    alsoSends?: { principal: string; asset: string; max: number }[]; // Protocol contracts that may also send during a swap, capped at max
     tokenA?: TokenData; // Now optional
     tokenB?: TokenData; // Now optional
     tokenBContract?: string; // For SUBLINK type
@@ -121,6 +125,8 @@ async function confirmVaultHandler(req: NextRequest, { params }: { params: { con
             engineContractId: lpToken.engineContractId || "",
             ...(lpToken.stxWrapper ? { stxWrapper: lpToken.stxWrapper } : {}),
             ...(lpToken.forwardsInputFee ? { forwardsInputFee: true } : {}),
+            ...(lpToken.mints?.length ? { mints: lpToken.mints } : {}),
+            ...(lpToken.alsoSends?.length ? { alsoSends: lpToken.alsoSends } : {}),
         };
 
         // Add tokenA and tokenB if they exist

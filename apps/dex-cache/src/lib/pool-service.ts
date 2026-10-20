@@ -39,6 +39,8 @@ export interface Vault {
     externalPoolId: string;
     stxWrapper?: string; // Asset the pool swaps STX through, e.g. Arkadiko's wSTX ("contract::token")
     forwardsInputFee?: boolean; // The pool sends part of the input on to a fee address (e.g. Velar)
+    mints?: string[]; // Tokens the vault creates as output (e.g. StackingDAO): nobody sends them
+    alsoSends?: { principal: string; asset: string; max: number }[]; // Protocol contracts that may also send during a swap, capped at max
     engineContractId: string;
     base?: string;                 // Base token contract for ENERGY type vaults
     tokenA?: Token;                // Made optional to support non-LP token vaults

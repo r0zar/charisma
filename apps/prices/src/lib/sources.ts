@@ -16,7 +16,7 @@ export interface TokenInfo {
 }
 
 interface VaultSide { contractId: string; decimals: number }
-interface Vault { type?: string; tokenA?: VaultSide; tokenB?: VaultSide; reservesA?: number; reservesB?: number }
+interface Vault { type?: string; tokenA?: VaultSide; tokenB?: VaultSide; reservesA?: number; reservesB?: number; mints?: string[] }
 
 async function getJson<T>(url: string, revalidate: number): Promise<T> {
   const res = await fetch(url, { next: { revalidate } });
@@ -39,7 +39,7 @@ export async function listTokens(): Promise<TokenInfo[]> {
   }));
 }
 
-/** Whole tokens held in Charisma's pools, per token */
+/** Whole tokens held in Charisma's pools, per token. Vaults that mint their output report capacity, not holdings */
 export async function poolBalances(): Promise<Map<string, number>> {
   const json = await getJson<{ status: string; data: Vault[] }>(`${INVEST}/vaults`, 600);
   if (json.status !== 'success' || !Array.isArray(json.data)) throw new Error('invest /vaults returned an unexpected shape');
@@ -49,7 +49,7 @@ export async function poolBalances(): Promise<Map<string, number>> {
     held.set(side.contractId, (held.get(side.contractId) ?? 0) + units / 10 ** side.decimals);
   };
   for (const v of json.data) {
-    if (v.type !== 'POOL') continue;
+    if (v.type !== 'POOL' || v.mints?.length) continue;
     add(v.tokenA, v.reservesA);
     add(v.tokenB, v.reservesB);
   }
