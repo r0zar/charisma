@@ -1,6 +1,6 @@
 // Liquidity census: every pool on Bitflow, ALEX, Velar and Arkadiko, read on-chain, priced in USD, and marked
 // covered when Charisma's vault registry already routes through it. Writes census.json and prints a summary.
-// Usage (needs HIRO_API_KEY): node --env-file=.env.local scripts/liquidity-census.mjs
+// Usage (needs HIRO_API_KEY): node --env-file=.env.local scripts/liquidity-census.mjs [out.json]
 import { Cl, cvToHex, hexToCV, cvToValue } from '@stacks/transactions';
 import fs from 'fs';
 
@@ -83,7 +83,9 @@ const bitflowPools = (await Promise.all(['SM1793C4R5PZ4NS4VQ4WMP7SKKYVH8JZEWSZ9H
   .flat().filter((id) => /\.(xyk-pool-|stableswap-pool-|dlmm-pool-|stableswap-)/.test(id) && !/trait/.test(id));
 await pool(bitflowPools, 4, async (id) => { const h = await holdings(id); rows.push({ dex: 'BITFLOW', pool: id.split('.')[1], id, ...h, covered: coveredContracts.has(id) }); });
 // Velar: standalone pools (one contract each) and core pools (all inside univ2-core)
-const velarStandalone = (await deployed('SP1Y5YSTAHZ88XYK1VPDH24GY0HPX5J4JECTMY4A1')).filter((id) => /\.(univ2-pool-v|curve-pool-v)/.test(id));
+// Velar's standalone pools come from several deployers (its public pool list names them)
+const velarStandalone = (await Promise.all(['SP1Y5YSTAHZ88XYK1VPDH24GY0HPX5J4JECTMY4A1', 'SP20X3DC5R091J8B6YPQT638J8NR1W83KN6TN5BJY', 'SPFAQ8JFM2GPQDJR1PARSMDSV4D46PSFPN1S53YJ'].map(deployed)))
+  .flat().filter((id) => /\.(univ2-pool-v|curve-pool-v)/.test(id));
 await pool(velarStandalone, 4, async (id) => { const h = await holdings(id); rows.push({ dex: 'VELAR', pool: id.split('.')[1], id, ...h, covered: coveredContracts.has(id) }); });
 const nr = Number(val(await ro('SP1Y5YSTAHZ88XYK1VPDH24GY0HPX5J4JECTMY4A1.univ2-core', 'get-nr-pools')));
 await pool(Array.from({ length: nr }, (_, i) => i + 1), 4, async (n) => {
@@ -126,7 +128,7 @@ for (const v of vaults.filter((v) => ['CHARISMA', 'FAKTORY', 'STACKINGDAO', 'HER
   const u = (usdOf(v.tokenA.contractId, v.reservesA) ?? 0) + (usdOf(v.tokenB.contractId, v.reservesB) ?? 0);
   own[v.protocol] = (own[v.protocol] ?? 0) + u;
 }
-fs.writeFileSync('census.json', JSON.stringify({ at: new Date().toISOString(), rows, own }, null, 1));
+fs.writeFileSync(process.argv[2] ?? 'census.json', JSON.stringify({ at: new Date().toISOString(), rows, own }, null, 1));
 
 const f = (n) => '$' + Math.round(n).toLocaleString();
 console.log('DEX        pools  covered   total USD     covered USD   coverage');
