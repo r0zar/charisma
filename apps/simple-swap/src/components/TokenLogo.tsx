@@ -78,12 +78,13 @@ export default function TokenLogo({ token, size = "md", className = "", suppress
     return (
         <div className={`relative ${sizeClasses[size]} ${className}`} style={{ overflow: 'visible' }}>
             {/* A logo is shown whole, never cropped to a circle: some aren't round (corner badges, square marks).
+                Softly rounded corners keep square marks from looking sharp without reaching a corner badge.
                 A token without a logo (or a broken one) gets its initial, never another token's logo */}
             {token.image && !imgError ? (
                 <img
                     src={getIpfsUrl(token.image)}
                     alt={token.symbol}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain rounded-[20%]"
                     onError={() => setImgError(true)}
                 />
             ) : (
