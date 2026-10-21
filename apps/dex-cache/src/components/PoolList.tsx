@@ -8,6 +8,7 @@ import { ChevronDown, ChevronUp, Coins, Layers, ArrowUp, ArrowDown } from 'lucid
 import Link from 'next/link';
 import { Vault } from '@/lib/pool-service';
 import DexBadge from '@/components/DexBadge';
+import { dexOf } from '@/lib/protocols';
 import Image from 'next/image';
 import { useApp } from '@/lib/context/app-context';
 import { useUserPoolPositions } from '@/hooks/useUserPoolPositions';
@@ -72,7 +73,7 @@ interface Props {
 export default function PoolList({ vaults, prices: serverPrices }: Props) {
     const [expandedVault, setExpandedVault] = useState<string | null>(null);
     const [prices, setPrices] = useState<KraxelPriceData | null>(serverPrices || null);
-    const [sortBy, setSortBy] = useState<'fee' | 'tvl' | 'myTvl' | null>('tvl');
+    const [sortBy, setSortBy] = useState<'dex' | 'fee' | 'tvl' | 'myTvl' | null>('tvl');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
     const { stxAddress } = useApp();
@@ -110,7 +111,13 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
     const sortedVaults = React.useMemo(() => {
         if (!sortBy) return vaults;
         const sorted = [...vaults];
-        if (sortBy === 'fee') {
+        if (sortBy === 'dex') {
+            // Alphabetical by the DEX's name; biggest pools first within each DEX
+            sorted.sort((a, b) => {
+                const byName = dexOf(a.protocol).name.localeCompare(dexOf(b.protocol).name);
+                return (sortDir === 'asc' ? byName : -byName) || (getTvl(b) ?? 0) - (getTvl(a) ?? 0);
+            });
+        } else if (sortBy === 'fee') {
             sorted.sort((a, b) => sortDir === 'asc' ? a.fee - b.fee : b.fee - a.fee);
         } else if (sortBy === 'tvl') {
             sorted.sort((a, b) => {
@@ -129,12 +136,12 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
     }, [vaults, sortBy, sortDir, prices, positions]);
 
     // Handle sort toggling
-    const handleSort = (col: 'fee' | 'tvl' | 'myTvl') => {
+    const handleSort = (col: 'dex' | 'fee' | 'tvl' | 'myTvl') => {
         if (sortBy === col) {
             setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
         } else {
             setSortBy(col);
-            setSortDir('desc');
+            setSortDir(col === 'dex' ? 'asc' : 'desc'); // A to Z first
         }
     };
 
@@ -167,7 +174,10 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                         <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider">
                             <tr>
                                 <th className="p-4 font-semibold text-muted-foreground">Name</th>
-                                <th className="p-4 font-semibold text-muted-foreground">DEX</th>
+                                <th className="p-4 font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => handleSort('dex')}>
+                                    DEX
+                                    {sortBy === 'dex' && (sortDir === 'asc' ? <ArrowUp className="inline w-3 h-3 ml-1" /> : <ArrowDown className="inline w-3 h-3 ml-1" />)}
+                                </th>
                                 <th className="p-4 font-semibold text-muted-foreground">Tokens</th>
                                 <th className="p-4 font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => handleSort('fee')}>
                                     Fee

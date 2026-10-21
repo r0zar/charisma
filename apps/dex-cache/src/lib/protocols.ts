@@ -6,6 +6,8 @@ const DEXES: Record<string, { name: string; icon?: string }> = {
     ARKADIKO: { name: 'Arkadiko', icon: '/dex/arkadiko.png' },
     VELAR: { name: 'Velar', icon: '/dex/velar.png' },
     FAKTORY: { name: 'fak.fun', icon: '/dex/fakfun.png' },
+    STACKINGDAO: { name: 'StackingDAO', icon: '/dex/stackingdao.png' },
+    HERMETICA: { name: 'Hermetica', icon: '/dex/hermetica.png' },
 };
 
 export const dexOf = (protocol: string) => DEXES[protocol] ?? { name: protocol };
