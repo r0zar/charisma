@@ -65,7 +65,7 @@ function TokenImage({ token, size = 32 }: { token: TokenSummary; size?: number }
             alt={token.symbol}
             width={size}
             height={size}
-            className="object-cover"
+            className="object-contain"
             onError={() => setImageError(true)}
         />
     );

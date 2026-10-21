@@ -77,23 +77,20 @@ export default function TokenLogo({ token, size = "md", className = "", suppress
 
     return (
         <div className={`relative ${sizeClasses[size]} ${className}`} style={{ overflow: 'visible' }}>
-            <div className={`w-full h-full rounded-full bg-dark-300 flex items-center justify-center overflow-hidden`}>
-                {/* A token without a logo (or a broken one) gets its initial, never another token's logo */}
-                {token.image && !imgError ? (
-                    <img
-                        src={getIpfsUrl(token.image)}
-                        alt={token.symbol}
-                        className="w-full h-full object-cover"
-                        onError={() => setImgError(true)}
-                    />
-                ) : (
-                    <div className={`w-full h-full flex items-center justify-center bg-surface-hover text-ink-muted font-semibold uppercase select-none ${initialSize[size]}`}>
-                        {token.symbol?.charAt(0) || '?'}
-                    </div>
-                )}
-                {/* Optional highlight ring for better visibility */}
-                <div className={`absolute inset-0 rounded-full shadow-highlight pointer-events-none`} />
-            </div>
+            {/* A logo is shown whole, never cropped to a circle: some aren't round (corner badges, square marks).
+                A token without a logo (or a broken one) gets its initial, never another token's logo */}
+            {token.image && !imgError ? (
+                <img
+                    src={getIpfsUrl(token.image)}
+                    alt={token.symbol}
+                    className="w-full h-full object-contain"
+                    onError={() => setImgError(true)}
+                />
+            ) : (
+                <div className={`w-full h-full rounded-full overflow-hidden flex items-center justify-center bg-surface-hover text-ink-muted font-semibold uppercase select-none shadow-highlight ${initialSize[size]}`}>
+                    {token.symbol?.charAt(0) || '?'}
+                </div>
+            )}
             {/* Flame icon overlay for subnet tokens */}
             {isSubnetToken && !suppressFlame && <TokenFlameOverlay size={size} version={blazeVersion ?? knownBlazeVersion(token.contractId) ?? 1} />}
         </div>

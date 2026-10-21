@@ -253,7 +253,7 @@ function TokenInsightCard({ tokenWithScore, isArbitrage }: { tokenWithScore: Tok
             <div className="flex items-center gap-3 mb-2">
                 <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center overflow-hidden">
                     {token.image ? (
-                        <img src={token.image} alt={token.symbol} className="w-full h-full object-cover" />
+                        <img src={token.image} alt={token.symbol} className="w-full h-full object-contain" />
                     ) : (
                         <span className="text-xs font-bold text-ink-muted">{token.symbol.charAt(0)}</span>
                     )}

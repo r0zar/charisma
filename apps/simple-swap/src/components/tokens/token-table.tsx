@@ -108,7 +108,7 @@ function TokenImage({ token }: { token: TokenSummary }) {
             alt={token.symbol}
             width={32}
             height={32}
-            className="object-cover"
+            className="object-contain"
             onError={() => setImageError(true)}
         />
     );
