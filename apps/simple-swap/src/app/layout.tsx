@@ -11,32 +11,24 @@ import { THEME_SCRIPT } from '@repo/brand/react';
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: 'Charisma Swap | Fast Decentralized Exchange on Stacks',
-  description: 'Swap tokens securely and efficiently on the Stacks blockchain with Charisma Swap.',
+  title: 'Charisma Swap | More liquidity sources than any other swap on Stacks',
+  description: 'One swap reaches Bitflow, ALEX, Velar, Arkadiko, fak.fun, StackingDAO, Hermetica and Charisma pools: 95% of the liquidity on Stacks\' top DEXes.',
   icons: {
     icon: '/favicon.ico',
   },
+  // The share image is app/opengraph-image.tsx (and twitter-image.tsx)
   openGraph: {
-    title: 'Charisma Swap | Fast Decentralized Exchange on Stacks',
-    description: 'Swap tokens securely and efficiently on the Stacks blockchain with Charisma Swap.',
-    url: 'https://charisma.rocks',
+    title: 'Charisma Swap | More liquidity sources than any other swap on Stacks',
+    description: 'One swap reaches Bitflow, ALEX, Velar, Arkadiko, fak.fun, StackingDAO, Hermetica and Charisma pools: 95% of the liquidity on Stacks\' top DEXes.',
+    url: 'https://swap.charisma.rocks',
     siteName: 'Charisma Swap',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 920,
-        height: 483,
-        alt: 'Charisma Swap Logo and Interface Preview',
-      },
-    ],
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Charisma Swap | Fast Decentralized Exchange on Stacks',
-    description: 'Swap tokens securely and efficiently on the Stacks blockchain with Charisma Swap.',
-    images: ['/og-image.png'],
+    title: 'Charisma Swap | More liquidity sources than any other swap on Stacks',
+    description: 'One swap reaches Bitflow, ALEX, Velar, Arkadiko, fak.fun, StackingDAO, Hermetica and Charisma pools: 95% of the liquidity on Stacks\' top DEXes.',
   },
 };
 
