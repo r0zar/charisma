@@ -7,8 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronDown, ChevronUp, Coins, Layers, ArrowUp, ArrowDown } from 'lucide-react';
 import Link from 'next/link';
 import { Vault } from '@/lib/pool-service';
-import DexBadge from '@/components/DexBadge';
-import { dexOf } from '@/lib/protocols';
+import ProtocolBadge from '@/components/ProtocolBadge';
+import { protocolOf } from '@/lib/protocols';
 import Image from 'next/image';
 import { useApp } from '@/lib/context/app-context';
 import { useUserPoolPositions } from '@/hooks/useUserPoolPositions';
@@ -73,7 +73,7 @@ interface Props {
 export default function PoolList({ vaults, prices: serverPrices }: Props) {
     const [expandedVault, setExpandedVault] = useState<string | null>(null);
     const [prices, setPrices] = useState<KraxelPriceData | null>(serverPrices || null);
-    const [sortBy, setSortBy] = useState<'dex' | 'fee' | 'tvl' | 'myTvl' | null>('tvl');
+    const [sortBy, setSortBy] = useState<'protocol' | 'fee' | 'tvl' | 'myTvl' | null>('tvl');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
     const { stxAddress } = useApp();
@@ -96,9 +96,8 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
         setExpandedVault(expandedVault === id ? null : id);
     };
 
-    // Compute TVL for each vault. Vaults that mint their output report capacity, not holdings
+    // Compute TVL for each vault
     const getTvl = (v: Vault) => {
-        if (v.mints?.length) return null;
         const usdValueA = calculateUsdValue(v.reservesA || 0, v.tokenA?.decimals || 0, v.tokenA?.contractId as `${string}.${string}`, prices);
         const usdValueB = calculateUsdValue(v.reservesB || 0, v.tokenB?.decimals || 0, v.tokenB?.contractId as `${string}.${string}`, prices);
         let totalUsdValue = 0;
@@ -111,10 +110,10 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
     const sortedVaults = React.useMemo(() => {
         if (!sortBy) return vaults;
         const sorted = [...vaults];
-        if (sortBy === 'dex') {
-            // Alphabetical by the DEX's name; biggest pools first within each DEX
+        if (sortBy === 'protocol') {
+            // Alphabetical by the protocol's name; biggest pools first within each protocol
             sorted.sort((a, b) => {
-                const byName = dexOf(a.protocol).name.localeCompare(dexOf(b.protocol).name);
+                const byName = protocolOf(a.protocol).name.localeCompare(protocolOf(b.protocol).name);
                 return (sortDir === 'asc' ? byName : -byName) || (getTvl(b) ?? 0) - (getTvl(a) ?? 0);
             });
         } else if (sortBy === 'fee') {
@@ -136,12 +135,12 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
     }, [vaults, sortBy, sortDir, prices, positions]);
 
     // Handle sort toggling
-    const handleSort = (col: 'dex' | 'fee' | 'tvl' | 'myTvl') => {
+    const handleSort = (col: 'protocol' | 'fee' | 'tvl' | 'myTvl') => {
         if (sortBy === col) {
             setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
         } else {
             setSortBy(col);
-            setSortDir(col === 'dex' ? 'asc' : 'desc'); // A to Z first
+            setSortDir(col === 'protocol' ? 'asc' : 'desc'); // A to Z first
         }
     };
 
@@ -174,9 +173,9 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                         <thead className="bg-muted/50 text-left text-xs uppercase tracking-wider">
                             <tr>
                                 <th className="p-4 font-semibold text-muted-foreground">Name</th>
-                                <th className="p-4 font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => handleSort('dex')}>
-                                    DEX
-                                    {sortBy === 'dex' && (sortDir === 'asc' ? <ArrowUp className="inline w-3 h-3 ml-1" /> : <ArrowDown className="inline w-3 h-3 ml-1" />)}
+                                <th className="p-4 font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => handleSort('protocol')}>
+                                    Protocol
+                                    {sortBy === 'protocol' && (sortDir === 'asc' ? <ArrowUp className="inline w-3 h-3 ml-1" /> : <ArrowDown className="inline w-3 h-3 ml-1" />)}
                                 </th>
                                 <th className="p-4 font-semibold text-muted-foreground">Tokens</th>
                                 <th className="p-4 font-semibold text-muted-foreground cursor-pointer select-none" onClick={() => handleSort('fee')}>
@@ -234,7 +233,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                 </button>
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
-                                                <DexBadge protocol={v.protocol} />
+                                                <ProtocolBadge protocol={v.protocol} />
                                             </td>
                                             <td className="p-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-2">
