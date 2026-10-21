@@ -242,7 +242,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                             <img
                                                                 src={v.tokenA?.image}
                                                                 alt={v.tokenA?.symbol}
-                                                                className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
+                                                                className="w-5 h-5 rounded-[20%] mr-1 object-contain bg-card p-0.5 border border-border"
                                                             />
                                                         )}
                                                         <span className="text-accent-text font-medium">{v.tokenA?.symbol}</span>
@@ -253,7 +253,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                             <img
                                                                 src={v.tokenB?.image}
                                                                 alt={v.tokenB?.symbol}
-                                                                className="w-5 h-5 rounded-full mr-1 object-contain bg-card p-0.5 border border-border"
+                                                                className="w-5 h-5 rounded-[20%] mr-1 object-contain bg-card p-0.5 border border-border"
                                                             />
                                                         )}
                                                         <span className="text-accent-text font-medium">{v.tokenB?.symbol}</span>
@@ -315,7 +315,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                                             <img
                                                                                 src={v.tokenA.image}
                                                                                 alt={v.tokenA.symbol}
-                                                                                className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
+                                                                                className="w-5 h-5 mr-2 rounded-[20%] object-contain bg-card p-0.5 border border-border"
                                                                             />
                                                                         )}
                                                                         <h5 className="font-medium text-accent-text">{v.tokenA?.symbol}</h5>
@@ -333,7 +333,7 @@ export default function PoolList({ vaults, prices: serverPrices }: Props) {
                                                                             <img
                                                                                 src={v.tokenB.image}
                                                                                 alt={v.tokenB.symbol}
-                                                                                className="w-5 h-5 mr-2 rounded-full object-contain bg-card p-0.5 border border-border"
+                                                                                className="w-5 h-5 mr-2 rounded-[20%] object-contain bg-card p-0.5 border border-border"
                                                                             />
                                                                         )}
                                                                         <h5 className="font-medium text-accent-text">{v.tokenB?.symbol}</h5>

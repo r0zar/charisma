@@ -287,12 +287,12 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
                                                 <div className="relative flex items-center">
                                                     {/* Token A - Back */}
                                                     <div className="relative z-10">
-                                                        <div className="w-24 h-24 rounded-full bg-muted/20 backdrop-blur-sm border-2 border-border/50 overflow-hidden shadow-lg">
+                                                        <div className="w-24 h-24 rounded-[20%] bg-muted/20 backdrop-blur-sm border-2 border-border/50 overflow-hidden shadow-lg">
                                                             {currentVaultData.tokenA.image ? (
                                                                 <img
                                                                     src={currentVaultData.tokenA.image}
                                                                     alt={currentVaultData.tokenA.symbol}
-                                                                    className="w-full h-full object-cover"
+                                                                    className="w-full h-full object-contain"
                                                                     onError={(e) => {
                                                                         e.currentTarget.src = '/placeholder.png';
                                                                     }}
@@ -311,12 +311,12 @@ export default function VaultDetailClient({ vault, prices, analytics, contractIn
 
                                                     {/* Token B - Front with Overlap */}
                                                     <div className="relative z-20 -ml-8">
-                                                        <div className="w-24 h-24 rounded-full bg-muted/20 backdrop-blur-sm border-2 border-border/50 overflow-hidden shadow-lg">
+                                                        <div className="w-24 h-24 rounded-[20%] bg-muted/20 backdrop-blur-sm border-2 border-border/50 overflow-hidden shadow-lg">
                                                             {currentVaultData.tokenB.image ? (
                                                                 <img
                                                                     src={currentVaultData.tokenB.image}
                                                                     alt={currentVaultData.tokenB.symbol}
-                                                                    className="w-full h-full object-cover"
+                                                                    className="w-full h-full object-contain"
                                                                     onError={(e) => {
                                                                         e.currentTarget.src = '/placeholder.png';
                                                                     }}

@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 /** A steady color per symbol, so each token's letter badge looks the same everywhere */
 const hue = (symbol: string) => [...symbol].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
 
-/** A token's logo. When there's none, or it fails to load, its first letter on a colored badge. */
+/** A token's logo, shown whole with softly rounded corners (some logos aren't round: corner badges, square marks).
+ * When there's none, or it fails to load, its first letter on a colored badge. */
 export function TokenLogo({ src, symbol, size = 28 }: { src?: string; symbol: string; size?: number }) {
   const [broken, setBroken] = useState(false);
   const [tiny, setTiny] = useState(false);
@@ -32,5 +33,5 @@ export function TokenLogo({ src, symbol, size = 28 }: { src?: string; symbol: st
       </span>
     );
   }
-  return <img ref={img} src={src} alt="" style={style} loading="lazy" onError={() => setBroken(true)} onLoad={e => check(e.currentTarget)} className={`shrink-0 rounded-full bg-surface-raised object-cover ${tiny ? '[image-rendering:pixelated]' : ''}`} />;
+  return <img ref={img} src={src} alt="" style={style} loading="lazy" onError={() => setBroken(true)} onLoad={e => check(e.currentTarget)} className={`shrink-0 rounded-[20%] object-contain ${tiny ? '[image-rendering:pixelated]' : ''}`} />;
 }

@@ -255,7 +255,7 @@ export default function AddSublinkDialog({ isOpen, onOpenChange, onSublinkCreate
                                                     <img
                                                         src={fetchedDetails.tokenA.image}
                                                         alt={fetchedDetails.tokenA.name || 'Token A'}
-                                                        className="w-12 h-12 rounded-md object-cover border bg-background shadow-sm flex-shrink-0"
+                                                        className="w-12 h-12 rounded-md object-contain border bg-background shadow-sm flex-shrink-0"
                                                     />
                                                 )}
                                                 <div className="text-xs space-y-0.5 flex-grow">
@@ -277,7 +277,7 @@ export default function AddSublinkDialog({ isOpen, onOpenChange, onSublinkCreate
                                                     <img
                                                         src={fetchedDetails.tokenB.image}
                                                         alt={fetchedDetails.tokenB.name || 'Token B'}
-                                                        className="w-12 h-12 rounded-md object-cover border bg-background shadow-sm flex-shrink-0"
+                                                        className="w-12 h-12 rounded-md object-contain border bg-background shadow-sm flex-shrink-0"
                                                     />
                                                 )}
                                                 <div className="text-xs space-y-0.5 flex-grow">

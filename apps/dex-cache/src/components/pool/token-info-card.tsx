@@ -92,7 +92,7 @@ const TokenInfoCard = ({ token, reserves, price }: { token: TokenCacheData; rese
                             src={token.image || '/placeholder.png'}
                             alt={token.symbol || 'Token'}
                             fill
-                            className="rounded-full p-0.5"
+                            className="rounded-[20%] p-0.5"
                             onError={(e) => { e.currentTarget.src = '/placeholder.png'; }}
                         />
                     </div>

@@ -179,7 +179,7 @@ export default function SublinkList({ vaults, prices }: SublinkListProps) {
                                             <td className="p-4 whitespace-nowrap">
                                                 <div className="flex items-center gap-2">
                                                     {sublink.tokenA?.image && (
-                                                        <Image width={20} height={20} src={sublink.tokenA.image} alt={sublink.tokenA.symbol} className="w-5 h-5 rounded-full object-contain bg-card p-px border border-border" />
+                                                        <Image width={20} height={20} src={sublink.tokenA.image} alt={sublink.tokenA.symbol} className="w-5 h-5 rounded-[20%] object-contain bg-card p-px border border-border" />
                                                     )}
                                                     <span>{sublink.tokenA?.symbol}</span>
                                                 </div>

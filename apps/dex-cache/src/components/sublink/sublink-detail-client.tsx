@@ -343,7 +343,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                                 src={displaySublink.tokenA.image}
                                                 alt={`${displaySublink.tokenA.name}`}
                                                 fill
-                                                className="rounded-full object-cover border border-border/50"
+                                                className="rounded-[20%] object-contain border border-border/50"
                                             />
                                         ) : (
                                             <div className="w-10 h-10 flex items-center justify-center bg-muted rounded-full border border-border/50">
@@ -365,7 +365,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                                 src={displaySublink.image}
                                                 alt={`${displaySublink.name} logo`}
                                                 fill
-                                                className="rounded-lg object-cover border-2 border-foreground/5"
+                                                className="rounded-lg object-contain border-2 border-foreground/5"
                                             />
                                         ) : (
                                             <div className="w-12 h-12 flex items-center justify-center bg-primary/10 rounded-lg border border-primary/30">
@@ -387,7 +387,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                                 src={displaySublink.tokenA.image}
                                                 alt={`${displaySublink.tokenA.name} (subnet)`}
                                                 fill
-                                                className="rounded-full object-cover border border-border/50"
+                                                className="rounded-[20%] object-contain border border-border/50"
                                             />
                                         ) : (
                                             <div className="w-10 h-10 flex items-center justify-center bg-muted rounded-full border border-border/50">
@@ -519,7 +519,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                                         src={displaySublink.tokenA.image}
                                                         alt={`${displaySublink.tokenA.name}`}
                                                         fill
-                                                        className="rounded-full object-cover border border-border/50"
+                                                        className="rounded-[20%] object-contain border border-border/50"
                                                     />
                                                 ) : (
                                                     <div className="w-12 h-12 flex items-center justify-center bg-muted rounded-full border border-border/50">
@@ -571,7 +571,7 @@ export default function SublinkDetailClient({ sublink, prices, analytics, contra
                                                             src={displaySublink.tokenA?.image}
                                                             alt={`${displaySublink.tokenA.name} (subnet)`}
                                                             fill
-                                                            className="rounded-full object-cover border border-border/50"
+                                                            className="rounded-[20%] object-contain border border-border/50"
                                                         />
                                                         {/* Layered flame badge - static base with animation */}
                                                         <div className="relative">

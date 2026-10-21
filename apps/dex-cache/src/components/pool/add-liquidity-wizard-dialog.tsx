@@ -146,7 +146,7 @@ const TokenSelector = ({
                                         alt={selectedToken.symbol}
                                         width={32}
                                         height={32}
-                                        className="rounded-full mr-3"
+                                        className="rounded-[20%] mr-3"
                                         onError={(e) => {
                                             e.currentTarget.style.display = 'none';
                                         }}
@@ -205,7 +205,7 @@ const TokenSelector = ({
                                                 alt={token.symbol}
                                                 width={32}
                                                 height={32}
-                                                className="rounded-full mr-3"
+                                                className="rounded-[20%] mr-3"
                                             />
                                         )}
                                         <div className="flex-1 text-left">
@@ -417,7 +417,7 @@ export function AddLiquidityWizard({ pools, prices }: AddLiquidityWizardProps) {
                                                         alt={matchingPool.name}
                                                         width={24}
                                                         height={24}
-                                                        className="rounded-full"
+                                                        className="rounded-[20%]"
                                                     />
                                                 )}
                                                 <span className="font-medium">{matchingPool.name}</span>
