@@ -183,6 +183,10 @@ The pools keep working. Anyone can still trade through them or withdraw their li
 
 In September 2024, an attacker exploited the old Charisma DAO's voting system, not the pools. They minted tokens and sold them. The DAO was shut down afterwards, and today's pools have no connection to it.
 
+Charisma's developer took full responsibility and has been paying affected users back from personal funds. Everyone affected received IOU tokens: a one-for-one claim on exactly what they lost, redeemable for the original tokens. Progress is tracked live, on-chain, at [recovery.charisma.rocks](https://recovery.charisma.rocks).
+
+Users come first at Charisma, even when it costs the people who build it.
+
 </details>
 
 ## Trading on the Charisma app?
