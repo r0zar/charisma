@@ -41,6 +41,7 @@ flowchart LR
 
 | If you want to | Read |
 |---|---|
+| Check that Charisma's pools are safe to trade through | [Security](./security.md) |
 | Quote, place and manage swaps over HTTP | [DEX API](./dex-api/overview.md) |
 | Sign once and let someone run it later | [Blaze](./blaze-api/introduction.md) |
 | Understand token prices | [Prices](./prices/overview.md) |

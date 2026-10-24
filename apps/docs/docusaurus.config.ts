@@ -59,6 +59,7 @@ const config: Config = {
       },
       items: [
         { type: 'doc', docId: 'intro', position: 'left', label: 'Start here' },
+        { type: 'doc', docId: 'security', position: 'left', label: 'Security' },
         { type: 'docSidebar', sidebarId: 'dexSidebar', position: 'left', label: 'DEX API' },
         { type: 'docSidebar', sidebarId: 'blazeSidebar', position: 'left', label: 'Blaze' },
         { type: 'docSidebar', sidebarId: 'dexteritySidebar', position: 'left', label: 'Dexterity' },
@@ -75,6 +76,7 @@ const config: Config = {
           title: 'Docs',
           items: [
             { label: 'Start here', to: '/docs/intro' },
+            { label: 'Security', to: '/docs/security' },
             { label: 'DEX API', to: '/docs/dex-api/overview' },
             { label: 'Blaze', to: '/docs/blaze-api/introduction' },
             { label: 'Dexterity', to: '/docs/dexterity/overview' },
