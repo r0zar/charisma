@@ -96,6 +96,36 @@ html[data-theme] {
 .pagination-nav__link { border-color: var(--line); background: var(--surface); }
 .pagination-nav__link:hover { border-color: var(--line-strong); }
 
+/* admonitions (:::note, :::info …) and <details> are quiet surface cards, not Infima's bright fills: the kind shows
+   only as a thin left rule and a tinted heading, in the realm's own state colours */
+html[data-theme] .alert {
+  --ifm-alert-background-color: var(--surface);
+  --ifm-alert-background-color-highlight: var(--surface-hover);
+  --ifm-alert-border-color: var(--line);
+  --ifm-alert-foreground-color: var(--ink-body);
+  --ifm-alert-border-width: 1px;
+  --ifm-alert-border-left-width: 3px;
+  --state: var(--ink-muted);
+  border-left-color: var(--state);
+  box-shadow: none;
+}
+html[data-theme] .alert--secondary { --state: var(--ink-faint); }
+html[data-theme] .alert--info { --state: var(--ink-body); }
+html[data-theme] .alert--success { --state: var(--success); }
+html[data-theme] .alert--warning { --state: var(--warning); }
+html[data-theme] .alert--danger { --state: var(--danger); }
+.theme-admonition [class*='admonitionHeading'] { color: var(--state); }
+.theme-admonition [class*='admonitionIcon'] svg { fill: var(--state); }
+.alert a { color: var(--accent-text); }
+/* accordions stay neutral: a hairline all round */
+html[data-theme] details.alert {
+  --ifm-alert-border-left-width: 1px;
+  --state: var(--line);
+  --docusaurus-details-decoration-color: var(--ink-muted);
+}
+details.alert > summary { color: var(--ink); font-weight: 600; }
+details.alert [class*='collapsibleContent'] { border-top-color: var(--line); }
+
 /* diagrams (```mermaid blocks) sit on a card */
 .docusaurus-mermaid-container {
   display: flex;
