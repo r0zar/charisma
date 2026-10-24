@@ -83,6 +83,108 @@ Before listing a new pool, Charisma tests it on a copy of mainnet to prove that 
 | 🪙 **Tokens are their own thing** | A pool is only as good as the two tokens in it. Charisma can't vouch for every token |
 | 🔗 **Pools from other DEXes** | Charisma also lists pools from Bitflow, ALEX, Velar and others. Those follow their own DEX's rules |
 
+## Frequently asked questions
+
+### Bad tokens and bad pools
+
+<details>
+<summary>What if a pool's token takes everything I send?</summary>
+
+A pool like that pays back little or nothing, so its price looks bad. Routers always pick the pool that pays you the most, so it never gets chosen.
+
+</details>
+
+<details>
+<summary>What if a pool lies about its price to get picked?</summary>
+
+Every swap carries a minimum you'll accept, based on that price. If the pool pays less than it promised, the whole swap is undone and you keep your tokens.
+
+This has happened once: a listed pool promised a price it couldn't pay. The swap was undone, and the pool was removed from the list.
+
+</details>
+
+<details>
+<summary>What if a token tries to take a different token from my wallet?</summary>
+
+A swap lists every token that's allowed to move. If anything else moves, the whole swap is cancelled. Charisma's app builds every swap this way, and so do the aggregators that route through its pools.
+
+</details>
+
+<details>
+<summary>What if a bad token is in the middle of a multi-hop route?</summary>
+
+Every hop has its own limits. If one hop breaks them, every hop is undone.
+
+</details>
+
+<details>
+<summary>What about fake tokens that copy a real one's name and logo?</summary>
+
+Tokens are matched by their contract address, not their name. A copycat is a different contract, so it's never on the route to the real token.
+
+</details>
+
+### The pools themselves
+
+<details>
+<summary>Can anyone change a pool's fee or rules after it launches?</summary>
+
+No. A Charisma pool's fee, which goes entirely to its liquidity providers as a rebate, is written into its code when it's deployed. So is every rule that matters. Nobody can change them later, not even the pool's creator.
+
+To offer different terms, someone has to deploy a brand-new pool. Liquidity never moves on its own: each provider decides for themselves whether to take theirs out and move it.
+
+So nothing changes while you're not looking, and everyone opts in, pool by pool. The free market picks the best pools: providers choose where to put their liquidity, and traders choose where to trade.
+
+</details>
+
+<details>
+<summary>Can someone drain a pool?</summary>
+
+No. Tokens leave a pool in only two ways: a swap that pays the pool's price, or a liquidity provider cashing out their own share.
+
+</details>
+
+<details>
+<summary>Can a pool's creator rug it?</summary>
+
+The creator is just another liquidity provider. They can take out their own share, like anyone else, but they can't touch anyone else's, change the fee or pause trading.
+
+If one person owns most of a small pool and takes their share out, the pool gets thin, so check who's in a pool before you add to it.
+
+</details>
+
+<details>
+<summary>Could a bug in one pool spread to others?</summary>
+
+No. Each pool is its own contract with its own tokens. Nothing is shared.
+
+</details>
+
+### Trading
+
+<details>
+<summary>Can someone trade just ahead of me?</summary>
+
+Yes, anyone can see a swap while it's waiting to confirm. But your minimum still holds, so the most it can cost you is your slippage setting.
+
+</details>
+
+### Charisma itself
+
+<details>
+<summary>What happens if Charisma disappears?</summary>
+
+The pools keep working. Anyone can still trade through them or withdraw their liquidity, from any app or straight on-chain.
+
+</details>
+
+<details>
+<summary>Wasn't Charisma hacked in 2024?</summary>
+
+In September 2024, an attacker exploited the old Charisma DAO's voting system, not the pools. They minted tokens and sold them. The DAO was shut down afterwards, and today's pools have no connection to it.
+
+</details>
+
 ## Trading on the Charisma app?
 
 On [swap.charisma.rocks](https://swap.charisma.rocks), a swap can hop through several pools in one go, using Charisma's multi-hop router. The router never holds your tokens: each pool trades with your wallet directly, and your wallet shows the most you'll send and the least you'll get before you sign. If any hop falls short, the whole swap is undone.
