@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import { t } from '~shared/i18n';
 import { listAmount } from '~shared/home/balances';
 import type { TokenBalance, TradeToken } from '~background/lib/tokens';
+import { TokenPicture } from './TokenPicture';
 
 export function TokenPicker({ tokens, balances, onPick, onCancel }: {
   tokens: TradeToken[];
@@ -38,7 +39,7 @@ export function TokenPicker({ tokens, balances, onPick, onCancel }: {
           const held = balances?.find(balance => balance.contractId === token.contractId);
           return (
             <button key={token.contractId} type="button" className="w-token-option" onClick={() => onPick(token.contractId)}>
-              <span className="cx-token">{token.symbol.charAt(0).toUpperCase()}</span>
+              <TokenPicture image={token.image} symbol={token.symbol} className="cx-token" />
               <span className="w-token-option-name">
                 <strong>{token.symbol}</strong>
                 <span>{token.name}</span>

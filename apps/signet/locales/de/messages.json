@@ -1074,5 +1074,9 @@
   "tradeRefresh": {
     "message": "Kurs aktualisieren",
     "description": "Review button: fetches a fresh quote"
+  },
+  "errorVaultList": {
+    "message": "Charismas Vault-Liste hat nicht geantwortet (HTTP $1), daher können die Token, die der Router erreicht, nicht geprüft werden.",
+    "description": "Shown when the vault list can't load, so swap tokens can't be checked; $1 is the HTTP status"
   }
 }

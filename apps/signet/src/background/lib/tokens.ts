@@ -106,12 +106,30 @@ export interface TradeToken {
   image: string | null
 }
 
-/** Every token the Trade screen can pick: STX first, then Charisma's token list */
+/**
+ * The tokens the router can reach: every token of a pool on Charisma's vault list, except energy vaults (the router
+ * skips those, as its graph does). A token outside this set has no route, so the Trade screen doesn't offer it.
+ */
+async function routableContractIds(): Promise<Set<string>> {
+  const res = await fetch("https://invest.charisma.rocks/api/v1/vaults")
+  const body = (await res.json().catch(() => null)) as
+    | { status?: string; data?: { type?: string; tokenA?: { contractId?: string }; tokenB?: { contractId?: string } }[] }
+    | null
+  if (!res.ok || body?.status !== "success" || !Array.isArray(body.data)) throw new WalletError("errorVaultList", [res.status])
+  const ids = new Set<string>()
+  for (const pool of body.data) {
+    if (pool.type === "ENERGY") continue
+    for (const side of [pool.tokenA, pool.tokenB]) if (side?.contractId) ids.add(side.contractId)
+  }
+  return ids
+}
+
+/** Every token the Trade screen can pick: STX first, then the listed tokens the router can reach */
 export async function getTokenList(): Promise<TradeToken[]> {
-  const [list, stx] = await Promise.all([listTokens(), tokenMeta(STX_ID)])
+  const [list, stx, routable] = await Promise.all([listTokens(), tokenMeta(STX_ID), routableContractIds()])
   if (list.length === 0 || !stx) throw new WalletError("errorTokenListUnavailable")
   const rest = list
-    .filter(token => token.contractId !== STX_ID)
+    .filter(token => token.contractId !== STX_ID && routable.has(token.contractId))
     .map(token => ({ contractId: token.contractId, symbol: token.symbol, name: token.name, decimals: token.decimals, image: token.image ?? null }))
   return [{ contractId: STX_ID, ...stx }, ...rest]
 }

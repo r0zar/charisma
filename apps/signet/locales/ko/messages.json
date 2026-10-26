@@ -1042,5 +1042,9 @@
   "tradeRefresh": {
     "message": "견적 새로고침",
     "description": "Review button: fetches a fresh quote"
+  },
+  "errorVaultList": {
+    "message": "Charisma 볼트 목록이 응답하지 않아(HTTP $1) 라우터가 연결하는 토큰을 확인할 수 없습니다.",
+    "description": "Shown when the vault list can't load, so swap tokens can't be checked; $1 is the HTTP status"
   }
 }

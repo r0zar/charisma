@@ -1106,5 +1106,9 @@
   "tradeRefresh": {
     "message": "Atualizar cotação",
     "description": "Review button: fetches a fresh quote"
+  },
+  "errorVaultList": {
+    "message": "A lista de cofres da Charisma não respondeu (HTTP $1), então os tokens que o roteador alcança não podem ser verificados.",
+    "description": "Shown when the vault list can't load, so swap tokens can't be checked; $1 is the HTTP status"
   }
 }

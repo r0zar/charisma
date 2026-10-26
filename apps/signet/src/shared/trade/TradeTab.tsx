@@ -15,6 +15,7 @@ import type { TokenBalance, TradeToken } from '~background/lib/tokens';
 import { listAmount, parseUnits, useBalances } from '~shared/home/balances';
 import { STX, buildSwap, getQuote, verifyRoute, type Route } from './swap';
 import { TokenPicker } from './TokenPicker';
+import { TokenPicture } from './TokenPicture';
 
 /** The trade styles, in pill order. Swap is the first; the rest join here. */
 const MODES = [{ key: 'swap', label: 'tradeSwap' }] as const;
@@ -148,7 +149,7 @@ export function TradeTab() {
         <div className="w-stack">
           <div className="w-trade-row">
             <button type="button" className="w-token-select" onClick={() => setPicker('from')}>
-              {fromToken ? fromToken.symbol : t('tradeSelectToken')} <ChevronDown size={16} aria-hidden />
+              {fromToken && <TokenPicture image={fromToken.image} symbol={fromToken.symbol} className="w-token-icon" />}{fromToken ? fromToken.symbol : t('tradeSelectToken')} <ChevronDown size={16} aria-hidden />
             </button>
             <input
               className="w-input w-mono w-amount-input"
@@ -177,7 +178,7 @@ export function TradeTab() {
         <div className="w-stack">
           <div className="w-trade-row">
             <button type="button" className="w-token-select" onClick={() => setPicker('to')}>
-              {toToken ? toToken.symbol : t('tradeSelectToken')} <ChevronDown size={16} aria-hidden />
+              {toToken && <TokenPicture image={toToken.image} symbol={toToken.symbol} className="w-token-icon" />}{toToken ? toToken.symbol : t('tradeSelectToken')} <ChevronDown size={16} aria-hidden />
             </button>
             <output className="w-trade-out">{quoting ? '…' : out ?? '—'}</output>
           </div>

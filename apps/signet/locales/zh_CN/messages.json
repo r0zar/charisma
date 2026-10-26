@@ -1042,5 +1042,9 @@
   "tradeRefresh": {
     "message": "刷新报价",
     "description": "Review button: fetches a fresh quote"
+  },
+  "errorVaultList": {
+    "message": "Charisma 金库列表没有响应（HTTP $1），无法确认路由可达的代币。",
+    "description": "Shown when the vault list can't load, so swap tokens can't be checked; $1 is the HTTP status"
   }
 }

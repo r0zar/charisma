@@ -1106,5 +1106,9 @@
   "tradeRefresh": {
     "message": "Actualizar cotización",
     "description": "Review button: fetches a fresh quote"
+  },
+  "errorVaultList": {
+    "message": "La lista de bóvedas de Charisma no respondió (HTTP $1), así que no se pueden comprobar los tokens que el enrutador alcanza.",
+    "description": "Shown when the vault list can't load, so swap tokens can't be checked; $1 is the HTTP status"
   }
 }

@@ -1074,5 +1074,9 @@
   "tradeRefresh": {
     "message": "Teklifi yenile",
     "description": "Review button: fetches a fresh quote"
+  },
+  "errorVaultList": {
+    "message": "Charisma'nın kasa listesi yanıt vermedi (HTTP $1), bu yüzden yönlendiricinin ulaştığı tokenlar kontrol edilemiyor.",
+    "description": "Shown when the vault list can't load, so swap tokens can't be checked; $1 is the HTTP status"
   }
 }
