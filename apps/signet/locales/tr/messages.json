@@ -291,10 +291,6 @@
     "message": "Cüzdan dışa aktarılamadı",
     "description": "Notice when the download fails"
   },
-  "confirmUnlinkWallet": {
-    "message": "Bu cüzdanın bu tarayıcı ile bağlantısı kaldırılsın mı?\n\nTüm kurtarma ifadeleri ve hesaplar bu cihazdan kaldırılır. Fonlarınız blok zincirinde güvende kalır; yeniden erişmek için kurtarma ifadenize ihtiyacınız olacak.",
-    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
-  },
   "themeLabel": {
     "message": "Tema",
     "description": "Label"
@@ -330,10 +326,6 @@
   "languageAutomatic": {
     "message": "Otomatik",
     "description": "Language choice: follow Chrome's language"
-  },
-  "tokensTitle": {
-    "message": "Tokenlar",
-    "description": "Card title"
   },
   "refresh": {
     "message": "Yenile",
@@ -926,5 +918,161 @@
   "errorRequestGone": {
     "message": "Bu istek artık beklemede değil",
     "description": "Error on an approval card the site already closed"
+  },
+  "tabActivity": {
+    "message": "Etkinlik",
+    "description": "Tab: the account's transactions on Home"
+  },
+  "settingsTitle": {
+    "message": "Ayarlar",
+    "description": "Top bar and title: seed phrases, accounts and the vault"
+  },
+  "receive": {
+    "message": "Al",
+    "description": "Button and card title: shows the account's address to receive into"
+  },
+  "receiveNote": {
+    "message": "Bu adrese STX ve Stacks token'ları gönderin.",
+    "description": "Under the Receive card's title: which assets to send to the address"
+  },
+  "change24hLabel": {
+    "message": "24 sa.",
+    "description": "After the total's 24h change: the period it covers"
+  },
+  "activitySent": {
+    "message": "Gönderildi: $1",
+    "description": "Activity row title for a transfer out; $1 is the amount and token"
+  },
+  "activityReceived": {
+    "message": "Alındı: $1",
+    "description": "Activity row title for a transfer in; $1 is the amount and token"
+  },
+  "activityContract": {
+    "message": "Sözleşme çağrısı: $1",
+    "description": "Activity row title for a contract call with no transfers; $1 is the function"
+  },
+  "activityPending": {
+    "message": "Beklemede",
+    "description": "Activity row: the transaction hasn't confirmed yet"
+  },
+  "activityFailed": {
+    "message": "Başarısız",
+    "description": "Activity row: the transaction failed"
+  },
+  "activityEmpty": {
+    "message": "Henüz etkinlik yok.",
+    "description": "Activity list when the account has no transactions"
+  },
+  "loadingActivity": {
+    "message": "Etkinlik yükleniyor…",
+    "description": "Activity list while its first page loads"
+  },
+  "showMore": {
+    "message": "Daha fazla göster",
+    "description": "Activity list button: loads the next page"
+  },
+  "errorActivity": {
+    "message": "Etkinlik yüklenemedi (HTTP $1).",
+    "description": "Shown when activity can't load; $1 is the HTTP status"
+  },
+  "tabNfts": {
+    "message": "NFT'ler",
+    "description": "Tab: the NFTs the account holds"
+  },
+  "nftEmpty": {
+    "message": "Henüz NFT yok.",
+    "description": "NFT list when the account holds none"
+  },
+  "loadingNfts": {
+    "message": "NFT'ler yükleniyor…",
+    "description": "NFT list while its first page loads"
+  },
+  "nftNoDetails": {
+    "message": "Ayrıntılar kullanılamıyor",
+    "description": "Under an NFT whose name and picture couldn't load"
+  },
+  "errorNfts": {
+    "message": "NFT'ler yüklenemedi (HTTP $1).",
+    "description": "Shown when NFTs can't load; $1 is the HTTP status"
+  },
+  "tabTrade": {
+    "message": "Takas",
+    "description": "Tab on the bottom bar: swap tokens"
+  },
+  "tradeSwap": {
+    "message": "Swap",
+    "description": "Trade style pill: swapping one token for another"
+  },
+  "tradeFrom": {
+    "message": "Gönderilen",
+    "description": "Trade card title: the token being sent"
+  },
+  "tradeTo": {
+    "message": "Alınan",
+    "description": "Trade card title: the token being received"
+  },
+  "tradeSelectToken": {
+    "message": "Token seç",
+    "description": "Token button when no token is chosen yet"
+  },
+  "tradeBalance": {
+    "message": "Bakiye: $1",
+    "description": "Under the From amount: what the wallet holds; $1 is the amount and symbol"
+  },
+  "tradeRoute": {
+    "message": "Rota: $1",
+    "description": "Under the To amount: the tokens the route passes through; $1 is the path"
+  },
+  "tradeReview": {
+    "message": "Swap'i incele",
+    "description": "Trade button, disabled until swapping from the wallet is set up"
+  },
+  "tradeSearch": {
+    "message": "Token ara",
+    "description": "Token picker search field"
+  },
+  "tradeNoTokens": {
+    "message": "Eşleşen token yok",
+    "description": "Token picker when the search matches nothing"
+  },
+  "tradeFlip": {
+    "message": "Tokenları değiştir",
+    "description": "Button that swaps the From and To tokens"
+  },
+  "tradeReviewTitle": {
+    "message": "Swap'i incele",
+    "description": "Card title on the review step, before the swap is sent"
+  },
+  "tradeYouSend": {
+    "message": "Gönderdiğin",
+    "description": "Review row label: the amount and token going out"
+  },
+  "tradeYouGet": {
+    "message": "Yaklaşık alacağın",
+    "description": "Review row label: the expected amount coming in; the value is an estimate"
+  },
+  "tradeAtLeast": {
+    "message": "En az",
+    "description": "Review row label: the least the swap may return"
+  },
+  "tradeRouteLabel": {
+    "message": "Rota",
+    "description": "Review row label: the tokens the route passes through"
+  },
+  "tradePoolsChecked": {
+    "message": "Her havuz Charisma'nın kasa listesinde",
+    "description": "Review safety line: every pool on the route is on Charisma's list"
+  },
+  "tradeSwapButton": {
+    "message": "Swap",
+    "description": "Button that sends the swap"
+  },
+  "tradeSwapSent": {
+    "message": "Swap gönderildi",
+    "description": "Card title after a swap is sent"
+  },
+  "tradeRefresh": {
+    "message": "Teklifi yenile",
+    "description": "Review button: fetches a fresh quote"
   }
 }

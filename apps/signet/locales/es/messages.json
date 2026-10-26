@@ -291,10 +291,6 @@
     "message": "No se pudo exportar la billetera",
     "description": "Notice when the download fails"
   },
-  "confirmUnlinkWallet": {
-    "message": "¿Desvincular esta billetera de este navegador?\n\nSe eliminarán todas las frases semilla y cuentas de este dispositivo. Tus fondos siguen seguros en la blockchain; necesitarás tu frase semilla para volver a entrar.",
-    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
-  },
   "themeLabel": {
     "message": "Tema",
     "description": "Label"
@@ -330,10 +326,6 @@
   "languageAutomatic": {
     "message": "Automático",
     "description": "Language choice: follow Chrome's language"
-  },
-  "tokensTitle": {
-    "message": "Tokens",
-    "description": "Card title"
   },
   "refresh": {
     "message": "Actualizar",
@@ -958,5 +950,161 @@
   "errorRequestGone": {
     "message": "Esta solicitud ya no está pendiente",
     "description": "Error on an approval card the site already closed"
+  },
+  "tabActivity": {
+    "message": "Actividad",
+    "description": "Tab: the account's transactions on Home"
+  },
+  "settingsTitle": {
+    "message": "Ajustes",
+    "description": "Top bar and title: seed phrases, accounts and the vault"
+  },
+  "receive": {
+    "message": "Recibir",
+    "description": "Button and card title: shows the account's address to receive into"
+  },
+  "receiveNote": {
+    "message": "Envía STX y tokens de Stacks a esta dirección.",
+    "description": "Under the Receive card's title: which assets to send to the address"
+  },
+  "change24hLabel": {
+    "message": "24 h",
+    "description": "After the total's 24h change: the period it covers"
+  },
+  "activitySent": {
+    "message": "Enviado: $1",
+    "description": "Activity row title for a transfer out; $1 is the amount and token"
+  },
+  "activityReceived": {
+    "message": "Recibido: $1",
+    "description": "Activity row title for a transfer in; $1 is the amount and token"
+  },
+  "activityContract": {
+    "message": "Llamada a contrato: $1",
+    "description": "Activity row title for a contract call with no transfers; $1 is the function"
+  },
+  "activityPending": {
+    "message": "Pendiente",
+    "description": "Activity row: the transaction hasn't confirmed yet"
+  },
+  "activityFailed": {
+    "message": "Fallida",
+    "description": "Activity row: the transaction failed"
+  },
+  "activityEmpty": {
+    "message": "Aún no hay actividad.",
+    "description": "Activity list when the account has no transactions"
+  },
+  "loadingActivity": {
+    "message": "Cargando actividad…",
+    "description": "Activity list while its first page loads"
+  },
+  "showMore": {
+    "message": "Ver más",
+    "description": "Activity list button: loads the next page"
+  },
+  "errorActivity": {
+    "message": "No se pudo cargar la actividad (HTTP $1).",
+    "description": "Shown when activity can't load; $1 is the HTTP status"
+  },
+  "tabNfts": {
+    "message": "NFT",
+    "description": "Tab: the NFTs the account holds"
+  },
+  "nftEmpty": {
+    "message": "Aún no tienes NFT.",
+    "description": "NFT list when the account holds none"
+  },
+  "loadingNfts": {
+    "message": "Cargando NFT…",
+    "description": "NFT list while its first page loads"
+  },
+  "nftNoDetails": {
+    "message": "Detalles no disponibles",
+    "description": "Under an NFT whose name and picture couldn't load"
+  },
+  "errorNfts": {
+    "message": "No se pudieron cargar los NFT (HTTP $1).",
+    "description": "Shown when NFTs can't load; $1 is the HTTP status"
+  },
+  "tabTrade": {
+    "message": "Intercambiar",
+    "description": "Tab on the bottom bar: swap tokens"
+  },
+  "tradeSwap": {
+    "message": "Intercambio",
+    "description": "Trade style pill: swapping one token for another"
+  },
+  "tradeFrom": {
+    "message": "De",
+    "description": "Trade card title: the token being sent"
+  },
+  "tradeTo": {
+    "message": "A",
+    "description": "Trade card title: the token being received"
+  },
+  "tradeSelectToken": {
+    "message": "Elegir token",
+    "description": "Token button when no token is chosen yet"
+  },
+  "tradeBalance": {
+    "message": "Saldo: $1",
+    "description": "Under the From amount: what the wallet holds; $1 is the amount and symbol"
+  },
+  "tradeRoute": {
+    "message": "Ruta: $1",
+    "description": "Under the To amount: the tokens the route passes through; $1 is the path"
+  },
+  "tradeReview": {
+    "message": "Revisar intercambio",
+    "description": "Trade button, disabled until swapping from the wallet is set up"
+  },
+  "tradeSearch": {
+    "message": "Buscar tokens",
+    "description": "Token picker search field"
+  },
+  "tradeNoTokens": {
+    "message": "Ningún token coincide",
+    "description": "Token picker when the search matches nothing"
+  },
+  "tradeFlip": {
+    "message": "Invertir tokens",
+    "description": "Button that swaps the From and To tokens"
+  },
+  "tradeReviewTitle": {
+    "message": "Revisar intercambio",
+    "description": "Card title on the review step, before the swap is sent"
+  },
+  "tradeYouSend": {
+    "message": "Envías",
+    "description": "Review row label: the amount and token going out"
+  },
+  "tradeYouGet": {
+    "message": "Recibes aprox.",
+    "description": "Review row label: the expected amount coming in; the value is an estimate"
+  },
+  "tradeAtLeast": {
+    "message": "Al menos",
+    "description": "Review row label: the least the swap may return"
+  },
+  "tradeRouteLabel": {
+    "message": "Ruta",
+    "description": "Review row label: the tokens the route passes through"
+  },
+  "tradePoolsChecked": {
+    "message": "Cada pool está en la lista de bóvedas de Charisma",
+    "description": "Review safety line: every pool on the route is on Charisma's list"
+  },
+  "tradeSwapButton": {
+    "message": "Intercambiar",
+    "description": "Button that sends the swap"
+  },
+  "tradeSwapSent": {
+    "message": "Intercambio enviado",
+    "description": "Card title after a swap is sent"
+  },
+  "tradeRefresh": {
+    "message": "Actualizar cotización",
+    "description": "Review button: fetches a fresh quote"
   }
 }

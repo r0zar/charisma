@@ -291,10 +291,6 @@
     "message": "지갑을 내보내지 못했습니다",
     "description": "Notice when the download fails"
   },
-  "confirmUnlinkWallet": {
-    "message": "이 브라우저에서 이 지갑을 연결 해제하겠습니까?\n\n모든 시드 문구와 계정이 이 기기에서 제거됩니다. 자금은 블록체인에 안전하게 남아 있으며, 다시 접근하려면 시드 문구가 필요합니다.",
-    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
-  },
   "themeLabel": {
     "message": "테마",
     "description": "Label"
@@ -330,10 +326,6 @@
   "languageAutomatic": {
     "message": "자동",
     "description": "Language choice: follow Chrome's language"
-  },
-  "tokensTitle": {
-    "message": "토큰",
-    "description": "Card title"
   },
   "refresh": {
     "message": "새로고침",
@@ -894,5 +886,161 @@
   "errorRequestGone": {
     "message": "이 요청은 더 이상 대기 중이 아닙니다",
     "description": "Error on an approval card the site already closed"
+  },
+  "tabActivity": {
+    "message": "활동",
+    "description": "Tab: the account's transactions on Home"
+  },
+  "settingsTitle": {
+    "message": "설정",
+    "description": "Top bar and title: seed phrases, accounts and the vault"
+  },
+  "receive": {
+    "message": "받기",
+    "description": "Button and card title: shows the account's address to receive into"
+  },
+  "receiveNote": {
+    "message": "이 주소로 STX와 Stacks 토큰을 보내세요.",
+    "description": "Under the Receive card's title: which assets to send to the address"
+  },
+  "change24hLabel": {
+    "message": "24시간",
+    "description": "After the total's 24h change: the period it covers"
+  },
+  "activitySent": {
+    "message": "보냄 $1",
+    "description": "Activity row title for a transfer out; $1 is the amount and token"
+  },
+  "activityReceived": {
+    "message": "받음 $1",
+    "description": "Activity row title for a transfer in; $1 is the amount and token"
+  },
+  "activityContract": {
+    "message": "컨트랙트 호출: $1",
+    "description": "Activity row title for a contract call with no transfers; $1 is the function"
+  },
+  "activityPending": {
+    "message": "대기 중",
+    "description": "Activity row: the transaction hasn't confirmed yet"
+  },
+  "activityFailed": {
+    "message": "실패",
+    "description": "Activity row: the transaction failed"
+  },
+  "activityEmpty": {
+    "message": "아직 활동이 없습니다.",
+    "description": "Activity list when the account has no transactions"
+  },
+  "loadingActivity": {
+    "message": "활동 불러오는 중…",
+    "description": "Activity list while its first page loads"
+  },
+  "showMore": {
+    "message": "더 보기",
+    "description": "Activity list button: loads the next page"
+  },
+  "errorActivity": {
+    "message": "활동을 불러오지 못했습니다 (HTTP $1).",
+    "description": "Shown when activity can't load; $1 is the HTTP status"
+  },
+  "tabNfts": {
+    "message": "NFT",
+    "description": "Tab: the NFTs the account holds"
+  },
+  "nftEmpty": {
+    "message": "NFT가 아직 없습니다.",
+    "description": "NFT list when the account holds none"
+  },
+  "loadingNfts": {
+    "message": "NFT 불러오는 중…",
+    "description": "NFT list while its first page loads"
+  },
+  "nftNoDetails": {
+    "message": "정보를 불러올 수 없음",
+    "description": "Under an NFT whose name and picture couldn't load"
+  },
+  "errorNfts": {
+    "message": "NFT를 불러오지 못했습니다 (HTTP $1).",
+    "description": "Shown when NFTs can't load; $1 is the HTTP status"
+  },
+  "tabTrade": {
+    "message": "거래",
+    "description": "Tab on the bottom bar: swap tokens"
+  },
+  "tradeSwap": {
+    "message": "스왑",
+    "description": "Trade style pill: swapping one token for another"
+  },
+  "tradeFrom": {
+    "message": "보내는 토큰",
+    "description": "Trade card title: the token being sent"
+  },
+  "tradeTo": {
+    "message": "받는 토큰",
+    "description": "Trade card title: the token being received"
+  },
+  "tradeSelectToken": {
+    "message": "토큰 선택",
+    "description": "Token button when no token is chosen yet"
+  },
+  "tradeBalance": {
+    "message": "잔액: $1",
+    "description": "Under the From amount: what the wallet holds; $1 is the amount and symbol"
+  },
+  "tradeRoute": {
+    "message": "경로: $1",
+    "description": "Under the To amount: the tokens the route passes through; $1 is the path"
+  },
+  "tradeReview": {
+    "message": "스왑 검토",
+    "description": "Trade button, disabled until swapping from the wallet is set up"
+  },
+  "tradeSearch": {
+    "message": "토큰 검색",
+    "description": "Token picker search field"
+  },
+  "tradeNoTokens": {
+    "message": "맞는 토큰이 없습니다",
+    "description": "Token picker when the search matches nothing"
+  },
+  "tradeFlip": {
+    "message": "토큰 바꾸기",
+    "description": "Button that swaps the From and To tokens"
+  },
+  "tradeReviewTitle": {
+    "message": "스왑 확인",
+    "description": "Card title on the review step, before the swap is sent"
+  },
+  "tradeYouSend": {
+    "message": "보내는 양",
+    "description": "Review row label: the amount and token going out"
+  },
+  "tradeYouGet": {
+    "message": "받는 양(예상)",
+    "description": "Review row label: the expected amount coming in; the value is an estimate"
+  },
+  "tradeAtLeast": {
+    "message": "최소",
+    "description": "Review row label: the least the swap may return"
+  },
+  "tradeRouteLabel": {
+    "message": "경로",
+    "description": "Review row label: the tokens the route passes through"
+  },
+  "tradePoolsChecked": {
+    "message": "모든 풀이 Charisma 볼트 목록에 있습니다",
+    "description": "Review safety line: every pool on the route is on Charisma's list"
+  },
+  "tradeSwapButton": {
+    "message": "스왑",
+    "description": "Button that sends the swap"
+  },
+  "tradeSwapSent": {
+    "message": "스왑을 보냈습니다",
+    "description": "Card title after a swap is sent"
+  },
+  "tradeRefresh": {
+    "message": "견적 새로고침",
+    "description": "Review button: fetches a fresh quote"
   }
 }

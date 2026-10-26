@@ -288,7 +288,7 @@ function LanguagePicker() {
 }
 
 /** Copy the address, and say so for a moment */
-function CopyButton({ text }: { text: string }) {
+export function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const copy = () => navigator.clipboard.writeText(text).then(() => {
     setCopied(true);
@@ -309,7 +309,6 @@ export function WalletTab() {
     seedPhrases,
     activateAccount,
     deleteSeedPhrase,
-    resetWallet,
     refreshWalletState,
     endSession,
   } = useSignetContext();
@@ -408,14 +407,6 @@ export function WalletTab() {
           <div className="w-actions">
             <button type="button" className="cx-btn" onClick={() => run(saveEncryptedWalletBackup)}>{t('exportButton')}</button>
             <button type="button" className="cx-btn" onClick={() => run(endSession)}>{t('lock')}</button>
-            <button
-              type="button"
-              className="cx-btn w-btn-danger"
-              onClick={() => confirm(t('confirmUnlinkWallet'))
-                && run(async () => { await resetWallet(); await refreshWalletState(); })}
-            >
-              {t('unlink')}
-            </button>
           </div>
         </div>
       </Card>

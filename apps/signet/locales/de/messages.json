@@ -291,10 +291,6 @@
     "message": "Die Wallet konnte nicht exportiert werden",
     "description": "Notice when the download fails"
   },
-  "confirmUnlinkWallet": {
-    "message": "Diese Wallet von diesem Browser trennen?\n\nAlle Seed-Phrasen und Konten werden von diesem Gerät entfernt. Dein Guthaben bleibt sicher auf der Blockchain; um wieder Zugang zu erhalten, brauchst du deine Seed-Phrase.",
-    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
-  },
   "themeLabel": {
     "message": "Design",
     "description": "Label"
@@ -330,10 +326,6 @@
   "languageAutomatic": {
     "message": "Automatisch",
     "description": "Language choice: follow Chrome's language"
-  },
-  "tokensTitle": {
-    "message": "Tokens",
-    "description": "Card title"
   },
   "refresh": {
     "message": "Aktualisieren",
@@ -926,5 +918,161 @@
   "errorRequestGone": {
     "message": "Diese Anfrage ist nicht mehr offen",
     "description": "Error on an approval card the site already closed"
+  },
+  "tabActivity": {
+    "message": "Aktivität",
+    "description": "Tab: the account's transactions on Home"
+  },
+  "settingsTitle": {
+    "message": "Einstellungen",
+    "description": "Top bar and title: seed phrases, accounts and the vault"
+  },
+  "receive": {
+    "message": "Empfangen",
+    "description": "Button and card title: shows the account's address to receive into"
+  },
+  "receiveNote": {
+    "message": "Sende STX und Stacks-Token an diese Adresse.",
+    "description": "Under the Receive card's title: which assets to send to the address"
+  },
+  "change24hLabel": {
+    "message": "24 Std.",
+    "description": "After the total's 24h change: the period it covers"
+  },
+  "activitySent": {
+    "message": "Gesendet: $1",
+    "description": "Activity row title for a transfer out; $1 is the amount and token"
+  },
+  "activityReceived": {
+    "message": "Empfangen: $1",
+    "description": "Activity row title for a transfer in; $1 is the amount and token"
+  },
+  "activityContract": {
+    "message": "Vertragsaufruf: $1",
+    "description": "Activity row title for a contract call with no transfers; $1 is the function"
+  },
+  "activityPending": {
+    "message": "Ausstehend",
+    "description": "Activity row: the transaction hasn't confirmed yet"
+  },
+  "activityFailed": {
+    "message": "Fehlgeschlagen",
+    "description": "Activity row: the transaction failed"
+  },
+  "activityEmpty": {
+    "message": "Noch keine Aktivität.",
+    "description": "Activity list when the account has no transactions"
+  },
+  "loadingActivity": {
+    "message": "Aktivität wird geladen…",
+    "description": "Activity list while its first page loads"
+  },
+  "showMore": {
+    "message": "Mehr anzeigen",
+    "description": "Activity list button: loads the next page"
+  },
+  "errorActivity": {
+    "message": "Aktivität konnte nicht geladen werden (HTTP $1).",
+    "description": "Shown when activity can't load; $1 is the HTTP status"
+  },
+  "tabNfts": {
+    "message": "NFTs",
+    "description": "Tab: the NFTs the account holds"
+  },
+  "nftEmpty": {
+    "message": "Noch keine NFTs.",
+    "description": "NFT list when the account holds none"
+  },
+  "loadingNfts": {
+    "message": "NFTs werden geladen…",
+    "description": "NFT list while its first page loads"
+  },
+  "nftNoDetails": {
+    "message": "Details nicht verfügbar",
+    "description": "Under an NFT whose name and picture couldn't load"
+  },
+  "errorNfts": {
+    "message": "NFTs konnten nicht geladen werden (HTTP $1).",
+    "description": "Shown when NFTs can't load; $1 is the HTTP status"
+  },
+  "tabTrade": {
+    "message": "Tauschen",
+    "description": "Tab on the bottom bar: swap tokens"
+  },
+  "tradeSwap": {
+    "message": "Swap",
+    "description": "Trade style pill: swapping one token for another"
+  },
+  "tradeFrom": {
+    "message": "Von",
+    "description": "Trade card title: the token being sent"
+  },
+  "tradeTo": {
+    "message": "An",
+    "description": "Trade card title: the token being received"
+  },
+  "tradeSelectToken": {
+    "message": "Token wählen",
+    "description": "Token button when no token is chosen yet"
+  },
+  "tradeBalance": {
+    "message": "Guthaben: $1",
+    "description": "Under the From amount: what the wallet holds; $1 is the amount and symbol"
+  },
+  "tradeRoute": {
+    "message": "Route: $1",
+    "description": "Under the To amount: the tokens the route passes through; $1 is the path"
+  },
+  "tradeReview": {
+    "message": "Swap prüfen",
+    "description": "Trade button, disabled until swapping from the wallet is set up"
+  },
+  "tradeSearch": {
+    "message": "Token suchen",
+    "description": "Token picker search field"
+  },
+  "tradeNoTokens": {
+    "message": "Keine passenden Token",
+    "description": "Token picker when the search matches nothing"
+  },
+  "tradeFlip": {
+    "message": "Token tauschen",
+    "description": "Button that swaps the From and To tokens"
+  },
+  "tradeReviewTitle": {
+    "message": "Swap prüfen",
+    "description": "Card title on the review step, before the swap is sent"
+  },
+  "tradeYouSend": {
+    "message": "Du sendest",
+    "description": "Review row label: the amount and token going out"
+  },
+  "tradeYouGet": {
+    "message": "Du erhältst ca.",
+    "description": "Review row label: the expected amount coming in; the value is an estimate"
+  },
+  "tradeAtLeast": {
+    "message": "Mindestens",
+    "description": "Review row label: the least the swap may return"
+  },
+  "tradeRouteLabel": {
+    "message": "Route",
+    "description": "Review row label: the tokens the route passes through"
+  },
+  "tradePoolsChecked": {
+    "message": "Jeder Pool steht auf Charismas Vault-Liste",
+    "description": "Review safety line: every pool on the route is on Charisma's list"
+  },
+  "tradeSwapButton": {
+    "message": "Swap",
+    "description": "Button that sends the swap"
+  },
+  "tradeSwapSent": {
+    "message": "Swap gesendet",
+    "description": "Card title after a swap is sent"
+  },
+  "tradeRefresh": {
+    "message": "Kurs aktualisieren",
+    "description": "Review button: fetches a fresh quote"
   }
 }

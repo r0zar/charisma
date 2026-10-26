@@ -38,7 +38,7 @@ async function activeAccount() {
 }
 
 /** Strict lookup: a token with unknown details is shown in raw units and can't be sent, never guessed */
-async function tokenMeta(contractId: string): Promise<TokenBalance["meta"]> {
+export async function tokenMeta(contractId: string): Promise<TokenBalance["meta"]> {
   try {
     const data = await getTokenMetadataStrict(contractId)
     return { symbol: data.symbol, name: data.name, decimals: data.decimals, image: data.image ?? null }
@@ -88,10 +88,32 @@ export async function getWalletBalances(pushed?: BalanceSheet): Promise<TokenBal
   })))
 }
 
-/** USD price per whole token, by contract id (".stx" for STX), from the same feed the swap app uses */
-export async function getUsdPrices(): Promise<Record<string, number>> {
+/**
+ * USD price per whole token, and its 24h change in percent (null until the feed has the history), by contract id
+ * (".stx" for STX), from the same feed the swap app uses
+ */
+export async function getUsdPrices(): Promise<Record<string, { usd: number; change24h: number | null }>> {
   const { tokens } = await pricesClient.list()
-  return Object.fromEntries(tokens.map(t => [t.contractId, t.usd]))
+  return Object.fromEntries(tokens.map(t => [t.contractId, { usd: t.usd, change24h: t.change["24h"] }]))
+}
+
+/** A token the Trade screen can pick */
+export interface TradeToken {
+  contractId: string
+  symbol: string
+  name: string
+  decimals: number
+  image: string | null
+}
+
+/** Every token the Trade screen can pick: STX first, then Charisma's token list */
+export async function getTokenList(): Promise<TradeToken[]> {
+  const [list, stx] = await Promise.all([listTokens(), tokenMeta(STX_ID)])
+  if (list.length === 0 || !stx) throw new WalletError("errorTokenListUnavailable")
+  const rest = list
+    .filter(token => token.contractId !== STX_ID)
+    .map(token => ({ contractId: token.contractId, symbol: token.symbol, name: token.name, decimals: token.decimals, image: token.image ?? null }))
+  return [{ contractId: STX_ID, ...stx }, ...rest]
 }
 
 /** Send `amount` (smallest units) of a token; SIP-10 sends carry a post condition: exactly this amount leaves. */
