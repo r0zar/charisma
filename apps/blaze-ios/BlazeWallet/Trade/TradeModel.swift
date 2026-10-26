@@ -8,6 +8,8 @@ import WalletCore
 final class TradeModel {
     /// Every token a swap can receive: STX first, then Charisma's token list
     private(set) var tokens: [TokenInfo] = []
+    /// The contract ids the router can reach: the only tokens a swap can use
+    private(set) var routable: Set<String> = []
     private(set) var loadError: Error?
     private(set) var route: Swap.Route?
     private(set) var quoteError: Error?
@@ -17,9 +19,14 @@ final class TradeModel {
 
     func loadTokens() async {
         do {
+            async let reachable = Swap.routableTokens()
             let list = try await charisma.tokenList()
+            routable = try await reachable
             let stx = TokenInfo(contractId: TokenRow.stx, name: "Stacks", symbol: "STX", decimals: 6, identifier: nil)
-            tokens = [stx] + list.filter { $0.contractId != TokenRow.stx }
+            tokens = [stx] + list.filter { info in
+                guard let id = info.contractId else { return false }
+                return id != TokenRow.stx && routable.contains(id)
+            }
             loadError = nil
         } catch is CancellationError {
             // The screen went away

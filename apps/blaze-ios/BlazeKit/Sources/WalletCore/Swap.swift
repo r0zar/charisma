@@ -131,6 +131,32 @@ public enum Swap {
         }
     }
 
+    /// The tokens the router can reach: every token of a pool on Charisma's vault list, except energy vaults, which the
+    /// router's graph skips. A token outside this set has no route, so the Trade screen doesn't offer it.
+    public static func routableTokens() async throws -> Set<String> {
+        struct Pool: Decodable {
+            struct Side: Decodable {
+                let contractId: String?
+            }
+            let type: String?
+            let tokenA: Side?
+            let tokenB: Side?
+        }
+        struct Answer: Decodable {
+            let status: String
+            let data: [Lenient<Pool>]
+        }
+        let answer = try await http.get(vaultsURL, from: .swap, as: Answer.self)
+        guard answer.status == "success" else { throw WalletError.unexpected("Charisma's vault list isn't available") }
+        var ids = Set<String>()
+        for pool in answer.data.compactMap(\.value) where pool.type != "ENERGY" {
+            for side in [pool.tokenA, pool.tokenB] {
+                if let id = side?.contractId { ids.insert(id) }
+            }
+        }
+        return ids
+    }
+
     /// The router's call for a route, built as the router's own builder (dexterity-sdk) builds it
     public static func call(for route: Route, sender: StacksAddress) throws -> Call {
         var arguments: [ClarityValue] = [.uint(UInt128(try micro(route.amountIn)))]

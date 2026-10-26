@@ -9,6 +9,7 @@ struct HomeView: View {
     @Environment(Vault.self) private var vault
     @State private var model: TokensModel
     @State private var activity: ActivityModel
+    @State private var nfts: NftModel
     @State private var pane = Pane.tokens
     @State private var sending: TokenRow?
     @State private var reason: TokenRow?
@@ -20,6 +21,7 @@ struct HomeView: View {
     private enum Pane: String, CaseIterable, Identifiable {
         case tokens = "Tokens"
         case activity = "Activity"
+        case nfts = "NFTs"
 
         var id: Self { self }
     }
@@ -28,6 +30,7 @@ struct HomeView: View {
         self.account = account
         _model = State(initialValue: TokensModel(address: account.stxAddress))
         _activity = State(initialValue: ActivityModel(address: account.stxAddress))
+        _nfts = State(initialValue: NftModel(address: account.stxAddress))
     }
 
     var body: some View {
@@ -48,11 +51,12 @@ struct HomeView: View {
                 switch pane {
                 case .tokens: tokenRows
                 case .activity: activityRows
+                case .nfts: nftRows
                 }
             }
             .scrollContentBackground(.hidden)
             .background(Color.brand("bg"))
-            .navigationTitle("Wallet")
+            .navigationBarTitleDisplayMode(.inline)
             .inAppLinks()
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -65,6 +69,7 @@ struct HomeView: View {
             .task { await model.watch() }
             .task(id: pane) {
                 if pane == .activity, activity.rows == nil { await activity.load() }
+                if pane == .nfts, nfts.items == nil { await nfts.load() }
             }
             .sheet(item: $sending) { row in
                 // STX's row is always there once rows are, and a row has to be on screen to be sent
@@ -189,6 +194,34 @@ struct HomeView: View {
         }
     }
 
+    @ViewBuilder private var nftRows: some View {
+        if let error = nfts.error {
+            Section { ErrorText(error: error) }
+        }
+        if let items = nfts.items {
+            if items.isEmpty {
+                Section { Text("No NFTs yet.").foregroundStyle(.brand("ink-muted")) }
+            } else {
+                Section {
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                        ForEach(items) { NftCard(nft: $0) }
+                    }
+                    if nfts.hasMore {
+                        Button("Show more") { Task { await nfts.loadMore() } }
+                            .disabled(nfts.busy)
+                    }
+                }
+            }
+        } else if nfts.error == nil {
+            Section {
+                HStack(spacing: 12) {
+                    ProgressView()
+                    Text("Loading NFTs…").foregroundStyle(.brand("ink-muted"))
+                }
+            }
+        }
+    }
+
     private func row(for row: TokenRow) -> some View {
         Button {
             if row.unsendable == nil { sending = row } else { reason = row }
@@ -202,6 +235,7 @@ struct HomeView: View {
     private func reload() async {
         await model.load()
         if pane == .activity { await activity.load() }
+        if pane == .nfts { await nfts.load() }
     }
 }
 
