@@ -7,7 +7,6 @@ export type MessageAction =
   | "checkWalletInitialized"
   | "hasWallet"
   | "endWalletSession"
-  | "resetWallet"
   | "exportWalletData"
   // Seed phrases
   | "importSeedPhrase"
@@ -26,6 +25,13 @@ export type MessageAction =
   | "getWalletBalances"
   | "getUsdPrices"
   | "sendToken"
+  // Activity
+  | "getActivity"
+  // Trade
+  | "getTokenList"
+  | "sendSwap"
+  // NFTs
+  | "getNfts"
   // Diagnostics
   | "getDiagnostics";
 

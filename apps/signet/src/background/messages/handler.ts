@@ -1,6 +1,9 @@
 import type { PlasmoMessaging } from "@plasmohq/messaging"
 import * as wallet from "../lib/wallet"
 import * as tokens from "../lib/tokens"
+import * as activity from "../lib/activity"
+import * as nfts from "../lib/nfts"
+import * as swap from "../lib/swap"
 import { getDiagnostics } from "../lib/diagnostics"
 import type { SeedPhrase, Account, CreateAccountOptions } from "../lib/wallet/types"
 import type { MessageAction } from "~shared/context/types"
@@ -52,10 +55,6 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
 
       case "endWalletSession":
         response = await wallet.endSession();
-        break;
-
-      case "resetWallet":
-        response = await wallet.resetWallet();
         break;
 
       case "exportWalletData":
@@ -132,12 +131,43 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
         response = await tokens.getUsdPrices();
         break;
 
+      case "getTokenList":
+        response = await tokens.getTokenList();
+        break;
+
+      case "sendSwap": {
+        const isList = (value: unknown) => Array.isArray(value) && value.every(item => typeof item === "string");
+        if (typeof data?.contract !== "string" || typeof data?.functionName !== "string" || !isList(data?.args)
+          || !isList(data?.postConditions) || typeof data?.amountIn !== "string") {
+          throw new Error("Invalid swap: contract, functionName, args, postConditions and amountIn are required");
+        }
+        await wallet.keepAwake();
+        response = await swap.sendSwap(data);
+        break;
+      }
+
       case "sendToken":
         if (typeof data?.contractId !== "string" || typeof data?.recipient !== "string" || typeof data?.amount !== "string") {
           throw new Error("Invalid send: contractId, recipient and amount are required");
         }
         await wallet.keepAwake();
         response = await tokens.sendToken(data);
+        break;
+
+      // Activity
+      case "getActivity":
+        if (!Number.isInteger(data?.offset) || data.offset < 0 || !Number.isInteger(data?.limit) || data.limit < 1 || data.limit > 50) {
+          throw new Error("Invalid activity page: offset (0 or more) and limit (1 to 50) are required");
+        }
+        response = await activity.getActivity(data.offset, data.limit);
+        break;
+
+      // NFTs
+      case "getNfts":
+        if (!Number.isInteger(data?.offset) || data.offset < 0 || !Number.isInteger(data?.limit) || data.limit < 1 || data.limit > 50) {
+          throw new Error("Invalid NFT page: offset (0 or more) and limit (1 to 50) are required");
+        }
+        response = await nfts.getNfts(data.offset, data.limit);
         break;
 
       // Diagnostics

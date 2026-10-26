@@ -253,13 +253,3 @@ export async function deleteAccount(id: string): Promise<boolean> {
   await saveWalletState(state);
   return true;
 }
-
-/**
- * Delete the wallet entirely. The next password entered creates a new one.
- */
-export async function deleteWallet(): Promise<boolean> {
-  await sessionKey();
-  await chrome.storage.local.remove(VAULT_KEY);
-  await lock();
-  return true;
-}

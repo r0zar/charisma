@@ -291,10 +291,6 @@
     "message": "ウォレットをエクスポートできませんでした",
     "description": "Notice when the download fails"
   },
-  "confirmUnlinkWallet": {
-    "message": "このブラウザからこのウォレットのリンクを解除しますか？\n\nすべてのシードフレーズとアカウントがこのデバイスから削除されます。資金はブロックチェーン上に安全に残りますが、再びアクセスするにはシードフレーズが必要です。",
-    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
-  },
   "themeLabel": {
     "message": "テーマ",
     "description": "Label"
@@ -330,10 +326,6 @@
   "languageAutomatic": {
     "message": "自動",
     "description": "Language choice: follow Chrome's language"
-  },
-  "tokensTitle": {
-    "message": "トークン",
-    "description": "Card title"
   },
   "refresh": {
     "message": "更新",
@@ -894,5 +886,161 @@
   "errorRequestGone": {
     "message": "このリクエストはもう待機中ではありません",
     "description": "Error on an approval card the site already closed"
+  },
+  "tabActivity": {
+    "message": "アクティビティ",
+    "description": "Tab: the account's transactions on Home"
+  },
+  "settingsTitle": {
+    "message": "設定",
+    "description": "Top bar and title: seed phrases, accounts and the vault"
+  },
+  "receive": {
+    "message": "受け取る",
+    "description": "Button and card title: shows the account's address to receive into"
+  },
+  "receiveNote": {
+    "message": "このアドレスに STX と Stacks トークンを送ってください。",
+    "description": "Under the Receive card's title: which assets to send to the address"
+  },
+  "change24hLabel": {
+    "message": "24時間",
+    "description": "After the total's 24h change: the period it covers"
+  },
+  "activitySent": {
+    "message": "送信 $1",
+    "description": "Activity row title for a transfer out; $1 is the amount and token"
+  },
+  "activityReceived": {
+    "message": "受信 $1",
+    "description": "Activity row title for a transfer in; $1 is the amount and token"
+  },
+  "activityContract": {
+    "message": "コントラクト呼び出し: $1",
+    "description": "Activity row title for a contract call with no transfers; $1 is the function"
+  },
+  "activityPending": {
+    "message": "保留中",
+    "description": "Activity row: the transaction hasn't confirmed yet"
+  },
+  "activityFailed": {
+    "message": "失敗",
+    "description": "Activity row: the transaction failed"
+  },
+  "activityEmpty": {
+    "message": "まだアクティビティはありません。",
+    "description": "Activity list when the account has no transactions"
+  },
+  "loadingActivity": {
+    "message": "アクティビティを読み込み中…",
+    "description": "Activity list while its first page loads"
+  },
+  "showMore": {
+    "message": "もっと見る",
+    "description": "Activity list button: loads the next page"
+  },
+  "errorActivity": {
+    "message": "アクティビティを読み込めませんでした（HTTP $1）。",
+    "description": "Shown when activity can't load; $1 is the HTTP status"
+  },
+  "tabNfts": {
+    "message": "NFT",
+    "description": "Tab: the NFTs the account holds"
+  },
+  "nftEmpty": {
+    "message": "まだ NFT はありません。",
+    "description": "NFT list when the account holds none"
+  },
+  "loadingNfts": {
+    "message": "NFT を読み込み中…",
+    "description": "NFT list while its first page loads"
+  },
+  "nftNoDetails": {
+    "message": "詳細を取得できません",
+    "description": "Under an NFT whose name and picture couldn't load"
+  },
+  "errorNfts": {
+    "message": "NFT を読み込めませんでした（HTTP $1）。",
+    "description": "Shown when NFTs can't load; $1 is the HTTP status"
+  },
+  "tabTrade": {
+    "message": "トレード",
+    "description": "Tab on the bottom bar: swap tokens"
+  },
+  "tradeSwap": {
+    "message": "スワップ",
+    "description": "Trade style pill: swapping one token for another"
+  },
+  "tradeFrom": {
+    "message": "支払い",
+    "description": "Trade card title: the token being sent"
+  },
+  "tradeTo": {
+    "message": "受け取り",
+    "description": "Trade card title: the token being received"
+  },
+  "tradeSelectToken": {
+    "message": "トークンを選択",
+    "description": "Token button when no token is chosen yet"
+  },
+  "tradeBalance": {
+    "message": "残高: $1",
+    "description": "Under the From amount: what the wallet holds; $1 is the amount and symbol"
+  },
+  "tradeRoute": {
+    "message": "経路: $1",
+    "description": "Under the To amount: the tokens the route passes through; $1 is the path"
+  },
+  "tradeReview": {
+    "message": "スワップを確認",
+    "description": "Trade button, disabled until swapping from the wallet is set up"
+  },
+  "tradeSearch": {
+    "message": "トークンを検索",
+    "description": "Token picker search field"
+  },
+  "tradeNoTokens": {
+    "message": "一致するトークンがありません",
+    "description": "Token picker when the search matches nothing"
+  },
+  "tradeFlip": {
+    "message": "トークンを入れ替え",
+    "description": "Button that swaps the From and To tokens"
+  },
+  "tradeReviewTitle": {
+    "message": "スワップを確認",
+    "description": "Card title on the review step, before the swap is sent"
+  },
+  "tradeYouSend": {
+    "message": "支払い",
+    "description": "Review row label: the amount and token going out"
+  },
+  "tradeYouGet": {
+    "message": "受け取り（概算）",
+    "description": "Review row label: the expected amount coming in; the value is an estimate"
+  },
+  "tradeAtLeast": {
+    "message": "最低",
+    "description": "Review row label: the least the swap may return"
+  },
+  "tradeRouteLabel": {
+    "message": "経路",
+    "description": "Review row label: the tokens the route passes through"
+  },
+  "tradePoolsChecked": {
+    "message": "すべてのプールがCharismaのボールト一覧にあります",
+    "description": "Review safety line: every pool on the route is on Charisma's list"
+  },
+  "tradeSwapButton": {
+    "message": "スワップ",
+    "description": "Button that sends the swap"
+  },
+  "tradeSwapSent": {
+    "message": "スワップを送信しました",
+    "description": "Card title after a swap is sent"
+  },
+  "tradeRefresh": {
+    "message": "見積もりを更新",
+    "description": "Review button: fetches a fresh quote"
   }
 }

@@ -23,7 +23,6 @@ export interface WalletActions {
   activateAccount: (id: string) => Promise<boolean>
   getCurrentAccount: () => Promise<Account | null>
   deleteAccount: (id: string) => Promise<boolean>
-  resetWallet: () => Promise<boolean>
   refreshWalletState: () => Promise<void>
   checkWalletInitialization: () => Promise<void>
   endSession: () => Promise<boolean>
@@ -310,36 +309,6 @@ export function useWalletSlice(
     }
   }
 
-  // Reset wallet (clear all data)
-  const resetWallet = async (): Promise<boolean> => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const result = await sendMessage<boolean>("resetWallet");
-
-      if (result) {
-        // Clear all state
-        setAccounts([]);
-        setSeedPhrases([]);
-        setCurrentAccount(null);
-        if (onAccountChange) {
-          onAccountChange(null);
-        }
-        setHasWallet(false);
-        setIsWalletInitialized(false);
-      }
-
-      return result;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to reset wallet";
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }
-
   // Back to the lock screen: forget everything the unlocked wallet showed
   const showLocked = () => {
     setIsWalletInitialized(false);
@@ -388,7 +357,6 @@ export function useWalletSlice(
     activateAccount,
     getCurrentAccount,
     deleteAccount,
-    resetWallet,
     refreshWalletState,
     checkWalletInitialization,
     endSession,

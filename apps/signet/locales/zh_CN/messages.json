@@ -291,10 +291,6 @@
     "message": "无法导出钱包",
     "description": "Notice when the download fails"
   },
-  "confirmUnlinkWallet": {
-    "message": "要将此钱包与此浏览器取消关联吗？\n\n所有助记词和账户都将从此设备上移除。你的资金仍安全地保存在区块链上；你需要凭助记词才能重新访问。",
-    "description": "Confirmation dialog (Chrome's own OK and Cancel buttons)"
-  },
   "themeLabel": {
     "message": "主题",
     "description": "Label"
@@ -330,10 +326,6 @@
   "languageAutomatic": {
     "message": "自动",
     "description": "Language choice: follow Chrome's language"
-  },
-  "tokensTitle": {
-    "message": "代币",
-    "description": "Card title"
   },
   "refresh": {
     "message": "刷新",
@@ -894,5 +886,161 @@
   "errorRequestGone": {
     "message": "此请求已不再等待处理",
     "description": "Error on an approval card the site already closed"
+  },
+  "tabActivity": {
+    "message": "活动",
+    "description": "Tab: the account's transactions on Home"
+  },
+  "settingsTitle": {
+    "message": "设置",
+    "description": "Top bar and title: seed phrases, accounts and the vault"
+  },
+  "receive": {
+    "message": "接收",
+    "description": "Button and card title: shows the account's address to receive into"
+  },
+  "receiveNote": {
+    "message": "向此地址发送 STX 和 Stacks 代币。",
+    "description": "Under the Receive card's title: which assets to send to the address"
+  },
+  "change24hLabel": {
+    "message": "24小时",
+    "description": "After the total's 24h change: the period it covers"
+  },
+  "activitySent": {
+    "message": "已发送 $1",
+    "description": "Activity row title for a transfer out; $1 is the amount and token"
+  },
+  "activityReceived": {
+    "message": "已接收 $1",
+    "description": "Activity row title for a transfer in; $1 is the amount and token"
+  },
+  "activityContract": {
+    "message": "合约调用：$1",
+    "description": "Activity row title for a contract call with no transfers; $1 is the function"
+  },
+  "activityPending": {
+    "message": "待确认",
+    "description": "Activity row: the transaction hasn't confirmed yet"
+  },
+  "activityFailed": {
+    "message": "失败",
+    "description": "Activity row: the transaction failed"
+  },
+  "activityEmpty": {
+    "message": "还没有活动。",
+    "description": "Activity list when the account has no transactions"
+  },
+  "loadingActivity": {
+    "message": "正在加载活动…",
+    "description": "Activity list while its first page loads"
+  },
+  "showMore": {
+    "message": "显示更多",
+    "description": "Activity list button: loads the next page"
+  },
+  "errorActivity": {
+    "message": "无法加载活动（HTTP $1）。",
+    "description": "Shown when activity can't load; $1 is the HTTP status"
+  },
+  "tabNfts": {
+    "message": "NFT",
+    "description": "Tab: the NFTs the account holds"
+  },
+  "nftEmpty": {
+    "message": "还没有 NFT。",
+    "description": "NFT list when the account holds none"
+  },
+  "loadingNfts": {
+    "message": "正在加载 NFT…",
+    "description": "NFT list while its first page loads"
+  },
+  "nftNoDetails": {
+    "message": "无法获取详情",
+    "description": "Under an NFT whose name and picture couldn't load"
+  },
+  "errorNfts": {
+    "message": "无法加载 NFT（HTTP $1）。",
+    "description": "Shown when NFTs can't load; $1 is the HTTP status"
+  },
+  "tabTrade": {
+    "message": "交易",
+    "description": "Tab on the bottom bar: swap tokens"
+  },
+  "tradeSwap": {
+    "message": "兑换",
+    "description": "Trade style pill: swapping one token for another"
+  },
+  "tradeFrom": {
+    "message": "支付",
+    "description": "Trade card title: the token being sent"
+  },
+  "tradeTo": {
+    "message": "获得",
+    "description": "Trade card title: the token being received"
+  },
+  "tradeSelectToken": {
+    "message": "选择代币",
+    "description": "Token button when no token is chosen yet"
+  },
+  "tradeBalance": {
+    "message": "余额：$1",
+    "description": "Under the From amount: what the wallet holds; $1 is the amount and symbol"
+  },
+  "tradeRoute": {
+    "message": "路线：$1",
+    "description": "Under the To amount: the tokens the route passes through; $1 is the path"
+  },
+  "tradeReview": {
+    "message": "查看兑换",
+    "description": "Trade button, disabled until swapping from the wallet is set up"
+  },
+  "tradeSearch": {
+    "message": "搜索代币",
+    "description": "Token picker search field"
+  },
+  "tradeNoTokens": {
+    "message": "没有匹配的代币",
+    "description": "Token picker when the search matches nothing"
+  },
+  "tradeFlip": {
+    "message": "交换位置",
+    "description": "Button that swaps the From and To tokens"
+  },
+  "tradeReviewTitle": {
+    "message": "确认兑换",
+    "description": "Card title on the review step, before the swap is sent"
+  },
+  "tradeYouSend": {
+    "message": "你支付",
+    "description": "Review row label: the amount and token going out"
+  },
+  "tradeYouGet": {
+    "message": "预计获得",
+    "description": "Review row label: the expected amount coming in; the value is an estimate"
+  },
+  "tradeAtLeast": {
+    "message": "至少",
+    "description": "Review row label: the least the swap may return"
+  },
+  "tradeRouteLabel": {
+    "message": "路线",
+    "description": "Review row label: the tokens the route passes through"
+  },
+  "tradePoolsChecked": {
+    "message": "每个池都在 Charisma 金库列表中",
+    "description": "Review safety line: every pool on the route is on Charisma's list"
+  },
+  "tradeSwapButton": {
+    "message": "兑换",
+    "description": "Button that sends the swap"
+  },
+  "tradeSwapSent": {
+    "message": "兑换已发送",
+    "description": "Card title after a swap is sent"
+  },
+  "tradeRefresh": {
+    "message": "刷新报价",
+    "description": "Review button: fetches a fresh quote"
   }
 }

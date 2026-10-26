@@ -18,7 +18,6 @@ import {
   setActiveAccount,
   getActiveAccount,
   deleteAccount,
-  deleteWallet,
   lockExpiresAt,
   keepAwake
 } from './storage';
@@ -131,13 +130,6 @@ export async function activateAccount(accountId: string): Promise<boolean> {
  */
 export async function getCurrentAccount(): Promise<Account | null> {
   return await getActiveAccount();
-}
-
-/**
- * Delete the wallet (all seed phrases and accounts)
- */
-export async function resetWallet(): Promise<boolean> {
-  return await deleteWallet();
 }
 
 // Re-export storage functions and types for convenience

@@ -1,46 +1,15 @@
 /**
- * TransferTab (Tokens) - the active account's tokens (STX and every SIP-10 it holds), and sending them.
+ * The tokens on Home: the active account's tokens (STX and every SIP-10 it holds), and sending them.
  */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, ChevronRight, ExternalLink, Flame, RefreshCw } from 'lucide-react';
-import { useSignetContext } from '~shared/context/SignetContext';
 import { sendMessage } from '~shared/context/utils';
 import { asError } from '~shared/errors';
-import { count, locale, plural, t } from '~shared/i18n';
+import { count, plural, t } from '~shared/i18n';
 import { Card, ErrorText, Kv, decimalMark, editableUnits, formatUnits } from '~shared/ui';
 import type { TokenBalance } from '~background/lib/tokens';
-import { BALANCE_SERVICE } from '~shared/balance-service';
 import { AnimatedAmount } from '~shared/AnimatedAmount';
-import type { BalanceSheet } from 'blaze-sdk';
-
-/** The token list shows at most this many decimals, cut (not rounded) */
-const LIST_DECIMALS = 6;
-
-/** What someone typed, as raw smallest units, exactly (no floating point): only this language's decimal mark */
-function parseUnits(text: string, decimals: number) {
-  // NFKC: a Japanese or Chinese input method in full-width mode types １．５ for 1.5. Its ideographic full stop 。
-  // means the same where the decimal mark is a point.
-  const normalized = text.normalize('NFKC');
-  const parts = (decimalMark === '.' ? normalized.replaceAll('。', '.') : normalized).trim().split(decimalMark);
-  if (parts.length > 2 || !parts.every(part => /^\d*$/.test(part)) || !parts.some(Boolean)) throw new Error(t('errorAmountLike', `1${decimalMark}5`));
-  const [whole, frac = ''] = parts;
-  if (frac.length > decimals) throw new Error(plural('errorMaxDecimals', decimals, count(decimals)));
-  return (BigInt(whole || '0') * 10n ** BigInt(decimals) + BigInt(frac.padEnd(decimals, '0') || '0')).toString();
-}
-
-const usd = (value: number) =>
-  value.toLocaleString(locale, { style: 'currency', currency: 'USD', maximumFractionDigits: value < 1 ? 4 : 2 });
-
-/** Stacks and Blaze together, smallest units: the token's one balance */
-const totalOf = (token: TokenBalance) => (BigInt(token.balance) + BigInt(token.blaze)).toString();
-
-/** Whole-token amount of the whole balance (for pricing; display uses formatUnits) */
-const units = (token: TokenBalance) => Number(totalOf(token)) / 10 ** token.meta!.decimals;
-
-const label = (token: TokenBalance) => token.meta?.symbol ?? token.contractId.split('.')[1];
-
-/** The token list's amount: at most 6 decimals */
-const listAmount = (raw: string, decimals: number) => formatUnits(BigInt(raw), decimals, LIST_DECIMALS);
+import { label, listAmount, parseUnits, totalOf, units, usd, type Prices } from './balances';
 
 function TokenIcon({ token }: { token: TokenBalance }) {
   const [broken, setBroken] = useState(false);
@@ -170,51 +139,20 @@ function SendForm({ token, onDone, onCancel }: { token: TokenBalance; onDone: ()
   );
 }
 
-export function TransferTab() {
-  const { currentAccount } = useSignetContext();
-  const [balances, setBalances] = useState<TokenBalance[] | null>(null);
-  const [error, setError] = useState<Error | null>(null);
+export function TokenList({ balances, prices, reload }: { balances: TokenBalance[] | null; prices: Prices | null; reload: () => void }) {
   const [selected, setSelected] = useState<string | null>(null);
-  const [prices, setPrices] = useState<Record<string, number> | null>(null);
   const [showUnlisted, setShowUnlisted] = useState(false);
-  const [priceError, setPriceError] = useState<Error | null>(null);
 
-  const load = () => {
-    setError(null);
-    setBalances(null);
-    setPriceError(null);
-    sendMessage<TokenBalance[]>('getWalletBalances')
-      .then(setBalances)
-      .catch(err => setError(asError(err)));
-    // Prices are separate: balances still show if the price feed is down
-    sendMessage<Record<string, number>>('getUsdPrices')
-      .then(setPrices)
-      .catch(err => setPriceError(asError(err)));
-  };
+  if (!balances) return <TokenSkeletons />;
 
   /** USD value of a balance, or null when the feed has no price for it */
   const valueOf = (token: TokenBalance) => {
     const price = prices?.[token.contractId];
-    return token.meta && price !== undefined ? units(token) * price : null;
+    return token.meta && price ? units(token) * price.usd : null;
   };
-  const listed = balances?.filter(token => token.listed) ?? [];
-  const unlisted = balances?.filter(token => !token.listed) ?? [];
-  const priced = listed.map(valueOf).filter((value): value is number => value !== null);
-  const total = priced.reduce((sum, value) => sum + value, 0);
-
-  useEffect(load, [currentAccount?.stxAddress]);
-
-  // While the tab is open, balances are pushed the moment anything changes (no polling); the browser reconnects itself
-  useEffect(() => {
-    const address = currentAccount?.stxAddress;
-    if (!address) return;
-    const stream = new EventSource(`${BALANCE_SERVICE}/api/v1/balances/${address}/stream`);
-    stream.addEventListener('sheet', event => {
-      const sheet = JSON.parse((event as MessageEvent<string>).data) as BalanceSheet;
-      sendMessage<TokenBalance[]>('getWalletBalances', { sheet }).then(setBalances).catch(err => setError(asError(err)));
-    });
-    return () => stream.close();
-  }, [currentAccount?.stxAddress]);
+  const listed = balances.filter(token => token.listed);
+  const unlisted = balances.filter(token => !token.listed);
+  const priced = listed.filter(token => valueOf(token) !== null).length;
 
   /** One token row; unlisted and unknown tokens can't be opened for sending */
   const row = (token: TokenBalance) => {
@@ -238,11 +176,7 @@ export function TransferTab() {
           <TokenIcon token={token} />
           <div className="cx-token-row-name">
             <strong>{label(token)}</strong>
-            {token.blaze !== '0' && token.meta ? (
-              <span className="w-blaze-line"><Flame size={11} aria-hidden /> {t('onBlaze', listAmount(token.blaze, token.meta.decimals))}</span>
-            ) : (
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{token.meta?.name ?? token.contractId}</span>
-            )}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{token.meta?.name ?? token.contractId}</span>
           </div>
           <div className="cx-token-row-bal">
             {token.meta
@@ -250,47 +184,37 @@ export function TransferTab() {
               ? <AnimatedAmount key={key} value={Number(totalOf(token))} format={n => listAmount(n === Number(totalOf(token)) ? totalOf(token) : String(Math.round(n)), token.meta!.decimals)} />
               : t('units', totalOf(token))}
             <span>{prices ? (value === null ? '—' : usd(value)) : ''}</span>
+            {token.blaze !== '0' && token.meta && (
+              <span className="w-blaze-line"><Flame size={11} aria-hidden /> {t('onBlaze', listAmount(token.blaze, token.meta.decimals))}</span>
+            )}
           </div>
         </div>
-        {open && token.meta && <SendForm token={token} onCancel={() => setSelected(null)} onDone={() => { setSelected(null); load(); }} />}
+        {open && token.meta && <SendForm token={token} onCancel={() => setSelected(null)} onDone={() => { setSelected(null); reload(); }} />}
       </div>
     );
   };
 
   return (
-    <div className="w-page">
-      <Card
-        right={
-          <button type="button" className="cx-btn w-btn-sm" onClick={load} title={t('refreshTitle')}>
-            <RefreshCw size={14} aria-hidden /> {t('refresh')}
+    <>
+      <div className="w-section-head">
+        <span className="w-note">
+          {plural('tokenCount', listed.length, count(listed.length))}
+          {prices && priced < listed.length ? ` · ${plural('withoutPrice', listed.length - priced, count(listed.length - priced))}` : ''}
+        </span>
+        <button type="button" className="cx-btn w-btn-sm" onClick={reload} title={t('refreshTitle')}>
+          <RefreshCw size={14} aria-hidden /> {t('refresh')}
+        </button>
+      </div>
+      <div className="cx-list">
+        {listed.map(row)}
+        {unlisted.length > 0 && (
+          <button type="button" className="cx-btn cx-btn-quiet" style={{ justifyContent: 'flex-start', height: 'auto', padding: '10px 12px', whiteSpace: 'normal', textAlign: 'left' }} onClick={() => setShowUnlisted(open => !open)} aria-expanded={showUnlisted}>
+            {showUnlisted ? <ChevronDown size={16} aria-hidden /> : <ChevronRight size={16} aria-hidden />}
+            <span>{plural('unlisted', unlisted.length, count(unlisted.length))}</span>
           </button>
-        }
-        title={t('tokensTitle')}
-      >
-        <div className="cx-label">{t('totalValue')}</div>
-        <div className="w-total">{balances && prices ? usd(total) : '…'}</div>
-        <p className="w-note">
-          {balances ? plural('tokenCount', listed.length, count(listed.length)) : t('loadingBalances')}
-          {balances && prices && priced.length < listed.length ? ` · ${plural('withoutPrice', listed.length - priced.length, count(listed.length - priced.length))}` : ''}
-        </p>
-      </Card>
-
-      <ErrorText error={error} />
-      {/* Its own lead-in, so the raw message: never "Prices unavailable: Something went wrong: …" */}
-      {priceError && <p className="w-warning" role="alert">{t('pricesUnavailable', priceError.message)}</p>}
-      {!balances && !error && <TokenSkeletons />}
-      {balances && (
-        <div className="cx-list">
-          {listed.map(row)}
-          {unlisted.length > 0 && (
-            <button type="button" className="cx-btn cx-btn-quiet" style={{ justifyContent: 'flex-start', height: 'auto', padding: '10px 12px', whiteSpace: 'normal', textAlign: 'left' }} onClick={() => setShowUnlisted(open => !open)} aria-expanded={showUnlisted}>
-              {showUnlisted ? <ChevronDown size={16} aria-hidden /> : <ChevronRight size={16} aria-hidden />}
-              <span>{plural('unlisted', unlisted.length, count(unlisted.length))}</span>
-            </button>
-          )}
-          {showUnlisted && unlisted.map(row)}
-        </div>
-      )}
-    </div>
+        )}
+        {showUnlisted && unlisted.map(row)}
+      </div>
+    </>
   );
 }
