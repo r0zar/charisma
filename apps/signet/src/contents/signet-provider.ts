@@ -6,8 +6,8 @@
  * the background decides, asks the user through a sealed approval frame, and answers in JSON-RPC.
  */
 import type { PlasmoCSConfig } from "plasmo"
-/** The official Blaze Wallet flame, shown in a site's "connect wallet" list */
-import ICON from "data-base64:~assets/blaze-flame.svg"
+/** The Blaze Wallet flame on its black tile, shown in a site's "connect wallet" list */
+import ICON from "data-base64:~assets/blaze-wallet-icon.svg"
 
 export const config: PlasmoCSConfig = {
   matches: ["<all_urls>"],
