@@ -28,7 +28,9 @@ enum Format {
     static func usd(_ value: Double) -> String { Amount.usd(value, locale: .current) }
 
     /// The explorer page for a txid
+    /// The explorer's page for a transaction: its id with or without the 0x Hiro's API gives
     static func explorer(_ txid: String) -> URL {
-        URL(string: "https://explorer.hiro.so/txid/0x\(txid)?chain=mainnet")!
+        let hash = txid.hasPrefix("0x") ? txid : "0x" + txid
+        return URL(string: "https://explorer.hiro.so/txid/\(hash)?chain=mainnet")!
     }
 }

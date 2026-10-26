@@ -146,6 +146,14 @@ const handler: PlasmoMessaging.MessageHandler = async (req, res) => {
         break;
       }
 
+      case "placeBlazeOrder":
+        if (typeof data?.inputSubnet !== "string" || typeof data?.outputToken !== "string" || typeof data?.amountIn !== "string") {
+          throw new Error("Invalid Blaze order: inputSubnet, outputToken and amountIn are required");
+        }
+        await wallet.keepAwake();
+        response = await swap.placeBlazeOrder(data);
+        break;
+
       case "sendToken":
         if (typeof data?.contractId !== "string" || typeof data?.recipient !== "string" || typeof data?.amount !== "string") {
           throw new Error("Invalid send: contractId, recipient and amount are required");

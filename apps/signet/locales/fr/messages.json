@@ -1106,5 +1106,49 @@
   "tradeRefresh": {
     "message": "Actualiser le devis",
     "description": "Review button: fetches a fresh quote"
+  },
+  "errorVaultList": {
+    "message": "La liste des coffres de Charisma n'a pas répondu (HTTP $1) : les tokens que le routeur atteint ne peuvent pas être vérifiés.",
+    "description": "Shown when the vault list can't load, so swap tokens can't be checked; $1 is the HTTP status"
+  },
+  "tradeStandard": {
+    "message": "Standard",
+    "description": "Trade side: the balance on Stacks"
+  },
+  "tradeBlaze": {
+    "message": "Blaze",
+    "description": "Trade side: the balance on the Blaze subnet"
+  },
+  "tradeNetworks": {
+    "message": "Réseaux",
+    "description": "Review row: the network each side uses, as 'Standard → Blaze'"
+  },
+  "tradeBlazeNeedsFrom": {
+    "message": "Choisissez d’abord Blaze pour De",
+    "description": "Tooltip on the disabled Blaze choice for To: a Blaze To needs a Blaze From"
+  },
+  "tradeOrderNote": {
+    "message": "Un solveur l’exécute en une minute environ. Les ordres Blaze n’ont pas de minimum : le prix peut changer avant l’exécution.",
+    "description": "Review row: what a Blaze order promises, and what it doesn't"
+  },
+  "tradeOrderNoFee": {
+    "message": "Aucun",
+    "description": "Review row: a Blaze order has no network fee"
+  },
+  "tradePlaceOrder": {
+    "message": "Passer l’ordre",
+    "description": "Button: sends the signed Blaze order"
+  },
+  "tradeOrderPlaced": {
+    "message": "Ordre passé",
+    "description": "Card title after a Blaze order is accepted"
+  },
+  "tradeOrderSent": {
+    "message": "Un solveur l’exécute en une minute environ.",
+    "description": "Card text after a Blaze order is accepted"
+  },
+  "tradeOverBalance": {
+    "message": "Plus que votre solde",
+    "description": "Under the From amount when it's more than the chosen side holds; Review stays off"
   }
 }

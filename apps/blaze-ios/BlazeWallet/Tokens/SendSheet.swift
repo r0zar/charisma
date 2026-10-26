@@ -13,6 +13,7 @@ struct SendSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var recipient = ""
     @State private var amount = ""
+    @FocusState private var amountFocused: Bool
     @State private var review: SendReview?
     /// The reviewed send, signed once. Sending again re-sends these same bytes, so a send whose answer was lost can't
     /// go out twice, and from then on this sheet sends nothing else.
@@ -28,12 +29,17 @@ struct SendSheet: View {
                 if let txid { sent(txid) } else if let review { reviewing(review) } else { form }
             }
             .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             .background(Color.brand("bg"))
             .navigationTitle(txid != nil ? "\(Format.symbol(row)) sent" : "Send \(Format.symbol(row))")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if txid == nil {
                     ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() }.disabled(busy) }
+                    ToolbarItemGroup(placement: .keyboard) {
+                        Spacer()
+                        Button("Done") { amountFocused = false }
+                    }
                 }
             }
             // A signed send stays on screen until it's sent or the person chooses Cancel
@@ -54,6 +60,7 @@ struct SendSheet: View {
         Section("Amount") {
             HStack {
                 TextField("0" + Amount.decimalMark(.current) + "0 " + Format.symbol(row), text: $amount)
+                    .focused($amountFocused)
                     .keyboardType(.decimalPad)
                     .monoFont(.body)
                 Button("Max") {

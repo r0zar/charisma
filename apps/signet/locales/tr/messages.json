@@ -1074,5 +1074,49 @@
   "tradeRefresh": {
     "message": "Teklifi yenile",
     "description": "Review button: fetches a fresh quote"
+  },
+  "errorVaultList": {
+    "message": "Charisma'nın kasa listesi yanıt vermedi (HTTP $1), bu yüzden yönlendiricinin ulaştığı tokenlar kontrol edilemiyor.",
+    "description": "Shown when the vault list can't load, so swap tokens can't be checked; $1 is the HTTP status"
+  },
+  "tradeStandard": {
+    "message": "Standart",
+    "description": "Trade side: the balance on Stacks"
+  },
+  "tradeBlaze": {
+    "message": "Blaze",
+    "description": "Trade side: the balance on the Blaze subnet"
+  },
+  "tradeNetworks": {
+    "message": "Ağlar",
+    "description": "Review row: the network each side uses, as 'Standard → Blaze'"
+  },
+  "tradeBlazeNeedsFrom": {
+    "message": "Önce Gönderilen için Blaze seçin",
+    "description": "Tooltip on the disabled Blaze choice for To: a Blaze To needs a Blaze From"
+  },
+  "tradeOrderNote": {
+    "message": "Bir çözücü yaklaşık bir dakika içinde gerçekleştirir. Blaze siparişlerinin asgari tutarı yoktur, bu nedenle gerçekleşmeden önce fiyat değişebilir.",
+    "description": "Review row: what a Blaze order promises, and what it doesn't"
+  },
+  "tradeOrderNoFee": {
+    "message": "Yok",
+    "description": "Review row: a Blaze order has no network fee"
+  },
+  "tradePlaceOrder": {
+    "message": "Sipariş ver",
+    "description": "Button: sends the signed Blaze order"
+  },
+  "tradeOrderPlaced": {
+    "message": "Sipariş verildi",
+    "description": "Card title after a Blaze order is accepted"
+  },
+  "tradeOrderSent": {
+    "message": "Bir çözücü yaklaşık bir dakika içinde gerçekleştirir.",
+    "description": "Card text after a Blaze order is accepted"
+  },
+  "tradeOverBalance": {
+    "message": "Bakiyenizden fazla",
+    "description": "Under the From amount when it's more than the chosen side holds; Review stays off"
   }
 }

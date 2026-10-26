@@ -19,6 +19,7 @@ struct TradeView: View {
     @State private var review: Swap.Review?
     @State private var preparing = false
     @State private var reviewError: Error?
+    @FocusState private var amountFocused: Bool
 
     private enum Style: String, CaseIterable, Identifiable {
         case swap = "Swap"
@@ -80,9 +81,16 @@ struct TradeView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             .background(Color.brand("bg"))
-            .navigationTitle("Trade")
-            .toolbar { LockButton() }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                LockButton()
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { amountFocused = false }
+                }
+            }
             .refreshable {
                 await holdings.load()
                 await model.loadTokens()
@@ -117,9 +125,10 @@ struct TradeView: View {
                 Button {
                     picking = .from
                 } label: {
-                    tokenButton(fromRow.map { Format.symbol($0) })
+                    tokenButton(fromRow.map { Format.symbol($0) }, image: fromRow?.meta?.image)
                 }
                 TextField("0" + Amount.decimalMark(.current) + "0", text: $amountText)
+                    .focused($amountFocused)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .monoFont(.title3)
@@ -147,7 +156,7 @@ struct TradeView: View {
                 Button {
                     picking = .to
                 } label: {
-                    tokenButton(toInfo.flatMap { $0.symbol ?? $0.contractId })
+                    tokenButton(toInfo.flatMap { $0.symbol ?? $0.contractId }, image: toInfo?.image.flatMap { URL(string: $0) })
                 }
                 Spacer()
                 Text(outputText)
@@ -163,8 +172,11 @@ struct TradeView: View {
     }
 
     /// A token button's label: its symbol, or "Select token"
-    private func tokenButton(_ symbol: String?) -> some View {
+    private func tokenButton(_ symbol: String?, image: URL?) -> some View {
         HStack(spacing: 6) {
+            if let symbol {
+                TokenAvatar(url: image, symbol: symbol, size: 22)
+            }
             Text(symbol ?? String(localized: "Select token")).brandFont(.body, weight: .semibold)
             Image(systemName: "chevron.down").font(.caption)
         }
@@ -174,7 +186,7 @@ struct TradeView: View {
     /// The From token's row: only a token the wallet can send, from its Standard balance
     private var fromRow: TokenRow? {
         guard let fromId else { return nil }
-        return holdings.listed.first { $0.contractId == fromId && $0.standard > 0 }
+        return holdings.listed.first { $0.contractId == fromId && $0.standard > 0 && model.routable.contains($0.contractId) }
     }
 
     private var toInfo: TokenInfo? {
@@ -202,16 +214,16 @@ struct TradeView: View {
     private func choices(for side: Side) -> [TokenChoice] {
         switch side {
         case .from:
-            return holdings.listed.filter { $0.standard > 0 }.map { row in
+            return holdings.listed.filter { $0.standard > 0 && model.routable.contains($0.contractId) }.map { row in
                 TokenChoice(
                     id: row.contractId, symbol: Format.symbol(row), name: row.meta?.name ?? row.contractId,
-                    detail: Format.amount(row.standard, of: row, precision: .cut(6))
+                    image: row.meta?.image, detail: Format.amount(row.standard, of: row, precision: .cut(6))
                 )
             }
         case .to:
             return model.tokens.compactMap { info in
                 guard let id = info.contractId else { return nil }
-                return TokenChoice(id: id, symbol: info.symbol ?? id, name: info.name ?? id, detail: nil)
+                return TokenChoice(id: id, symbol: info.symbol ?? id, name: info.name ?? id, image: info.image.flatMap { URL(string: $0) }, detail: nil)
             }
         }
     }
@@ -263,6 +275,8 @@ struct TokenChoice: Identifiable, Hashable {
     let id: String
     let symbol: String
     let name: String
+    /// The token's picture from Charisma's list, when it has one
+    let image: URL?
     /// An amount the wallet holds, when it does
     let detail: String?
 }
@@ -284,7 +298,8 @@ private struct TokenPickerSheet: View {
                         onPick(choice.id)
                         dismiss()
                     } label: {
-                        HStack {
+                        HStack(spacing: 12) {
+                            TokenAvatar(url: choice.image, symbol: choice.symbol, size: 32)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(choice.symbol).brandFont(.body, weight: .semibold)
                                 Text(choice.name)

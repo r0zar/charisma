@@ -8,6 +8,8 @@ import WalletCore
 final class TradeModel {
     /// Every token a swap can receive: STX first, then Charisma's token list
     private(set) var tokens: [TokenInfo] = []
+    /// The contract ids the router can reach: the only tokens a swap can use
+    private(set) var routable: Set<String> = []
     private(set) var loadError: Error?
     private(set) var route: Swap.Route?
     private(set) var quoteError: Error?
@@ -17,9 +19,18 @@ final class TradeModel {
 
     func loadTokens() async {
         do {
+            async let reachable = Swap.routableTokens()
             let list = try await charisma.tokenList()
-            let stx = TokenInfo(contractId: TokenRow.stx, name: "Stacks", symbol: "STX", decimals: 6, identifier: nil)
-            tokens = [stx] + list.filter { $0.contractId != TokenRow.stx }
+            routable = try await reachable
+            // STX is on Charisma's list with its logo: take it from there, so its picture shows like every other token's
+            guard let stx = list.first(where: { $0.contractId == TokenRow.stx }) else {
+                throw WalletError.unexpected("Charisma's token list has no STX")
+            }
+            tokens = [stx] + list.filter { info in
+                guard let id = info.contractId else { return false }
+                // A Blaze subnet copy of a token is the same token on Blaze: swaps use the base token on Stacks
+                return id != TokenRow.stx && info.type != "SUBNET" && routable.contains(id)
+            }
             loadError = nil
         } catch is CancellationError {
             // The screen went away

@@ -20,6 +20,10 @@ settings:
 packages:
   BlazeKit:
     path: BlazeKit
+  # Draws SVG token logos, which SwiftUI's own image views can't (Zlib license, no dependencies)
+  SwiftDraw:
+    url: https://github.com/swhitty/SwiftDraw
+    exactVersion: 0.29.0
 targets:
   BlazeWallet:
     type: application
@@ -31,6 +35,8 @@ targets:
         product: StacksKit
       - package: BlazeKit
         product: WalletCore
+      - package: SwiftDraw
+        product: SwiftDraw
     info:
       path: BlazeWallet/Info.plist
       properties:

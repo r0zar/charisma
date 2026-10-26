@@ -46,8 +46,8 @@ body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f
 .cx-pill-warning { background: var(--warning-soft); color: var(--warning); }
 
 /* ── Token logo ───────────────────────────────────── */
-.cx-token { position: relative; display: inline-flex; flex: none; width: 32px; height: 32px; border-radius: var(--radius-pill); background: var(--surface-hover); color: var(--ink-body); align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
-.cx-token img { width: 100%; height: 100%; border-radius: var(--radius-pill); object-fit: cover; }
+.cx-token { position: relative; display: inline-flex; flex: none; width: 32px; height: 32px; border-radius: var(--radius-sm); background: var(--surface-hover); color: var(--ink-body); align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.cx-token img { width: 100%; height: 100%; border-radius: var(--radius-sm); object-fit: cover; }
 .cx-token-sm { width: 20px; height: 20px; font-size: 8px; }
 .cx-token-lg { width: 48px; height: 48px; font-size: 15px; }
 .cx-token-blaze { position: absolute; right: -3px; bottom: -3px; width: 45%; height: 45%; min-width: 12px; min-height: 12px; border-radius: var(--radius-pill); background: var(--blaze-fill); color: var(--on-fill); border: 2px solid var(--bg); display: flex; align-items: center; justify-content: center; }

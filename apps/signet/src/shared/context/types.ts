@@ -30,6 +30,7 @@ export type MessageAction =
   // Trade
   | "getTokenList"
   | "sendSwap"
+  | "placeBlazeOrder"
   // NFTs
   | "getNfts"
   // Diagnostics

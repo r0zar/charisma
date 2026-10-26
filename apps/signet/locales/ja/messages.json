@@ -1042,5 +1042,49 @@
   "tradeRefresh": {
     "message": "見積もりを更新",
     "description": "Review button: fetches a fresh quote"
+  },
+  "errorVaultList": {
+    "message": "Charismaのボールト一覧が応答しませんでした（HTTP $1）。ルーターが扱えるトークンを確認できません。",
+    "description": "Shown when the vault list can't load, so swap tokens can't be checked; $1 is the HTTP status"
+  },
+  "tradeStandard": {
+    "message": "スタンダード",
+    "description": "Trade side: the balance on Stacks"
+  },
+  "tradeBlaze": {
+    "message": "Blaze",
+    "description": "Trade side: the balance on the Blaze subnet"
+  },
+  "tradeNetworks": {
+    "message": "ネットワーク",
+    "description": "Review row: the network each side uses, as 'Standard → Blaze'"
+  },
+  "tradeBlazeNeedsFrom": {
+    "message": "先に支払いを Blaze にしてください",
+    "description": "Tooltip on the disabled Blaze choice for To: a Blaze To needs a Blaze From"
+  },
+  "tradeOrderNote": {
+    "message": "ソルバーが約1分で約定します。Blaze の注文には最低額がなく、約定前に価格が変わることがあります。",
+    "description": "Review row: what a Blaze order promises, and what it doesn't"
+  },
+  "tradeOrderNoFee": {
+    "message": "なし",
+    "description": "Review row: a Blaze order has no network fee"
+  },
+  "tradePlaceOrder": {
+    "message": "注文する",
+    "description": "Button: sends the signed Blaze order"
+  },
+  "tradeOrderPlaced": {
+    "message": "注文を受け付けました",
+    "description": "Card title after a Blaze order is accepted"
+  },
+  "tradeOrderSent": {
+    "message": "ソルバーが約1分で約定します。",
+    "description": "Card text after a Blaze order is accepted"
+  },
+  "tradeOverBalance": {
+    "message": "残高を超えています",
+    "description": "Under the From amount when it's more than the chosen side holds; Review stays off"
   }
 }

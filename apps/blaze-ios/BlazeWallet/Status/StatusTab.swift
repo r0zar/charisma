@@ -50,7 +50,7 @@ struct StatusTab: View {
             }
             .scrollContentBackground(.hidden)
             .background(Color.brand("bg"))
-            .navigationTitle("Status")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar { LockButton() }
             .task {
                 // Each check is ~38 Hiro reads: once per unlock and every 5 minutes while open, not on every visit

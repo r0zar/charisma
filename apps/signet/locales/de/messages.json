@@ -1074,5 +1074,49 @@
   "tradeRefresh": {
     "message": "Kurs aktualisieren",
     "description": "Review button: fetches a fresh quote"
+  },
+  "errorVaultList": {
+    "message": "Charismas Vault-Liste hat nicht geantwortet (HTTP $1), daher können die Token, die der Router erreicht, nicht geprüft werden.",
+    "description": "Shown when the vault list can't load, so swap tokens can't be checked; $1 is the HTTP status"
+  },
+  "tradeStandard": {
+    "message": "Standard",
+    "description": "Trade side: the balance on Stacks"
+  },
+  "tradeBlaze": {
+    "message": "Blaze",
+    "description": "Trade side: the balance on the Blaze subnet"
+  },
+  "tradeNetworks": {
+    "message": "Netzwerke",
+    "description": "Review row: the network each side uses, as 'Standard → Blaze'"
+  },
+  "tradeBlazeNeedsFrom": {
+    "message": "Wähle zuerst Blaze bei Von",
+    "description": "Tooltip on the disabled Blaze choice for To: a Blaze To needs a Blaze From"
+  },
+  "tradeOrderNote": {
+    "message": "Ein Solver führt ihn in etwa einer Minute aus. Blaze-Aufträge haben kein Minimum, der Preis kann sich bis zur Ausführung ändern.",
+    "description": "Review row: what a Blaze order promises, and what it doesn't"
+  },
+  "tradeOrderNoFee": {
+    "message": "Keine",
+    "description": "Review row: a Blaze order has no network fee"
+  },
+  "tradePlaceOrder": {
+    "message": "Auftrag erteilen",
+    "description": "Button: sends the signed Blaze order"
+  },
+  "tradeOrderPlaced": {
+    "message": "Auftrag erstellt",
+    "description": "Card title after a Blaze order is accepted"
+  },
+  "tradeOrderSent": {
+    "message": "Ein Solver führt ihn in etwa einer Minute aus.",
+    "description": "Card text after a Blaze order is accepted"
+  },
+  "tradeOverBalance": {
+    "message": "Mehr als dein Guthaben",
+    "description": "Under the From amount when it's more than the chosen side holds; Review stays off"
   }
 }

@@ -1042,5 +1042,49 @@
   "tradeRefresh": {
     "message": "견적 새로고침",
     "description": "Review button: fetches a fresh quote"
+  },
+  "errorVaultList": {
+    "message": "Charisma 볼트 목록이 응답하지 않아(HTTP $1) 라우터가 연결하는 토큰을 확인할 수 없습니다.",
+    "description": "Shown when the vault list can't load, so swap tokens can't be checked; $1 is the HTTP status"
+  },
+  "tradeStandard": {
+    "message": "일반",
+    "description": "Trade side: the balance on Stacks"
+  },
+  "tradeBlaze": {
+    "message": "Blaze",
+    "description": "Trade side: the balance on the Blaze subnet"
+  },
+  "tradeNetworks": {
+    "message": "네트워크",
+    "description": "Review row: the network each side uses, as 'Standard → Blaze'"
+  },
+  "tradeBlazeNeedsFrom": {
+    "message": "먼저 보내는 토큰을 Blaze로 선택하세요",
+    "description": "Tooltip on the disabled Blaze choice for To: a Blaze To needs a Blaze From"
+  },
+  "tradeOrderNote": {
+    "message": "솔버가 약 1분 안에 체결합니다. Blaze 주문에는 최소 금액이 없어서, 체결 전에 가격이 바뀔 수 있습니다.",
+    "description": "Review row: what a Blaze order promises, and what it doesn't"
+  },
+  "tradeOrderNoFee": {
+    "message": "없음",
+    "description": "Review row: a Blaze order has no network fee"
+  },
+  "tradePlaceOrder": {
+    "message": "주문하기",
+    "description": "Button: sends the signed Blaze order"
+  },
+  "tradeOrderPlaced": {
+    "message": "주문이 접수됨",
+    "description": "Card title after a Blaze order is accepted"
+  },
+  "tradeOrderSent": {
+    "message": "솔버가 약 1분 안에 체결합니다.",
+    "description": "Card text after a Blaze order is accepted"
+  },
+  "tradeOverBalance": {
+    "message": "잔액보다 많습니다",
+    "description": "Under the From amount when it's more than the chosen side holds; Review stays off"
   }
 }

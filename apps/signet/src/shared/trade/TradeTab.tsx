@@ -15,6 +15,7 @@ import type { TokenBalance, TradeToken } from '~background/lib/tokens';
 import { listAmount, parseUnits, useBalances } from '~shared/home/balances';
 import { STX, buildSwap, getQuote, verifyRoute, type Route } from './swap';
 import { TokenPicker } from './TokenPicker';
+import { TokenPicture } from './TokenPicture';
 
 /** The trade styles, in pill order. Swap is the first; the rest join here. */
 const MODES = [{ key: 'swap', label: 'tradeSwap' }] as const;
@@ -29,6 +30,9 @@ export function TradeTab() {
   const [mode, setMode] = useState<'swap'>('swap');
   const [from, setFrom] = useState(STX);
   const [to, setTo] = useState<string | null>(null);
+  // Standard or Blaze, per side: only for a token with a Blaze subnet (the derived values below say what applies)
+  const [fromBlaze, setFromBlaze] = useState(false);
+  const [toBlaze, setToBlaze] = useState(false);
   const [amount, setAmount] = useState('');
   const [picker, setPicker] = useState<Side | null>(null);
   const [quote, setQuote] = useState<Route | null>(null);
@@ -39,6 +43,7 @@ export function TradeTab() {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<Error | null>(null);
   const [txid, setTxid] = useState<string | null>(null);
+  const [placed, setPlaced] = useState(false);
 
   useEffect(() => {
     sendMessage<TradeToken[]>('getTokenList').then(setTokens).catch(err => setTokenError(asError(err)));
@@ -47,6 +52,14 @@ export function TradeTab() {
   const fromToken = tokens?.find(token => token.contractId === from);
   const toToken = tokens?.find(token => token.contractId === to);
   const fromHeld: TokenBalance | undefined = balances?.find(balance => balance.contractId === from);
+  // Standard to Blaze isn't built yet, so a Blaze To needs a Blaze From
+  const fromOnBlaze = fromBlaze && !!fromToken?.blaze;
+  const toOnBlaze = toBlaze && fromOnBlaze && !!toToken?.blaze;
+  // What the swap service sees: a Blaze side is its subnet, a Standard side is the token
+  const fromId = fromOnBlaze && fromToken?.blaze ? fromToken.blaze : from;
+  const toId = to && toOnBlaze && toToken?.blaze ? toToken.blaze : to;
+  // What the chosen side holds: Standard or Blaze
+  const fromAvailable = fromHeld && (fromOnBlaze ? fromHeld.blaze : fromHeld.balance);
 
   // The amount in smallest units, or why it isn't one. Nothing typed or zero is no amount yet.
   let micro: string | null = null;
@@ -60,18 +73,21 @@ export function TradeTab() {
     }
   }
 
+  // More than the chosen side holds: a Blaze order for it would never fill, and a Standard swap would fail on chain
+  const overBalance = !!micro && fromAvailable !== undefined && BigInt(micro) > BigInt(fromAvailable);
+
   // Quote once the amount settles, and only the latest request lands. A refresh quotes the same trade again.
   useEffect(() => {
     setQuote(null);
     setQuoteError(null);
     setQuoting(false);
-    if (!micro || !to) return;
+    if (!micro || !toId) return;
     const amountIn = micro;
-    const tokenOut = to;
+    const tokenOut = toId;
     let current = true;
     const timer = setTimeout(() => {
       setQuoting(true);
-      getQuote(from, tokenOut, amountIn)
+      getQuote(fromId, tokenOut, amountIn)
         .then(route => { if (current) setQuote(route); })
         .catch(err => { if (current) setQuoteError(asError(err)); })
         .finally(() => { if (current) setQuoting(false); });
@@ -80,24 +96,27 @@ export function TradeTab() {
       current = false;
       clearTimeout(timer);
     };
-  }, [from, to, micro, refresh]);
+  }, [fromId, toId, micro, refresh]);
 
   const out = quote && toToken ? formatUnits(BigInt(Math.floor(quote.amountOut)), toToken.decimals, 6) : null;
   // The least the swap may return: the router's default slippage below the quote
   const minOut = quote && toToken
     ? formatUnits(BigInt(Math.floor(quote.amountOut * (1 - defaultConfig.defaultSlippage))), toToken.decimals, 6)
     : null;
-  const routePath = quote ? quote.path.map(token => token.symbol).join(' → ') : '';
+  // The route's tokens: a Blaze side's subnet is the same token as its base, so it isn't listed again
+  const routePath = quote ? quote.path.filter(token => token.type !== 'SUBNET').map(token => token.symbol).join(' → ') : '';
 
   const flip = () => {
     if (!to) return;
     setFrom(to);
     setTo(from);
+    setFromBlaze(toBlaze);
+    setToBlaze(fromBlaze);
     setAmount('');
   };
 
   const max = () => {
-    if (fromToken && fromHeld) setAmount(editableUnits(BigInt(fromHeld.balance), fromToken.decimals));
+    if (fromToken && fromAvailable) setAmount(editableUnits(BigInt(fromAvailable), fromToken.decimals));
   };
 
   /** Picking the token already on the other side swaps the two */
@@ -114,16 +133,24 @@ export function TradeTab() {
     }
   };
 
-  /** Checks the quote is for this exact trade, then has the wallet build, sign and send the router's swap */
+  /**
+   * Checks the quote is for this exact trade, then sends it. A Blaze trade is a signed order a solver fills; a Standard
+   * trade is the router's swap, built, signed and sent by the wallet.
+   */
   const swap = async () => {
-    if (!quote || !micro || !currentAccount) return;
+    if (!quote || !micro || !currentAccount || !fromId || !toId) return;
     setSending(true);
     setSendError(null);
     try {
       const first = quote.path[0]?.contractId;
       const last = quote.path[quote.path.length - 1]?.contractId;
-      if (quote.amountIn !== Number(micro) || first !== from || last !== to) {
+      if (quote.amountIn !== Number(micro) || first !== fromId || last !== toId) {
         throw new Error('The quote is for a different trade. Refresh it and review again.');
+      }
+      if (fromOnBlaze) {
+        await sendMessage<{ uuid: string }>('placeBlazeOrder', { inputSubnet: fromId, outputToken: toId, amountIn: micro });
+        setPlaced(true);
+        return;
       }
       await verifyRoute(quote);
       const call = await buildSwap(quote, currentAccount.stxAddress);
@@ -138,6 +165,7 @@ export function TradeTab() {
 
   const done = () => {
     setTxid(null);
+    setPlaced(false);
     setReviewing(false);
     setAmount('');
   };
@@ -148,7 +176,7 @@ export function TradeTab() {
         <div className="w-stack">
           <div className="w-trade-row">
             <button type="button" className="w-token-select" onClick={() => setPicker('from')}>
-              {fromToken ? fromToken.symbol : t('tradeSelectToken')} <ChevronDown size={16} aria-hidden />
+              {fromToken && <TokenPicture image={fromToken.image} symbol={fromToken.symbol} className="w-token-icon" />}{fromToken ? fromToken.symbol : t('tradeSelectToken')} <ChevronDown size={16} aria-hidden />
             </button>
             <input
               className="w-input w-mono w-amount-input"
@@ -159,11 +187,12 @@ export function TradeTab() {
               onChange={e => setAmount(e.target.value)}
             />
           </div>
+          {fromToken?.blaze && <NetworkChoice blaze={fromOnBlaze} onChange={setFromBlaze} />}
           <div className="w-trade-meta">
-            <span>{fromHeld && fromToken ? t('tradeBalance', `${listAmount(fromHeld.balance, fromToken.decimals)} ${fromToken.symbol}`) : ''}</span>
-            {fromHeld && fromHeld.balance !== '0' && <button type="button" className="cx-chip" onClick={max}>{t('max')}</button>}
+            <span>{fromAvailable !== undefined && fromToken ? t('tradeBalance', `${listAmount(fromAvailable, fromToken.decimals)} ${fromToken.symbol}`) : ''}</span>
+            {fromAvailable && fromAvailable !== '0' && <button type="button" className="cx-chip" onClick={max}>{t('max')}</button>}
           </div>
-          <ErrorText error={amountError} />
+          <ErrorText error={amountError ?? (overBalance ? new Error(t('tradeOverBalance')) : null)} />
         </div>
       </Card>
 
@@ -177,16 +206,24 @@ export function TradeTab() {
         <div className="w-stack">
           <div className="w-trade-row">
             <button type="button" className="w-token-select" onClick={() => setPicker('to')}>
-              {toToken ? toToken.symbol : t('tradeSelectToken')} <ChevronDown size={16} aria-hidden />
+              {toToken && <TokenPicture image={toToken.image} symbol={toToken.symbol} className="w-token-icon" />}{toToken ? toToken.symbol : t('tradeSelectToken')} <ChevronDown size={16} aria-hidden />
             </button>
             <output className="w-trade-out">{quoting ? '…' : out ?? '—'}</output>
           </div>
+          {toToken?.blaze && (
+            <NetworkChoice
+              blaze={toOnBlaze}
+              onChange={setToBlaze}
+              blazeDisabled={!fromOnBlaze}
+              blazeDisabledTitle={t('tradeBlazeNeedsFrom')}
+            />
+          )}
           {quote && <p className="w-note">{t('tradeRoute', routePath)}</p>}
           <ErrorText error={quoteError} />
         </div>
       </Card>
 
-      <button type="button" className="cx-btn cx-btn-primary cx-btn-block" onClick={() => setReviewing(true)} disabled={!quote || quoting}>
+      <button type="button" className="cx-btn cx-btn-primary cx-btn-block" onClick={() => setReviewing(true)} disabled={!quote || quoting || overBalance}>
         {t('tradeReview')}
       </button>
     </>
@@ -197,10 +234,14 @@ export function TradeTab() {
       <div className="w-stack">
         <Kv label={t('tradeYouSend')}>{micro && fromToken ? `${formatUnits(BigInt(micro), fromToken.decimals)} ${fromToken.symbol}` : '…'}</Kv>
         <Kv label={t('tradeYouGet')}>{out && toToken ? `${out} ${toToken.symbol}` : '…'}</Kv>
-        <Kv label={t('tradeAtLeast')}>{minOut && toToken ? `${minOut} ${toToken.symbol}` : '…'}</Kv>
+        {/* A Blaze order has no minimum: its price is only the quote's, so the review doesn't promise one */}
+        {!fromOnBlaze && <Kv label={t('tradeAtLeast')}>{minOut && toToken ? `${minOut} ${toToken.symbol}` : '…'}</Kv>}
         <Kv label={t('tradeRouteLabel')}><span className="w-address">{routePath || '…'}</span></Kv>
-        <Kv label={t('networkFee')}>{t('feeAutomatic')}</Kv>
-        <Kv label={t('safety')} tone="success">{t('tradePoolsChecked')}</Kv>
+        <Kv label={t('tradeNetworks')}>{`${networkName(fromOnBlaze)} → ${networkName(toOnBlaze)}`}</Kv>
+        <Kv label={t('networkFee')}>{fromOnBlaze ? t('tradeOrderNoFee') : t('feeAutomatic')}</Kv>
+        {fromOnBlaze
+          ? <Kv label={t('safety')}>{t('tradeOrderNote')}</Kv>
+          : <Kv label={t('safety')} tone="success">{t('tradePoolsChecked')}</Kv>}
         <div className="w-stack" style={{ marginTop: '12px' }}>
           <ErrorText error={sendError} />
           <div className="w-actions">
@@ -210,7 +251,7 @@ export function TradeTab() {
             </button>
           </div>
           <button type="button" className="cx-btn cx-btn-primary cx-btn-block" onClick={swap} disabled={!quote || quoting || sending}>
-            {sending && <span className="cx-spinner" aria-hidden />} {sending ? t('sending') : t('tradeSwapButton')}
+            {sending && <span className="cx-spinner" aria-hidden />} {sending ? t('sending') : fromOnBlaze ? t('tradePlaceOrder') : t('tradeSwapButton')}
           </button>
         </div>
       </div>
@@ -232,6 +273,15 @@ export function TradeTab() {
     );
   };
 
+  const placedCard = (
+    <Card title={t('tradeOrderPlaced')}>
+      <div className="w-stack">
+        <p className="w-note">{t('tradeOrderSent')}</p>
+        <button type="button" className="cx-btn cx-btn-primary" onClick={done}>{t('done')}</button>
+      </div>
+    </Card>
+  );
+
   return (
     <div className="w-page">
       <div className="w-pills" role="tablist">
@@ -244,9 +294,41 @@ export function TradeTab() {
 
       <ErrorText error={tokenError} />
 
-      {txid ? sent(txid) : picker && tokens ? (
+      {txid ? sent(txid) : placed ? placedCard : picker && tokens ? (
         <TokenPicker tokens={tokens} balances={balances} onPick={contractId => pick(picker, contractId)} onCancel={() => setPicker(null)} />
       ) : reviewing ? review : form}
+    </div>
+  );
+}
+
+/** A side's network, as the review names it */
+function networkName(blaze: boolean) {
+  return blaze ? t('tradeBlaze') : t('tradeStandard');
+}
+
+/** Standard or Blaze for one side of the trade; shown only for a token with a Blaze subnet */
+function NetworkChoice({ blaze, onChange, blazeDisabled = false, blazeDisabledTitle }: {
+  blaze: boolean;
+  onChange: (blaze: boolean) => void;
+  blazeDisabled?: boolean;
+  blazeDisabledTitle?: string;
+}) {
+  return (
+    <div className="w-pills" role="tablist">
+      <button type="button" role="tab" className="w-pill" aria-selected={!blaze} onClick={() => onChange(false)}>
+        {t('tradeStandard')}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        className="w-pill"
+        aria-selected={blaze}
+        disabled={blazeDisabled}
+        title={blazeDisabled ? blazeDisabledTitle : undefined}
+        onClick={() => onChange(true)}
+      >
+        {t('tradeBlaze')}
+      </button>
     </div>
   );
 }

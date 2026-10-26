@@ -9,6 +9,7 @@ import { getTokenMetadataStrict, listTokens, pricesClient } from "@repo/tokens"
 import type { BalanceSheet } from "blaze-sdk"
 import * as wallet from "./wallet"
 import { hiroClient } from "./hiro"
+import { ORDER_SUBNETS } from "./blaze-orders"
 
 import { BALANCE_SERVICE } from "~shared/balance-service"
 import { WalletError } from "./wallet-error"
@@ -104,16 +105,46 @@ export interface TradeToken {
   name: string
   decimals: number
   image: string | null
+  /** Its Blaze subnet, when it has exactly one the wallet orders through (STX, USDCx): the Trade screen's Blaze switch */
+  blaze?: string
 }
 
-/** Every token the Trade screen can pick: STX first, then Charisma's token list */
+/** The Blaze subnet of a token on Charisma's list, when it has exactly one and the wallet orders through it */
+function blazeSubnetOf(list: { contractId: string; type?: string; base?: string | null }[], contractId: string): string | undefined {
+  const subnets = list.filter(token => token.type === "SUBNET" && token.base === contractId).map(token => token.contractId)
+  return subnets.length === 1 && ORDER_SUBNETS.includes(subnets[0]) ? subnets[0] : undefined
+}
+
+/**
+ * The tokens the router can reach: every token of a pool on Charisma's vault list, except energy vaults (the router
+ * skips those, as its graph does). A token outside this set has no route, so the Trade screen doesn't offer it.
+ */
+async function routableContractIds(): Promise<Set<string>> {
+  const res = await fetch("https://invest.charisma.rocks/api/v1/vaults")
+  const body = (await res.json().catch(() => null)) as
+    | { status?: string; data?: { type?: string; tokenA?: { contractId?: string }; tokenB?: { contractId?: string } }[] }
+    | null
+  if (!res.ok || body?.status !== "success" || !Array.isArray(body.data)) throw new WalletError("errorVaultList", [res.status])
+  const ids = new Set<string>()
+  for (const pool of body.data) {
+    if (pool.type === "ENERGY") continue
+    for (const side of [pool.tokenA, pool.tokenB]) if (side?.contractId) ids.add(side.contractId)
+  }
+  return ids
+}
+
+/** Every token the Trade screen can pick: STX first, then the listed tokens the router can reach */
 export async function getTokenList(): Promise<TradeToken[]> {
-  const [list, stx] = await Promise.all([listTokens(), tokenMeta(STX_ID)])
+  const [list, stx, routable] = await Promise.all([listTokens(), tokenMeta(STX_ID), routableContractIds()])
   if (list.length === 0 || !stx) throw new WalletError("errorTokenListUnavailable")
   const rest = list
-    .filter(token => token.contractId !== STX_ID)
-    .map(token => ({ contractId: token.contractId, symbol: token.symbol, name: token.name, decimals: token.decimals, image: token.image ?? null }))
-  return [{ contractId: STX_ID, ...stx }, ...rest]
+    // A Blaze subnet copy of a token is the same token on Blaze: swaps use the base token on Stacks
+    .filter(token => token.contractId !== STX_ID && token.type !== "SUBNET" && routable.has(token.contractId))
+    .map(token => ({
+      contractId: token.contractId, symbol: token.symbol, name: token.name, decimals: token.decimals,
+      image: token.image ?? null, blaze: blazeSubnetOf(list, token.contractId),
+    }))
+  return [{ contractId: STX_ID, ...stx, blaze: blazeSubnetOf(list, STX_ID) }, ...rest]
 }
 
 /** Send `amount` (smallest units) of a token; SIP-10 sends carry a post condition: exactly this amount leaves. */
