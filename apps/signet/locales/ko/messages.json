@@ -1059,10 +1059,6 @@
     "message": "네트워크",
     "description": "Review row: the network each side uses, as 'Standard → Blaze'"
   },
-  "tradeBlazeNeedsFrom": {
-    "message": "먼저 보내는 토큰을 Blaze로 선택하세요",
-    "description": "Tooltip on the disabled Blaze choice for To: a Blaze To needs a Blaze From"
-  },
   "tradeOrderNote": {
     "message": "솔버가 약 1분 안에 체결합니다. Blaze 주문에는 최소 금액이 없어서, 체결 전에 가격이 바뀔 수 있습니다.",
     "description": "Review row: what a Blaze order promises, and what it doesn't"
@@ -1086,5 +1082,17 @@
   "tradeOverBalance": {
     "message": "잔액보다 많습니다",
     "description": "Under the From amount when it's more than the chosen side holds; Review stays off"
+  },
+  "tradeBlazeSplit": {
+    "message": "Blaze의 $1가 Blaze v1과 v2에 나뉘어 있어 어느 쪽도 이 금액을 담고 있지 않습니다. Charisma Swap에서 업그레이드하거나 금액을 줄이세요.",
+    "description": "Under the From amount: the Blaze balance is in two subnets and neither holds the amount; $1 is the token symbol"
+  },
+  "tradeUpgrade": {
+    "message": "업그레이드",
+    "description": "Trade button when the same token goes from Standard to Blaze"
+  },
+  "tradeDowngrade": {
+    "message": "다운그레이드",
+    "description": "Trade button when the same token goes from Blaze to Standard"
   }
 }

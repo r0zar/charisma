@@ -1123,10 +1123,6 @@
     "message": "Réseaux",
     "description": "Review row: the network each side uses, as 'Standard → Blaze'"
   },
-  "tradeBlazeNeedsFrom": {
-    "message": "Choisissez d’abord Blaze pour De",
-    "description": "Tooltip on the disabled Blaze choice for To: a Blaze To needs a Blaze From"
-  },
   "tradeOrderNote": {
     "message": "Un solveur l’exécute en une minute environ. Les ordres Blaze n’ont pas de minimum : le prix peut changer avant l’exécution.",
     "description": "Review row: what a Blaze order promises, and what it doesn't"
@@ -1150,5 +1146,17 @@
   "tradeOverBalance": {
     "message": "Plus que votre solde",
     "description": "Under the From amount when it's more than the chosen side holds; Review stays off"
+  },
+  "tradeBlazeSplit": {
+    "message": "Votre $1 sur Blaze est réparti entre Blaze v1 et v2, et aucune partie ne suffit. Mettez-le à niveau sur Charisma Swap, ou échangez moins.",
+    "description": "Under the From amount: the Blaze balance is in two subnets and neither holds the amount; $1 is the token symbol"
+  },
+  "tradeUpgrade": {
+    "message": "Mettre à niveau",
+    "description": "Trade button when the same token goes from Standard to Blaze"
+  },
+  "tradeDowngrade": {
+    "message": "Rétrograder",
+    "description": "Trade button when the same token goes from Blaze to Standard"
   }
 }

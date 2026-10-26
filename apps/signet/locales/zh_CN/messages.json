@@ -1059,10 +1059,6 @@
     "message": "网络",
     "description": "Review row: the network each side uses, as 'Standard → Blaze'"
   },
-  "tradeBlazeNeedsFrom": {
-    "message": "请先把支付方选为 Blaze",
-    "description": "Tooltip on the disabled Blaze choice for To: a Blaze To needs a Blaze From"
-  },
   "tradeOrderNote": {
     "message": "solver 约一分钟内成交。Blaze 订单没有最低金额，成交前价格可能变化。",
     "description": "Review row: what a Blaze order promises, and what it doesn't"
@@ -1086,5 +1082,17 @@
   "tradeOverBalance": {
     "message": "超过你的余额",
     "description": "Under the From amount when it's more than the chosen side holds; Review stays off"
+  },
+  "tradeBlazeSplit": {
+    "message": "你在 Blaze 上的 $1 分散在 Blaze v1 和 v2 中，任何一部分都不够。请在 Charisma Swap 升级，或减少数量。",
+    "description": "Under the From amount: the Blaze balance is in two subnets and neither holds the amount; $1 is the token symbol"
+  },
+  "tradeUpgrade": {
+    "message": "升级",
+    "description": "Trade button when the same token goes from Standard to Blaze"
+  },
+  "tradeDowngrade": {
+    "message": "降级",
+    "description": "Trade button when the same token goes from Blaze to Standard"
   }
 }

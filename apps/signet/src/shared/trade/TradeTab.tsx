@@ -12,6 +12,7 @@ import { asError } from '~shared/errors';
 import { t } from '~shared/i18n';
 import { Card, ErrorText, Kv, decimalMark, editableUnits, formatUnits } from '~shared/ui';
 import type { TokenBalance, TradeToken } from '~background/lib/tokens';
+import { mostInOneOrder, spendFrom, spendable } from '~background/lib/blaze-orders';
 import { listAmount, parseUnits, useBalances } from '~shared/home/balances';
 import { STX, buildSwap, getQuote, verifyRoute, type Route } from './swap';
 import { TokenPicker } from './TokenPicker';
@@ -52,14 +53,11 @@ export function TradeTab() {
   const fromToken = tokens?.find(token => token.contractId === from);
   const toToken = tokens?.find(token => token.contractId === to);
   const fromHeld: TokenBalance | undefined = balances?.find(balance => balance.contractId === from);
-  // Standard to Blaze isn't built yet, so a Blaze To needs a Blaze From
+  // A Blaze To is a deposit from Standard, or an order from Blaze
   const fromOnBlaze = fromBlaze && !!fromToken?.blaze;
-  const toOnBlaze = toBlaze && fromOnBlaze && !!toToken?.blaze;
-  // What the swap service sees: a Blaze side is its subnet, a Standard side is the token
-  const fromId = fromOnBlaze && fromToken?.blaze ? fromToken.blaze : from;
-  const toId = to && toOnBlaze && toToken?.blaze ? toToken.blaze : to;
-  // What the chosen side holds: Standard or Blaze
-  const fromAvailable = fromHeld && (fromOnBlaze ? fromHeld.blaze : fromHeld.balance);
+  const toOnBlaze = toBlaze && !!toToken?.blaze;
+  // What the chosen side holds: Standard, or what its v1 and v2 subnets can spend
+  const fromAvailable = fromHeld && (fromOnBlaze ? spendable(fromHeld.blazeParts).toString() : fromHeld.balance);
 
   // The amount in smallest units, or why it isn't one. Nothing typed or zero is no amount yet.
   let micro: string | null = null;
@@ -73,6 +71,16 @@ export function TradeTab() {
     }
   }
 
+  // The same token on both sides moves it between Standard and Blaze: Standard to Blaze upgrades, Blaze to Standard downgrades
+  const isUpgrade = !!to && from === to && !fromOnBlaze && toOnBlaze;
+  const isDowngrade = !!to && from === to && fromOnBlaze && !toOnBlaze;
+
+  // On Blaze, the subnet that pays: v1 first when it holds the amount, then v2, as Charisma Swap pays
+  const fromSpend = fromOnBlaze && micro && fromHeld ? spendFrom(BigInt(micro), fromHeld.blazeParts) : null;
+  // What the swap service sees: the Blaze subnet that pays, or the token; a Blaze To lands in its v2 subnet
+  const fromId = fromOnBlaze ? (fromSpend && typeof fromSpend === 'object' ? fromSpend.subnet : null) : from;
+  const toId = to && toOnBlaze && toToken?.blaze ? toToken.blaze : to;
+
   // More than the chosen side holds: a Blaze order for it would never fill, and a Standard swap would fail on chain
   const overBalance = !!micro && fromAvailable !== undefined && BigInt(micro) > BigInt(fromAvailable);
 
@@ -81,13 +89,14 @@ export function TradeTab() {
     setQuote(null);
     setQuoteError(null);
     setQuoting(false);
-    if (!micro || !toId) return;
+    if (!micro || !toId || !fromId) return;
     const amountIn = micro;
+    const tokenIn = fromId;
     const tokenOut = toId;
     let current = true;
     const timer = setTimeout(() => {
       setQuoting(true);
-      getQuote(fromId, tokenOut, amountIn)
+      getQuote(tokenIn, tokenOut, amountIn)
         .then(route => { if (current) setQuote(route); })
         .catch(err => { if (current) setQuoteError(asError(err)); })
         .finally(() => { if (current) setQuoting(false); });
@@ -116,17 +125,34 @@ export function TradeTab() {
   };
 
   const max = () => {
-    if (fromToken && fromAvailable) setAmount(editableUnits(BigInt(fromAvailable), fromToken.decimals));
+    if (!fromToken || !fromHeld) return;
+    // On Blaze, the most one order can carry: one subnet's balance
+    const most = fromOnBlaze ? mostInOneOrder(fromHeld.blazeParts) : BigInt(fromHeld.balance);
+    setAmount(editableUnits(most, fromToken.decimals));
   };
 
-  /** Picking the token already on the other side swaps the two */
+  /**
+   * Picking the token already on the other side swaps the two, except for a token with a Blaze side: the same token on
+   * both sides moves it between Standard and Blaze (an upgrade or a downgrade)
+   */
   const pick = (side: Side, contractId: string) => {
     setPicker(null);
+    const hasBlaze = !!tokens?.find(token => token.contractId === contractId)?.blaze;
     if (side === 'from') {
-      if (contractId === to) setTo(from);
+      if (contractId === to) {
+        if (hasBlaze) {
+          setFrom(contractId);
+          setFromBlaze(!toBlaze);
+          return;
+        }
+        setTo(from);
+      }
       setFrom(contractId);
     } else if (contractId !== from) {
       setTo(contractId);
+    } else if (hasBlaze) {
+      setTo(contractId);
+      setToBlaze(!fromBlaze);
     } else if (to) {
       setFrom(to);
       setTo(from);
@@ -192,7 +218,9 @@ export function TradeTab() {
             <span>{fromAvailable !== undefined && fromToken ? t('tradeBalance', `${listAmount(fromAvailable, fromToken.decimals)} ${fromToken.symbol}`) : ''}</span>
             {fromAvailable && fromAvailable !== '0' && <button type="button" className="cx-chip" onClick={max}>{t('max')}</button>}
           </div>
-          <ErrorText error={amountError ?? (overBalance ? new Error(t('tradeOverBalance')) : null)} />
+          <ErrorText error={amountError ?? (overBalance
+            ? new Error(t('tradeOverBalance'))
+            : fromSpend === 'split' && fromToken ? new Error(t('tradeBlazeSplit', fromToken.symbol)) : null)} />
         </div>
       </Card>
 
@@ -210,21 +238,14 @@ export function TradeTab() {
             </button>
             <output className="w-trade-out">{quoting ? '…' : out ?? '—'}</output>
           </div>
-          {toToken?.blaze && (
-            <NetworkChoice
-              blaze={toOnBlaze}
-              onChange={setToBlaze}
-              blazeDisabled={!fromOnBlaze}
-              blazeDisabledTitle={t('tradeBlazeNeedsFrom')}
-            />
-          )}
+          {toToken?.blaze && <NetworkChoice blaze={toOnBlaze} onChange={setToBlaze} />}
           {quote && <p className="w-note">{t('tradeRoute', routePath)}</p>}
           <ErrorText error={quoteError} />
         </div>
       </Card>
 
       <button type="button" className="cx-btn cx-btn-primary cx-btn-block" onClick={() => setReviewing(true)} disabled={!quote || quoting || overBalance}>
-        {t('tradeReview')}
+        {isUpgrade ? t('tradeUpgrade') : isDowngrade ? t('tradeDowngrade') : t('tradeReview')}
       </button>
     </>
   );
@@ -251,7 +272,7 @@ export function TradeTab() {
             </button>
           </div>
           <button type="button" className="cx-btn cx-btn-primary cx-btn-block" onClick={swap} disabled={!quote || quoting || sending}>
-            {sending && <span className="cx-spinner" aria-hidden />} {sending ? t('sending') : fromOnBlaze ? t('tradePlaceOrder') : t('tradeSwapButton')}
+            {sending && <span className="cx-spinner" aria-hidden />} {sending ? t('sending') : isUpgrade ? t('tradeUpgrade') : isDowngrade ? t('tradeDowngrade') : fromOnBlaze ? t('tradePlaceOrder') : t('tradeSwapButton')}
           </button>
         </div>
       </div>
@@ -307,26 +328,13 @@ function networkName(blaze: boolean) {
 }
 
 /** Standard or Blaze for one side of the trade; shown only for a token with a Blaze subnet */
-function NetworkChoice({ blaze, onChange, blazeDisabled = false, blazeDisabledTitle }: {
-  blaze: boolean;
-  onChange: (blaze: boolean) => void;
-  blazeDisabled?: boolean;
-  blazeDisabledTitle?: string;
-}) {
+function NetworkChoice({ blaze, onChange }: { blaze: boolean; onChange: (blaze: boolean) => void }) {
   return (
     <div className="w-pills" role="tablist">
       <button type="button" role="tab" className="w-pill" aria-selected={!blaze} onClick={() => onChange(false)}>
         {t('tradeStandard')}
       </button>
-      <button
-        type="button"
-        role="tab"
-        className="w-pill"
-        aria-selected={blaze}
-        disabled={blazeDisabled}
-        title={blazeDisabled ? blazeDisabledTitle : undefined}
-        onClick={() => onChange(true)}
-      >
+      <button type="button" role="tab" className="w-pill" aria-selected={blaze} onClick={() => onChange(true)}>
         {t('tradeBlaze')}
       </button>
     </div>

@@ -12,16 +12,15 @@ struct LockView: View {
         VStack(spacing: 20) {
             Spacer()
             Image("BlazeFlame").resizable().scaledToFit().frame(width: 72)
-            Text(verbatim: "Blaze Wallet").brandFont(.largeTitle, weight: .bold)
+            Text(verbatim: "Blaze Wallet").brandFont(.largeTitle, weight: .heavy)
             Spacer()
             ErrorText(error: error)
             Button { Task { await unlock() } } label: {
-                Label("Unlock", systemImage: "faceid").frame(maxWidth: .infinity)
+                Label("Unlock", systemImage: "faceid")
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+            .buttonStyle(PrimaryButtonStyle())
         }
-        .padding(24)
+        .padding(20)
         .background(Color.brand("bg"))
         .task(id: scenePhase) {
             // Leaving the app again earns another automatic ask when it comes back

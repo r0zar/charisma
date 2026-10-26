@@ -11,18 +11,23 @@ struct ActivityRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundStyle(.brand("ink-muted"))
-                .frame(width: 24)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).brandFont(.body, weight: .semibold).lineLimit(2)
-                Text(detail).brandFont(.caption).foregroundStyle(.brand("ink-muted"))
+                .font(.system(size: 15, weight: .semibold))
+                .foregroundStyle(.brand(row.status == .failed ? "danger" : "ink-body"))
+                .frame(width: 36, height: 36)
+                .background(Color.brand("surface"), in: RoundedRectangle(cornerRadius: 9))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title).brandFont(.callout, weight: .bold).lineLimit(2)
+                Text(detail).monoFont(.caption).foregroundStyle(.brand("ink-muted"))
             }
             Spacer(minLength: 8)
             Link(destination: Format.explorer(row.txid)) {
-                Image(systemName: "arrow.up.right.square").foregroundStyle(.brand("ink-faint"))
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(.brand("ink-muted"))
+                    .frame(width: 32, height: 32)
             }
+            .accessibilityLabel(Text("View on explorer"))
         }
-        .padding(.vertical, 4)
     }
 
     private var icon: String {

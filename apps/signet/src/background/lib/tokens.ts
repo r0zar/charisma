@@ -9,7 +9,7 @@ import { getTokenMetadataStrict, listTokens, pricesClient } from "@repo/tokens"
 import type { BalanceSheet } from "blaze-sdk"
 import * as wallet from "./wallet"
 import { hiroClient } from "./hiro"
-import { ORDER_SUBNETS } from "./blaze-orders"
+import { landingSubnet } from "./blaze-orders"
 
 import { BALANCE_SERVICE } from "~shared/balance-service"
 import { WalletError } from "./wallet-error"
@@ -26,6 +26,8 @@ export interface TokenBalance {
   /** On Blaze: the token's subnets (v1, v2 and older releases) added up, counting what's on its way, smallest units.
    *  What signed orders set aside stays in it: signing locks nothing */
   blaze: string
+  /** The Blaze balance by subnet, smallest units: what picks the subnet a Blaze order spends from */
+  blazeParts: Record<string, string>
   /** Null when the token cache doesn't know the token: shown raw and not sendable */
   meta: { symbol: string; name: string; decimals: number; image: string | null } | null
   /** On Charisma's token list. Blocked tokens (scams) and unknown airdrops are not, and the wallet tucks them away. */
@@ -69,7 +71,7 @@ export async function getWalletBalances(pushed?: BalanceSheet): Promise<TokenBal
   const assetOf = (contractId: string) => list.find(token => token.contractId === contractId)?.identifier ?? ""
 
   // Subnet balances fold into their base token's row; a token held only on Blaze gets a row of its own
-  const rows = new Map<string, { balance: bigint; blaze: bigint }>([[STX_ID, { balance: 0n, blaze: 0n }]])
+  const rows = new Map<string, { balance: bigint; blaze: bigint; parts: Record<string, string> }>([[STX_ID, { balance: 0n, blaze: 0n, parts: {} }]])
   for (const [contractId, part] of Object.entries(sheet.tokens)) {
     if (part.ready === null) {
       // The chain couldn't be read for this one: a data problem for developers, not news for the user
@@ -77,14 +79,18 @@ export async function getWalletBalances(pushed?: BalanceSheet): Promise<TokenBal
       continue
     }
     const base = part.base ?? contractId
-    const row = rows.get(base) ?? { balance: 0n, blaze: 0n }
-    if (part.base) row.blaze += BigInt(part.ready)
-    else row.balance += BigInt(part.ready)
+    const row = rows.get(base) ?? { balance: 0n, blaze: 0n, parts: {} }
+    if (part.base) {
+      row.blaze += BigInt(part.ready)
+      row.parts[contractId] = (BigInt(row.parts[contractId] ?? "0") + BigInt(part.ready)).toString()
+    } else {
+      row.balance += BigInt(part.ready)
+    }
     rows.set(base, row)
   }
   return Promise.all([...rows].filter(([id, row]) => id === STX_ID || row.balance !== 0n || row.blaze !== 0n).map(async ([contractId, row]) => ({
     contractId, asset: contractId === STX_ID ? "" : assetOf(contractId),
-    balance: row.balance.toString(), blaze: row.blaze.toString(),
+    balance: row.balance.toString(), blaze: row.blaze.toString(), blazeParts: row.parts,
     meta: await tokenMeta(contractId), listed: contractId === STX_ID || listed.has(contractId),
   })))
 }
@@ -105,14 +111,13 @@ export interface TradeToken {
   name: string
   decimals: number
   image: string | null
-  /** Its Blaze subnet, when it has exactly one the wallet orders through (STX, USDCx): the Trade screen's Blaze switch */
+  /** Where it lands on Blaze, when it has a subnet the wallet knows: its v2 subnet. The Trade screen's Blaze switch. */
   blaze?: string
 }
 
-/** The Blaze subnet of a token on Charisma's list, when it has exactly one and the wallet orders through it */
+/** Where a token on Charisma's list lands on Blaze: its v2 subnet (Charisma Swap's landingSubnet) */
 function blazeSubnetOf(list: { contractId: string; type?: string; base?: string | null }[], contractId: string): string | undefined {
-  const subnets = list.filter(token => token.type === "SUBNET" && token.base === contractId).map(token => token.contractId)
-  return subnets.length === 1 && ORDER_SUBNETS.includes(subnets[0]) ? subnets[0] : undefined
+  return landingSubnet(list.filter(token => token.type === "SUBNET" && token.base === contractId).map(token => token.contractId))
 }
 
 /**

@@ -1,8 +1,8 @@
 import SwiftUI
 import WalletCore
 
-/// One token: icon, symbol and its name on the left; the total (cut to 6 decimals), its USD value and, under those,
-/// the Blaze share in Blaze red on the right, where the other amounts are
+/// One token: its logo, symbol and name on the left; its USD value, the amount (cut to 6 decimals) and, under those,
+/// the Blaze share in the flame's colours on the right
 struct TokenRowView: View {
     let row: TokenRow
     let value: Double?
@@ -11,42 +11,41 @@ struct TokenRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             TokenIcon(row: row)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(Format.symbol(row)).brandFont(.body, weight: .semibold)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(Format.symbol(row)).brandFont(.callout, weight: .bold)
                 Text(row.meta?.name ?? row.contractId)
-                    .brandFont(.caption)
+                    .brandFont(.footnote)
                     .foregroundStyle(.brand("ink-muted"))
                     .lineLimit(1)
                     .truncationMode(.middle)
             }
-            Spacer()
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(Format.amount(row.total, of: row, precision: .cut(6)))
-                    .monoFont(.body)
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 1) {
+                if pricesLoaded {
+                    Text(verbatim: value.map(Format.usd) ?? "—").monoFont(size: 15, relativeTo: .callout)
+                }
+                Text(verbatim: "\(Format.amount(row.total, of: row, precision: .cut(6))) \(Format.symbol(row))")
+                    .monoFont(pricesLoaded ? .caption : .callout)
+                    .foregroundStyle(.brand(pricesLoaded ? "ink-muted" : "ink"))
                     .contentTransition(.numericText())
                     .animation(.default, value: row.total)
-                if pricesLoaded {
-                    Text(value.map(Format.usd) ?? "—").monoFont(.caption).foregroundStyle(.brand("ink-muted"))
-                }
                 if row.blaze != 0, row.meta != nil {
-                    Label {
+                    HStack(spacing: 3) {
+                        Image(systemName: "flame.fill").font(.system(size: 10, weight: .bold))
                         Text("\(Format.amount(row.blaze, of: row, precision: .cut(6))) on Blaze")
-                    } icon: {
-                        Image(systemName: "flame.fill")
                     }
-                    .labelStyle(.titleAndIcon)
                     .monoFont(.caption)
-                    .foregroundStyle(.brand("blaze-v2"))
+                    .foregroundStyle(Theme.blazeText)
                 }
             }
         }
         .contentShape(Rectangle())
-        .padding(.vertical, 4)
     }
 }
 
-/// The token's image, or its first letter when there's none or it fails to load (as in the extension). Unlisted tokens
-/// always show the letter: their image address is the token maker's choice, and loading it would tell them who looked.
+/// The token's image, or its first letter when there's none or it fails to load (as in the extension), with the Blaze
+/// flame when some of it is on Blaze. Unlisted tokens always show the letter: their image address is the token maker's
+/// choice, and loading it would tell them who looked.
 struct TokenIcon: View {
     let row: TokenRow
 
@@ -59,5 +58,8 @@ struct TokenIcon: View {
         .frame(width: 36, height: 36)
         .background(Color.brand("surface-sunken"))
         .clipShape(RoundedRectangle(cornerRadius: 9))
+        .overlay(alignment: .bottomTrailing) {
+            if row.blaze != 0 { BlazeBadge().offset(x: 4, y: 4) }
+        }
     }
 }
