@@ -444,7 +444,7 @@ textarea.w-input { height: auto; padding: 10px 14px; resize: none; line-height: 
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  border-radius: 50%;
+  border-radius: 6px;
   background: var(--surface-sunken);
   color: var(--ink-muted);
   font-size: 11px;
