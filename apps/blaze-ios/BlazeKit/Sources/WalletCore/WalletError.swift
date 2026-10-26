@@ -10,6 +10,8 @@ public enum Service: String, Sendable {
     case prices
     /// The Stacks network, through Hiro (api.hiro.so)
     case stacks
+    /// Charisma's swap service (swap.charisma.rocks, its quotes) and vault list (invest.charisma.rocks)
+    case swap
 }
 
 /// Everything WalletCore can fail with. WalletCore has no words for people: the app's String Catalog words each case.

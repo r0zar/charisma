@@ -1,11 +1,16 @@
 import Foundation
 
-/// The Clarity values the wallet sends (transfer arguments) and reads (subnet `get-balance`)
+/// The Clarity values the wallet sends (transfer and swap arguments) and reads (subnet `get-balance`)
 public indirect enum ClarityValue: Hashable, Sendable {
     case uint(UInt128)
     case principal(Principal)
     case none
     case ok(ClarityValue)
+    /// A buffer of bytes (a swap's opcode is one, inside `some`)
+    case buffer(Data)
+    case some(ClarityValue)
+    /// A tuple's fields by name. They serialize sorted by name, as Clarity requires.
+    case tuple([String: ClarityValue])
 
     /// Consensus serialization, as @stacks/transactions `Cl.serialize`
     public var serialized: Data {
@@ -20,6 +25,14 @@ public indirect enum ClarityValue: Hashable, Sendable {
             Data([0x09])
         case .ok(let value):
             Data([0x07]) + value.serialized
+        case .buffer(let bytes):
+            Data([0x02]) + UInt32(bytes.count).bigEndianData + bytes
+        case .some(let value):
+            Data([0x0a]) + value.serialized
+        case .tuple(let fields):
+            Data([0x0c]) + UInt32(fields.count).bigEndianData + fields.sorted { $0.key < $1.key }.reduce(Data()) { out, field in
+                out + Data([UInt8(field.key.utf8.count)]) + Data(field.key.utf8) + field.value.serialized
+            }
         }
     }
 

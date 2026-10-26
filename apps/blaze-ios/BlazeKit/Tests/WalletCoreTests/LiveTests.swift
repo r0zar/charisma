@@ -19,7 +19,7 @@ struct LiveTests {
         #expect(sheet.tokens[TokenRow.stx] != nil)
         let rows = TokenRows.build(sheet: sheet, list: list, lookups: [:])
         #expect(rows.first?.isSTX == true)
-        #expect(try await charisma.usdPrices()[TokenRow.stx] ?? 0 > 0)
+        #expect(try await (charisma.usdPrices()[TokenRow.stx]?.usd ?? 0) > 0)
         #expect(try await charisma.token("SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token").symbol == "CHA")
         let found = try await charisma.lookUp(["SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token", "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.welshcorgicoin-token"])
         #expect(found["SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.charisma-token"]?.symbol == "CHA")

@@ -7,7 +7,6 @@ struct LockView: View {
     @State private var error: Error?
     /// The lock screen asks by itself once: Face ID's own prompt makes the app inactive and active again
     @State private var asked = false
-    @State private var unlinking = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -21,20 +20,9 @@ struct LockView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            // A saved wallet this build can't read would fail every unlock: the way out is starting again from its words
-            if error as? VaultError == .unreadable {
-                Button("Unlink wallet", role: .destructive) { unlinking = true }
-            }
         }
         .padding(24)
         .background(Color.brand("bg"))
-        .confirmationDialog("Unlink this wallet from this iPhone?", isPresented: $unlinking, titleVisibility: .visible) {
-            Button("Unlink wallet", role: .destructive) {
-                do { try vault.unlinkWallet() } catch { self.error = error }
-            }
-        } message: {
-            Text("Every seed phrase and account is removed from this iPhone. Your funds stay safe on the blockchain; you'll need your seed phrases to get back in.")
-        }
         .task(id: scenePhase) {
             // Leaving the app again earns another automatic ask when it comes back
             if scenePhase == .background { asked = false }

@@ -1,7 +1,8 @@
 import SwiftUI
 import WalletCore
 
-/// One token: icon, symbol, "X on Blaze" or its name, the total (cut to 6 decimals) and its USD value
+/// One token: icon, symbol and its name on the left; the total (cut to 6 decimals), its USD value and, under those,
+/// the Blaze share in Blaze red on the right, where the other amounts are
 struct TokenRowView: View {
     let row: TokenRow
     let value: Double?
@@ -12,22 +13,11 @@ struct TokenRowView: View {
             TokenIcon(row: row)
             VStack(alignment: .leading, spacing: 2) {
                 Text(Format.symbol(row)).brandFont(.body, weight: .semibold)
-                if row.blaze != 0, row.meta != nil {
-                    Label {
-                        Text("\(Format.amount(row.blaze, of: row, precision: .cut(6))) on Blaze")
-                    } icon: {
-                        Image(systemName: "flame.fill")
-                    }
-                    .labelStyle(.titleAndIcon)
+                Text(row.meta?.name ?? row.contractId)
                     .brandFont(.caption)
-                    .foregroundStyle(.brand("blaze"))
-                } else {
-                    Text(row.meta?.name ?? row.contractId)
-                        .brandFont(.caption)
-                        .foregroundStyle(.brand("ink-muted"))
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
+                    .foregroundStyle(.brand("ink-muted"))
+                    .lineLimit(1)
+                    .truncationMode(.middle)
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
@@ -37,6 +27,16 @@ struct TokenRowView: View {
                     .animation(.default, value: row.total)
                 if pricesLoaded {
                     Text(value.map(Format.usd) ?? "—").monoFont(.caption).foregroundStyle(.brand("ink-muted"))
+                }
+                if row.blaze != 0, row.meta != nil {
+                    Label {
+                        Text("\(Format.amount(row.blaze, of: row, precision: .cut(6))) on Blaze")
+                    } icon: {
+                        Image(systemName: "flame.fill")
+                    }
+                    .labelStyle(.titleAndIcon)
+                    .monoFont(.caption)
+                    .foregroundStyle(.brand("blaze-v2"))
                 }
             }
         }
