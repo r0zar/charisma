@@ -32,18 +32,8 @@ struct NftCard: View {
         }
     }
 
-    @ViewBuilder private var picture: some View {
-        if let image = nft.image {
-            AsyncImage(url: image) { phase in
-                if case .success(let loaded) = phase {
-                    loaded.resizable().scaledToFill()
-                } else {
-                    placeholder
-                }
-            }
-        } else {
-            placeholder
-        }
+    private var picture: some View {
+        RemoteImage(url: nft.image) { placeholder }
     }
 
     private var placeholder: some View {

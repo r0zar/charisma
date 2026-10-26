@@ -51,17 +51,13 @@ struct TokenIcon: View {
     let row: TokenRow
 
     var body: some View {
-        AsyncImage(url: row.listed ? row.meta?.image : nil) { phase in
-            if case .success(let image) = phase {
-                image.resizable().scaledToFill()
-            } else {
-                Text(Format.symbol(row).prefix(1).uppercased())
-                    .brandFont(.headline, weight: .semibold)
-                    .foregroundStyle(.brand("ink-muted"))
-            }
+        RemoteImage(url: row.listed ? row.meta?.image : nil) {
+            Text(Format.symbol(row).prefix(1).uppercased())
+                .brandFont(.headline, weight: .semibold)
+                .foregroundStyle(.brand("ink-muted"))
         }
         .frame(width: 36, height: 36)
         .background(Color.brand("surface-sunken"))
-        .clipShape(Circle())
+        .clipShape(RoundedRectangle(cornerRadius: 9))
     }
 }

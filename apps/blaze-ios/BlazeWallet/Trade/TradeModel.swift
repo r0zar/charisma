@@ -22,10 +22,14 @@ final class TradeModel {
             async let reachable = Swap.routableTokens()
             let list = try await charisma.tokenList()
             routable = try await reachable
-            let stx = TokenInfo(contractId: TokenRow.stx, name: "Stacks", symbol: "STX", decimals: 6, identifier: nil)
+            // STX is on Charisma's list with its logo: take it from there, so its picture shows like every other token's
+            guard let stx = list.first(where: { $0.contractId == TokenRow.stx }) else {
+                throw WalletError.unexpected("Charisma's token list has no STX")
+            }
             tokens = [stx] + list.filter { info in
                 guard let id = info.contractId else { return false }
-                return id != TokenRow.stx && routable.contains(id)
+                // A Blaze subnet copy of a token is the same token on Blaze: swaps use the base token on Stacks
+                return id != TokenRow.stx && info.type != "SUBNET" && routable.contains(id)
             }
             loadError = nil
         } catch is CancellationError {
