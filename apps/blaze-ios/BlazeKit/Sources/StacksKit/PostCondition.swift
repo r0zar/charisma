@@ -6,7 +6,7 @@ public enum PostConditionPrincipal: Hashable, Sendable {
     case contract(StacksAddress, name: String)
 
     /// Its post-condition encoding: type 0x02 for a standard principal, 0x03 for a contract with its name
-    var serialized: Data {
+    public var serialized: Data {
         switch self {
         case .standard(let address):
             Data([0x02, address.version]) + address.hash160
@@ -34,7 +34,7 @@ public enum PostCondition: Hashable, Sendable {
     case fungible(principal: PostConditionPrincipal, token: StacksAddress, tokenName: String, asset: String, code: ConditionCode, amount: UInt64)
 
     /// The same condition for `amount` more (the same principal and asset, as the router's builder combines them)
-    func adding(_ extra: UInt64) throws -> PostCondition {
+    public func adding(_ extra: UInt64) throws -> PostCondition {
         func sum(_ amount: UInt64) throws -> UInt64 {
             let (total, overflow) = amount.addingReportingOverflow(extra)
             guard !overflow else { throw StacksError.amountOverflow }
@@ -48,7 +48,7 @@ public enum PostCondition: Hashable, Sendable {
         }
     }
 
-    var serialized: Data {
+    public var serialized: Data {
         switch self {
         case .stx(let principal, let code, let amount):
             Data([0x00]) + principal.serialized + Data([code.rawValue]) + amount.bigEndianData

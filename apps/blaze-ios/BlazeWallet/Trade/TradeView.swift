@@ -147,7 +147,7 @@ struct TradeView: View {
                 Button {
                     picking = .to
                 } label: {
-                    tokenButton(toInfo.map { $0.symbol ?? $0.contractId })
+                    tokenButton(toInfo.flatMap { $0.symbol ?? $0.contractId })
                 }
                 Spacer()
                 Text(outputText)
@@ -237,13 +237,13 @@ struct TradeView: View {
 
     /// A fresh route for what's on screen, checked against the vault list, then the review of its call
     private func prepareReview() async {
-        guard !preparing, let from = fromRow, let stx = holdings.stx, let to = toInfo, let amount = amountMicro else { return }
+        guard !preparing, let from = fromRow, let stx = holdings.stx, let to = toInfo, let toId, let amount = amountMicro else { return }
         preparing = true
         reviewError = nil
         defer { preparing = false }
         do {
-            let route = try await Swap.quote(from: from.contractId, to: to.contractId, amount: amount)
-            guard route.path.first?.contractId == from.contractId, route.path.last?.contractId == to.contractId else {
+            let route = try await Swap.quote(from: from.contractId, to: toId, amount: amount)
+            guard route.path.first?.contractId == from.contractId, route.path.last?.contractId == toId else {
                 throw WalletError.unexpected("The route doesn't match the trade on screen")
             }
             review = try await Swap.review(route: route, from: from, amount: amount, stx: stx, account: account, hiro: Hiro())

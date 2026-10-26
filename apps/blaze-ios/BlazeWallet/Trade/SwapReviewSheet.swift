@@ -20,7 +20,7 @@ struct SwapReviewSheet: View {
     @State private var error: Error?
     private let hiro = Hiro()
 
-    private var toSymbol: String { to.symbol ?? to.contractId }
+    private var toSymbol: String { to.symbol ?? to.contractId ?? "—" }
 
     var body: some View {
         NavigationStack {
