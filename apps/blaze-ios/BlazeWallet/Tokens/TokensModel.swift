@@ -2,12 +2,12 @@ import Foundation
 import Observation
 import WalletCore
 
-/// The active account's token rows and prices, kept live by the balance stream while the Tokens tab is on screen
+/// The active account's token rows and prices, kept live by the balance stream while the wallet's home is on screen
 @MainActor @Observable
 final class TokensModel {
     let address: String
     private(set) var rows: [TokenRow]?
-    private(set) var prices: [String: Double]?
+    private(set) var prices: [String: TokenPrice]?
     private(set) var error: Error?
     private(set) var priceError: Error?
 
@@ -27,11 +27,27 @@ final class TokensModel {
     /// USD value of a row, or nil when the feed has no price for it
     func value(of row: TokenRow) -> Double? {
         guard let meta = row.meta, let price = prices?[row.contractId] else { return nil }
-        return Amount.units(row.total, decimals: meta.decimals) * price
+        return Amount.units(row.total, decimals: meta.decimals) * price.usd
     }
 
     var totalValue: Double { listed.compactMap(value(of:)).reduce(0, +) }
     var unpricedCount: Int { listed.filter { value(of: $0) == nil }.count }
+
+    /// The listed tokens' change over 24 hours: each token's change is taken off its price now, so the change is in
+    /// dollars and percent of what the balances were worth a day ago. Tokens without a 24h change count in the total
+    /// only (as in the extension). Nil when nothing has one.
+    var change24h: (dollars: Double, percent: Double)? {
+        var now = 0.0
+        var before = 0.0
+        for row in listed {
+            guard let meta = row.meta, let price = prices?[row.contractId], let change = price.change24h else { continue }
+            let value = Amount.units(row.total, decimals: meta.decimals) * price.usd
+            now += value
+            before += value / (1 + change / 100)
+        }
+        guard before > 0 else { return nil }
+        return (now - before, (now - before) / before * 100)
+    }
 
     /// Balances and prices from scratch. Prices are separate: balances still show when the price feed is down.
     func load() async {
@@ -55,14 +71,14 @@ final class TokensModel {
         }
     }
 
-    /// Every sheet the service pushes, until the tab goes away
+    /// Every sheet the service pushes, until the screen goes away
     func watch() async {
         do {
             for await sheet in charisma.watchBalances(address: address) where !list.isEmpty {
                 try await show(sheet)
             }
         } catch {
-            // Only CancellationError: the tab went away
+            // Only CancellationError: the screen went away
         }
     }
 

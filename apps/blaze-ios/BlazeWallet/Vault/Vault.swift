@@ -157,16 +157,6 @@ final class Vault {
         return seed.phrase
     }
 
-    /// Removes the wallet from this iPhone; its funds stay on the blockchain
-    func unlinkWallet() throws {
-        try Keychain.delete()
-        try keep(nil)
-        UserDefaults.standard.removeObject(forKey: Self.hadWallet)
-        unsent = nil
-        lock()
-        phase = .empty
-    }
-
     private func begin(_ state: WalletState, _ context: LAContext) {
         walletRemoved = false
         session = Session(state: state)

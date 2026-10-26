@@ -7,7 +7,6 @@ struct WalletTab: View {
     @AppStorage(Theme.storageKey) private var theme = Theme.Choice.system
     @State private var sheet: Sheet?
     @State private var unlinking: SeedPhrase?
-    @State private var unlinkingWallet = false
     @State private var error: Error?
 
     private enum Sheet: Identifiable {
@@ -44,11 +43,6 @@ struct WalletTab: View {
                 Button("Unlink", role: .destructive) { run { try vault.act { $0.unlinkSeedPhrase(id: seed.id) } } }
             } message: { _ in
                 Text("Its accounts and funds stay safe on the blockchain. To use them here again, you'll need the seed phrase words.")
-            }
-            .confirmationDialog("Unlink this wallet from this iPhone?", isPresented: $unlinkingWallet, titleVisibility: .visible) {
-                Button("Unlink wallet", role: .destructive) { run { try vault.unlinkWallet() } }
-            } message: {
-                Text("Every seed phrase and account is removed from this iPhone. Your funds stay safe on the blockchain; you'll need your seed phrases to get back in.")
             }
         }
     }
@@ -103,7 +97,6 @@ struct WalletTab: View {
                 Text("Dark · RPG").tag(Theme.Choice.dark)
             }
             Button("Lock") { vault.lock() }
-            Button("Unlink wallet", role: .destructive) { unlinkingWallet = true }
         }
     }
 

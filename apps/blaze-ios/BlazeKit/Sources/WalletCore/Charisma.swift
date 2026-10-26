@@ -1,5 +1,16 @@
 import Foundation
 
+/// A token's USD price, and its change over the last 24 hours in percent (nil until the feed has the history)
+public struct TokenPrice: Hashable, Sendable {
+    public let usd: Double
+    public let change24h: Double?
+
+    public init(usd: Double, change24h: Double?) {
+        self.usd = usd
+        self.change24h = change24h
+    }
+}
+
 /// Charisma's servers: balances (the same service Swap and Meme Roulette use), the token list and USD prices
 public struct Charisma: Sendable {
     static let balances = URL(string: "https://swap.charisma.rocks/api/v1/balances")!
@@ -41,15 +52,23 @@ public struct Charisma: Sendable {
         try await Self.cache.details(of: contractIds) { id in try await token(id) }
     }
 
-    /// USD per whole token, by contract id (".stx" for STX)
-    public func usdPrices() async throws -> [String: Double] {
+    /// USD per whole token and its 24h change, by contract id (".stx" for STX)
+    public func usdPrices() async throws -> [String: TokenPrice] {
         struct Price: Decodable {
+            struct Change: Decodable {
+                let h24: Double?
+                enum CodingKeys: String, CodingKey { case h24 = "24h" }
+            }
             let contractId: String
             let usd: Double
+            let change: Change?
         }
         struct Answer: Decodable { let tokens: [Price] }
         let prices = try await http.get(Self.prices, from: .prices, as: Answer.self).tokens
-        return Dictionary(prices.map { ($0.contractId, $0.usd) }, uniquingKeysWith: { first, _ in first })
+        return Dictionary(
+            prices.map { ($0.contractId, TokenPrice(usd: $0.usd, change24h: $0.change?.h24)) },
+            uniquingKeysWith: { first, _ in first }
+        )
     }
 
     /// The address's balance sheet now and every time it changes, pushed by the service (no polling). Reconnects on

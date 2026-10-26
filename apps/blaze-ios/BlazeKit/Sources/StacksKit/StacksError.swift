@@ -16,4 +16,8 @@ public enum StacksError: Error, Equatable, Sendable {
     case invalidKey
     /// Bytes that aren't one of the Clarity values StacksKit reads
     case invalidClarityValue
+    /// Not a valid Clarity function name (a letter, then letters, digits or -_!?+<>=/*, at most 128 characters)
+    case invalidFunctionName
+    /// Post-conditions for the same principal and asset add up past the largest amount a transaction can carry
+    case amountOverflow
 }

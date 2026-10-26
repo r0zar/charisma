@@ -11,17 +11,9 @@ public struct StacksTransaction: Hashable, Sendable {
         case contractCall(contract: StacksAddress, contractName: String, functionName: String, arguments: [ClarityValue])
     }
 
-    /// "`sender` sends exactly `amount` of `token`'s fungible token `asset`"
-    public struct SendsExactly: Hashable, Sendable {
-        public let sender: StacksAddress
-        public let token: StacksAddress
-        public let tokenName: String
-        public let asset: String
-        public let amount: UInt64
-    }
-
     public let payload: Payload
-    public let postConditions: [SendsExactly]
+    /// What must move, exactly as stated: in deny mode, anything else that moves fails the transaction
+    public let postConditions: [PostCondition]
     /// The sender's 33-byte compressed public key
     public let publicKey: Data
     public let nonce: UInt64
@@ -29,11 +21,11 @@ public struct StacksTransaction: Hashable, Sendable {
     /// 65 bytes, recovery id then r and s; all zeros until signed
     public let signature: Data
 
-    private init(payload: Payload, postConditions: [SendsExactly] = [], publicKey: Data, nonce: UInt64 = 0, fee: UInt64 = 0) {
+    private init(payload: Payload, postConditions: [PostCondition] = [], publicKey: Data, nonce: UInt64 = 0, fee: UInt64 = 0) {
         self.init(payload: payload, postConditions: postConditions, publicKey: publicKey, nonce: nonce, fee: fee, signature: Self.emptySignature)
     }
 
-    private init(payload: Payload, postConditions: [SendsExactly], publicKey: Data, nonce: UInt64, fee: UInt64, signature: Data) {
+    private init(payload: Payload, postConditions: [PostCondition], publicKey: Data, nonce: UInt64, fee: UInt64, signature: Data) {
         self.payload = payload
         self.postConditions = postConditions
         self.publicKey = Data(publicKey)
@@ -60,8 +52,21 @@ public struct StacksTransaction: Hashable, Sendable {
                 contract: token, contractName: tokenName, functionName: "transfer",
                 arguments: [.uint(UInt128(amount)), .principal(.standard(sender)), .principal(recipient), .none]
             ),
-            postConditions: [SendsExactly(sender: sender, token: token, tokenName: tokenName, asset: asset, amount: amount)],
+            postConditions: [.fungible(principal: .standard(sender), token: token, tokenName: tokenName, asset: asset, code: .equal, amount: amount)],
             publicKey: publicKey, nonce: nonce, fee: fee
+        )
+    }
+
+    /// A call to a public function of a contract, with the post-conditions that say what it may move
+    public static func contractCall(
+        contract: StacksAddress, contractName: String, functionName: String, arguments: [ClarityValue],
+        postConditions: [PostCondition], publicKey: Data, nonce: UInt64 = 0, fee: UInt64 = 0
+    ) throws -> StacksTransaction {
+        guard Principal.isContractName(contractName) else { throw StacksError.invalidContractName }
+        guard isClarityName(functionName) else { throw StacksError.invalidFunctionName }
+        return StacksTransaction(
+            payload: .contractCall(contract: contract, contractName: contractName, functionName: functionName, arguments: arguments),
+            postConditions: postConditions, publicKey: publicKey, nonce: nonce, fee: fee
         )
     }
 
@@ -118,14 +123,6 @@ extension StacksTransaction.Payload {
     }
 }
 
-extension StacksTransaction.SendsExactly {
-    var serialized: Data {
-        Data([0x01, 0x02, sender.version]) + sender.hash160       // fungible, standard principal
-            + Data([token.version]) + token.hash160 + lengthPrefixed(tokenName) + lengthPrefixed(asset)
-            + Data([0x01]) + amount.bigEndianData                   // equal to
-    }
-}
-
 /// Clarity's rule for asset names: a letter, then letters, digits or `-_!?+<>=/*`, at most 128 characters
 private func isClarityName(_ name: String) -> Bool {
     guard let first = name.unicodeScalars.first, name.utf8.count <= 128, first.isASCII, CharacterSet.letters.contains(first) else {
@@ -135,6 +132,6 @@ private func isClarityName(_ name: String) -> Bool {
 }
 
 /// A 1-byte length, then the UTF-8 bytes
-private func lengthPrefixed(_ text: String) -> Data {
+func lengthPrefixed(_ text: String) -> Data {
     Data([UInt8(text.utf8.count)]) + Data(text.utf8)
 }

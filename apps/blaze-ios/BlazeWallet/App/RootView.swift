@@ -40,7 +40,8 @@ struct RootView: View {
     }
 }
 
-/// The unlocked wallet: three tabs with an active account; only Wallet without one (every seed phrase unlinked)
+/// The unlocked wallet: its home and Status with an active account; only the Wallet settings without one (every seed
+/// phrase unlinked). Settings open from the home's gear.
 struct MainView: View {
     @Environment(Vault.self) private var vault
     /// Kept for the whole unlock (MainView goes away on lock), so Status doesn't check again on every tab switch
@@ -49,8 +50,8 @@ struct MainView: View {
     var body: some View {
         if let account = vault.state?.activeAccount {
             TabView {
-                Tab("Wallet", systemImage: "wallet.bifold") { WalletTab() }
-                Tab("Tokens", systemImage: "circle.grid.2x2") { TokensTab(account: account).id(account.id) }
+                Tab("Wallet", systemImage: "wallet.bifold") { HomeView(account: account).id(account.id) }
+                Tab("Trade", systemImage: "arrow.left.arrow.right") { TradeView(account: account).id(account.id) }
                 Tab("Status", systemImage: "waveform.path.ecg") { StatusTab(account: account, model: status).id(account.id) }
             }
         } else {
