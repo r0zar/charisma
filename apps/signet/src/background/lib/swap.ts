@@ -4,7 +4,7 @@
  */
 import { ClarityType, Pc, broadcastTransaction, hexToCV, makeContractCall } from "@stacks/transactions"
 import { hiroClient } from "./hiro"
-import { ORDER_SUBNETS, orderMessage, signOrder, submitOrder } from "./blaze-orders"
+import { blazeVersionOf, orderMessage, signOrder, submitOrder } from "./blaze-orders"
 import * as wallet from "./wallet"
 import { WalletError } from "./wallet-error"
 
@@ -60,12 +60,13 @@ export async function sendSwap(call: SwapCall): Promise<{ txid: string }> {
 export async function placeBlazeOrder(order: { inputSubnet: string; outputToken: string; amountIn: string }): Promise<{ uuid: string }> {
   const account = await wallet.getCurrentAccount()
   if (!account) throw new WalletError("errorNoActiveAccount")
-  if (!ORDER_SUBNETS.includes(order.inputSubnet)) throw new Error(`Blaze orders can only spend the Blaze subnets the wallet orders through, not ${order.inputSubnet}`)
+  const version = blazeVersionOf(order.inputSubnet)
+  if (!version) throw new Error(`Blaze orders can only spend the Blaze subnets the wallet knows, not ${order.inputSubnet}`)
   if (!order.outputToken) throw new Error("A Blaze order needs the token it pays out")
   if (!/^[1-9]\d*$/.test(order.amountIn)) throw new Error("A Blaze order's amount must be a whole number of smallest units above zero")
 
   const uuid = crypto.randomUUID()
-  const signature = signOrder(orderMessage(order.inputSubnet, BigInt(order.amountIn), uuid), account.privateKey)
+  const signature = signOrder(orderMessage(order.inputSubnet, BigInt(order.amountIn), uuid), account.privateKey, version)
   await submitOrder({
     owner: account.stxAddress,
     inputToken: order.inputSubnet,

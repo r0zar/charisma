@@ -1091,10 +1091,6 @@
     "message": "Ağlar",
     "description": "Review row: the network each side uses, as 'Standard → Blaze'"
   },
-  "tradeBlazeNeedsFrom": {
-    "message": "Önce Gönderilen için Blaze seçin",
-    "description": "Tooltip on the disabled Blaze choice for To: a Blaze To needs a Blaze From"
-  },
   "tradeOrderNote": {
     "message": "Bir çözücü yaklaşık bir dakika içinde gerçekleştirir. Blaze siparişlerinin asgari tutarı yoktur, bu nedenle gerçekleşmeden önce fiyat değişebilir.",
     "description": "Review row: what a Blaze order promises, and what it doesn't"
@@ -1118,5 +1114,17 @@
   "tradeOverBalance": {
     "message": "Bakiyenizden fazla",
     "description": "Under the From amount when it's more than the chosen side holds; Review stays off"
+  },
+  "tradeBlazeSplit": {
+    "message": "Blaze'deki $1 Blaze v1 ve v2 arasında bölünmüş ve hiçbir parça bu kadarını tutmuyor. Charisma Swap'ta yükseltin ya da daha az işlem yapın.",
+    "description": "Under the From amount: the Blaze balance is in two subnets and neither holds the amount; $1 is the token symbol"
+  },
+  "tradeUpgrade": {
+    "message": "Yükselt",
+    "description": "Trade button when the same token goes from Standard to Blaze"
+  },
+  "tradeDowngrade": {
+    "message": "Düşür",
+    "description": "Trade button when the same token goes from Blaze to Standard"
   }
 }
