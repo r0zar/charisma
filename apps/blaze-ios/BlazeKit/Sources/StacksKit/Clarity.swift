@@ -9,6 +9,8 @@ public indirect enum ClarityValue: Hashable, Sendable {
     /// A buffer of bytes (a swap's opcode is one, inside `some`)
     case buffer(Data)
     case some(ClarityValue)
+    /// An ASCII string (a Blaze order's intent, uuid and domain fields)
+    case stringAscii(String)
     /// A tuple's fields by name. They serialize sorted by name, as Clarity requires.
     case tuple([String: ClarityValue])
 
@@ -29,6 +31,8 @@ public indirect enum ClarityValue: Hashable, Sendable {
             Data([0x02]) + UInt32(bytes.count).bigEndianData + bytes
         case .some(let value):
             Data([0x0a]) + value.serialized
+        case .stringAscii(let text):
+            Data([0x0d]) + UInt32(text.utf8.count).bigEndianData + Data(text.utf8)
         case .tuple(let fields):
             Data([0x0c]) + UInt32(fields.count).bigEndianData + fields.sorted { $0.key < $1.key }.reduce(Data()) { out, field in
                 out + Data([UInt8(field.key.utf8.count)]) + Data(field.key.utf8) + field.value.serialized

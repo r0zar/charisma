@@ -51,6 +51,8 @@ public struct TokenRow: Hashable, Identifiable, Sendable {
     public let listed: Bool
     /// The asset name post conditions need: "" for STX, nil when the token list has none
     public let asset: String?
+    /// The Blaze balance by subnet (v1, v2, older releases): what picks the subnet a Blaze order spends from
+    public var blazeParts: [String: Int128] = [:]
 
     public var id: String { contractId }
     public var isSTX: Bool { contractId == Self.stx }
@@ -85,7 +87,8 @@ public enum TokenRows {
             return TokenRow(
                 contractId: id, standard: total.standard, blaze: total.blaze,
                 meta: info.flatMap(TokenMeta.init), listed: isSTX || byId[id] != nil,
-                asset: isSTX ? "" : info?.identifier.flatMap { $0.isEmpty ? nil : $0 }
+                asset: isSTX ? "" : info?.identifier.flatMap { $0.isEmpty ? nil : $0 },
+                blazeParts: total.parts
             )
         }
         return rows.sorted { a, b in
@@ -96,16 +99,21 @@ public enum TokenRows {
 
     /// Each row's Standard and Blaze totals: STX always, others only when something is on either side. A token whose
     /// balance the service couldn't read is left out and logged (the extension's rule).
-    private static func totals(_ sheet: BalanceSheet) -> [String: (standard: Int128, blaze: Int128)] {
-        var totals: [String: (standard: Int128, blaze: Int128)] = [TokenRow.stx: (0, 0)]
+    private static func totals(_ sheet: BalanceSheet) -> [String: (standard: Int128, blaze: Int128, parts: [String: Int128])] {
+        var totals: [String: (standard: Int128, blaze: Int128, parts: [String: Int128])] = [TokenRow.stx: (0, 0, [:])]
         for (id, token) in sheet.tokens {
             guard let ready = token.ready, let amount = Int128(ready) else {
                 Log.balances.error("Couldn't read \(id, privacy: .public)'s balance: \(token.error ?? "no amount", privacy: .public)")
                 continue
             }
             let base = token.base ?? id
-            var row = totals[base] ?? (0, 0)
-            if token.base == nil { row.standard += amount } else { row.blaze += amount }
+            var row = totals[base] ?? (0, 0, [:])
+            if token.base == nil {
+                row.standard += amount
+            } else {
+                row.blaze += amount
+                row.parts[id, default: 0] += amount
+            }
             totals[base] = row
         }
         return totals.filter { id, total in id == TokenRow.stx || total.standard != 0 || total.blaze != 0 }
