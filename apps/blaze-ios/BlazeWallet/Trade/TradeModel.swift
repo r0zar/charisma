@@ -10,6 +10,8 @@ final class TradeModel {
     private(set) var tokens: [TokenInfo] = []
     /// The contract ids the router can reach: the only tokens a swap can use
     private(set) var routable: Set<String> = []
+    /// Where each token with a Blaze side lands on Blaze, by its contract id: its v2 subnet. Its Blaze capsule shows.
+    private(set) var blazeSubnets: [String: String] = [:]
     private(set) var loadError: Error?
     private(set) var route: Swap.Route?
     private(set) var quoteError: Error?
@@ -31,12 +33,22 @@ final class TradeModel {
                 // A Blaze subnet copy of a token is the same token on Blaze: swaps use the base token on Stacks
                 return id != TokenRow.stx && info.type != "SUBNET" && routable.contains(id)
             }
+            blazeSubnets = Self.blazeSubnets(in: list)
             loadError = nil
         } catch is CancellationError {
             // The screen went away
         } catch {
             loadError = error
         }
+    }
+
+    /// Where each token with a subnet the wallet knows lands on Blaze: its v2 subnet (Charisma Swap's landingSubnet)
+    static func blazeSubnets(in list: [TokenInfo]) -> [String: String] {
+        var subnets: [String: [String]] = [:]
+        for info in list where info.type == "SUBNET" {
+            if let base = info.base, let id = info.contractId { subnets[base, default: []].append(id) }
+        }
+        return subnets.compactMapValues { BlazeOrder.landing(among: $0) }
     }
 
     /// Forgets the quote: the trade on screen has none yet

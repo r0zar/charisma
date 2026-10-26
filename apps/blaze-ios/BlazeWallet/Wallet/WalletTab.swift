@@ -24,14 +24,19 @@ struct WalletTab: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                activeAccount
-                seedPhrases
-                vaultSection
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    activeAccount
+                    seedPhrases
+                    vaultSection
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
             }
-            .scrollContentBackground(.hidden)
+            .scrollIndicators(.hidden)
             .background(Color.brand("bg"))
             .navigationTitle("Wallet")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar { LockButton() }
             .sheet(item: $sheet, content: sheetView)
             // A seed phrase being added when the wallet locked, or the app closed, picks up at its words
@@ -48,56 +53,75 @@ struct WalletTab: View {
     }
 
     @ViewBuilder private var activeAccount: some View {
-        Section {
-            if let account = vault.state?.activeAccount {
-                HStack {
-                    Text("Account \(Int(account.index) + 1)").brandFont(.headline, weight: .semibold)
+        if let account = vault.state?.activeAccount {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text("Account \(Int(account.index) + 1)").brandFont(.title3, weight: .heavy)
                     Spacer()
-                    Text("Active").brandFont(.caption, weight: .semibold).foregroundStyle(.brand("success"))
+                    Text("Active").monoFont(.caption, weight: .medium).foregroundStyle(.brand("success"))
                 }
-                Text(account.stxAddress).monoFont(.callout).textSelection(.enabled)
-                HStack {
-                    CopyButton(text: account.stxAddress)
-                    Spacer()
+                Text(verbatim: account.stxAddress)
+                    .monoFont(.footnote)
+                    .foregroundStyle(.brand("ink-body"))
+                    .textSelection(.enabled)
+                HStack(spacing: 10) {
+                    CopyButton(text: account.stxAddress).buttonStyle(SecondaryButtonStyle())
                     Button("Receive", systemImage: "qrcode") { sheet = .receive(account) }
+                        .buttonStyle(SecondaryButtonStyle())
                 }
-                .buttonStyle(.borderless)
-            } else {
-                Text("No active account").brandFont(.headline, weight: .semibold)
-                Text("Add an account from a seed phrase below.").foregroundStyle(.brand("warning"))
+                .padding(.top, 6)
             }
+            .padding(.top, 16)
+        } else {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("No active account").brandFont(.title3, weight: .heavy)
+                Text("Add an account from a seed phrase below.").brandFont(.subheadline).foregroundStyle(.brand("warning"))
+            }
+            .padding(.top, 16)
         }
     }
 
     @ViewBuilder private var seedPhrases: some View {
-        Section("Seed phrases") {
-            ForEach(vault.state?.seedPhrases ?? []) { seed in
-                SeedPhraseCard(
-                    seed: seed,
-                    accounts: vault.state?.accounts(of: seed.id) ?? [],
-                    activeAccountId: vault.state?.activeAccountId,
-                    use: { account in run { try vault.act { try $0.activate(accountId: account.id) } } },
-                    addAccount: { run { _ = try vault.act { try $0.addAccount(seedPhraseId: seed.id) } } },
-                    showWords: { reveal(seed) },
-                    unlink: { unlinking = seed }
-                )
-            }
-            Button("Generate new") { sheet = .newSeed }
-            Button("Import") { sheet = .importSeed }
+        SectionHeading("Seed phrases")
+        ForEach(vault.state?.seedPhrases ?? []) { seed in
+            SeedPhraseCard(
+                seed: seed,
+                accounts: vault.state?.accounts(of: seed.id) ?? [],
+                activeAccountId: vault.state?.activeAccountId,
+                use: { account in run { try vault.act { try $0.activate(accountId: account.id) } } },
+                addAccount: { run { _ = try vault.act { try $0.addAccount(seedPhraseId: seed.id) } } },
+                showWords: { reveal(seed) },
+                unlink: { unlinking = seed }
+            )
         }
+        HStack(spacing: 10) {
+            Button("Generate new") { sheet = .newSeed }.buttonStyle(SecondaryButtonStyle())
+            Button("Import") { sheet = .importSeed }.buttonStyle(SecondaryButtonStyle())
+        }
+        .padding(.top, 14)
     }
 
     @ViewBuilder private var vaultSection: some View {
-        Section("Vault") {
-            LabeledContent { Text("On this iPhone only, behind Face ID") } label: { Text("Keys") }
-            LabeledContent { Text("After 15 idle minutes") } label: { Text("Auto-lock") }
+        SectionHeading("Vault")
+        DetailRow(label: "Keys") {
+            Text("On this iPhone only, behind Face ID").brandFont(.subheadline)
+        }
+        DetailRow(label: "Auto-lock") {
+            Text("After 15 idle minutes").brandFont(.subheadline)
+        }
+        DetailRow(label: "Theme") {
             Picker("Theme", selection: $theme) {
                 Text("System").tag(Theme.Choice.system)
                 Text("Light · Bitcoin").tag(Theme.Choice.light)
                 Text("Dark · RPG").tag(Theme.Choice.dark)
             }
-            Button("Lock") { vault.lock() }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .tint(Color.brand("accent-text"))
         }
+        Button("Lock") { vault.lock() }
+            .buttonStyle(SecondaryButtonStyle())
+            .padding(.top, 16)
     }
 
     @ViewBuilder private func sheetView(_ sheet: Sheet) -> some View {
@@ -148,10 +172,12 @@ private struct SeedPhraseCard: View {
     let unlink: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(seed.name).brandFont(.headline, weight: .semibold)
+        VStack(alignment: .leading, spacing: 0) {
+            Text(verbatim: seed.name).brandFont(.callout, weight: .heavy).padding(.vertical, 10)
             ForEach(accounts) { account in
                 AccountRow(account: account, isActive: account.id == activeAccountId) { use(account) }
+                    .padding(.vertical, 10)
+                    .overlay(alignment: .top) { Hairline() }
             }
             // In one row when the language fits it, otherwise one under another
             ViewThatFits {
@@ -162,17 +188,20 @@ private struct SeedPhraseCard: View {
                     actions
                 }
             }
+            .brandFont(.subheadline, weight: .bold)
+            .buttonStyle(.plain)
+            .padding(.vertical, 12)
+            .overlay(alignment: .top) { Hairline() }
         }
-        .buttonStyle(.borderless)
-        .padding(.vertical, 4)
+        .overlay(alignment: .bottom) { Hairline(strong: true) }
     }
 
     @ViewBuilder private var actions: some View {
-        Button("+ Account", action: addAccount)
+        Button("+ Account", action: addAccount).foregroundStyle(.brand("accent-text"))
         Spacer()
-        Button("Show seed phrase", action: showWords)
+        Button("Show seed phrase", action: showWords).foregroundStyle(.brand("accent-text"))
         Spacer()
-        Button("Unlink", role: .destructive, action: unlink)
+        Button("Unlink", role: .destructive, action: unlink).foregroundStyle(.brand("danger"))
     }
 }
 
@@ -184,15 +213,18 @@ private struct AccountRow: View {
 
     var body: some View {
         HStack {
-            VStack(alignment: .leading) {
-                Text("Account \(Int(account.index) + 1)")
-                Text(Format.short(account.stxAddress)).monoFont(.caption).foregroundStyle(.brand("ink-muted"))
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Account \(Int(account.index) + 1)").brandFont(.subheadline, weight: .bold)
+                Text(verbatim: Format.short(account.stxAddress)).monoFont(.caption).foregroundStyle(.brand("ink-muted"))
             }
             Spacer()
             if isActive {
-                Text("Active").brandFont(.caption, weight: .semibold).foregroundStyle(.brand("success"))
+                Text("Active").monoFont(.caption, weight: .medium).foregroundStyle(.brand("success"))
             } else {
                 Button("Use", action: use)
+                    .brandFont(.subheadline, weight: .bold)
+                    .foregroundStyle(.brand("accent-text"))
+                    .buttonStyle(.plain)
             }
         }
     }

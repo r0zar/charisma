@@ -2,15 +2,20 @@ import StacksKit
 import SwiftUI
 import WalletCore
 
-/// A swap ready to sign: what it sends, the least it may return, the route, and the network fee. It's signed once. A
-/// broadcast that gets no answer is retried with the same transaction, never a new signature, as sends are.
+/// A swap ready to sign: what it sends, what it gets and the least it may return, the route, the networks and the
+/// network fee. It's signed once. A broadcast that gets no answer is retried with the same transaction, never a new
+/// signature, as sends are.
 struct SwapReviewSheet: View {
     let review: Swap.Review
     let from: TokenRow
     let to: TokenInfo
+    /// Whether the swap lands on Blaze: a deposit into the subnet, on the route's last hop
+    let toBlaze: Bool
     /// STX's row: its Standard balance pays the network fee
     let stx: TokenRow
     let account: Account
+    /// The same token from Standard to Blaze: the button says Upgrade
+    var isUpgrade = false
 
     @Environment(Vault.self) private var vault
     @Environment(\.dismiss) private var dismiss
@@ -24,11 +29,20 @@ struct SwapReviewSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                if let txid { sent(txid) } else { reviewing }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    if let txid { sent(txid) } else { reviewing }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
             }
-            .scrollContentBackground(.hidden)
             .background(Color.brand("bg"))
+            .safeAreaInset(edge: .bottom) {
+                footer
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(Color.brand("bg"))
+            }
             .navigationTitle(txid != nil ? "Swap sent" : "Review swap")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -43,58 +57,94 @@ struct SwapReviewSheet: View {
     }
 
     @ViewBuilder private var reviewing: some View {
-        Section {
-            LabeledContent {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 4) {
+                Eyebrow("You send")
                 Text(verbatim: "\(Format.amount(Int128(review.amountIn), of: from, precision: .exact)) \(Format.symbol(from))")
-                    .monoFont(.body)
-            } label: { Text("You send") }
-            LabeledContent {
-                Text(verbatim: "\(tradeAmount(review.route.amountOut, decimals: to.decimals ?? 6)) \(toSymbol)")
-                    .monoFont(.body)
-            } label: { Text("You get about") }
-            LabeledContent {
-                Text(verbatim: "\(tradeAmount(Double(review.minimumOut), decimals: to.decimals ?? 6)) \(toSymbol)")
-                    .monoFont(.body)
-            } label: { Text("At least") }
-            LabeledContent {
-                Text(review.route.path.map { $0.symbol ?? $0.contractId }.joined(separator: " → "))
-                    .monoFont(.caption)
-                    .multilineTextAlignment(.trailing)
-            } label: { Text("Route") }
-            LabeledContent { Text(verbatim: "\(Format.stx(Int128(review.fee))) STX").monoFont(.body) } label: { Text("Network fee") }
-            LabeledContent { Text("Every pool is on Charisma's vault list").foregroundStyle(.brand("success")) } label: { Text("Safety") }
-        }
-        Section {
-            ErrorText(error: error, row: from)
-            Button {
-                Task { await send() }
-            } label: {
-                if busy { ProgressView() } else { Text("Swap") }
+                    .monoFont(size: 30, relativeTo: .title)
+                    .tracking(-0.8)
             }
-            .disabled(busy)
-            if signed != nil, error != nil {
-                // It may be on the network even though no answer came back: the explorer shows whether it is
+            VStack(alignment: .leading, spacing: 4) {
+                Eyebrow("You get about")
+                Text(verbatim: "\(tradeAmount(review.route.amountOut, decimals: to.decimals ?? 6)) \(toSymbol)")
+                    .monoFont(size: 30, relativeTo: .title)
+                    .tracking(-0.8)
+                    .foregroundStyle(toBlaze ? AnyShapeStyle(Theme.blazeText) : AnyShapeStyle(Color.brand("ink")))
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 20)
+        .padding(.bottom, 14)
+        DetailRow(label: "At least") {
+            Text(verbatim: "\(tradeAmount(Double(review.minimumOut), decimals: to.decimals ?? 6)) \(toSymbol)").monoFont(.subheadline)
+        }
+        DetailRow(label: "Route") {
+            Text(verbatim: review.route.path.filter { !BlazeOrder.subnets.contains($0.contractId) }.map { $0.symbol ?? $0.contractId }.joined(separator: " → "))
+                .monoFont(.footnote)
+        }
+        DetailRow(label: "Networks") {
+            HStack(spacing: 4) {
+                Text("Standard")
+                Text(verbatim: "→")
+                if toBlaze { Text("Blaze").foregroundStyle(Theme.blazeText) } else { Text("Standard") }
+            }
+            .brandFont(.subheadline, weight: .semibold)
+        }
+        DetailRow(label: "Network fee") {
+            Text(verbatim: "\(Format.stx(Int128(review.fee))) STX").monoFont(.subheadline)
+        }
+        DetailRow(label: "Safety") {
+            Text("Every pool is on Charisma's vault list").brandFont(.subheadline, weight: .semibold).foregroundStyle(.brand("success"))
+        }
+        if let signed, error != nil {
+            // It may be on the network even though no answer came back: the explorer shows whether it is
+            VStack(alignment: .leading, spacing: 8) {
                 Text("It may have gone through already. Check the explorer before you swap again.")
                     .brandFont(.footnote)
-                    .foregroundStyle(.brand("ink-muted"))
-                if let signed {
-                    Link(destination: Format.explorer(signed.txid)) {
-                        Label("View on explorer", systemImage: "arrow.up.right.square")
-                    }
+                    .foregroundStyle(.brand("warning"))
+                Link(destination: Format.explorer(signed.txid)) {
+                    Label("View on explorer", systemImage: "arrow.up.right")
                 }
+                .brandFont(.subheadline, weight: .bold)
+                .foregroundStyle(.brand("accent-text"))
             }
+            .padding(.top, 16)
         }
     }
 
     @ViewBuilder private func sent(_ txid: String) -> some View {
-        Section {
-            Text("It confirms on Stacks in a few minutes.")
+        VStack(alignment: .leading, spacing: 12) {
+            Image(systemName: "checkmark.circle.fill").font(.system(size: 40)).foregroundStyle(.brand("success"))
+            Text("It confirms on Stacks in a few minutes.").brandFont(.body)
             Link(destination: Format.explorer(txid)) {
-                Label("View on explorer", systemImage: "arrow.up.right.square")
+                Label("View on explorer", systemImage: "arrow.up.right")
             }
+            .brandFont(.subheadline, weight: .bold)
+            .foregroundStyle(.brand("accent-text"))
         }
-        Section {
-            Button("Done") { dismiss() }
+        .padding(.top, 28)
+    }
+
+    @ViewBuilder private var footer: some View {
+        VStack(spacing: 10) {
+            ErrorText(error: error, row: from)
+            if txid != nil {
+                Button("Done") { dismiss() }.buttonStyle(PrimaryButtonStyle())
+            } else {
+                Button {
+                    Task { await send() }
+                } label: {
+                    if busy {
+                        ProgressView().tint(.white)
+                    } else if isUpgrade {
+                        Text("Upgrade")
+                    } else {
+                        Text("Swap")
+                    }
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(busy)
+            }
         }
     }
 

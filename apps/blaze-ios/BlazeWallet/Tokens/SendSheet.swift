@@ -25,12 +25,21 @@ struct SendSheet: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                if let txid { sent(txid) } else if let review { reviewing(review) } else { form }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    if let txid { sent(txid) } else if let review { reviewing(review) } else { form }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
             }
-            .scrollContentBackground(.hidden)
             .scrollDismissesKeyboard(.interactively)
             .background(Color.brand("bg"))
+            .safeAreaInset(edge: .bottom) {
+                footer
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 12)
+                    .background(Color.brand("bg"))
+            }
             .navigationTitle(txid != nil ? "\(Format.symbol(row)) sent" : "Send \(Format.symbol(row))")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -50,93 +59,125 @@ struct SendSheet: View {
     }
 
     @ViewBuilder private var form: some View {
-        Section("Recipient") {
-            TextField(text: $recipient, prompt: Text(verbatim: "SP…")) { EmptyView() }
-                // Contract names are case-sensitive: capitalizing one changes the address
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .monoFont(.callout)
+        SectionHeading("Recipient")
+        TextField(text: $recipient, prompt: Text(verbatim: "SP…")) { EmptyView() }
+            // Contract names are case-sensitive: capitalizing one changes the address
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .monoFont(.callout)
+            .padding(.vertical, 12)
+            .overlay(alignment: .bottom) { Hairline(strong: true) }
+        SectionHeading("Amount")
+        HStack(alignment: .firstTextBaseline) {
+            TextField("0" + Amount.decimalMark(.current) + "0 " + Format.symbol(row), text: $amount)
+                .focused($amountFocused)
+                .keyboardType(.decimalPad)
+                .monoFont(size: 28, relativeTo: .title)
+            Button("Max") {
+                if let meta = row.meta { amount = Amount.editable(max(row.standard, 0), decimals: meta.decimals, locale: .current) }
+            }
+            .monoFont(.footnote, weight: .medium)
+            .foregroundStyle(.brand("accent-text"))
         }
-        Section("Amount") {
-            HStack {
-                TextField("0" + Amount.decimalMark(.current) + "0 " + Format.symbol(row), text: $amount)
-                    .focused($amountFocused)
-                    .keyboardType(.decimalPad)
-                    .monoFont(.body)
-                Button("Max") {
-                    if let meta = row.meta { amount = Amount.editable(max(row.standard, 0), decimals: meta.decimals, locale: .current) }
-                }
-                .buttonStyle(.bordered)
-            }
-            if row.blaze != 0 {
-                Text("Sends use your \(Format.amount(row.standard, of: row, precision: .cut(6))) \(Format.symbol(row)) on Standard. Your \(Format.amount(row.blaze, of: row, precision: .cut(6))) on Blaze stays in its subnet; move it with Charisma Swap.")
-                    .brandFont(.footnote)
-                    .foregroundStyle(.brand("ink-muted"))
-            }
+        .padding(.vertical, 8)
+        .overlay(alignment: .bottom) { Hairline(strong: true) }
+        if row.blaze != 0 {
+            Text("Sends use your \(Format.amount(row.standard, of: row, precision: .cut(6))) \(Format.symbol(row)) on Standard. Your \(Format.amount(row.blaze, of: row, precision: .cut(6))) on Blaze stays in its subnet; move it with Charisma Swap.")
+                .brandFont(.footnote)
+                .foregroundStyle(.brand("ink-muted"))
+                .padding(.top, 12)
         }
-        Section {
-            ErrorText(error: error, row: row)
-            if case .notEnoughSTXForFee(_, _, let most?)? = error as? WalletError, most > 0 {
-                Button("Send the most: \(Format.stx(most)) STX") {
-                    amount = Amount.editable(most, decimals: 6, locale: .current)
-                    error = nil
-                }
+        if case .notEnoughSTXForFee(_, _, let most?)? = error as? WalletError, most > 0 {
+            Button("Send the most: \(Format.stx(most)) STX") {
+                amount = Amount.editable(most, decimals: 6, locale: .current)
+                error = nil
             }
-            Button {
-                Task { await check() }
-            } label: {
-                if busy { ProgressView() } else { Text("Review") }
-            }
-            .disabled(busy || recipient.isEmpty || amount.isEmpty)
+            .brandFont(.subheadline, weight: .bold)
+            .foregroundStyle(.brand("accent-text"))
+            .padding(.top, 12)
         }
     }
 
     @ViewBuilder private func reviewing(_ review: SendReview) -> some View {
-        Section {
-            LabeledContent { Text(verbatim: "\(Format.amount(review.amount, of: row, precision: .exact)) \(Format.symbol(row))").monoFont(.body) } label: { Text("Send") }
-            LabeledContent { Text(review.recipient.description).monoFont(.caption).multilineTextAlignment(.trailing) } label: { Text("To") }
-            LabeledContent { Text(verbatim: "\(Format.stx(review.fee)) STX").monoFont(.body) } label: { Text("Network fee") }
-            if !row.isSTX {
-                LabeledContent { Text("Exactly this amount, nothing else").foregroundStyle(.brand("success")) } label: { Text("Safety") }
+        VStack(alignment: .leading, spacing: 4) {
+            Eyebrow("Send")
+            Text(verbatim: "\(Format.amount(review.amount, of: row, precision: .exact)) \(Format.symbol(row))")
+                .monoFont(size: 30, relativeTo: .title)
+                .tracking(-0.8)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 20)
+        .padding(.bottom, 14)
+        DetailRow(label: "To") {
+            Text(verbatim: review.recipient.description).monoFont(.caption)
+        }
+        DetailRow(label: "Network fee") {
+            Text(verbatim: "\(Format.stx(review.fee)) STX").monoFont(.subheadline)
+        }
+        if !row.isSTX {
+            DetailRow(label: "Safety") {
+                Text("Exactly this amount, nothing else").brandFont(.subheadline, weight: .semibold).foregroundStyle(.brand("success"))
             }
         }
-        Section {
-            ErrorText(error: error, row: row)
-            Button {
-                Task { await send(review) }
-            } label: {
-                if busy { ProgressView() } else { Text("Send") }
-            }
-            .disabled(busy)
-            if let signed {
-                // It may be on the network even though no answer came back: the explorer shows whether it is
-                if error != nil {
-                    Text("It may have gone through already. Check the explorer before you send again.")
-                        .brandFont(.footnote)
-                        .foregroundStyle(.brand("ink-muted"))
-                    Link(destination: Format.explorer(signed.txid)) {
-                        Label("View on explorer", systemImage: "arrow.up.right.square")
-                    }
+        if let signed, error != nil {
+            // It may be on the network even though no answer came back: the explorer shows whether it is
+            VStack(alignment: .leading, spacing: 8) {
+                Text("It may have gone through already. Check the explorer before you send again.")
+                    .brandFont(.footnote)
+                    .foregroundStyle(.brand("warning"))
+                Link(destination: Format.explorer(signed.txid)) {
+                    Label("View on explorer", systemImage: "arrow.up.right")
                 }
-            } else {
-                Button("Back") {
-                    error = nil
-                    self.review = nil
-                }
-                .disabled(busy)
+                .brandFont(.subheadline, weight: .bold)
+                .foregroundStyle(.brand("accent-text"))
             }
+            .padding(.top, 16)
         }
     }
 
     @ViewBuilder private func sent(_ txid: String) -> some View {
-        Section {
-            Text("It confirms on Stacks in a few minutes.")
+        VStack(alignment: .leading, spacing: 12) {
+            Image(systemName: "checkmark.circle.fill").font(.system(size: 40)).foregroundStyle(.brand("success"))
+            Text("It confirms on Stacks in a few minutes.").brandFont(.body)
             Link(destination: Format.explorer(txid)) {
-                Label("View on explorer", systemImage: "arrow.up.right.square")
+                Label("View on explorer", systemImage: "arrow.up.right")
             }
+            .brandFont(.subheadline, weight: .bold)
+            .foregroundStyle(.brand("accent-text"))
         }
-        Section {
-            Button("Done") { dismiss() }
+        .padding(.top, 28)
+    }
+
+    @ViewBuilder private var footer: some View {
+        VStack(spacing: 10) {
+            ErrorText(error: error, row: row)
+            if txid != nil {
+                Button("Done") { dismiss() }.buttonStyle(PrimaryButtonStyle())
+            } else if let review {
+                Button {
+                    Task { await send(review) }
+                } label: {
+                    if busy { ProgressView().tint(.white) } else { Text("Send") }
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(busy)
+                if signed == nil {
+                    Button("Back") {
+                        error = nil
+                        self.review = nil
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
+                    .disabled(busy)
+                }
+            } else {
+                Button {
+                    Task { await check() }
+                } label: {
+                    if busy { ProgressView().tint(.white) } else { Text("Review") }
+                }
+                .buttonStyle(PrimaryButtonStyle())
+                .disabled(busy || recipient.isEmpty || amount.isEmpty)
+            }
         }
     }
 

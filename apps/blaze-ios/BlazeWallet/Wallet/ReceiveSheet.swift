@@ -18,10 +18,10 @@ struct ReceiveSheet: View {
                         .padding(16)
                         .background(.white, in: RoundedRectangle(cornerRadius: 16))
                 }
-                Text(address).monoFont(.callout).multilineTextAlignment(.center).textSelection(.enabled)
-                HStack(spacing: 16) {
-                    CopyButton(text: address).buttonStyle(.bordered)
-                    ShareLink(item: address).buttonStyle(.bordered)
+                Text(verbatim: address).monoFont(.callout).multilineTextAlignment(.center).textSelection(.enabled)
+                HStack(spacing: 10) {
+                    CopyButton(text: address).buttonStyle(SecondaryButtonStyle())
+                    ShareLink(item: address).buttonStyle(SecondaryButtonStyle())
                 }
                 Text("Send only Stacks (STX) and Stacks tokens to this address.")
                     .brandFont(.footnote)

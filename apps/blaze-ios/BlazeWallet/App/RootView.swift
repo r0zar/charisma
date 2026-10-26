@@ -46,14 +46,32 @@ struct MainView: View {
     @Environment(Vault.self) private var vault
     /// Kept for the whole unlock (MainView goes away on lock), so Status doesn't check again on every tab switch
     @State private var status = StatusModel()
+    @State private var tab = AppTab.wallet
+    /// What the home's Trade and Blaze actions ask Trade to set up
+    @State private var tradeIntent: TradeIntent?
+
+    private enum AppTab: Hashable {
+        case wallet, trade, status
+    }
 
     var body: some View {
         if let account = vault.state?.activeAccount {
-            TabView {
-                Tab("Wallet", systemImage: "wallet.bifold") { HomeView(account: account).id(account.id) }
-                Tab("Trade", systemImage: "arrow.left.arrow.right") { TradeView(account: account).id(account.id) }
-                Tab("Status", systemImage: "waveform.path.ecg") { StatusTab(account: account, model: status).id(account.id) }
+            TabView(selection: $tab) {
+                Tab("Wallet", systemImage: "wallet.bifold", value: AppTab.wallet) {
+                    HomeView(account: account) { toBlaze in
+                        tradeIntent = toBlaze ? .moveToBlaze : nil
+                        tab = .trade
+                    }
+                    .id(account.id)
+                }
+                Tab("Trade", systemImage: "arrow.left.arrow.right", value: AppTab.trade) {
+                    TradeView(account: account, intent: $tradeIntent).id(account.id)
+                }
+                Tab("Status", systemImage: "waveform.path.ecg", value: AppTab.status) {
+                    StatusTab(account: account, model: status).id(account.id)
+                }
             }
+            .tint(Color.brand("accent-text"))
         } else {
             WalletTab()
         }

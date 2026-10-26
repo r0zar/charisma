@@ -20,57 +20,69 @@ struct StatusTab: View {
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    HStack {
-                        if let checkedAt = diagnostics?.checkedAt {
-                            Text("Checked at \(checkedAt.formatted(date: .omitted, time: .shortened))")
-                        } else if model.checking {
-                            Text("Checking…")
-                        }
-                        Spacer()
-                        Button {
-                            Task { await model.check(address: account.stxAddress) }
-                        } label: {
-                            if model.checking { ProgressView() } else { Label("Check again", systemImage: "arrow.clockwise") }
-                        }
-                        .disabled(model.checking)
-                    }
-                    .brandFont(.footnote)
-                    .foregroundStyle(.brand("ink-muted"))
-                }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                header
                 if let error = model.error {
-                    Section("Something isn't working") { ErrorText(error: error) }
+                    heading("Something isn't working") { EmptyView() }
+                    ErrorText(error: error).padding(.vertical, 8)
                 }
                 networkSection
                 tokenListSection
                 subnetsSection
                 walletSection
             }
-            .scrollContentBackground(.hidden)
-            .background(Color.brand("bg"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { LockButton() }
-            .task {
-                // Each check is ~38 Hiro reads: once per unlock and every 5 minutes while open, not on every visit
-                while !Task.isCancelled {
-                    // Five minutes from the last attempt, failed or not: offline or rate-limited, it never spins
-                    if model.attemptedFor == account.stxAddress, let attemptedAt = model.attemptedAt,
-                       -attemptedAt.timeIntervalSinceNow < Self.interval {
-                        guard (try? await Task.sleep(for: .seconds(Self.interval + attemptedAt.timeIntervalSinceNow))) != nil else { return }
-                        // "Check again" may have run meanwhile: measure from the latest attempt
-                        continue
-                    }
-                    if model.checking {
-                        // "Check again" is running, maybe for the account shown before: look again in a moment
-                        guard (try? await Task.sleep(for: .seconds(1))) != nil else { return }
-                        continue
-                    }
-                    await model.check(address: account.stxAddress)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+        .scrollIndicators(.hidden)
+        .background(Color.brand("bg"))
+        .ledgerTabBar()
+        .task {
+            // Each check is ~38 Hiro reads: once per unlock and every 5 minutes while open, not on every visit
+            while !Task.isCancelled {
+                // Five minutes from the last attempt, failed or not: offline or rate-limited, it never spins
+                if model.attemptedFor == account.stxAddress, let attemptedAt = model.attemptedAt,
+                   -attemptedAt.timeIntervalSinceNow < Self.interval {
+                    guard (try? await Task.sleep(for: .seconds(Self.interval + attemptedAt.timeIntervalSinceNow))) != nil else { return }
+                    // "Check again" may have run meanwhile: measure from the latest attempt
+                    continue
                 }
+                if model.checking {
+                    // "Check again" is running, maybe for the account shown before: look again in a moment
+                    guard (try? await Task.sleep(for: .seconds(1))) != nil else { return }
+                    continue
+                }
+                await model.check(address: account.stxAddress)
             }
         }
+    }
+
+    /// When it was checked, Check again, and Lock
+    private var header: some View {
+        HStack(spacing: 12) {
+            Group {
+                if let checkedAt = diagnostics?.checkedAt {
+                    Text("Checked at \(checkedAt.formatted(date: .omitted, time: .shortened))")
+                } else if model.checking {
+                    Text("Checking…")
+                }
+            }
+            .monoFont(.caption)
+            .foregroundStyle(.brand("ink-muted"))
+            Spacer()
+            Button {
+                Task { await model.check(address: account.stxAddress) }
+            } label: {
+                if model.checking { ProgressView() } else { Label("Check again", systemImage: "arrow.clockwise") }
+            }
+            .brandFont(.subheadline, weight: .bold)
+            .foregroundStyle(.brand("accent-text"))
+            .disabled(model.checking)
+            IconButton(systemImage: "lock", label: "Lock") { vault.lock() }
+                .padding(.trailing, -8)
+        }
+        .padding(.top, 8)
     }
 
     /// The network's state; nothing before the first check has started
@@ -80,65 +92,86 @@ struct StatusTab: View {
         return model.checking ? ("Checking", "warning") : nil
     }
 
-    @ViewBuilder private var networkSection: some View {
-        Section {
-            LabeledContent { Text(diagnostics.map { $0.blockHeight.formatted() } ?? "—").monoFont(.body) } label: { Text("Block") }
-            if let diagnostics = diagnostics { Speed(latency: diagnostics.networkLatency) }
-        } header: {
-            HStack {
-                Text("Stacks network")
-                Spacer()
-                if let state { Text(state.text).foregroundStyle(.brand(state.tone)) }
-            }
+    private func heading<Trailing: View>(_ title: LocalizedStringKey, @ViewBuilder trailing: () -> Trailing) -> some View {
+        HStack(alignment: .lastTextBaseline) {
+            Eyebrow(title)
+            Spacer()
+            trailing()
         }
+        .padding(.top, 26)
+        .padding(.bottom, 4)
+    }
+
+    @ViewBuilder private var networkSection: some View {
+        heading("Stacks network") {
+            if let state { Text(state.text).monoFont(.caption, weight: .medium).foregroundStyle(.brand(state.tone)) }
+        }
+        DetailRow(label: "Block") {
+            Text(verbatim: diagnostics.map { $0.blockHeight.formatted() } ?? "—").monoFont(.subheadline)
+        }
+        if let diagnostics { Speed(latency: diagnostics.networkLatency) }
     }
 
     @ViewBuilder private var tokenListSection: some View {
-        Section("Charisma token list") {
-            LabeledContent { Text(diagnostics.map { $0.tokenCount.formatted() } ?? "—").monoFont(.body) } label: { Text("Tokens") }
-            if let diagnostics = diagnostics { Speed(latency: diagnostics.tokenListLatency) }
+        heading("Charisma token list") { EmptyView() }
+        DetailRow(label: "Tokens") {
+            Text(verbatim: diagnostics.map { $0.tokenCount.formatted() } ?? "—").monoFont(.subheadline)
         }
+        if let diagnostics { Speed(latency: diagnostics.tokenListLatency) }
     }
 
     @ViewBuilder private var subnetsSection: some View {
         let held: [SubnetBalance] = (diagnostics?.subnets ?? []).filter { ($0.balance ?? 0) != 0 }
-        Section {
-            LabeledContent { Text(diagnostics == nil ? "—" : held.count.formatted()).monoFont(.body) } label: { Text("Holding your funds") }
-            if let diagnostics = diagnostics {
-                if held.isEmpty {
-                    Text("No funds on any of the \(diagnostics.subnets.count) subnets.").foregroundStyle(.brand("ink-muted"))
-                }
-                ForEach(held) { subnet in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(subnet.symbol).brandFont(.body, weight: .semibold)
-                            Text(subnet.contractId.split(separator: ".").last.map(String.init) ?? subnet.contractId)
-                                .brandFont(.caption).foregroundStyle(.brand("ink-muted"))
-                        }
-                        Spacer()
-                        Text(Amount.format(subnet.balance ?? 0, decimals: subnet.decimals, precision: .rounded(4), locale: .current)).monoFont(.body)
-                    }
-                }
+        heading("Blaze subnets") {
+            if let count = diagnostics?.subnets.count { Text(verbatim: count.formatted()).monoFont(.caption).foregroundStyle(.brand("ink-muted")) }
+        }
+        DetailRow(label: "Holding your funds") {
+            Text(verbatim: diagnostics == nil ? "—" : held.count.formatted()).monoFont(.subheadline)
+        }
+        if let diagnostics {
+            if held.isEmpty {
+                Text("No funds on any of the \(diagnostics.subnets.count) subnets.")
+                    .brandFont(.footnote)
+                    .foregroundStyle(.brand("ink-muted"))
+                    .padding(.vertical, 12)
             }
-        } header: {
-            HStack {
-                Text("Blaze subnets")
-                Spacer()
-                if let count = diagnostics?.subnets.count { Text(count.formatted()) }
+            ForEach(held) { subnet in
+                HStack(spacing: 10) {
+                    Image(systemName: "flame.fill").font(.system(size: 12, weight: .bold)).foregroundStyle(Theme.blaze)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(verbatim: subnet.symbol).brandFont(.callout, weight: .bold)
+                        Text(verbatim: subnet.contractId.split(separator: ".").last.map(String.init) ?? subnet.contractId)
+                            .monoFont(.caption)
+                            .foregroundStyle(.brand("ink-muted"))
+                    }
+                    Spacer()
+                    Text(verbatim: Amount.format(subnet.balance ?? 0, decimals: subnet.decimals, precision: .rounded(4), locale: .current))
+                        .monoFont(.subheadline)
+                }
+                .padding(.vertical, 10)
+                .overlay(alignment: .bottom) { Hairline() }
             }
         }
     }
 
     @ViewBuilder private var walletSection: some View {
-        Section("This wallet") {
-            LabeledContent { Text(Format.short(account.stxAddress)).monoFont(.body) } label: { Text("Address") }
-            TimelineView(.periodic(from: .now, by: 30)) { context in
-                let minutes = vault.locksAt.map { max(0, Int(($0.timeIntervalSince(context.date) / 60).rounded(.up))) }
-                VStack(alignment: .leading, spacing: 6) {
-                    LabeledContent {
+        heading("This wallet") { EmptyView() }
+        DetailRow(label: "Address") {
+            Text(verbatim: Format.short(account.stxAddress)).monoFont(.subheadline)
+        }
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            let minutes = vault.locksAt.map { max(0, Int(($0.timeIntervalSince(context.date) / 60).rounded(.up))) }
+            VStack(spacing: 0) {
+                DetailRow(label: "Auto-lock") {
+                    Group {
                         if let minutes { Text("In \(minutes) min") } else { Text(verbatim: "—") }
-                    } label: { Text("Auto-lock") }
-                    if let minutes { ProgressView(value: Double(minutes), total: 15) }
+                    }
+                    .monoFont(.subheadline)
+                }
+                if let minutes {
+                    ProgressView(value: Double(minutes), total: 15)
+                        .tint(Color.brand("accent-text"))
+                        .padding(.vertical, 10)
                 }
             }
         }
@@ -152,9 +185,13 @@ private struct Speed: View {
     var body: some View {
         let ms = Int(latency / .milliseconds(1))
         let tone = ms < 600 ? "success" : ms < 1500 ? "warning" : "danger"
-        VStack(alignment: .leading, spacing: 6) {
-            LabeledContent { Text(verbatim: "\(ms.formatted()) ms").monoFont(.body).foregroundStyle(.brand(tone)) } label: { Text("Response") }
-            ProgressView(value: max(4, min(100, 100 - Double(ms) / 20)), total: 100).tint(.brand(tone))
+        VStack(spacing: 0) {
+            DetailRow(label: "Response") {
+                Text(verbatim: "\(ms.formatted()) ms").monoFont(.subheadline).foregroundStyle(.brand(tone))
+            }
+            ProgressView(value: max(4, min(100, 100 - Double(ms) / 20)), total: 100)
+                .tint(.brand(tone))
+                .padding(.vertical, 10)
         }
     }
 }
