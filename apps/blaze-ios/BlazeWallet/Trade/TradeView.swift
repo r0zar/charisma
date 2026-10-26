@@ -19,6 +19,7 @@ struct TradeView: View {
     @State private var review: Swap.Review?
     @State private var preparing = false
     @State private var reviewError: Error?
+    @FocusState private var amountFocused: Bool
 
     private enum Style: String, CaseIterable, Identifiable {
         case swap = "Swap"
@@ -80,9 +81,16 @@ struct TradeView: View {
                 }
             }
             .scrollContentBackground(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             .background(Color.brand("bg"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { LockButton() }
+            .toolbar {
+                LockButton()
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { amountFocused = false }
+                }
+            }
             .refreshable {
                 await holdings.load()
                 await model.loadTokens()
@@ -120,6 +128,7 @@ struct TradeView: View {
                     tokenButton(fromRow.map { Format.symbol($0) }, image: fromRow?.meta?.image)
                 }
                 TextField("0" + Amount.decimalMark(.current) + "0", text: $amountText)
+                    .focused($amountFocused)
                     .keyboardType(.decimalPad)
                     .multilineTextAlignment(.trailing)
                     .monoFont(.title3)
