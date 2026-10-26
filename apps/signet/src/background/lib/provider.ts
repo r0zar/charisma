@@ -19,6 +19,7 @@ import {
 import * as wallet from "./wallet"
 import { hiroClient } from "./hiro"
 import { WalletError, toWire } from "./wallet-error"
+import { blazeDomain, isSwapOrder } from "./blaze-orders"
 
 /** JSON-RPC error codes used by @stacks/connect */
 const MethodNotFound = -32601
@@ -43,28 +44,8 @@ const pending = new Map<string, Pending>()
 /** Most orders one bulk approval may sign (a year of hourly buys is under 9,000) */
 const MAX_BULK = 10_000
 
-/**
- * The Blaze protocol's SIP-018 domains, serialized: blaze-sdk's BLAZE_V1_DOMAIN and BLAZE_V2_DOMAIN. Written out
- * here because blaze-sdk's entry pulls in @stacks/connect, which a service worker can't load.
- */
-const blazeDomain = (version: string) => Cl.serialize(Cl.tuple({ name: Cl.stringAscii("BLAZE_PROTOCOL"), version: Cl.stringAscii(version), "chain-id": Cl.uint(1) }))
-const BLAZE_DOMAINS = [blazeDomain("v1.0"), blazeDomain("v2.0")]
-
-/** blaze-sdk's SIGNER_ONLY_ROUTERS (x-multihop-v2, x-multihop-v1): they pay out only to whoever signed the order */
-const SIGNER_ONLY_ROUTERS = [
-  "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v2",
-  "SP2ZNGJ85ENDY6QRHQ5P2D4FXKGZWCKTB2T0Z55KS.x-multihop-v1"
-]
-
-/** A swap order, as blaze-sdk's signTriggeredSwaps makes them: an amount, spent only through a router that pays the signer */
-function isSwapOrder(message: ClarityValue) {
-  if (message.type !== "tuple") return false
-  const { intent, opcode, amount, target } = message.value
-  return intent?.type === "ascii" && intent.value === "TRANSFER_TOKENS"
-    && opcode?.type === "none"
-    && amount?.type === "some" && amount.value.type === "uint"
-    && target?.type === "some" && target.value.type === "contract" && SIGNER_ONLY_ROUTERS.includes(target.value.value)
-}
+/** The Blaze domains (v1 and v2), serialized, as blaze-sdk's signTriggeredSwaps sends them */
+const BLAZE_DOMAINS = [blazeDomain("v1.0"), blazeDomain("v2.0")].map(domain => Cl.serialize(domain))
 
 const CONNECT_METHODS = ["getAddresses", "stx_getAddresses", "wallet_connect"]
 const TX_METHODS = ["stx_transferStx", "stx_callContract"]

@@ -1110,5 +1110,45 @@
   "errorVaultList": {
     "message": "La lista de bóvedas de Charisma no respondió (HTTP $1), así que no se pueden comprobar los tokens que el enrutador alcanza.",
     "description": "Shown when the vault list can't load, so swap tokens can't be checked; $1 is the HTTP status"
+  },
+  "tradeStandard": {
+    "message": "Estándar",
+    "description": "Trade side: the balance on Stacks"
+  },
+  "tradeBlaze": {
+    "message": "Blaze",
+    "description": "Trade side: the balance on the Blaze subnet"
+  },
+  "tradeNetworks": {
+    "message": "Redes",
+    "description": "Review row: the network each side uses, as 'Standard → Blaze'"
+  },
+  "tradeBlazeNeedsFrom": {
+    "message": "Primero elige Blaze en De",
+    "description": "Tooltip on the disabled Blaze choice for To: a Blaze To needs a Blaze From"
+  },
+  "tradeOrderNote": {
+    "message": "Un solver lo ejecuta en aproximadamente un minuto. Las órdenes de Blaze no tienen mínimo, así que el precio puede cambiar antes de ejecutarse.",
+    "description": "Review row: what a Blaze order promises, and what it doesn't"
+  },
+  "tradeOrderNoFee": {
+    "message": "Ninguna",
+    "description": "Review row: a Blaze order has no network fee"
+  },
+  "tradePlaceOrder": {
+    "message": "Crear orden",
+    "description": "Button: sends the signed Blaze order"
+  },
+  "tradeOrderPlaced": {
+    "message": "Orden creada",
+    "description": "Card title after a Blaze order is accepted"
+  },
+  "tradeOrderSent": {
+    "message": "Un solver lo ejecuta en aproximadamente un minuto.",
+    "description": "Card text after a Blaze order is accepted"
+  },
+  "tradeOverBalance": {
+    "message": "Más que tu saldo",
+    "description": "Under the From amount when it's more than the chosen side holds; Review stays off"
   }
 }
