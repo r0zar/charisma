@@ -364,8 +364,11 @@ export async function cancelOtherExits(order: LimitOrder): Promise<void> {
 
 export async function processOpenOrders(): Promise<string[]> {
     console.log('Starting processOpenOrders job');
-    const openOrders = (await listOrders()).filter((o) => o.status === 'open');
-    console.log({ orderCount: openOrders.length }, `Found ${openOrders.length} open orders to process.`);
+    // Orders scheduled for later (like the upcoming buys of a DCA) are skipped here, before any lock or KV call
+    const runStart = Date.now();
+    const openOrders = (await listOrders()).filter((o) =>
+        o.status === 'open' && !(o.validFrom && Date.parse(o.validFrom) > runStart));
+    console.log({ orderCount: openOrders.length }, `Found ${openOrders.length} open orders due to process.`);
     const filled: string[] = [];
 
     for (const order of openOrders) {
@@ -396,15 +399,7 @@ export async function processOpenOrders(): Promise<string[]> {
             continue;
         }
 
-        const validFromMs = order.validFrom ? Date.parse(order.validFrom) : undefined;
         const validToMs = order.validTo ? Date.parse(order.validTo) : undefined;
-
-        // If order is not yet active
-        if (validFromMs !== undefined && now < validFromMs) {
-            console.log({ orderUuid: order.uuid, validFrom: order.validFrom }, 'Order not yet within execution window. Releasing lock.');
-            await releaseLock(order.uuid);
-            continue;
-        }
 
         // If order has expired
         if (validToMs !== undefined && now > validToMs) {
