@@ -150,12 +150,13 @@ export async function getActivityTimeline(options: ActivityFeedOptions = {}): Pr
       return { activities: [], total: 0, hasMore: false };
     }
     
-    // Fetch activities
+    // Fetch all activities in one HMGET instead of one HGET each
+    const records = await kv.hmget<Record<string, ActivityItem | string | null>>(ACTIVITY_HASH_KEY, ...activityIds);
     const activities: ActivityItem[] = [];
     for (const id of activityIds) {
-      const activity = await getActivity(id);
-      if (activity) {
-        activities.push(activity);
+      const raw = records?.[id];
+      if (raw) {
+        activities.push(typeof raw === 'string' ? JSON.parse(raw) : raw);
       }
     }
     
